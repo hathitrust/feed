@@ -29,8 +29,11 @@
 use strict;
 use warnings;
 use XML::LibXML;
-use XML::LibXML::XPathContext;
+#use XML::LibXML::XPathContext;
 use Getopt::Long;
+
+use HTFeed::QueryLib::JPEG2000_hul;
+use HTFeed::ModuleValidator::JPEG2000_hul;
 
 my ($dump_file, $xdump_file, $file_list_cmd, $help);
 my @namespaces;
@@ -141,7 +144,10 @@ while(<STDIN>){
 			$xpath = <STDIN>;
 			
 			@nodes = $jhove_xpc->findnodes($xpath);
-		
+			#my $nodelist = $jhove_xpc->findnodes($xpath);
+			#print ref($nodelist) . "\n";
+			#print $nodelist->size() . "\n";
+			
 			if ($#nodes + 1){
 				$hit_cnt = $#nodes + 1;
 				print "$hit_cnt hits, switching context to the 1st hit\n";
@@ -153,7 +159,7 @@ while(<STDIN>){
 			}
 		};
 		if ($@){
-			print "bad query\n";
+			print "bad query: $@\n";
 			$@ = undef;
 		}
 		
@@ -285,6 +291,31 @@ while(<STDIN>){
 		}
 		print "\n";
 		
+	}
+	elsif ($_ eq "v"){
+		print "enter a context for a repInfo and we'll validate it!\n> ";
+		$xpath = <STDIN>;
+		chomp $xpath;
+		@nodes = $jhove_xpc->findnodes($xpath);
+		unless ($#nodes == 0){
+			if($#nodes > 0){
+				print "more than one hit, be more specific\n";
+			}
+			else{
+				print "context not found\n";
+			}
+		}
+		else{
+			#my $qlib = new HTFeed::QueryLib::JPEG2000_hul;
+			my $validator = HTFeed::ModuleValidator::JPEG2000_hul->new(xpc=> $jhove_xpc,node => $nodes[0],qlib => HTFeed::QueryLib::JPEG2000_hul->new);
+			run $validator;
+			if ($validator->failed){
+				my $errors = $validator->get_errors;
+				foreach my $error (@$errors){
+					print "Error: $error\n";
+				}
+			}
+		}	
 	}
 	else{
 		print "invalid command, try 'help'\n";
