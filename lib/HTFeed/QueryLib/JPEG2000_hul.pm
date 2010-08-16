@@ -22,7 +22,7 @@ sub new{
 					# child is XMP, not treated as a context
 		},
 		queries => {
-			# CodingStyleDefault children
+			# codingStyleDefault children
 			csd_layers				=> "jhove:property[jhove:name='NumberOfLayers']/jhove:values/jhove:value",
 			csd_decompositionLevels	=> "jhove:property[jhove:name='NumberDecompositionLevels']/jhove:values/jhove:value",
 			
@@ -34,7 +34,7 @@ sub new{
 			mix_bitsPerSample	=> "mix:ImagingPerformanceAssessment/mix:Energetics/mix:BitsPerSample",
 			mix_samplesPerPixel	=> "mix:ImagingPerformanceAssessment/mix:Energetics/mix:SamplesPerPixel",
 			
-			# XMP text
+			# XMP text, child of uuidBox
 			xmp					=> "jhove:property[jhove:name='Data']/jhove:values/jhove:value",
 			
 			# XMP children
@@ -46,8 +46,29 @@ sub new{
 			xmp_orientation		=> "//tiff:Orientation",
 			xmp_samplesPerPixel	=> "//tiff:SamplesPerPixel",
 			xmp_xRes			=> "//tiff:XResolution",
-			xmp_yRes			=> "//tiff:YResolution"
+			xmp_yRes			=> "//tiff:YResolution",
 		},
+		# store data on what parent to use as context for various queries
+		parents => {
+			# context queries
+			codestream				=> "jp2Meta",
+				codingStyleDefault		=> "codestream",
+				mix						=> "codestream",
+			uuidBox					=> "jp2Meta",
+			
+			# child queries
+			csd_layers				=> "codingStyleDefault",
+			csd_decompositionLevels	=> "codingStyleDefault",
+
+			mix_mime			=> "mix",
+			mix_compression		=> "mix",
+			mix_width			=> "mix",
+			mix_length			=> "mix",
+			mix_bitsPerSample	=> "mix",
+			mix_samplesPerPixel	=> "mix",
+
+			xmp					=> "uuidBox",
+		}
 	};
 
 	bless ($self, $class);

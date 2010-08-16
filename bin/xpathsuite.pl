@@ -114,7 +114,7 @@ while(<STDIN>){
 		# do nothing
 	}
 	elsif ($_ eq "help"){
-		print "q enters query mode\nc enters context change mode\nx enters XMP xblob mode\nx2 enters XMP xblob mode 2 (special parsing for silly/unreasonable jhove output)\npwd roughly prints the current xpath";
+		print "q enters query mode\nc enters context change mode\nv runs validation\nx enters XMP xblob mode\nx2 enters XMP xblob mode 2 (special parsing for silly/unreasonable jhove output)\npwd roughly prints the current xpath";
 	}
 	elsif ($_ eq "q"){
 		print "query> ";
@@ -181,6 +181,7 @@ while(<STDIN>){
 			
 			# nuke the parser, make a new one with our xlob
 			$jhove_parser = XML::LibXML->new();
+			# make dump
 			if ( $xdump_file ){
 				open(XDUMP, ">$xdump_file");
 				print XDUMP $xlob_XML;

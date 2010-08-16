@@ -221,7 +221,6 @@ sub _findvalue{
 		}
 	}
 	
-	# just string, not nodelist
 	my $retstring;
 	# not working on special xpathcontext, act normal
 	unless($xpflag){
@@ -299,17 +298,33 @@ sub _openonecontext{
 	$self->_setcontext($cn,$node)
 }
 
-# (xpc)
-# takes an XML::LibXML::XPathContext object pointer saves to internal data structure
-sub _setcustomxpc{
+# ($xmlstring)
+# takes a string containing XML and creates a new XML::LibXML::XPathContext object with it
+# return success
+sub _setupXMPcontext{
 	my $self = shift;
-	my $xpc = shift;
-
-	unless (ref($xpc) eq "XML::LibXML::XPathContext"){
-		warn ("_setcustomxpc: invalid args");
+	my $xml = shift;
+	
+	my $xpc;
+	eval{
+		my $parser = XML::LibXML->new();
+		my $doc = $parser->parse_string($xml);
+		$xpc = new XML::LibXML::XPathContext($doc);
+		
+		# register XMP namespace
+		my $ns_xmp = "http://ns.adobe.com/tiff/1.0/";
+		$xpc->registerNs('tiff',$ns_xmp);
+		# register dc namespace
+		my $ns_dc = "http://purl.org/dc/elements/1.1/";
+		$xpc->registerNs('dc',$ns_dc);
+	};
+	if($@){
+		warn ("couldn't parse the xmp: $@");
+		return 0;
 	}
 	else{
 		$$self{customxpc} = $xpc;
+		return 1;
 	}
 }
 
