@@ -24,31 +24,21 @@ sub run{
 	
 	# open contexts
 	$self->_openonecontext("jp2Meta");
-		$self->_openonecontext("codestream","jp2Meta");
-			$self->_openonecontext("codingStyleDefault","codestream");
-			$self->_openonecontext("mix","codestream");
-		# change to allow more uuid boxes
-		$self->_openonecontext("uuidBox","jp2Meta");
+		$self->_openonecontext("codestream");
+			$self->_openonecontext("codingStyleDefault");
+			$self->_openonecontext("mix");
+		# TODO change to allow more uuid boxes
+		$self->_openonecontext("uuidBox");
 
-		print $self->_findone("csd_layers","codingStyleDefault");
-		print $self->_findone("csd_decompositionLevels","codingStyleDefault");
-
-		print $self->_findone("mix_mime","mix");
-		print $self->_findone("mix_compression","mix");
-		print $self->_findone("mix_width","mix");
-		print $self->_findone("mix_length","mix");
-		print $self->_findone("mix_bitsPerSample","mix");
-		print $self->_findone("mix_samplesPerPixel","mix");
-		
-		print $self->_findvalue("xmp","uuidBox");
-		
+	$self->_validate_expecteds();
+	
 	
 
 	if ($$self{fail}){
 		return 0;
 	}
 	else{
-		print "woohoo";
+#		print "woohoo\n";
 		return 1;
 	}
 }

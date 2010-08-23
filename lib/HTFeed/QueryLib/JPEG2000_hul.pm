@@ -22,6 +22,17 @@ sub new{
 					# child is XMP, not treated as a context
 		},
 		queries => {
+			top_format		=> "jhove:format",
+			top_status		=> "jhove:status",
+			top_module		=> "jhove:sigMatch/jhove:module",
+			top_mimeType	=> "jhove:mimeType",
+			
+			# jp2Meta children
+			meta_brand			=> "jhove:property[jhove:name='Brand']/jhove:values/jhove:value",
+			meta_minorVersion	=> "jhove:property[jhove:name='MinorVersion']/jhove:values/jhove:value",
+			meta_compatibility	=> "jhove:property[jhove:name='Compatibility']/jhove:values/jhove:value",
+			meta_colorSpace		=> "jhove:property[jhove:name='ColorSpecs']/jhove:values/jhove:property[jhove:name='ColorSpec']/jhove:values/jhove:property[jhove:name='EnumCS']/jhove:values/jhove:value",
+			
 			# codingStyleDefault children
 			csd_layers				=> "jhove:property[jhove:name='NumberOfLayers']/jhove:values/jhove:value",
 			csd_decompositionLevels	=> "jhove:property[jhove:name='NumberDecompositionLevels']/jhove:values/jhove:value",
@@ -48,6 +59,19 @@ sub new{
 			xmp_xRes			=> "//tiff:XResolution",
 			xmp_yRes			=> "//tiff:YResolution",
 		},
+		expected =>{
+			top_format		=> "JPEG 2000",
+			top_status		=> "Well-Formed and valid",
+			top_module		=> "JPEG2000-hul",
+			top_mimeType	=> "image/jp2",
+			
+			meta_brand			=> "jp2 ",
+			meta_minorVersion	=> "0",
+			meta_compatibility	=> "jp2 ",
+
+			mix_mime			=> "image/jp2",
+			mix_compression		=> "34712",
+		},
 		# store data on what parent to use as context for various queries
 		parents => {
 			# context queries
@@ -57,6 +81,11 @@ sub new{
 			uuidBox					=> "jp2Meta",
 			
 			# child queries
+			meta_brand			=> "jp2Meta",
+			meta_minorVersion	=> "jp2Meta",
+			meta_compatibility	=> "jp2Meta",
+			meta_colorSpace		=> "jp2Meta",
+						
 			csd_layers				=> "codingStyleDefault",
 			csd_decompositionLevels	=> "codingStyleDefault",
 
@@ -68,7 +97,7 @@ sub new{
 			mix_samplesPerPixel	=> "mix",
 
 			xmp					=> "uuidBox",
-		}
+		},
 	};
 
 	bless ($self, $class);

@@ -18,11 +18,11 @@ sub _compile{
 	my $self = shift;
 	
 	foreach my $key ( keys %{$self->{contexts}} ){
-		print "compiling $$self{contexts}{$key}\n";
+#		print "compiling $$self{contexts}{$key}\n";
 		$$self{contexts}{$key} = new XML::LibXML::XPathExpression($$self{contexts}{$key});
 	}
 	foreach my $key ( keys %{$self->{queries}} ){
-		print "compiling $$self{queries}{$key}\n";
+#		print "compiling $$self{queries}{$key}\n";
 		$$self{queries}{$key} = new XML::LibXML::XPathExpression($$self{queries}{$key});
 	}
 }
@@ -37,6 +37,21 @@ sub query{
 	my $self = shift;
 	my $key = shift;
 	return $$self{queries}{$key};
+}
+sub expectedkeys{
+	my $self = shift;
+	return (keys %{$self->{expected}});
+}
+sub expected{
+	my $self = shift;
+	my $key = shift;
+	return $$self{expected}{$key};
+}
+sub parent{
+	my $self = shift;
+	my $key = shift;
+	if (defined $$self{parents}{$key}){ return $$self{parents}{$key}; }
+	else {return "";}
 }
 
 1;

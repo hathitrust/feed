@@ -316,6 +316,9 @@ while(<STDIN>){
 					print "Error: $error\n";
 				}
 			}
+			else{
+				print "No errors found\n";
+			}
 		}	
 	}
 	else{
