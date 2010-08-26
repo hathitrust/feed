@@ -16,7 +16,7 @@ use constant DEBUG => 0;
 	parent class/factory for HTFeed validation plugins
 	a plugin is responsible for validating Jhove output for **one Jhove module** as well as runnging any external filetype specific validation
 
-	For general Jhove output processing see Feed::Validator
+	For general Jhove output processing see HTFeed::Validator
 =cut
 
 =synopsis
@@ -45,7 +45,6 @@ sub new{
 	# make empty object, populate with passed parameters
 	my $object = {	xpc			=> undef,	# XML::LibXML::XPathContext object
 					node 		=> undef,	# XML::LibXML::Element object, represents starting context in xpc
-#					qlib		=> undef,	# HTFeed::QueryLib::[appropriate child] object, holds our queries
 					id			=> undef,	# string, volume id
 					filename	=> undef,	# string, filename
 					@_,						# override blank placeholders with proper values
