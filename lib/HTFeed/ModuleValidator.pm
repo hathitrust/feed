@@ -45,7 +45,7 @@ sub new{
 	# make empty object, populate with passed parameters
 	my $object = {	xpc			=> undef,	# XML::LibXML::XPathContext object
 					node 		=> undef,	# XML::LibXML::Element object, represents starting context in xpc
-					qlib		=> undef,	# HTFeed::QueryLib::[appropriate child] object, holds our queries
+#					qlib		=> undef,	# HTFeed::QueryLib::[appropriate child] object, holds our queries
 					id			=> undef,	# string, volume id
 					filename	=> undef,	# string, filename
 					@_,						# override blank placeholders with proper values
@@ -54,10 +54,16 @@ sub new{
 					contexts	=> {},		# holds nodes for contexts, orthaganal to qlib{contexts}
 					customxpc	=> undef,	# a special XML::LibXML::XPathContext object for a second XML doc extracted from main doc
 					
+					qlib		=> undef,
+					
 					datetime		=> "",
 					artist			=> "",
 					documentname	=> "",					
 	};
+
+	bless ($object, $class);
+	
+	$object->_set_required_querylib();
 	
 	# make sure our new object is fully populated
 	unless ($$object{xpc} && $$object{node} && $$object{qlib} && $$object{id} && $$object{filename}){
@@ -66,12 +72,10 @@ sub new{
 	}
 	
 	# check parameters
-	unless (ref($$object{xpc}) eq "XML::LibXML::XPathContext" && ref($$object{node}) eq "XML::LibXML::Element" && ref($$object{qlib}) eq $class->_required_querylib){
+	unless (ref($$object{xpc}) eq "XML::LibXML::XPathContext" && ref($$object{node}) eq "XML::LibXML::Element"){
 		warn ("$class: invalid parameters"); 
 		return undef;
 	}
-	
-	bless ($object, $class);
 	
 	return $object;
 }

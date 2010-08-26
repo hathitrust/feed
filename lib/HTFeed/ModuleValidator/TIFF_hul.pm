@@ -3,15 +3,20 @@ package HTFeed::ModuleValidator::TIFF_hul;
 use strict;
 
 use base qw(HTFeed::ModuleValidator);
-#use HTFeed::QueryLib::TIFF_hul;
+
+require HTFeed::QueryLib::TIFF_hul;
+our $qlib = new HTFeed::QueryLib::TIFF_hul;
+##print "WE LOADED TIFF!!\n";
 
 =info
 	TIFF-hul HTFeed validation plugin
 =cut
 
-sub _required_querylib{
-	return "HTFeed::QueryLib::TIFF_hul";
+sub _set_required_querylib{
+	my $self = shift;
+	$$self{qlib} = $qlib;
 }
+
 
 sub run{
 	my $self = shift;

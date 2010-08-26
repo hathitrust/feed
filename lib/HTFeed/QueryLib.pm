@@ -23,11 +23,11 @@ sub _compile{
 	my $self = shift;
 	
 	foreach my $key ( keys %{$self->{contexts}} ){
-#		print "compiling $$self{contexts}{$key}\n";
+##		print "compiling $$self{contexts}{$key}\n";
 		$$self{contexts}{$key} = new XML::LibXML::XPathExpression($$self{contexts}{$key});
 	}
 	foreach my $key ( keys %{$self->{queries}} ){
-#		print "compiling $$self{queries}{$key}\n";
+##		print "compiling $$self{queries}{$key}\n";
 		$$self{queries}{$key} = new XML::LibXML::XPathExpression($$self{queries}{$key});
 	}
 }

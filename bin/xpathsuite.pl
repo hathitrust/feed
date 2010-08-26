@@ -24,15 +24,11 @@
 	
 =cut
 
-
-
 use strict;
 use warnings;
 use XML::LibXML;
-#use XML::LibXML::XPathContext;
 use Getopt::Long;
 
-use HTFeed::QueryLib;
 use HTFeed::ModuleValidator;
 
 my ($dump_file, $xdump_file, $file_list_cmd, $help, $xml_file_to_load);
@@ -319,7 +315,7 @@ while(<STDIN>){
 		}
 		else{
 			#my $qlib = new HTFeed::QueryLib::JPEG2000_hul;
-			my $validator = HTFeed::ModuleValidator::TIFF_hul->new(xpc=> $jhove_xpc,node => $nodes[0],id => "UOM-39015032210646",filename => "00000060.jp2",qlib => HTFeed::QueryLib::TIFF_hul->new);
+			my $validator = HTFeed::ModuleValidator::TIFF_hul->new(xpc=> $jhove_xpc,node => $nodes[0],id => "UOM-39015032210646",filename => "00000060.jp2");
 			run $validator;
 			if ($validator->failed){
 				my $errors = $validator->get_errors;

@@ -4,13 +4,19 @@ use strict;
 
 use base qw(HTFeed::ModuleValidator);
 
+require HTFeed::QueryLib::JPEG2000_hul;
+our $qlib = new HTFeed::QueryLib::JPEG2000_hul;
+##print "WE LOADED JPEG!!\n";
+
 =info
 	JPEG2000-hul HTFeed validation plugin
 =cut
 
-sub _required_querylib{
-	return "HTFeed::QueryLib::JPEG2000_hul";
+sub _set_required_querylib{
+	my $self = shift;
+	$$self{qlib} = $qlib;
 }
+
 
 sub run{
 	my $self = shift;
