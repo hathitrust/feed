@@ -3,7 +3,6 @@ package HTFeed::ModuleValidator::JPEG2000_hul;
 use strict;
 
 use base qw(HTFeed::ModuleValidator);
-#our @ISA = qw(HTFeed::ModuleValidator);
 
 =info
 	JPEG2000-hul HTFeed validation plugin

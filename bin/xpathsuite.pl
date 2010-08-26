@@ -32,8 +32,8 @@ use XML::LibXML;
 #use XML::LibXML::XPathContext;
 use Getopt::Long;
 
-use HTFeed::QueryLib::TIFF_hul;
-use HTFeed::ModuleValidator::TIFF_hul;
+use HTFeed::QueryLib;
+use HTFeed::ModuleValidator;
 
 my ($dump_file, $xdump_file, $file_list_cmd, $help, $xml_file_to_load);
 my @namespaces;

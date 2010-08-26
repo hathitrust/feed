@@ -3,6 +3,11 @@ package HTFeed::QueryLib;
 use strict;
 use XML::LibXML;
 
+#use HTFeed::QueryLib::ACSII_hul;
+use HTFeed::QueryLib::JPEG2000_hul;
+use HTFeed::QueryLib::TIFF_hul;
+#use HTFeed::QueryLib::WAVE_hul;
+
 =info
 	parent class for HTFeed query plugins
 	

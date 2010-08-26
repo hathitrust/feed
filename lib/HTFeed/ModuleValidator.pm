@@ -3,6 +3,11 @@ package HTFeed::ModuleValidator;
 use strict;
 use XML::LibXML;
 
+#use HTFeed::ModuleValidator::ACSII_hul;
+use HTFeed::ModuleValidator::JPEG2000_hul;
+use HTFeed::ModuleValidator::TIFF_hul;
+#use HTFeed::ModuleValidator::WAVE_hul;
+
 use constant DEBUG => 0;
 
 # use HTFeed::QueryLib;

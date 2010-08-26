@@ -3,7 +3,7 @@ package HTFeed::ModuleValidator::TIFF_hul;
 use strict;
 
 use base qw(HTFeed::ModuleValidator);
-#our @ISA = qw(HTFeed::ModuleValidator);
+#use HTFeed::QueryLib::TIFF_hul;
 
 =info
 	TIFF-hul HTFeed validation plugin
