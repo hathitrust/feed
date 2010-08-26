@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
 =info
-	testinq suite for xpath on jhove xml output
+	test suite for xpath on jhove xml output
 =cut
 
 
@@ -32,19 +32,20 @@ use XML::LibXML;
 #use XML::LibXML::XPathContext;
 use Getopt::Long;
 
-use HTFeed::QueryLib::JPEG2000_hul;
-use HTFeed::ModuleValidator::JPEG2000_hul;
+use HTFeed::QueryLib::TIFF_hul;
+use HTFeed::ModuleValidator::TIFF_hul;
 
-my ($dump_file, $xdump_file, $file_list_cmd, $help);
+my ($dump_file, $xdump_file, $file_list_cmd, $help, $xml_file_to_load);
 my @namespaces;
 
 my $x_mode_entered = 0;
 
-GetOptions (	"dump=s" =>	\$dump_file,
-				"xdump=s" => \$xdump_file,
-				"list=s" =>	\$file_list_cmd,
-				"ns=s" =>	\@namespaces,	
-				"help" =>	\$help			);
+GetOptions (	"dump=s" =>		\$dump_file,
+				"xdump=s" =>	\$xdump_file,
+				"list=s" =>		\$file_list_cmd,
+				"load=s" =>		\$xml_file_to_load,
+				"ns=s" =>		\@namespaces,	
+				"help" =>		\$help					);
 						
 #print "Dump = $dump_file\nList = $file_list_cmd\n";
 #
@@ -55,35 +56,45 @@ GetOptions (	"dump=s" =>	\$dump_file,
 
 if ($help){
 	
-	print "useage:\nxpathsuite -list 'command to list infiles' [-dump dump.xml] [-xdump xdump.xml] [-ns mix:http://www.loc.gov/mix/]\n";
+	print "useage:\n";
+	print "xpathsuite -list 'command to list infiles' [-dump dump.xml] [-xdump xdump.xml] [-ns mix:http://www.loc.gov/mix/]\n";
+	print "xpathsuite -load dump.xml [-xdump xdump.xml] [-ns mix:http://www.loc.gov/mix/]\n";
 	exit 0;
 	
 }
 
-if ( ! $file_list_cmd ){ 
-	print "list feild required, try -help flag\n"; 
+unless ( $file_list_cmd xor $xml_file_to_load ){ 
+	print "list xor load field required, try -help flag\n"; 
 	exit 0;
 }
 
+my $jhove_XML;
+if ($file_list_cmd){
+	# build jhove command
+	my $jhove_cmd = "jhove -h XML -c /l/local/jhove-1.5/conf/jhove.conf";
+	my $files = `$file_list_cmd`;
+	foreach my $file ( split("\n",$files) ){
+		$jhove_cmd .= " $file";
+	}
 
-# build jhove command
-my $jhove_cmd = "jhove -h XML -c /l/local/jhove-1.5/conf/jhove.conf";
-my $files = `$file_list_cmd`;
-foreach my $file ( split("\n",$files) ){
-	$jhove_cmd .= " $file";
+	if ( $dump_file ){
+		$jhove_cmd .= " | tee $dump_file";
+	}
+	
+	# run jhove
+	#print $jhove_cmd;
+	$jhove_XML = `$jhove_cmd`;
 }
-
-if ( $dump_file ){
-	$jhove_cmd .= " | tee $dump_file";
-}
-
-# run jhove
-#print $jhove_cmd;
-my $jhove_XML = `$jhove_cmd`;
 
 # open XPathContext for jhove output
 my $jhove_parser = XML::LibXML->new();
-my $jhove_doc = $jhove_parser->parse_string($jhove_XML);
+my $jhove_doc;
+if ($jhove_XML){
+	$jhove_doc = $jhove_parser->parse_string($jhove_XML);
+}
+else{
+	$jhove_doc = $jhove_parser->parse_file($xml_file_to_load);
+}
 my $jhove_xpc = new XML::LibXML::XPathContext($jhove_doc);
 
 # register ns
@@ -308,7 +319,7 @@ while(<STDIN>){
 		}
 		else{
 			#my $qlib = new HTFeed::QueryLib::JPEG2000_hul;
-			my $validator = HTFeed::ModuleValidator::JPEG2000_hul->new(xpc=> $jhove_xpc,node => $nodes[0],qlib => HTFeed::QueryLib::JPEG2000_hul->new);
+			my $validator = HTFeed::ModuleValidator::TIFF_hul->new(xpc=> $jhove_xpc,node => $nodes[0],id => "UOM-39015032210646",filename => "00000060.jp2",qlib => HTFeed::QueryLib::TIFF_hul->new);
 			run $validator;
 			if ($validator->failed){
 				my $errors = $validator->get_errors;

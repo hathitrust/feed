@@ -45,8 +45,9 @@ sub new{
 			mix_bitsPerSample	=> "mix:ImagingPerformanceAssessment/mix:Energetics/mix:BitsPerSample",
 			mix_samplesPerPixel	=> "mix:ImagingPerformanceAssessment/mix:Energetics/mix:SamplesPerPixel",
 			
-			# XMP text, child of uuidBox
-			xmp					=> "jhove:property[jhove:name='Data']/jhove:values/jhove:value",
+			# uuidBox children
+			uuidBox_xmp			=> "jhove:property[jhove:name='Data']/jhove:values/jhove:value", # XMP text
+			uuidBox_uuid		=> "jhove:property[jhove:name='UUID']/jhove:values/jhove:value", # holds identifyer accompanying an XMP field
 			
 			# XMP children
 			xmp_width			=> "//tiff:ImageWidth",
@@ -58,6 +59,12 @@ sub new{
 			xmp_samplesPerPixel	=> "//tiff:SamplesPerPixel",
 			xmp_xRes			=> "//tiff:XResolution",
 			xmp_yRes			=> "//tiff:YResolution",
+			xmp_resUnit			=> "//tiff:ResolutionUnit",
+			xmp_dateTime		=> "//tiff:DateTime",
+			xmp_artist			=> "//tiff:Artist",
+			xmp_make			=> "//tiff:Make",
+			xmp_model			=> "//tiff:Model",
+			xmp_documentName	=> "//dc:source",
 		},
 		expected =>{
 			top_format		=> "JPEG 2000",
@@ -68,9 +75,17 @@ sub new{
 			meta_brand			=> "jp2 ",
 			meta_minorVersion	=> "0",
 			meta_compatibility	=> "jp2 ",
+			
+			csd_layers				=> ["1","8"],
 
 			mix_mime			=> "image/jp2",
 			mix_compression		=> "34712",
+			
+			xmp_compression		=> "34712",
+			xmp_orientation		=> "1",
+			xmp_xRes			=> ["300/1","400/1","600/1"],
+			xmp_yRes			=> ["300/1","400/1","600/1"],
+			xmp_resUnit			=> "2",
 		},
 		# store data on what parent to use as context for various queries
 		parents => {
@@ -96,7 +111,26 @@ sub new{
 			mix_bitsPerSample	=> "mix",
 			mix_samplesPerPixel	=> "mix",
 
-			xmp					=> "uuidBox",
+			uuidBox_xmp			=> "uuidBox",
+			uuidBox_uuid		=> "uuidBox",
+			
+			# customxpc is a reserved parent name indicating to seach in a different XML::LibXML::XPathContext than other queries
+			# these queries must be from the root level, no further context is supported
+			xmp_width			=> "HT_customxpc",
+			xmp_length			=> "HT_customxpc",
+			xmp_bitsPerSample	=> "HT_customxpc",
+			xmp_compression		=> "HT_customxpc",
+			xmp_colorSpace		=> "HT_customxpc",
+			xmp_orientation		=> "HT_customxpc",
+			xmp_samplesPerPixel	=> "HT_customxpc",
+			xmp_xRes			=> "HT_customxpc",
+			xmp_yRes			=> "HT_customxpc",
+			xmp_resUnit			=> "HT_customxpc",
+			xmp_dateTime		=> "HT_customxpc",
+			xmp_artist			=> "HT_customxpc",
+			xmp_make			=> "HT_customxpc",
+			xmp_model			=> "HT_customxpc",
+			xmp_documentName	=> "HT_customxpc",
 		},
 	};
 

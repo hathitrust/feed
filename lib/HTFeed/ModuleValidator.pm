@@ -3,7 +3,9 @@ package HTFeed::ModuleValidator;
 use strict;
 use XML::LibXML;
 
-use HTFeed::QueryLib;
+use constant DEBUG => 0;
+
+# use HTFeed::QueryLib;
 
 =info
 	parent class/factory for HTFeed validation plugins
@@ -24,6 +26,8 @@ use HTFeed::QueryLib;
 	}
 =cut
 
+# TODO: xpflag is not used remove all references to it from comments
+
 sub new{
 	my $class = shift;
 	
@@ -37,15 +41,21 @@ sub new{
 	my $object = {	xpc			=> undef,	# XML::LibXML::XPathContext object
 					node 		=> undef,	# XML::LibXML::Element object, represents starting context in xpc
 					qlib		=> undef,	# HTFeed::QueryLib::[appropriate child] object, holds our queries
+					id			=> undef,	# string, volume id
+					filename	=> undef,	# string, filename
 					@_,						# override blank placeholders with proper values
 					error		=> [],		# empty error array, appended by _set_error
 					fail		=> 0,		# error count, incremented by _set_error, equal to $#$self{error} + 1
 					contexts	=> {},		# holds nodes for contexts, orthaganal to qlib{contexts}
 					customxpc	=> undef,	# a special XML::LibXML::XPathContext object for a second XML doc extracted from main doc
+					
+					datetime		=> "",
+					artist			=> "",
+					documentname	=> "",					
 	};
 	
 	# make sure our new object is fully populated
-	unless ($$object{xpc} && $$object{node} && $$object{qlib}){
+	unless ($$object{xpc} && $$object{node} && $$object{qlib} && $$object{id} && $$object{filename}){
 		warn ("$class: too few parameters"); 
 		return undef;
 	}
@@ -82,6 +92,89 @@ sub _set_error{
 	$$self{fail}++;
 }
 
+# validates input, checks for consistancy if already set
+# sets error if needed
+# returns success
+sub _setdatetime{
+	my $self = shift;
+	my $datetime = shift;
+	
+	# validate
+	unless ( $datetime =~ /^(\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d)(\+\d\d:\d\d|)$/ ){
+		$self->_set_error("Invalid timestamp format found");
+		return 0;
+	}
+	
+	# trim
+	$datetime = $1;
+		
+	# match
+	if ($$self{datetime}){
+		if ($$self{datetime} eq $datetime){
+			return 1;
+		}
+		$self->_set_error("Unmatched timestamps found");
+		return 0;
+	}
+	# store
+	$$self{datetime} = $datetime;
+	return 1;
+}
+
+# validates input, checks for consistancy if already set
+# sets error if needed
+# returns success
+sub _setartist{
+	my $self = shift;
+	my $artist = shift;
+	
+	# match
+	if ($$self{artist}){
+		if ($$self{artist} eq $artist){
+			return 1;
+		}
+		$self->_set_error("Unmatched artist / file creator found");
+		return 0;
+	}
+	# store
+	$$self{artist} = $artist;
+	return 1;
+}
+
+# validates input, checks for consistancy if already set
+# sets error if needed
+# returns success
+sub _setdocumentname{
+	my $self = shift;
+	my $documentname = shift;
+
+	# match
+	if ($$self{documentname}){
+		if ($$self{documentname} eq $documentname){
+			return 1;
+		}
+		$self->_set_error("Unmatched document names found");
+		return 0;
+	}
+
+	# validate
+	my $id = $$self{id};
+	my $file = $$self{filename};
+	
+	# deal with inconsistant use of '_' and '-'
+	my $pattern = "$id/$file";
+	$pattern =~ s/[-_]/\[-_\]/g;
+	
+	unless ($documentname =~ m|$pattern|i){
+		$self->_set_error("Invalid document name found");
+		return 0;
+	}
+	
+	# store
+	$$self{documentname} = $documentname;
+	return 1;
+}
+
 #
 # ** Methods for Running XPath Queries **
 # 
@@ -113,14 +206,23 @@ sub _general_findnodes{
 
 	my $nodelist;
 	
-	# find xmp flag is set, act accordingly
-	if ($_[0] == 1){
+	my $base = $$self{qlib}->parent($queryName);
+	
+	## verbose logging for debug
+	if (DEBUG){
+		print "looking for node at $queryName in $base...\n";
+	}
+	
+	# if parent is customxpc, run search in customxpc
+	if ($base eq "HT_customxpc"){
+		unless ($$self{customxpc}){
+			warn "Must _setcustomxpc because query $queryName is in the customxpc";
+			$self->_set_error("Context missing for $queryName");
+			return undef;
+		}
 		$nodelist = $$self{customxpc}->findnodes($queryObject);
 	}
-	# xmp flag not set, act accordingly
 	else{
-		my $base = $$self{qlib}->parent($queryName);
-		
 		# query has a parent (base) find base context in hash
 		if ($base){
 			$base = $$self{contexts}{$base};
@@ -177,6 +279,12 @@ sub _findonenode{
 	# run query
 	my $nodelist = $self->_findnodes(@_);
 	
+	# detect error in _findnodes, fail
+	unless ($nodelist){
+		$self->_set_error("query $qn failed");
+		return undef;
+	}
+	
 	# if hit count != 1 fail
 	unless ($nodelist->size() == 1){
 		my $error_msg = "";
@@ -201,14 +309,24 @@ sub _findvalue{
 	# check/get query
 	my $queryObj = $$self{qlib}->query($query) or warn ("_findvalue: invalid args");
 	
-	# find xmp flag is set
-	if ($_[0] == 1){
-		# run search on xmp
-		$retstring = $$self{customxpc}->findvalue($query);
+	my $base = $$self{qlib}->parent($query);
+
+	## verbose logging for debug
+	if (DEBUG){
+		print "looking for text of $query in $base...\n";
 	}
-	else{
-		my $base = $$self{qlib}->parent($query);
-		
+
+	# find base is customxpc
+	if ($base eq "HT_customxpc"){
+		# run search on customxpc
+		unless ($$self{customxpc}){
+			warn "Must _setcustomxpc because query $query is in the customxpc";
+			$self->_set_error("Context missing for $query");
+			return "";
+		}
+		$retstring = $$self{customxpc}->findvalue($queryObj);
+	}
+	else{	
 		# query has a parent (base) find base context in hash
 		if ($base){
 			$base = $$self{contexts}{$base};
@@ -229,11 +347,11 @@ sub _findvalue{
 
 # (qn,xp*)
 # returns scalar value of only node found or
-# sets error and returns 0
+# sets error and returns ""
 sub _findone{
 	my $self = shift;
 	unless($self->_findonenode(@_)){ 
-		return 0;
+		return "";
 	}
 	else{
 		return $self->_findvalue(@_);
@@ -242,43 +360,88 @@ sub _findone{
 
 # ()
 # validates all fields that have an expected value in %$self{qlib}->{expected}
+# only validates string enrties (i.e. skips arrays)
 # returns 1, or sets errors and returns 0
-sub _validate_expecteds{
+sub _validate_all_expecteds{
 	my $self = shift;
-	my $fail = 0;
+	my $startingfailcount = $$self{fail};
 	
 	foreach my $key ($$self{qlib}->expectedkeys()){
 		my $expectedtxt = $$self{qlib}->expected($key);
-		my $foundtxt = $self->_findone($key);
-		unless ($expectedtxt eq $foundtxt){
-			$self->_set_error("Text in $key is \"$foundtxt\", expected \"$expectedtxt\"");
-			$fail++;
+		unless (ref($expectedtxt) eq "ARRAY"){ # skip arrays, they are reserved and this method doesn't know how to use them
+			my $foundtxt = $self->_findone($key);
+			unless ($expectedtxt eq "HT_skip_check" or $expectedtxt eq $foundtxt){
+				$self->_set_error("Text in $key is \"$foundtxt\", expected \"$expectedtxt\"");
+			}
 		}
 	}
 	
-	if ($fail){
+	unless ($$self{fail} == $startingfailcount){
 		return 0;
 	}
 	
 	return 1;
 }
 
+# (qn)
+# validates a field based upon expected value in %$self{qlib}->{expected}
+# validates string entries, 
+# returns found value on success, sets error and returns undef on fail
+# warning: if you are for some reason looking for a value like 0 or ""
+# 	this method may not return true on success, 
+sub _validate_expected{
+	my $self = shift;
+	my $key = shift;
+	my $startingfailcount = $$self{fail};
+	
+	my $expected = $$self{qlib}->expected($key);
+	my $foundtxt = $self->_findone($key);
+	
+	# query failed, error already set by _findone
+	unless ($$self{fail} == $startingfailcount){
+		return undef;
+	}
+	
+	unless (ref($expected) eq "ARRAY"){
+		unless ($expected eq "HT_skip_check" or $expected eq $foundtxt){
+			$self->_set_error("Text in $key is \"$foundtxt\", expected \"$expected\"");
+			return undef;
+		}
+		return $foundtxt;
+	}
+	else{
+		my $foundit = 0;
+		foreach my $expectedtxt (@$expected){
+			if ($expectedtxt eq "HT_skip_check" or $expected eq $foundtxt){
+				$foundit = 1;
+				last;
+			}
+		}
+		if ($foundit){
+			return $foundtxt;
+		}
+		else{
+			return undef;
+		}
+	}	
+}
+
 # (text,qn,xp*)
 # "text" is the expected output of the query
 # returns 1 or sets error and returns 0
-sub _find_my_text_in_one_node{
-	my $self = shift;
-	my $text = shift;
-	
-	my $foundtext = $self->_findone(@_);
-	if ($text eq $foundtext){
-		return 1;
-	}
-	else{
-		$self->_set_error("Text in $_[0] is \"$foundtext\", expected \"$text\"");
-		return 0;
-	}
-}
+#sub _find_my_text_in_one_node{
+#	my $self = shift;
+#	my $text = shift;
+#	
+#	my $foundtext = $self->_findone(@_);
+#	if ($text eq $foundtext){
+#		return 1;
+#	}
+#	else{
+#		$self->_set_error("Text in $_[0] is \"$foundtext\", expected \"$text\"");
+#		return 0;
+#	}
+#}
 
 # (cn,node)
 # saves node as context node of record for cn
