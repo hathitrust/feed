@@ -6,7 +6,6 @@ use base qw(HTFeed::ModuleValidator);
 
 require HTFeed::QueryLib::JPEG2000_hul;
 our $qlib = new HTFeed::QueryLib::JPEG2000_hul;
-##print "WE LOADED JPEG!!\n";
 
 =info
 	JPEG2000-hul HTFeed validation plugin

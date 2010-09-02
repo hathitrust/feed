@@ -6,7 +6,6 @@ use base qw(HTFeed::ModuleValidator);
 
 require HTFeed::QueryLib::TIFF_hul;
 our $qlib = new HTFeed::QueryLib::TIFF_hul;
-##print "WE LOADED TIFF!!\n";
 
 =info
 	TIFF-hul HTFeed validation plugin
