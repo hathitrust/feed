@@ -43,7 +43,6 @@ sub _set_error{
 	
 	# log error w/ l4p
 	for (@_){
-		print ref($self) . " should log here\n";
 		Log::Log4perl->get_logger(ref($self))->error($_,$$self{id},$$self{filename});
 	}
 }
