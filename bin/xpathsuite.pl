@@ -27,21 +27,23 @@
 use strict;
 use warnings;
 use XML::LibXML;
+use Log::Log4perl;
 use Getopt::Long;
 
 use HTFeed::ModuleValidator;
 
-my ($dump_file, $xdump_file, $file_list_cmd, $help, $xml_file_to_load);
+my ($dump_file, $xdump_file, $file_list_cmd, $help, $xml_file_to_load, $l4p_config);
 my @namespaces;
 
 my $x_mode_entered = 0;
 
-GetOptions (	"dump=s" =>		\$dump_file,
-				"xdump=s" =>	\$xdump_file,
-				"list=s" =>		\$file_list_cmd,
-				"load=s" =>		\$xml_file_to_load,
-				"ns=s" =>		\@namespaces,	
-				"help" =>		\$help					);
+GetOptions (	"dump=s"	=> \$dump_file,
+				"xdump=s"	=> \$xdump_file,
+				"list=s"	=> \$file_list_cmd,
+				"load=s"	=> \$xml_file_to_load,
+				"l4p=s"		=> \$l4p_config,
+				"ns=s"		=> \@namespaces,	
+				"help"		=> \$help,					);
 						
 #print "Dump = $dump_file\nList = $file_list_cmd\n";
 #
@@ -53,8 +55,8 @@ GetOptions (	"dump=s" =>		\$dump_file,
 if ($help){
 	
 	print "useage:\n";
-	print "xpathsuite -list 'command to list infiles' [-dump dump.xml] [-xdump xdump.xml] [-ns mix:http://www.loc.gov/mix/]\n";
-	print "xpathsuite -load dump.xml [-xdump xdump.xml] [-ns mix:http://www.loc.gov/mix/]\n";
+	print "xpathsuite -list 'command to list infiles' -l4p config.l4p [-dump dump.xml] [-xdump xdump.xml] [-ns mix:http://www.loc.gov/mix/]\n";
+	print "xpathsuite -load dump.xml -l4p \$HTFHOME/etc/config.l4p [-xdump xdump.xml] [-ns mix:http://www.loc.gov/mix/]\n";
 	exit 0;
 	
 }
@@ -63,6 +65,15 @@ unless ( $file_list_cmd xor $xml_file_to_load ){
 	print "list xor load field required, try -help flag\n"; 
 	exit 0;
 }
+
+unless ( $l4p_config ){ 
+	print "l4p field required, try -help flag\n"; 
+	exit 0;
+}
+
+Log::Log4perl->init($l4p_config);
+
+Log::Log4perl->get_logger("")->trace("xpathsuite has initialized l4p!");
 
 my $jhove_XML;
 if ($file_list_cmd){
@@ -317,15 +328,8 @@ while(<STDIN>){
 			#my $qlib = new HTFeed::QueryLib::JPEG2000_hul;
 			my $validator = HTFeed::ModuleValidator::TIFF_hul->new(xpc=> $jhove_xpc,node => $nodes[0],id => "UOM-39015032210646",filename => "00000060.jp2");
 			run $validator;
-			if ($validator->failed){
-				my $errors = $validator->get_errors;
-				foreach my $error (@$errors){
-					print "Error: $error\n";
-				}
-			}
-			else{
-				print "No errors found\n";
-			}
+			
+			print $validator->failed . " errors found\n";
 		}	
 	}
 	else{
