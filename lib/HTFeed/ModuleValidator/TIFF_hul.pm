@@ -1,5 +1,6 @@
 package HTFeed::ModuleValidator::TIFF_hul;
 
+use warnings;
 use strict;
 
 use base qw(HTFeed::ModuleValidator);

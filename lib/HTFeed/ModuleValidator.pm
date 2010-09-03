@@ -1,10 +1,12 @@
 package HTFeed::ModuleValidator;
 
+use warnings;
 use strict;
+use Carp;
+use XML::LibXML;
+use Log::Log4perl qw(get_logger);
 
 use base qw(HTFeed::XPathValidator);
-
-use XML::LibXML;
 
 #use HTFeed::ModuleValidator::ACSII_hul;
 use HTFeed::ModuleValidator::JPEG2000_hul;
@@ -50,7 +52,7 @@ sub new{
 					id			=> undef,	# string, volume id
 					filename	=> undef,	# string, filename
 					@_,						# override blank placeholders with proper values
-					
+				    
 					datetime		=> "",
 					artist			=> "",
 					documentname	=> "",
@@ -190,6 +192,16 @@ sub _setupXMPcontext{
 	}
 }
 
+# set fail, log errors
+sub _set_error{
+	my $self = shift;
+	$self->{fail}++;
+	
+	# log error w/ l4p
+	for (@_){
+		get_logger(ref($self))->error($_,$self->{id},$self->{filename});
+	}
+}
 
 1;
 

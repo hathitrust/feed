@@ -1,5 +1,6 @@
 package HTFeed::QueryLib;
 
+use warnings;
 use strict;
 use XML::LibXML;
 

@@ -3,7 +3,7 @@ package HTFeed::XPathValidator;
 use warnings;
 use strict;
 use Carp;
-use Log::Log4perl;
+use Log::Log4perl qw(get_logger);
 
 use base qw(HTFeed::SuccessOrFailure);
 
@@ -22,7 +22,7 @@ sub _xpathInit{
 	$self->_set_required_querylib();
 	
 	unless(Log::Log4perl->initialized()){
-		croak "Log4Perl not initialized, cannot report errors";
+		croak 'Log4Perl not initialized, cannot report errors';
 	}
 	
 	return 1;
@@ -37,40 +37,27 @@ sub failed{
 }
 
 # set fail, log errors
+# absract
 sub _set_error{
-	my $self = shift;
-	$$self{fail}++;
-	
-	# log error w/ l4p
-	for (@_){
-		Log::Log4perl->get_logger(ref($self))->error($_,$$self{id},$$self{filename});
-	}
+	croak("This is an abstract method");
 }
 
 #
 # ** Methods for Running XPath Queries **
 # 
-# subclasses should stick to these methods to run queries when implementing validate() method
+# subclasses should stick to these methods to run XPath queries
 # if they aren't sufficient, extend these if possible, rather than directly running queries
 #
 # qn = query name (to search for)
-#
 # cn = context name (to search for)
-#
-# cnb = context name (to use as search base instead of default base of /jhove:repInfo[#])
 # 
-# xp = set flag to 1 to search in custom xpathcontext in _setcustomxpc
-#	flag incompatible with cnb field
-# 
-# * is an optional field
-#
 
 # Do not actually call this method in a child, it is used in the implimentation of the other
 # following helpers
 # 
 # general case of other methods, actual call to XML::LibXML::XPathContext->findnodes() is here
 #
-# (queryObj,qn/cn,xmp*)
+# (queryObj,qn/cn)
 sub _general_findnodes{
 	my $self = shift;
 	my $queryObject = shift;
@@ -113,7 +100,7 @@ sub _general_findnodes{
 	return $nodelist;
 }
 
-# (qn,xp*)
+# (qn)
 # returns nodelist object
 sub _findnodes{
 	my $self = shift;
@@ -127,7 +114,7 @@ sub _findnodes{
 	return $nodelist;
 }
 
-# (cn,xp*)
+# (cn)
 # returns nodelist object
 sub _findcontexts{
 	my $self = shift;
@@ -141,7 +128,7 @@ sub _findcontexts{
 	return $nodelist;
 }
 
-# (qn,xp*)
+# (qn)
 # returns only node found or
 # sets error and returns undef
 sub _findonenode{
@@ -170,7 +157,7 @@ sub _findonenode{
 	return $node;
 }
 
-# (qn,xp*)
+# (qn)
 # returns scalar value (generally a string)
 sub _findvalue{
 	my $self = shift;
@@ -217,7 +204,7 @@ sub _findvalue{
 	return $retstring;
 }
 
-# (qn,xp*)
+# (qn)
 # returns scalar value of only node found or
 # sets error and returns ""
 sub _findone{
@@ -298,7 +285,7 @@ sub _validate_expected{
 	}	
 }
 
-# (text,qn,xp*)
+# (text,qn)
 # "text" is the expected output of the query
 # returns 1 or sets error and returns 0
 #sub _find_my_text_in_one_node{

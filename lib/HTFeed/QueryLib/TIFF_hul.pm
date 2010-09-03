@@ -1,5 +1,6 @@
 package HTFeed::QueryLib::TIFF_hul;
 
+use warnings;
 use strict;
 
 use base qw(HTFeed::QueryLib);

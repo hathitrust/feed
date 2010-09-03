@@ -1,5 +1,6 @@
 package HTFeed::ModuleValidator::JPEG2000_hul;
 
+use warnings;
 use strict;
 
 use base qw(HTFeed::ModuleValidator);
