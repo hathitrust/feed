@@ -2,14 +2,12 @@ package HTFeed::SuccessOrFailure;
 
 use warnings;
 use strict;
+use Carp;
 
 # return somthing true on failure, somthing false on success
+# abstract
 sub failed{
-	my $self = shift;
-	unless ($self->succeeded()){
-		return 1;
-	}
-	return;
+	croak "this is an abstract method";
 }
 
 # return somthing true on failure, somthing false on success
