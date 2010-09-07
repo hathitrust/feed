@@ -51,7 +51,7 @@ sub run{
 		# get node for file
 		if($node = %nodes->{file}){
 			# run module validator
-			my $mod_val = HTFeed::ModuleValidator->new();
+			my $mod_val = HTFeed::ModuleValidator->new(xpc=> $jhove_xpc,node => $node,id => $volume_id,filename => $file);
 			$mod_val->run();
 			# check, log success
 			if ($mod_val->succeeded()){

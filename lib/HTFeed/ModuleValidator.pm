@@ -35,16 +35,20 @@ use HTFeed::ModuleValidator::TIFF_hul;
 	}
 =cut
 
-# TODO: xpflag is not used remove all references to it from comments
+our %file_types = (
+	tif	=> "TIFF_hul",
+	jp2 => "JPEG2000_hul",
+#	wav => "WAVE_hul",
+);
 
 sub new{
 	my $class = shift;
 	
 	# make sure we are instantiating a child class, not self
-	if ($class eq __PACKAGE__){
-		warn __PACKAGE__ . " can only construct subclass objects";
-		return undef;
-	}
+	#if ($class eq __PACKAGE__){
+	#	warn __PACKAGE__ . " can only construct subclass objects";
+	#	return undef;
+	#}
 	
 	# make empty object, populate with passed parameters
 	my $object = {	xpc			=> undef,	# XML::LibXML::XPathContext object
@@ -57,6 +61,12 @@ sub new{
 					artist			=> "",
 					documentname	=> "",
 	};
+	
+	if ($class eq __PACKAGE__){
+		$object->{filename} =~ /\.([0-9a-zA-Z]*)$/;
+		my $file_ext = $1;
+		$class .= "::" . %file_types->{$file_ext};
+	}
 
 	bless ($object, $class);
 	
