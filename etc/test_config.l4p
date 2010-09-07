@@ -1,10 +1,6 @@
-#log4perl.threshold = INFO
-#log4perl.threshold = DEBUG
-log4perl.threshold = TRACE
-
-#log4perl.rootLogger							= ALL, screen
-log4perl.logger.HTFeed.ModuleValidator		= ALL, screen
-log4perl.logger.HTFeed.Qlib					= ALL, screen
+log4perl.rootLogger							= DEBUG, screen
+#log4perl.logger.HTFeed.ModuleValidator		= ALL, screen
+#log4perl.logger.HTFeed.Qlib				= ALL, screen
 
 log4perl.appender.screen				= Log::Log4perl::Appender::ScreenColoredLevels
 log4perl.appender.screen.stderr			= 0
