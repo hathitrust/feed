@@ -51,17 +51,15 @@ sub failed{
 	croak "can't check success until run()";
 }
 
+# set fail, log errors
 sub _set_error{
-	# set fail, log errors
-	sub _set_error{
-		my $self = shift;
-		$self->{failed}++;
+	my $self = shift;
+	$self->{failed}++;
 
-		# log error w/ l4p
-		my $logger = get_logger(ref($self));
-		for (@_){
-				$logger->error($_,$self->{volume}->get_objid());
-		}
+	# log error w/ l4p
+	my $logger = get_logger(ref($self));
+	for (@_){
+			$logger->error($_,$self->{volume}->get_objid());
 	}
 }
 
