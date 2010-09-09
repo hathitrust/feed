@@ -10,7 +10,7 @@ sub failed{
 	croak "this is an abstract method";
 }
 
-# return somthing true on failure, somthing false on success
+# return false on failure, 1 on success
 sub succeeded{
 	my $self = shift;
 	unless ($self->failed()){
