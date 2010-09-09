@@ -17,15 +17,20 @@ sub new {
     my $self = $class->SUPER::new(@_);
 
     $self->{stages} = {
-        file_names          => \&_validate_file_names,
-        filegroups_nonempty => \&_validate_filegroups_nonempty,
-        consistency         => \&_validate_consistency,
-        checksums           => \&_validate_checksums,
-        metadata            => \&_validate_metadata
+        validate_file_names          => \&_validate_file_names,
+        validate_filegroups_nonempty => \&_validate_filegroups_nonempty,
+        validate_consistency         => \&_validate_consistency,
+        validate_checksums           => \&_validate_checksums,
+        validate_metadata            => \&_validate_metadata
     };
 
-    $self->{run_stages} =
-      [qw(file_names files_present consistency checksums metadata)];
+    $self->{run_stages} = [
+        qw(validate_file_names
+          validate_files_present
+          validate_consistency
+          validate_checksums
+          validate_metadata)
+    ];
 
     return $self;
 
@@ -63,7 +68,7 @@ sub _validate_file_names {
 
     my $valid_file_pattern = $volume->get_valid_file_pattern();
     my @bad =
-      grep( { !/$valid_file_pattern/ } $volume->all_directory_files() );
+      grep( { !/$valid_file_pattern/ } $volume->get_all_directory_files() );
 
     if (@bad) {
         _set_error( 'Invalid file name(s):' . join( q{,}, @bad ) );
@@ -171,18 +176,20 @@ Validate each file against a precomputed list of checksums.
 =cut
 
 sub _validate_checksums {
-    my $self      = shift;
-    my $volume    = $self->{volume};
-    my $checksums = $volume->get_checksum_cache();
+    my $self          = shift;
+    my $volume        = $self->{volume};
+    my $checksums     = $volume->get_checksums();
+    my $checksum_file = $volume->get_checksum_file();
 
    # make sure we check every file in the directory except for the checksum file
    # and make sure we check every file in the checksum file
 
     my @tovalidate = uniq(
-        sort( $volume->all_directory_files() .
-              keys( %{ $volume->get_checksum_cache() } ) ) );
+        sort( $volume->get_all_directory_files() .
+              keys( %{ $volume->get_checksums() } ) ) );
 
     foreach my $file (@tovalidate) {
+        next if $file eq $checksum_file;
         my $expected = $checksums->{$file};
         if ( not defined $expected ) {
             _set_error("No checksum found for $file");
@@ -207,11 +214,9 @@ sub _validate_metadata {
     my $self   = shift;
     my $volume = $self->{volume};
 
-    my @files     = $volume->get_all_files;
-    my $dir       = $volume->get_path;
-    my $volume_id = $volume->get_objid;
+    my @files = $volume->get_all_content_files();
 
-    my $jhove_xml = _run_jhove($dir);
+    my $jhove_xml = _run_jhove( $volume->get_staging_directory() );
 
     # get xpc
     my $jhove_xpc;
@@ -250,7 +255,7 @@ sub _validate_metadata {
 
             # check, log success
             if ( $mod_val->succeeded() ) {
-                $logger->debug("$file in $volume_id ok");
+                $logger->debug("$file ok");
             }
             else {
                 _set_error("$file bad");
@@ -272,7 +277,6 @@ sub _run_jhove {
 
     return $xml;
 }
-
 1;
 
 __END__;
