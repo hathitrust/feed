@@ -66,7 +66,7 @@ sub _validate_file_names {
     my $self   = shift;
     my $volume = $self->{volume};
 
-    my $valid_file_pattern = $volume->get_valid_file_pattern();
+    my $valid_file_pattern = $volume->get_namespace()->get('valid_file_pattern');
     my @bad =
       grep( { !/$valid_file_pattern/ } $volume->get_all_directory_files() );
 
@@ -82,6 +82,9 @@ sub _validate_file_names {
 =item _validate_filegroups_nonempty
 
 Ensure that every listed filegroup (image, ocr, etc.) contains at least one file.
+
+TODO: Use required filegroups from ns/packagetype config
+TODO: Use filegroup patterns from ns/packagetype config to populate filegroups
 
 =cut
 
@@ -141,7 +144,7 @@ sub _validate_consistency {
     }
 
     # Make sure there are no gaps in the sequence
-    if ( !$volume->allow_sequence_gaps() ) {
+    if ( !$volume->get_namespace->get('allow_sequence_gaps') ) {
         my $prev_sequence_number = 0;
         my @sequence_numbers     = sort( keys(%files) );
         foreach my $sequence_number (@sequence_numbers) {

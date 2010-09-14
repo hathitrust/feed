@@ -18,18 +18,19 @@ sub new {
         @_,
 
         #		files			=> [],
-        #		dir				=> undef,
+        #		dir			=> undef,
         #		mets_name		=> undef,
         #		mets_xml		=> undef,
     };
-
-    # TODO: validate barcode when created (need namespace configuration)
 
     $self->{groove_book} =
       GROOVE::Book->new( $self->{objid}, $self->{namespace},
         $self->{packagetype} );
 
     $self->{nspkg} = new HTFeed::Namespace($self->{namespace},$self->{packagetype});
+
+    $self->{nspkg}->validate_barcode($self->{objid}) 
+	or croak("Invalid barcode $self->{objid} provided for $self->{namespace}");
 
     bless( $self, $class );
     return $self;
@@ -132,39 +133,6 @@ sub get_all_content_files {
         $book->get_all_hocr() );
 }
 
-=item get_valid_file_pattern
-
-Returns a regular expression that matches files that may appear in this volume's AIP
-
-=cut
-
-sub get_valid_file_pattern {
-    my $self = shift;
-    return $self->{nspkg}->get('valid_file_pattern');
-}
-
-=item validate_barcode
-
-Returns true if the volume's barcode is valid for the volume's namespace and false otherwise.
-
-=cut
-
-sub validate_barcode {
-    my $self = shift;
-    my $barcode = shift;
-    return $self->{nspkg}->validate_barcode($barcode);
-}
-
-=item allow_sequence_gaps
-
-Returns true if the numeric naming sequence of files for images, etc. can have gaps in it
-
-=cut
-
-sub allow_sequence_gaps {
-    return $self->{nspkg}->get('allow_sequence_gaps');
-}
-
 =item get_checksums
 
 Returns a hash of precomputed checksums for files in the package's AIP where
@@ -259,6 +227,17 @@ sub get_source_mets_xpc {
     }
     return $xpc;
 
+}
+
+=item get_namespace
+
+Returns the HTFeed::Namespace object that provides namespace & package type-
+specific configuration information.
+
+=cut
+
+sub get_namespace {
+    return $self->{nspkg};
 }
 
 1;
