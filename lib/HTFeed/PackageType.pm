@@ -3,7 +3,9 @@ package HTFeed::PackageType;
 use warnings;
 use strict;
 use Carp;
-use HTFeed::FactoryLoader;
+use HTFeed::FactoryLoader 'load_subclasses';
+
+use base qw(HTFeed::FactoryLoader);
 
 =item get($config)
 
@@ -26,7 +28,7 @@ sub get {
     if (defined $config->{$config_var}) {
 	return $config->{$config_var};
     } else {
-	return;
+	croak("Can't find namespace/packagetype configuration variable $config_var");
     }
 
 }

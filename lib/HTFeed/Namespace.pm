@@ -4,7 +4,7 @@ use warnings;
 use strict;
 use Algorithm::LUHN;
 use Carp;
-use HTFeed::FactoryLoader;
+use HTFeed::FactoryLoader 'load_subclasses';
 use HTFeed::PackageType;
 
 use base qw(HTFeed::FactoryLoader);
@@ -53,9 +53,12 @@ sub get {
     } elsif (defined $ns_config->{$config_var}) {
 	return $ns_config->{$config_var};
     } elsif (defined $self->{'packagetype'}) {
-	return $self->{'packagetype'}->get($config_var);
-    } else {
-	return;
+	eval {
+	    return $self->{'packagetype'}->get($config_var);
+	};
+	if($@) {
+	    croak("Can't find namespace/packagetype configuration variable $config_var");
+	}
     }
 
 }

@@ -16,43 +16,57 @@ our %subclasses;
 # Load all subclasses
 sub import {
 
-    # determine the subdirectory to find plugins in
-    my $caller      = caller();
-    my $module_path = $caller;
-    $module_path =~ s/::/\//g;
-    $module_path .= '.pm';
-    $module_path = $INC{$module_path};
-    $module_path =~ s/.pm$//;
+    my $class = shift;
 
-    my $dh;
-    opendir( $dh, $module_path ) or croak("Can't readdir $module_path: $!");
+    # If called as use HTFeed::FactoryLoader qw(load_subclasses)
+    if(@_ and $_[0] eq 'load_subclasses') {
 
-    # load each apparent perl module in the subdirectory and map from
-    # the identifier in each subclass to the class name
-    foreach my $package (
-        map { substr( $_, 0, length($_) - 3 ) }
-        grep { substr( $_, -3 ) eq '.pm' && -f "$module_path/$_" } readdir $dh
-      )
-    {
-        no strict 'refs';
-        require "$module_path/$package.pm";
-        my $subclass_identifier = ${"${caller}::${package}::identifier"};
-        croak("${caller}::${package} missing identifier")
-          unless defined $subclass_identifier;
-        $subclasses{$subclass_identifier} = "${caller}::${package}";
+	my $caller = caller();
+	# determine the subdirectory to find plugins in
+	my $module_path = $caller;
+	$module_path =~ s/::/\//g;
+	$module_path .= '.pm';
+	$module_path = $INC{$module_path};
+	$module_path =~ s/.pm$//;
 
+	my $dh;
+	opendir( $dh, $module_path ) or croak("Can't readdir $module_path: $!");
+
+	# load each apparent perl module in the subdirectory and map from
+	# the identifier in each subclass to the class name
+	foreach my $package (
+	    map { substr( $_, 0, length($_) - 3 ) }
+	    grep { substr( $_, -3 ) eq '.pm' && -f "$module_path/$_" } readdir $dh
+	  )
+	{
+	    no strict 'refs';
+	    require "$module_path/$package.pm";
+	    my $subclass_identifier = ${"${caller}::${package}::identifier"};
+	    croak("${caller}::${package} missing identifier")
+	      unless defined $subclass_identifier;
+	    $subclasses{$subclass_identifier} = "${caller}::${package}";
+
+	}
+
+	foreach my $module ( readdir $dh ) {
+	    if ( $module =~ /\.pm$/ ) {
+		;
+		print "Requiring: $module_path/$module", "\n";
+		require "$module_path/$module";
+	    }
+	}
+
+	closedir($dh);
     }
 
-    foreach my $module ( readdir $dh ) {
-        if ( $module =~ /\.pm$/ ) {
-            ;
-            print "Requiring: $module_path/$module", "\n";
-            require "$module_path/$module";
-        }
-    }
+}
 
-    closedir($dh);
-
+sub get_identifier {
+    no strict 'refs';
+    my $self = shift;
+    my $class = ref($self);
+    my $subclass_identifier = ${"${class}::identifier"};
+    return $subclass_identifier;
 }
 
 # must bless into subclass..
