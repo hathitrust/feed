@@ -126,9 +126,7 @@ sub run{
 		}
 
 		my $csd_layers = $self->_findone("codingStyleDefault","layers");
-		if (! (($csd_layers eq "1") or ($csd_layers eq "8")) ){
-			$self->_set_error("invalid layer count");
-		}
+		validate_layer_count($csd_layers);
 
 		my $dLevels = $self->_findone("codingStyleDefault","decompositionLevels");
 		unless ($dLevels >= 5 and $dLevels <= 32){
@@ -172,6 +170,10 @@ sub run{
 	$self->_findone("xmp","model");
 	
 	return $self->succeeded();
+}
+
+validate_layer_count{
+    croak "this is an abstract method";
 }
 
 1;
