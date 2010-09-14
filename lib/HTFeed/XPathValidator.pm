@@ -16,7 +16,6 @@ sub _xpathInit{
 	my $self = shift;
 
 	$$self{contexts} = {};
-	$$self{customxpc} = undef;
 	$$self{fail} = 0;
 	
 	$self->_set_required_querylib();
@@ -49,91 +48,59 @@ sub _set_error{
 # if they aren't sufficient, extend these if possible, rather than directly running queries
 #
 # qn = query name (to search for)
+# base = query base, the context to search in
 # cn = context name (to search for)
 # 
 
-# Do not actually call this method in a child, it is used in the implimentation of the other
-# following helpers
-# 
-# general case of other methods, actual call to XML::LibXML::XPathContext->findnodes() is here
-#
-# (queryObj,qn/cn)
-sub _general_findnodes{
-	my $self = shift;
-	my $queryObject = shift;
-	my $queryName = shift;
-
-	my $nodelist;
-	
-	my $base = $$self{qlib}->parent($queryName);
-	
-	## verbose logging for debug
-	if (DEBUG){
-		print "looking for node at $queryName in $base...\n";
-	}
-	
-	# if parent is customxpc, run search in customxpc
-	if ($base eq "HT_customxpc"){
-		unless ($$self{customxpc}){
-			warn "Must _setcustomxpc because query $queryName is in the customxpc";
-			$self->_set_error("Context missing for $queryName");
-			return undef;
-		}
-		$nodelist = $$self{customxpc}->findnodes($queryObject);
-	}
-	else{
-		# query has a parent (base) find base context in hash
-		if ($base){
-			$base = $$self{contexts}{$base};
-			unless ($base){
-				warn "Must _setcontext for required context for $queryName before querying";
-			}
-		}
-		# get default base (top level)
-		else{
-			$base = $$self{node};
-		}
-		
-		$nodelist = $$self{xpc}->findnodes($queryObject,$base);
-	}
-	
-	return $nodelist;
-}
-
-# (qn)
+# (base, qn)
 # returns nodelist object
 sub _findnodes{
 	my $self = shift;
-	my $query = $_[0];
+	my $base = shift;
+	my $qn = shift;
 
 	# get query out of qlib
-	$query = $$self{qlib}->query($query);
+	my $query = $self->{qlib}->query($base,$qn);
 	
-	my $nodelist = $self->_general_findnodes($query,@_);
-
-	return $nodelist;
+	my $base_node = $self->{contexts}->{$base}->{node};
+	my $xpc = $self->{contexts}->{$base}->{xpc};
+	
+	if ($xpc && $query){
+		my $nodelist = $xpc->findnodes($query,$base_node);
+		return $nodelist;
+	}
+	
+	$self->_set_error("Context missing for $qn");
+	return;
 }
 
 # (cn)
 # returns nodelist object
 sub _findcontexts{
 	my $self = shift;
-	my $query = $_[0];
-
-	# get query out of qlib
-	$query = $$self{qlib}->context($query);
+	my $cn = shift;
+	my $base = $self->{qlib}->context_parent($cn);
 	
-	my $nodelist = $self->_general_findnodes($query,@_);
+	# get query out of qlib
+	my $query = $self->{qlib}->context($cn);
+	
+	my $base_node = $self->{contexts}->{$base}->{node};
+	my $xpc = $self->{contexts}->{$base}->{xpc};
+	
+	if ($xpc && $query && $base_node){
+		my $nodelist = $xpc->findnodes($query,$base_node);
+		return $nodelist;
+	}
 
-	return $nodelist;
+	return;
 }
 
-# (qn)
+# (base, qn)
 # returns only node found or
 # sets error and returns undef
 sub _findonenode{
 	my $self = shift;
-	my $qn = $_[0] or warn("_findonenode: invalid args");
+	my ($base,$qn) = @_ or warn("_findonenode: invalid args");
 
 	# run query
 	my $nodelist = $self->_findnodes(@_);
@@ -141,7 +108,7 @@ sub _findonenode{
 	# detect error in _findnodes, fail
 	unless ($nodelist){
 		$self->_set_error("query $qn failed");
-		return undef;
+		return;
 	}
 	
 	# if hit count != 1 fail
@@ -157,175 +124,98 @@ sub _findonenode{
 	return $node;
 }
 
-# (qn)
+# (base, qn)
 # returns scalar value (generally a string)
 sub _findvalue{
 	my $self = shift;
+	my $base = shift;
 	my $query = shift;
-
-	my $retstring;
 	
 	# check/get query
-	my $queryObj = $$self{qlib}->query($query) or warn ("_findvalue: invalid args");
+	my $queryObj = $self->{qlib}->query($base, $query) or croak ("_findvalue: invalid args");
 	
-	my $base = $$self{qlib}->parent($query);
-
 	## verbose logging for debug
 	if (DEBUG){
 		print "looking for text of $query in $base...\n";
 	}
 
-	# find base is customxpc
-	if ($base eq "HT_customxpc"){
-		# run search on customxpc
-		unless ($$self{customxpc}){
-			warn "Must _setcustomxpc because query $query is in the customxpc";
-			$self->_set_error("Context missing for $query");
-			return "";
-		}
-		$retstring = $$self{customxpc}->findvalue($queryObj);
-	}
-	else{	
-		# query has a parent (base) find base context in hash
-		if ($base){
-			$base = $$self{contexts}{$base};
-			unless ($base){
-				warn "Must _setcontext for required context for $query before querying";
-			}
-		}
-		# get default base (top level)
-		else{
-			$base = $$self{node};
-		}
-		# run search
-		$retstring = $$self{xpc}->findvalue($queryObj,$base);
-	}
-	
-	return $retstring;
+	# get root xpc, context node
+	my $context_node = $self->{contexts}->{$base}->{node};
+	my $xpc = $self->{contexts}->{$base}->{xpc};
+
+	# run query
+	return $xpc->findvalue($queryObj,$context_node);
 }
 
-# (qn)
+# (base, qn)
 # returns scalar value of only node found or
-# sets error and returns ""
+# sets error and returns false
 sub _findone{
 	my $self = shift;
 	unless($self->_findonenode(@_)){ 
-		return "";
+		return;
 	}
 	else{
 		return $self->_findvalue(@_);
 	}
 }
 
-# ()
-# validates all fields that have an expected value in %$self{qlib}->{expected}
-# only validates string enrties (i.e. skips arrays)
-# returns 1, or sets errors and returns 0
-sub _validate_all_expecteds{
+# (base, qn, text)
+# "text" is the expected output of the query
+# returns 1 or sets error and returns false
+sub _validateone{
 	my $self = shift;
-	my $startingfailcount = $$self{fail};
+	my $text = pop;
 	
-	foreach my $key ($$self{qlib}->expectedkeys()){
-		my $expectedtxt = $$self{qlib}->expected($key);
-		unless (ref($expectedtxt) eq "ARRAY"){ # skip arrays, they are reserved and this method doesn't know how to use them
-			my $foundtxt = $self->_findone($key);
-			unless ($expectedtxt eq "HT_skip_check" or $expectedtxt eq $foundtxt){
-				$self->_set_error("Text in $key is \"$foundtxt\", expected \"$expectedtxt\"");
-			}
-		}
-	}
-	
-	unless ($$self{fail} == $startingfailcount){
-		return 0;
-	}
-	
-	return 1;
-}
-
-# (qn)
-# validates a field based upon expected value in %$self{qlib}->{expected}
-# validates string entries, 
-# returns found value on success, sets error and returns undef on fail
-# warning: if you are for some reason looking for a value like 0 or ""
-# 	this method may not return true on success, 
-sub _validate_expected{
-	my $self = shift;
-	my $key = shift;
-	my $startingfailcount = $$self{fail};
-	
-	my $expected = $$self{qlib}->expected($key);
-	my $foundtxt = $self->_findone($key);
-	
-	# query failed, error already set by _findone
-	unless ($$self{fail} == $startingfailcount){
-		return undef;
-	}
-	
-	unless (ref($expected) eq "ARRAY"){
-		unless ($expected eq "HT_skip_check" or $expected eq $foundtxt){
-			$self->_set_error("Text in $key is \"$foundtxt\", expected \"$expected\"");
-			return undef;
-		}
-		return $foundtxt;
+	my $foundtext = $self->_findone(@_);
+	if ($text eq $foundtext){
+		return 1;
 	}
 	else{
-		my $foundit = 0;
-		foreach my $expectedtxt (@$expected){
-			if ($expectedtxt eq "HT_skip_check" or $expected eq $foundtxt){
-				$foundit = 1;
-				last;
-			}
-		}
-		if ($foundit){
-			return $foundtxt;
-		}
-		else{
-			return undef;
-		}
-	}	
+		$self->_set_error("Text in $_[1] is \"$foundtext\", expected \"$text\"");
+		return;
+	}
 }
 
-# (text,qn)
-# "text" is the expected output of the query
-# returns 1 or sets error and returns 0
-#sub _find_my_text_in_one_node{
-#	my $self = shift;
-#	my $text = shift;
-#	
-#	my $foundtext = $self->_findone(@_);
-#	if ($text eq $foundtext){
-#		return 1;
-#	}
-#	else{
-#		$self->_set_error("Text in $_[0] is \"$foundtext\", expected \"$text\"");
-#		return 0;
-#	}
-#}
-
-# (cn,node)
-# saves node as context node of record for cn
+# (name => "name",node => $node,xpc => $xpc)
+# xpc required unless we can get it from a parent
+# node required if you don't want to always be searching from the root
+#
+# saves node, xpc as context of record for cn
 sub _setcontext{
 	my $self = shift;
-	my $cn = shift;
-	my $node = shift;
+	my %arg_hash = (
+		name	=> undef,
+		node	=> undef,
+		xpc		=> undef,
+		@_,
+	);
+	my $cn = $arg_hash{name};
+	my $node = $arg_hash{node};
+	my $xpc = $arg_hash{xpc};
 	
-	# check that $node is set, $node is correct type, $cn is a valid hash entry
-	if($node && ref($node) eq "XML::LibXML::Element" && $$self{qlib}->context($cn)){
+	# check parameters
+	if($cn && ($node || $xpc) ){
+		if (! $xpc){
+			# get root xpc from parent
+			my $parent_name = $self->{qlib}->context_parent($cn);
+			$xpc = $self->{contexts}->{$parent_name}->{xpc};
+		}
 		# set
-		$$self{contexts}{$cn} = $node;
+		$self->{contexts}->{$cn} = {node => $node, xpc => $xpc};
 	}
 	else{
 		# fail on wrong input;
-		return 0;
+		confess("_setcontext: invalid args");
 	}
 }
 
 # (cn)
-# saves node as context node of record for cn
-# or returns 0 and sets error
+# finds and saves a node as context node of record for cn
+# or returns false and sets error
 sub _openonecontext{
 	my $self = shift;
-	my $cn = $_[0] or warn("_openonecontext: invalid args");
+	my ($cn) = @_ or croak("_openonecontext: invalid args");
 	
 	# run query
 	my $nodelist = $self->_findcontexts(@_);
@@ -336,18 +226,12 @@ sub _openonecontext{
 		$error_msg .= $nodelist->size();
 		$error_msg .= " hits for context query: $cn exactly one expected";
 		$self->_set_error($error_msg);
-		return 0;
+		return;
 	}
 	my $node = $nodelist->pop();
 	
-	## Debug
-	#my $nv = $node->textContent;
-	#print "###\n$nv\n###\n";
-	
-	$self->_setcontext($cn,$node)
+	$self->_setcontext(name => $cn, node => $node);
 }
-
-
 
 1;
 

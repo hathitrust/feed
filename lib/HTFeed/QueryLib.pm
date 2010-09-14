@@ -5,8 +5,8 @@ use strict;
 use XML::LibXML;
 
 #use HTFeed::QueryLib::ACSII_hul;
-use HTFeed::QueryLib::JPEG2000_hul;
-use HTFeed::QueryLib::TIFF_hul;
+#use HTFeed::QueryLib::JPEG2000_hul;
+#use HTFeed::QueryLib::TIFF_hul;
 #use HTFeed::QueryLib::WAVE_hul;
 
 =info
@@ -24,12 +24,14 @@ sub _compile{
 	my $self = shift;
 	
 	foreach my $key ( keys %{$self->{contexts}} ){
-##		print "compiling $$self{contexts}{$key}\n";
-		$$self{contexts}{$key} = new XML::LibXML::XPathExpression($$self{contexts}{$key});
+##		print "compiling $self->{contexts}->{$key}->[0]\n";
+		$self->{contexts}->{$key}->[0] = new XML::LibXML::XPathExpression($self->{contexts}->{$key}->[0]);
 	}
-	foreach my $key ( keys %{$self->{queries}} ){
-##		print "compiling $$self{queries}{$key}\n";
-		$$self{queries}{$key} = new XML::LibXML::XPathExpression($$self{queries}{$key});
+	foreach my $ikey ( keys %{$self->{queries}} ){
+		foreach my $jkey ( keys %{$self->{queries}->{$ikey}} ){
+##			print "compiling $self->{queries}->{$ikey}->{$jkey}\n";
+			$self->{queries}->{$ikey}->{$jkey} = new XML::LibXML::XPathExpression($self->{queries}->{$ikey}->{$jkey});
+		}
 	}
 }
 
@@ -37,27 +39,18 @@ sub _compile{
 sub context{
 	my $self = shift;
 	my $key = shift;
-	return $$self{contexts}{$key};
+	return $self->{contexts}->{$key}->[0];
+}
+sub context_parent{
+	my $self = shift;
+	my $key = shift;
+	return $self->{contexts}->{$key}->[1];
 }
 sub query{
 	my $self = shift;
+	my $parent = shift;
 	my $key = shift;
-	return $$self{queries}{$key};
-}
-sub expectedkeys{
-	my $self = shift;
-	return (keys %{$self->{expected}});
-}
-sub expected{
-	my $self = shift;
-	my $key = shift;
-	return $$self{expected}{$key};
-}
-sub parent{
-	my $self = shift;
-	my $key = shift;
-	if (defined $$self{parents}{$key}){ return $$self{parents}{$key}; }
-	else {return "";}
+	return $self->{queries}->{$parent}->{$key};
 }
 
 1;

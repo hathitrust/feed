@@ -14,7 +14,7 @@ our $qlib = new HTFeed::QueryLib::TIFF_hul;
 
 sub _set_required_querylib{
 	my $self = shift;
-	$$self{qlib} = $qlib;
+	$self->{qlib} = $qlib;
 }
 
 
@@ -22,23 +22,36 @@ sub run{
 	my $self = shift;
 	
 	# open contexts or fail
-	$self->_openonecontext("tiffMeta") or return 0;
-		$self->_openonecontext("mix") or return 0;
+	$self->_setcontext(name => "repInfo",node => $self->{node},xpc => $self->{xpc});
+		$self->_openonecontext("tiffMeta") or return;
+			$self->_openonecontext("mix") or return;
 
 	# check expected values
-	$self->_validate_all_expecteds();
+	$self->_validateone("repInfo","format","TIFF");
+	$self->_validateone("repInfo","status","Well-Formed and valid");
+	$self->_validateone("repInfo","module","TIFF-hul");
+	$self->_validateone("repInfo","mimeType","image/tiff");
+	$self->_validateone("mix","mime","image/tiff");
+	$self->_validateone("mix","compression","4");
+	$self->_validateone("mix","colorSpace","0");
+	$self->_validateone("mix","orientation","1");
+	$self->_validateone("mix","xRes","600");
+	$self->_validateone("mix","yRes","600");
+	$self->_validateone("mix","resUnit","2");
+	$self->_validateone("mix","bitsPerSample","1");
+	$self->_validateone("mix","samplesPerPixel","1");
 	
 	# check dimensions are reasonable
-	my $length = $self->_findone("mix_length");
-	my $width = $self->_findone("mix_width");
+	my $length = $self->_findone("mix","length");
+	my $width = $self->_findone("mix","width");
 	unless ($length > 1 and $width > 1){
 		$self->_set_error("Implausible dimensions");
 	}
 		
 	# check/save useful info
-	$self->_setdatetime( $self->_findone("mix_dateTime") );
-	$self->_setartist( $self->_findone("mix_artist") );
-	$self->_setdocumentname( $self->_findone("meta_documentName") );
+	$self->_setdatetime( $self->_findone("mix","dateTime") );
+	$self->_setartist( $self->_findone("mix","artist") );
+	$self->_setdocumentname( $self->_findone("tiffMeta","documentName") );
 	
 	# find xmp
 	my $xmp_found = 1;
@@ -49,47 +62,42 @@ sub run{
 		$self->_setupXMPcontext($xmp_xml) or return 0;
 		
 		# check expected values
-		$self->_validate_expected("xmp_bitsPerSample");
-		$self->_validate_expected("xmp_compression");
-		$self->_validate_expected("xmp_colorSpace");
-		$self->_validate_expected("xmp_orientation");
-		$self->_validate_expected("xmp_samplesPerPixel");
-		$self->_validate_expected("xmp_xRes");
-		$self->_validate_expected("xmp_yRes");
-		$self->_validate_expected("xmp_resUnit");
+		$self->_validateone("xmp","bitsPerSample","1");
+		$self->_validateone("xmp","compression","4");
+		$self->_validateone("xmp","colorSpace","0");
+		$self->_validateone("xmp","orientation","1");
+		$self->_validateone("xmp","samplesPerPixel","1");
+		$self->_validateone("xmp","xRes","600/1");
+		$self->_validateone("xmp","yRes","600/1");
+		$self->_validateone("xmp","resUnit","2");
 		
-		$self->_validate_expected("xmp_make");
-		$self->_validate_expected("xmp_model");
+		$self->_findonenode("xmp","make");
+		$self->_findonenode("xmp","model");
 		
 		# check dimensions are consistant
-		unless ($length == $self->_findone("xmp_length") and $width == $self->_findone("xmp_width")){
+		unless ($length == $self->_findone("xmp","length") and $width == $self->_findone("xmp","width")){
 			$self->_set_error("Inconsistant dimensions");
 		}
 		
 		# check/save useful info
-		$self->_setdatetime( $self->_findone("xmp_dateTime") );
-		$self->_setartist( $self->_findone("xmp_artist") );
-		$self->_setdocumentname( $self->_findone("xmp_documentName") );
+		$self->_setdatetime( $self->_findone("xmp","dateTime") );
+		$self->_setartist( $self->_findone("xmp","artist") );
+		$self->_setdocumentname( $self->_findone("xmp","documentName") );
 	}
 	
-	if ($$self{fail}){
-		return 0;
-	}
-	else{
-		return 1;
-	}
+	return $self->succeeded();
 }
 
 sub _findxmp{
 	my $self = shift;
-	my $nodelist = $self->_findnodes("xmp");
+	my $nodelist = $self->_findnodes("tiffMeta","xmp");
 	my $count = $nodelist->size();
-	return 0 unless $count;
+	unless ($count) {return;}
 	if ($count > 1){
 		$self->_set_error("$count XMPs found zero or one expected");
-		return 0;
+		return;
 	}
-	my $retstring = $self->_findone("xmp");
+	my $retstring = $self->_findone("tiffMeta","xmp");
 	return $retstring;
 }
 

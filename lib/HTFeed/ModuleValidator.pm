@@ -65,7 +65,7 @@ sub new{
 	if ($class eq __PACKAGE__){
 		$object->{filename} =~ /\.([0-9a-zA-Z]*)$/;
 		my $file_ext = $1;
-		$class .= "::" . %file_types->{$file_ext};
+		$class .= "::" . $file_types{$file_ext};
 	}
 
 	bless ($object, $class);
@@ -197,7 +197,7 @@ sub _setupXMPcontext{
 		return 0;
 	}
 	else{
-		$$self{customxpc} = $xpc;
+		$self->_setcontext(name => "xmp", xpc => $xpc);
 		return 1;
 	}
 }
