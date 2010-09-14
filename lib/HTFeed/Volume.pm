@@ -29,6 +29,8 @@ sub new {
       GROOVE::Book->new( $self->{objid}, $self->{namespace},
         $self->{packagetype} );
 
+    $self->{nspkg} = new HTFeed::Namespace($self->{namespace},$self->{packagetype});
+
     bless( $self, $class );
     return $self;
 }
@@ -137,7 +139,8 @@ Returns a regular expression that matches files that may appear in this volume's
 =cut
 
 sub get_valid_file_pattern {
-    die("Need to implement namespace/pkgtype config");
+    my $self = shift;
+    return $self->{nspkg}->get('valid_file_pattern');
 }
 
 =item validate_barcode
@@ -147,7 +150,9 @@ Returns true if the volume's barcode is valid for the volume's namespace and fal
 =cut
 
 sub validate_barcode {
-    die("Need to implement namespace config");
+    my $self = shift;
+    my $barcode = shift;
+    return $self->{nspkg}->validate_barcode($barcode);
 }
 
 =item allow_sequence_gaps
@@ -157,7 +162,7 @@ Returns true if the numeric naming sequence of files for images, etc. can have g
 =cut
 
 sub allow_sequence_gaps {
-    die("Need to implement namespace/pkgtype config");
+    return $self->{nspkg}->get('allow_sequence_gaps');
 }
 
 =item get_checksums
