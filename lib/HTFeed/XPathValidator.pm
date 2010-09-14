@@ -9,8 +9,7 @@ use base qw(HTFeed::SuccessOrFailure);
 
 use XML::LibXML;
 
-use constant DEBUG => 0;
-
+my $logger = get_logger(__PACKAGE__);
 
 sub _xpathInit{
 	my $self = shift;
@@ -100,7 +99,7 @@ sub _findcontexts{
 # sets error and returns undef
 sub _findonenode{
 	my $self = shift;
-	my ($base,$qn) = @_ or warn("_findonenode: invalid args");
+	my ($base,$qn) = @_ or croak("_findonenode: invalid args");
 
 	# run query
 	my $nodelist = $self->_findnodes(@_);
@@ -117,7 +116,7 @@ sub _findonenode{
 		$error_msg .= $nodelist->size();
 		$error_msg .= " hits for context query: $qn exactly one expected";
 		$self->_set_error($error_msg);
-		return undef;
+		return;
 	}
 
 	my $node = $nodelist->pop();
@@ -134,10 +133,8 @@ sub _findvalue{
 	# check/get query
 	my $queryObj = $self->{qlib}->query($base, $query) or croak ("_findvalue: invalid args");
 	
-	## verbose logging for debug
-	if (DEBUG){
-		print "looking for text of $query in $base...\n";
-	}
+	# verbose logging for debug
+	$logger->debug("looking for text of $query in $base...");
 
 	# get root xpc, context node
 	my $context_node = $self->{contexts}->{$base}->{node};
@@ -203,11 +200,12 @@ sub _setcontext{
 		}
 		# set
 		$self->{contexts}->{$cn} = {node => $node, xpc => $xpc};
+		return 1;
 	}
-	else{
-		# fail on wrong input;
-		confess("_setcontext: invalid args");
-	}
+	
+	# fail on wrong input;
+	confess("_setcontext: invalid args");
+	
 }
 
 # (cn)
@@ -231,6 +229,7 @@ sub _openonecontext{
 	my $node = $nodelist->pop();
 	
 	$self->_setcontext(name => $cn, node => $node);
+	return 1;
 }
 
 1;

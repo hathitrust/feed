@@ -51,7 +51,11 @@ sub new{
 				byteOrder			=> "//aes:byteOrder",
 				sampleRate			=> "//aes:sampleRate",
 			},
+			# mets children
+			mets =>
+			{
 			
+			},
 		},
 
 	};

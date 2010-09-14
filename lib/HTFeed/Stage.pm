@@ -43,6 +43,7 @@ sub run{
 sub _set_done{
 	my $self = shift;
 	$self->{has_run}++;
+	return $self->{has_run};
 }
 
 sub failed{
@@ -61,6 +62,7 @@ sub _set_error{
 	for (@_){
 			$logger->error($_,$self->{volume}->get_objid());
 	}
+	return 1;
 }
 
 1;

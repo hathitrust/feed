@@ -4,11 +4,6 @@ use warnings;
 use strict;
 use XML::LibXML;
 
-#use HTFeed::QueryLib::ACSII_hul;
-#use HTFeed::QueryLib::JPEG2000_hul;
-#use HTFeed::QueryLib::TIFF_hul;
-#use HTFeed::QueryLib::WAVE_hul;
-
 =info
 	parent class for HTFeed query plugins
 	
@@ -25,14 +20,15 @@ sub _compile{
 	
 	foreach my $key ( keys %{$self->{contexts}} ){
 ##		print "compiling $self->{contexts}->{$key}->[0]\n";
-		$self->{contexts}->{$key}->[0] = new XML::LibXML::XPathExpression($self->{contexts}->{$key}->[0]);
+		$self->{contexts}->{$key}->[0] = XML::LibXML::XPathExpression->new($self->{contexts}->{$key}->[0]);
 	}
 	foreach my $ikey ( keys %{$self->{queries}} ){
 		foreach my $jkey ( keys %{$self->{queries}->{$ikey}} ){
 ##			print "compiling $self->{queries}->{$ikey}->{$jkey}\n";
-			$self->{queries}->{$ikey}->{$jkey} = new XML::LibXML::XPathExpression($self->{queries}->{$ikey}->{$jkey});
+			$self->{queries}->{$ikey}->{$jkey} = XML::LibXML::XPathExpression->new($self->{queries}->{$ikey}->{$jkey});
 		}
 	}
+	return 1;
 }
 
 # accessors

@@ -35,7 +35,7 @@ use HTFeed::ModuleValidator::TIFF_hul;
 	}
 =cut
 
-our %file_types = (
+my %file_types = (
 	tif	=> "TIFF_hul",
 	jp2 => "JPEG2000_hul",
 #	wav => "WAVE_hul",
@@ -62,8 +62,10 @@ sub new{
 					documentname	=> "",
 	};
 	
+	# new called as a factory, figure out what child we want to make
 	if ($class eq __PACKAGE__){
-		$object->{filename} =~ /\.([0-9a-zA-Z]*)$/;
+		# get file extension
+		$object->{filename} =~ /\.([0-9a-zA-Z]+)$/;
 		my $file_ext = $1;
 		$class .= "::" . $file_types{$file_ext};
 	}
@@ -74,14 +76,12 @@ sub new{
 	
 	# make sure our new object is fully populated
 	unless ($$object{xpc} && $$object{node} && $$object{id} && $$object{filename}){
-		warn ("$class: too few parameters"); 
-		return undef;
+		croak ("$class: too few parameters");
 	}
 	
 	# check parameters
 	unless (ref($$object{xpc}) eq "XML::LibXML::XPathContext" && ref($$object{node}) eq "XML::LibXML::Element"){
-		warn ("$class: invalid parameters"); 
-		return undef;
+		croak ("$class: invalid parameters"); 
 	}
 	
 	return $object;
@@ -183,7 +183,7 @@ sub _setupXMPcontext{
 	eval{
 		my $parser = XML::LibXML->new();
 		my $doc = $parser->parse_string($xml);
-		$xpc = new XML::LibXML::XPathContext($doc);
+		$xpc = XML::LibXML::XPathContext->new($doc);
 		
 		# register XMP namespace
 		my $ns_xmp = "http://ns.adobe.com/tiff/1.0/";
@@ -211,6 +211,7 @@ sub _set_error{
 	for (@_){
 		get_logger(ref($self))->error($_,$self->{id},$self->{filename});
 	}
+	return 1;
 }
 
 1;
