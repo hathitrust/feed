@@ -35,20 +35,8 @@ use HTFeed::ModuleValidator::TIFF_hul;
 	}
 =cut
 
-my %file_types = (
-	tif	=> "TIFF_hul",
-	jp2 => "JPEG2000_hul",
-#	wav => "WAVE_hul",
-);
-
 sub new{
 	my $class = shift;
-	
-	# make sure we are instantiating a child class, not self
-	#if ($class eq __PACKAGE__){
-	#	warn __PACKAGE__ . " can only construct subclass objects";
-	#	return undef;
-	#}
 	
 	# make empty object, populate with passed parameters
 	my $object = {	xpc			=> undef,	# XML::LibXML::XPathContext object
