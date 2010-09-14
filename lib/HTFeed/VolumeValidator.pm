@@ -256,7 +256,7 @@ sub _validate_metadata {
             my $mod_val = HTFeed::ModuleValidator->new(
                 xpc      => $jhove_xpc,
                 node     => $node,
-                id       => $volume_id,
+                volume   => $volume,
                 filename => $file
             );
             $mod_val->run();

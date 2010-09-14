@@ -53,37 +53,41 @@ sub new{
 	# make empty object, populate with passed parameters
 	my $object = {	xpc			=> undef,	# XML::LibXML::XPathContext object
 					node 		=> undef,	# XML::LibXML::Element object, represents starting context in xpc
-					id			=> undef,	# string, volume id
+					volume		=> undef,	# HTFeed::Volume
 					filename	=> undef,	# string, filename
 					@_,						# override blank placeholders with proper values
 				    
+				    volume_id       => "",
 					datetime		=> "",
 					artist			=> "",
-					documentname	=> "",
+					documentname	=> "",  # set in _setdocumentname
 	};
 	
-	# new called as a factory, figure out what child we want to make
-	if ($class eq __PACKAGE__){
-		# get file extension
-		$object->{filename} =~ /\.([0-9a-zA-Z]+)$/;
-		my $file_ext = $1;
-		$class .= "::" . $file_types{$file_ext};
+	if ($class ne __PACKAGE__){
+	    croak "use __PACKAGE__ constructor to create $class object";
 	}
-
-	bless ($object, $class);
-	
-	$object->_xpathInit();
-	
-	# make sure our new object is fully populated
-	unless ($$object{xpc} && $$object{node} && $$object{id} && $$object{filename}){
-		croak ("$class: too few parameters");
-	}
-	
 	# check parameters
-	unless (ref($$object{xpc}) eq "XML::LibXML::XPathContext" && ref($$object{node}) eq "XML::LibXML::Element"){
-		croak ("$class: invalid parameters"); 
-	}
+    croak "invalid args" unless (
+            $object->{xpc} and $object->{node} and $object->{volume} and $object->{filename} and
+            $object->{xpc}->isa("XML::LibXML::XPathContext") and
+            $object->{node}->isa("XML::LibXML::Element") and
+            $object->{volume}->isa("HTFeed::Volume")
+    );
 	
+	# get volume_id
+	$object->{volume_id} = $object->{volume}->get_objid();
+
+	# get file extension
+	$object->{filename} =~ /\.([0-9a-zA-Z]+)$/;
+	my $file_ext = $1;
+	
+	# get module validator list from volume, set class accordingly
+	$class = $object->{volume}->get_namespace()->get('module_validators')->{$file_ext} or croak "invalid file extension";
+	
+	bless ($object, $class);
+
+	$object->_xpathInit();
+
 	return $object;
 }
 
@@ -154,7 +158,7 @@ sub _setdocumentname{
 	}
 
 	# validate
-	my $id = $$self{id};
+	my $id = $$self{volume_id};
 	my $file = $$self{filename};
 	
 	# deal with inconsistant use of '_' and '-'
@@ -209,7 +213,7 @@ sub _set_error{
 	
 	# log error w/ l4p
 	for (@_){
-		get_logger(ref($self))->error($_,$self->{id},$self->{filename});
+		get_logger(ref($self))->error($_,$self->{volume_id},$self->{filename});
 	}
 	return 1;
 }
