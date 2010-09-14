@@ -71,11 +71,11 @@ Returns true if the given barcode is valid for a book according to the common
 
 sub luhn_is_valid {
     my $self = shift;
-    my $systemid = shift;
+    my $itemtype_systemid = shift;
     my $barcode = shift;
 
-    croak("Expected 4-digit systemid") if $systemid !~ /^\d{4}$/;
-    return ($barcode =~ /^[34]$systemid\d{9}$/ and Algorithm::LUHN::is_valid($barcode));
+    croak("Expected 5-digit item type + systemid") if $itemtype_systemid !~ /^\d{5}$/;
+    return ($barcode =~ /^$itemtype_systemid\d{9}$/ and Algorithm::LUHN::is_valid($barcode));
     
 }
 
