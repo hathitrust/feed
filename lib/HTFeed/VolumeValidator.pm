@@ -9,6 +9,7 @@ use List::MoreUtils qw(uniq);
 use Carp;
 use Digest::MD5;
 use Encode;
+use HTFeed::XMLNamespaces qw(register_namespaces);
 
 use base qw(HTFeed::Stage);
 
@@ -268,7 +269,9 @@ sub _validate_metadata {
         my $jhove_doc    = $jhove_parser->parse_string($jhove_xml);
         $jhove_xpc = XML::LibXML::XPathContext->new($jhove_doc);
     }
-
+    
+    register_namespaces($jhove_xpc);
+    
     # get repInfo nodes
     my $nodelist = $jhove_xpc->findnodes('//jhove:repInfo');
 
