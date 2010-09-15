@@ -6,7 +6,7 @@ use base qw(Exporter);
 
 our @EXPORT_OK   = qw(register_namespaces);
 our %EXPORT_TAGS = ( 'namespaces' =>
-      qw(NS_METS NS_PREMIS NS_MARC NS_MIX NS_JHOVE NS_XLINK NS_DC NS_XSI) );
+      [qw(NS_METS NS_PREMIS NS_MARC NS_MIX NS_JHOVE NS_XLINK NS_DC NS_XSI)] );
 
 use constant {
     NS_DC     => 'http://purl.org/dc/elements/1.1/',

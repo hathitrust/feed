@@ -3,8 +3,10 @@ package HTFeed::Volume;
 use warnings;
 use strict;
 use Log::Log4perl qw(get_logger);
-use HTFeed::Namespaces qw(register_namespaces);
+use HTFeed::XMLNamespaces qw(register_namespaces);
 use XML::LibXML;
+use GROOVE::Book;
+use Carp;
 
 our $logger = get_logger(__PACKAGE__);
 
@@ -48,6 +50,17 @@ sub get_identifier {
 
 }
 
+=item get_namespace
+
+Returns the namespace identifier for the volume
+
+=cut
+
+sub get_namespace {
+    my $self = shift;
+    return $self->{namespace};
+}
+
 =item get_objid
 
 Returns the ID (without namespace) of the volume.
@@ -59,16 +72,6 @@ sub get_objid {
     return $self->{objid};
 }
 
-=item get_namespace
-
-Returns the namespace of the volume
-
-=cut
-
-sub get_namespace {
-    my $self = shift;
-    return $self->{namespace};
-}
 
 =item get_file_groups 
 
@@ -229,14 +232,15 @@ sub get_source_mets_xpc {
 
 }
 
-=item get_namespace
+=item get_nspkg
 
 Returns the HTFeed::Namespace object that provides namespace & package type-
 specific configuration information.
 
 =cut
 
-sub get_namespace {
+sub get_nspkg{
+    my $self = shift;
     return $self->{nspkg};
 }
 

@@ -4,8 +4,9 @@ use warnings;
 use strict;
 use Carp;
 use Log::Log4perl qw(get_logger);
+use Exporter;
 
-use base qw(HTFeed::SuccessOrFailure);
+use base qw(HTFeed::SuccessOrFailure Exporter);
 
 use XML::LibXML;
 
@@ -162,16 +163,31 @@ sub _findone{
 # returns 1 or sets error and returns false
 sub _validateone{
 	my $self = shift;
-	my $text = pop;
+	my $expected = pop;
 	
-	my $foundtext = $self->_findone(@_);
-	if ($text eq $foundtext){
+	my $actual = $self->_findone(@_);
+	if ($expected eq $actual){
 		return 1;
 	}
 	else{
-		$self->_set_error("Text in $_[1] is \"$foundtext\", expected \"$text\"");
+		$self->_set_error("Text in $_[1] is \"$actual\", expected \"$expected\"");
 		return;
 	}
+}
+
+# (base1, qn1, base2, qn2)
+# requires that value of query 1 equal value of query2
+sub _require_same {
+    my $self = shift;
+    my ($base1, $qn1, $base2, $qn2) = @_;
+    my $found1 = $self->_findone($base1,$qn1);
+    my $found2 = $self->_findone($base2,$qn2);
+    if($found1 eq $found2) {
+	return 1;
+    } else {
+	$self->_set_error("Text in $base1-$qn1 is \"$found1\", text in $base2-$qn2 is \"$found2\"");
+	return;
+    }
 }
 
 # (name => "name",node => $node,xpc => $xpc)
@@ -231,6 +247,89 @@ sub _openonecontext{
 	$self->_setcontext(name => $cn, node => $node);
 	return 1;
 }
+
+# Validation closures
+
+our @EXPORT_OK = qw(v_and v_exists v_same v_gt v_lt v_ge v_le v_eq v_between v_in);
+our %EXPORT_TAGS = ( 'closures' => \@EXPORT_OK );
+
+# Returns a sub that returns true if all of the parameter subs return true
+sub v_and {
+    my @subs = @_;
+
+    return sub {
+	my $self = shift;
+	foreach my $sub (@_) {
+	    &$sub($self) or return;
+	}
+	return 1;
+    }
+
+}
+
+sub v_exists {
+    my @params = @_;
+    return sub {
+	my $self = shift;
+	return $self->_findone(@params);
+    }
+}
+
+sub v_same {
+    my @params = @_;
+    return sub {
+	my $self = shift;
+	return $self->_require_same(@params);
+    }
+}
+
+sub _make_op_compare {
+    my ($ctx,$query,$expected,$op) = @_;
+    return eval <<EOT
+sub {
+    my \$self = shift;
+    my \$actual = \$self->_findone(\$ctx, \$query);
+    if (\$actual $op \$expected) {
+	return 1;
+    } else {
+	\$self->_set_error("Value of \$ctx:\$query is '\$actual', expected $op '\$expected'");
+	return;
+    }
+}
+EOT
+
+}
+
+# Numeric greater/less/greater-or-equal/less-or-equal
+sub v_gt { return _make_op_compare(@_,">"); }
+sub v_lt { return _make_op_compare(@_,"<"); }
+sub v_ge { return _make_op_compare(@_,">="); }
+sub v_le { return _make_op_compare(@_,"<="); }
+# String equality
+sub v_eq { return _make_op_compare(@_,"eq"); }
+
+# Inclusive range
+sub v_between {
+    my ($ctx,$query,$lower,$upper) = @_;
+    return v_and(v_ge($ctx,$query,$lower), v_le($ctx,$query,$upper));
+}
+
+
+# actual must be string-equal to one in @$allowed
+sub v_in { 
+    my ($ctx,$query,$allowed) = @_;
+
+    return sub {
+	my $self = shift;
+	my $actual = $self->_findone($ctx,$query);
+	foreach my $expected (@$allowed) {
+	    return 1 if ($actual eq $expected);
+	}
+
+	$self->_set_error("Value of $ctx:$query is $actual, expected one of (" . join(", ",@$allowed) . ")");
+    }
+}
+
 
 1;
 
