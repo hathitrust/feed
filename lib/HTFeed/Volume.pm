@@ -4,6 +4,7 @@ use warnings;
 use strict;
 use Log::Log4perl qw(get_logger);
 use HTFeed::XMLNamespaces qw(register_namespaces);
+use HTFeed::Namespace;
 use XML::LibXML;
 use GROOVE::Book;
 use Carp;
@@ -92,9 +93,9 @@ sub get_file_groups {
     my $book = $self->{groove_book};
 
     my $filegroups = {};
-    $filegroups->{image} = [ $book->get_all_images() ];
-    $filegroups->{ocr}   = [ $book->get_all_ocr() ];
-    $filegroups->{hocr} = [ $book->get_all_hocr() ] if $book->hocr_files_used();
+    $filegroups->{image} = $book->get_all_images();
+    $filegroups->{ocr}   = $book->get_all_ocr();
+    $filegroups->{hocr} = $book->get_all_hocr() if $book->hocr_files_used();
 
     return $filegroups;
 }
@@ -149,14 +150,15 @@ sub get_checksums {
     if ( !defined $self->{checksums} ) {
         my $checksums = {};
 
+        my $path = $self->get_staging_directory();
         my $checksum_file = $self->{groove_book}->get_checksum_file();
         if ( defined $checksum_file ) {
             my $checksum_fh;
-            open( $checksum_fh, "<", $checksum_file )
+            open( $checksum_fh, "<", "$path/$checksum_file" )
               or croak("Can't open $checksum_file: $!");
             while ( my $line = <$checksum_fh> ) {
                 chomp $line;
-                my ( $filename, $checksum ) = split( /\s+/, $line );
+                my ( $checksum, $filename ) = split( /\s+/, $line );
                 $checksums->{$filename} = $checksum;
             }
             close($checksum_fh);
@@ -165,10 +167,10 @@ sub get_checksums {
 
             # try to extract from source METS
             my $xpc = $self->get_source_mets_xpc();
-            foreach my $node ( $xpc->find_nodes('//mets:file') ) {
-                my $checksum = $xpc->find_value( './@CHECKSUM', $node );
+            foreach my $node ( $xpc->findnodes('//mets:file') ) {
+                my $checksum = $xpc->findvalue( './@CHECKSUM', $node );
                 my $filename =
-                  $xpc->find_value( './mets:FLocat/@xlink:href', $node );
+                  $xpc->findvalue( './mets:FLocat/@xlink:href', $node );
                 $checksums->{$filename} = $checksum;
             }
         }
@@ -216,11 +218,12 @@ sub get_source_mets_xpc {
     my $self = shift;
 
     my $mets = $self->get_source_mets_file();
+    my $path = $self->get_staging_directory();
     my $xpc;
 
     eval {
         my $parser = XML::LibXML->new();
-        my $doc    = $parser->parse_file($mets);
+        my $doc    = $parser->parse_file("$path/$mets");
         $xpc = XML::LibXML::XPathContext->new($doc);
         register_namespaces($xpc);
     };

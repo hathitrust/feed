@@ -6,6 +6,8 @@ use Log::Log4perl qw(get_logger);
 use XML::LibXML;
 use HTFeed::ModuleValidator;
 use List::MoreUtils qw(uniq);
+use Carp;
+use Digest::MD5;
 
 use base qw(HTFeed::Stage);
 
@@ -26,7 +28,7 @@ sub new {
 
     $self->{run_stages} = [
         qw(validate_file_names
-          validate_files_present
+          validate_filegroups_nonempty
           validate_consistency
           validate_checksums
           validate_metadata)
@@ -40,9 +42,10 @@ sub run {
     my $self = shift;
 
     # Run each enabled stage
-    foreach my $stage ( $self->{run_stages} ) {
+    foreach my $stage ( @{$self->{run_stages}} ) {
         if ( exists( $self->{stages}{$stage} ) ) {
             my $sub = $self->{stages}{$stage};
+            $logger->debug("Running validation stage $stage");
             &{$sub}($self);
         }
         else {
@@ -66,12 +69,12 @@ sub _validate_file_names {
     my $self   = shift;
     my $volume = $self->{volume};
 
-    my $valid_file_pattern = $volume->get_namespace()->get('valid_file_pattern');
+    my $valid_file_pattern = $volume->get_nspkg()->get('valid_file_pattern');
     my @bad =
       grep( { !/$valid_file_pattern/ } $volume->get_all_directory_files() );
 
     if (@bad) {
-        _set_error( 'Invalid file name(s):' . join( q{,}, @bad ) );
+       $self->_set_error( 'Invalid file name(s):' . join( q{,}, @bad ) );
 
     }
 
@@ -94,12 +97,14 @@ sub _validate_filegroups_nonempty {
 
     my $prev_filecount      = undef;
     my $prev_filegroup_name = q{};
+    my $filegroups = $volume->get_file_groups();
     while ( my ( $filegroup_name, $filegroup ) =
-        each( %{ $volume->get_file_groups() } ) )
+        each( %{$filegroups} ) )
     {
+        $logger->debug("validating nonempty filegroup $filegroup_name");
         my $filecount = scalar( @{$filegroup} );
         if ( !$filecount ) {
-            _set_error("File group $filegroup is empty");
+           $self->_set_error("File group $filegroup is empty");
         }
 
         $prev_filegroup_name = $filegroup_name;
@@ -127,7 +132,7 @@ sub _validate_consistency {
 
     # First determine what files belong to each sequence number
     while ( my ( $filegroup_name, $filegroup ) =
-        each( %{ $volume->get_file_groups() } ) )
+        each( %{ $filegroups } ) )
     {
         push( @filegroup_names, $filegroup_name );
         foreach my $file ( @{$filegroup} ) {
@@ -136,7 +141,7 @@ sub _validate_consistency {
                 $files{$sequence_number}{$filegroup_name} = $file;
             }
             else {
-                _set_error(
+               $self->_set_error(
 "Can't extract sequence number from filename $file in group $filegroup_name"
                 );
             }
@@ -144,12 +149,12 @@ sub _validate_consistency {
     }
 
     # Make sure there are no gaps in the sequence
-    if ( !$volume->get_namespace->get('allow_sequence_gaps') ) {
+    if ( !$volume->get_nspkg->get('allow_sequence_gaps') ) {
         my $prev_sequence_number = 0;
         my @sequence_numbers     = sort( keys(%files) );
         foreach my $sequence_number (@sequence_numbers) {
             if ( $sequence_number > $prev_sequence_number + 1 ) {
-                _set_error(
+               $self->_set_error(
 "Skip sequence number from $prev_sequence_number to $sequence_number"
                 );
             }
@@ -159,8 +164,8 @@ sub _validate_consistency {
 
     # Make sure each filegroup has an object for each sequence number
     while ( my ( $sequence_number, $files ) = each(%files) ) {
-        if ( @{$files} != @filegroup_names ) {
-            _set_error(
+        if ( keys( %{ $files } ) != @filegroup_names ) {
+           $self->_set_error(
                 "File missing for $sequence_number: have "
                   . join( q{,}, @{$files} ),
                 '; expected ' . join( q{,}, @filegroup_names )
@@ -183,22 +188,23 @@ sub _validate_checksums {
     my $volume        = $self->{volume};
     my $checksums     = $volume->get_checksums();
     my $checksum_file = $volume->get_checksum_file();
+    my $path = $volume->get_staging_directory();
 
    # make sure we check every file in the directory except for the checksum file
    # and make sure we check every file in the checksum file
 
     my @tovalidate = uniq(
-        sort( $volume->get_all_directory_files() .
-              keys( %{ $volume->get_checksums() } ) ) );
+        sort( ( @{ $volume->get_all_directory_files() }, 
+              keys( %{ $volume->get_checksums() } ) ) ) );
 
     foreach my $file (@tovalidate) {
         next if $file eq $checksum_file;
         my $expected = $checksums->{$file};
         if ( not defined $expected ) {
-            _set_error("No checksum found for $file");
+           $self->_set_error("No checksum found for $file");
         }
-        elsif ( md5sum($file) ne $expected ) {
-            _set_error("Checksums check failed for $file");
+        elsif ( md5sum("$path/$file") ne $expected ) {
+           $self->_set_error("Checksums check failed for $file");
         }
 
     }
@@ -230,7 +236,7 @@ sub _validate_metadata {
     }
 
     # get repInfo nodes
-    my $nodelist = $jhove_xpc->findnodes('//jhove:repInfo');
+    my $nodelist = $jhove_xpc->findnodes("//jhove:repInfo");
 
     # put repInfo nodes in a usable data structure
     my %nodes = ();
@@ -266,11 +272,11 @@ sub _validate_metadata {
                 $logger->debug("$file ok");
             }
             else {
-                _set_error("$file bad");
+               $self->_set_error("$file bad");
             }
         }
         else {
-            _set_error("$file missing");
+           $self->_set_error("$file missing");
         }
     }
 
@@ -281,9 +287,21 @@ sub _validate_metadata {
 # run jhove
 sub _run_jhove {
     my $dir = shift;
+    $logger->trace("jhove run on $dir started");
     my $xml = `jhove -h XML -c /l/local/jhove-1.5/conf/jhove.conf $dir`;
-
+    $logger->trace("jhove run on $dir finished");
+    
     return $xml;
+}
+
+sub md5sum {
+    my $file = shift;
+    my $ctx = new Digest::MD5;
+    my $fh;
+    open($fh,"<",$file) or croak("Can't open $file: $!");
+    $ctx->addfile($fh);
+    close($fh);
+    return $ctx->hexdigest();
 }
 1;
 

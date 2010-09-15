@@ -36,7 +36,7 @@ sub import {
 	# the identifier in each subclass to the class name
 	foreach my $package (
 	    map { substr( $_, 0, length($_) - 3 ) }
-	    grep { substr( $_, -3 ) eq '.pm' && -f "$module_path/$_" } readdir $dh
+	    grep { /^\w+\.pm$/ && -f "$module_path/$_" } readdir $dh
 	  )
 	{
 	    no strict 'refs';

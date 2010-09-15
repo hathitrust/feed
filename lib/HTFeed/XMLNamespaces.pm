@@ -1,10 +1,11 @@
-package HTFeed::Namespaces;
+package HTFeed::XMLNamespaces;
 
 use strict;
 use Readonly;
+use Exporter;
 use base qw(Exporter);
 
-our @EXPORT_OK   = qw(register_namespaces);
+our @EXPORT_OK   = qw(register_namespaces NS_METS NS_PREMIS NS_MARC NS_MIX NS_JHOVE NS_XLINK NS_DC NS_XSI);
 our %EXPORT_TAGS = ( 'namespaces' =>
       [qw(NS_METS NS_PREMIS NS_MARC NS_MIX NS_JHOVE NS_XLINK NS_DC NS_XSI)] );
 
@@ -31,7 +32,7 @@ use constant {
 
 =cut
 
-sub register_namespaces($) {
+sub register_namespaces {
     my $xpc = shift;
 
     $xpc->registerNs( 'dc',     NS_DC );

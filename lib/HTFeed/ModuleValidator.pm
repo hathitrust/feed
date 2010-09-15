@@ -78,7 +78,7 @@ sub new {
 
     # get module validator list from volume, set class accordingly
     $class =
-      $object->{volume}->get_namespace()->get('module_validators')->{$file_ext}
+      $object->{volume}->get_nspkg()->get('module_validators')->{$file_ext}
       or croak "invalid file extension";
 
     bless( $object, $class );
