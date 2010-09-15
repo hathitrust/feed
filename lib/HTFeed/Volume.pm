@@ -125,7 +125,7 @@ sub get_staging_directory {
 
 =item get_all_content_files
 
-Returns a list of all files that will be validated with JHOVE
+Returns a list of all files that will be validated.
 
 =cut
 
@@ -246,6 +246,31 @@ sub get_nspkg{
     my $self = shift;
     return $self->{nspkg};
 }
+
+=item get_metadata_files
+
+Get all files that will need to have their metadata validated with JHOVE
+
+=cut
+
+sub get_metadata_files {
+    my $self = shift;
+    my $book = $self->{groove_book};
+    return $book->get_all_images();
+}
+
+=item get_utf8_files
+
+Get all files that should be valid UTF-8
+
+=cut
+
+sub get_utf8_files {
+    my $self = shift;
+    my $book = $self->{groove_book};
+    return [( @{ $book->get_all_ocr() }, @{ $book->get_all_hocr() })]; 
+}
+
 
 1;
 

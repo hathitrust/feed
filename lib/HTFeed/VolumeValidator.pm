@@ -8,6 +8,7 @@ use HTFeed::ModuleValidator;
 use List::MoreUtils qw(uniq);
 use Carp;
 use Digest::MD5;
+use Encode;
 
 use base qw(HTFeed::Stage);
 
@@ -23,6 +24,7 @@ sub new {
         validate_filegroups_nonempty => \&_validate_filegroups_nonempty,
         validate_consistency         => \&_validate_consistency,
         validate_checksums           => \&_validate_checksums,
+	validate_utf8		     => \&_validate_utf8,
         validate_metadata            => \&_validate_metadata
     };
 
@@ -31,6 +33,7 @@ sub new {
           validate_filegroups_nonempty
           validate_consistency
           validate_checksums
+	  validate_utf8
           validate_metadata)
     ];
 
@@ -213,6 +216,38 @@ sub _validate_checksums {
 
 }
 
+=item _validate_utf8
+
+Opens and tries to decode each file alleged to be UTF8 and ensures that it is 
+valid UTF8 and does not contain any control characters other than tab and CR.
+
+=cut
+
+sub _validate_utf8 {
+    my $self = shift;
+    my $volume = $self->{volume};
+    my $utf8_files = $volume->get_utf8_files();
+    my $path = $volume->get_staging_directory();
+
+    foreach my $utf8_file (@$utf8_files) {
+	eval {
+	    my $utf8_fh;
+	    open($utf8_fh,"<","$path/$utf8_file") or croak("Can't open $utf8_file: $!");
+	    local $/ = undef; # turn on slurp mode
+	    binmode($utf8_fh,":bytes"); # ensure we're really reading it as bytes
+	    my $utf8_contents = <$utf8_fh>;
+	    my $decoded_utf8 = decode("utf-8-strict",$utf8_contents,Encode::FB_CROAK); # ensure it's really valid UTF-8 or croak
+
+	    croak("Invalid control characters in file $utf8_file") if $decoded_utf8 =~ /[\x00-\x08\x0B-\x1F]/m;
+	    close($utf8_fh);
+	};
+	if($@) {
+	    $self->_set_error("UTF8 validation failed for $utf8_file: $@");
+	}
+
+    }
+}
+
 =item _validate_metadata
 
 Runs JHOVE on all the files for the given volume and validates their metadata.
@@ -223,61 +258,42 @@ sub _validate_metadata {
     my $self   = shift;
     my $volume = $self->{volume};
 
-    my @files = $volume->get_all_content_files();
 
-    my $jhove_xml = _run_jhove( $volume->get_staging_directory() );
 
     # get xpc
     my $jhove_xpc;
     {
+	my $jhove_xml = _run_jhove( $volume );
         my $jhove_parser = XML::LibXML->new();
         my $jhove_doc    = $jhove_parser->parse_string($jhove_xml);
         $jhove_xpc = XML::LibXML::XPathContext->new($jhove_doc);
     }
 
     # get repInfo nodes
-    my $nodelist = $jhove_xpc->findnodes("//jhove:repInfo");
+    my $nodelist = $jhove_xpc->findnodes('//jhove:repInfo');
 
-    # put repInfo nodes in a usable data structure
-    my %nodes = ();
-    while ( my $node = $nodelist->shift() ) {
+    while (my $node = $nodelist->pop()) {
+	# run module validator
+	# get uri for this node
+	my $file = $jhove_xpc->findvalue( '@uri', $node );
+	# remove leading whitespace
+	$file =~ s/^\s*//g;
 
-        # get uri for this node
-        my $fname = $jhove_xpc->findvalue( '@uri', $node );
+	my $mod_val = HTFeed::ModuleValidator->new(
+	    xpc      => $jhove_xpc,
+	    node     => $node,
+	    volume   => $volume,
+	    filename => $file
+	);
+	$mod_val->run();
 
-        # remove leading whitespace
-        $fname =~ s/^\s*//g;
-
-        # populate hash
-        $nodes{$fname} = $node;
-    }
-
-    foreach my $file (@files) {
-        my $node;
-
-        # get node for file
-        if ( $node = $nodes{file} ) {
-
-            # run module validator
-            my $mod_val = HTFeed::ModuleValidator->new(
-                xpc      => $jhove_xpc,
-                node     => $node,
-                volume   => $volume,
-                filename => $file
-            );
-            $mod_val->run();
-
-            # check, log success
-            if ( $mod_val->succeeded() ) {
-                $logger->debug("$file ok");
-            }
-            else {
-               $self->_set_error("$file bad");
-            }
-        }
-        else {
-           $self->_set_error("$file missing");
-        }
+	# check, log success
+	if ( $mod_val->succeeded() ) {
+	    $logger->debug("$file ok");
+	}
+	else {
+	   $self->_set_error("$file bad");
+	}
     }
 
     return;
@@ -286,9 +302,14 @@ sub _validate_metadata {
 
 # run jhove
 sub _run_jhove {
-    my $dir = shift;
+    my $volume = shift;
+    my $dir = $volume->get_staging_directory();
+    my $files = $volume->get_metadata_files();
+    # prepend directory to each file to validate
+    my $files_for_cmd = join(' ', map { "$dir/$_"} @$files);
+
     $logger->trace("jhove run on $dir started");
-    my $xml = `jhove -h XML -c /l/local/jhove-1.5/conf/jhove.conf $dir`;
+    my $xml = `jhove -h XML -c /l/local/jhove-1.5/conf/jhove.conf $files_for_cmd`;
     $logger->trace("jhove run on $dir finished");
     
     return $xml;
