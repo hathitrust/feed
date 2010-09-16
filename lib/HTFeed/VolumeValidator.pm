@@ -75,7 +75,7 @@ sub _validate_file_names {
 
     my $valid_file_pattern = $volume->get_nspkg()->get('valid_file_pattern');
     my @bad =
-      grep( { !/$valid_file_pattern/ } $volume->get_all_directory_files() );
+      grep( { !/$valid_file_pattern/ } @{ $volume->get_all_directory_files() } );
 
     if (@bad) {
        $self->_set_error( 'Invalid file name(s):' . join( q{,}, @bad ) );
@@ -282,6 +282,7 @@ sub _validate_metadata {
 	# remove leading whitespace
 	$file =~ s/^\s*//g;
 
+	$logger->debug("validating $file");
 	my $mod_val = HTFeed::ModuleValidator->new(
 	    xpc      => $jhove_xpc,
 	    node     => $node,

@@ -53,11 +53,12 @@ sub get {
     } elsif (defined $ns_config->{$config_var}) {
 	return $ns_config->{$config_var};
     } elsif (defined $self->{'packagetype'}) {
-	eval {
-	    return $self->{'packagetype'}->get($config_var);
+	my $pkgtype_var = eval { $self->{'packagetype'}->get($config_var);
 	};
 	if($@) {
 	    croak("Can't find namespace/packagetype configuration variable $config_var");
+	} else {
+	    return $pkgtype_var;
 	}
     }
 

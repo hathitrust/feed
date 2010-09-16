@@ -3,6 +3,7 @@ package HTFeed::ModuleValidator::TIFF_hul;
 use warnings;
 use strict;
 
+use HTFeed::ModuleValidator;
 use HTFeed::XPathValidator qw(:closures);
 use base qw(HTFeed::ModuleValidator);
 

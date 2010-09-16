@@ -3,6 +3,7 @@ package HTFeed::ModuleValidator::JPEG2000_hul;
 use warnings;
 use strict;
 
+use HTFeed::ModuleValidator;
 use HTFeed::XPathValidator qw(:closures);
 use base qw(HTFeed::ModuleValidator);
 
@@ -33,7 +34,7 @@ sub _set_validators {
             v_eq( 'mix',     'mime',     'image/jp2' )
         ),
 
-        'brand'         => v_eq( 'jp2Meta', 'brand',         'image/jp2 ' ),
+        'brand'         => v_eq( 'jp2Meta', 'brand',         'jp2 ' ),
 
         'minor_version' => v_eq( 'jp2Meta', 'minorVersion',  '0' ),
 

@@ -79,7 +79,7 @@ sub new {
     # get module validator list from volume, set class accordingly
     $class =
       $object->{volume}->get_nspkg()->get('module_validators')->{$file_ext}
-      or croak "invalid file extension";
+      or croak "Don't know how to validate file extension $file_ext";
 
     bless( $object, $class );
 
@@ -165,7 +165,7 @@ sub _setdocumentname {
     $pattern =~ s/[-_]/\[-_\]/g;
 
     unless ( $documentname =~ m|$pattern|i ) {
-        $self->_set_error("Invalid document name found");
+        $self->_set_error("Invalid document name $documentname found");
         return 0;
     }
 
