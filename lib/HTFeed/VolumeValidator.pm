@@ -238,7 +238,6 @@ sub _validate_utf8 {
 	    binmode($utf8_fh,":bytes"); # ensure we're really reading it as bytes
 	    my $utf8_contents = <$utf8_fh>;
 	    my $decoded_utf8 = decode("utf-8-strict",$utf8_contents,Encode::FB_CROAK); # ensure it's really valid UTF-8 or croak
-
 	    croak("Invalid control characters in file $utf8_file") if $decoded_utf8 =~ /[\x00-\x08\x0B-\x1F]/m;
 	    close($utf8_fh);
 	};
@@ -260,7 +259,6 @@ sub _validate_metadata {
     my $volume = $self->{volume};
 
 
-
     # get xpc
     my $jhove_xpc;
     {
@@ -276,27 +274,27 @@ sub _validate_metadata {
     my $nodelist = $jhove_xpc->findnodes('//jhove:repInfo');
 
     while (my $node = $nodelist->pop()) {
-	# run module validator
-	# get uri for this node
-	my $file = $jhove_xpc->findvalue( '@uri', $node );
-	# remove leading whitespace
-	$file =~ s/^\s*//g;
+    	# run module validator
+    	# get uri for this node
+    	my $file = $jhove_xpc->findvalue( '@uri', $node );
+    	# remove leading whitespace
+    	$file =~ s/^\s*//g;
 
-	my $mod_val = HTFeed::ModuleValidator->new(
-	    xpc      => $jhove_xpc,
-	    node     => $node,
-	    volume   => $volume,
-	    filename => $file
-	);
-	$mod_val->run();
+    	my $mod_val = HTFeed::ModuleValidator->new(
+    	    xpc      => $jhove_xpc,
+    	    node     => $node,
+    	    volume   => $volume,
+    	    filename => $file
+    	);
+    	$mod_val->run();
 
-	# check, log success
-	if ( $mod_val->succeeded() ) {
-	    $logger->debug("$file ok");
-	}
-	else {
-	   $self->_set_error("$file bad");
-	}
+    	# check, log success
+    	if ( $mod_val->succeeded() ) {
+    	    $logger->debug("$file ok");
+    	}
+    	else {
+    	   $self->_set_error("$file bad");
+    	}
     }
 
     return;
