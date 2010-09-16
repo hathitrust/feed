@@ -133,8 +133,8 @@ sub get_all_content_files {
     my $self = shift;
     my $book = $self->{groove_book};
 
-    return ( $book->get_all_images(), $book->get_all_ocr(),
-        $book->get_all_hocr() );
+    return [( @{ $book->get_all_images() }, @{ $book->get_all_ocr() },
+        @{ $book->get_all_hocr() })];
 }
 
 =item get_checksums

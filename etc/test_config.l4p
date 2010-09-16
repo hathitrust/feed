@@ -1,4 +1,4 @@
-log4perl.rootLogger							= DEBUG, screen
+log4perl.rootLogger							= ALL, screen
 #log4perl.logger.HTFeed.ModuleValidator		= ALL, screen
 #log4perl.logger.HTFeed.Qlib				= ALL, screen
 

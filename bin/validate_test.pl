@@ -12,9 +12,9 @@ Log::Log4perl->init($l4p_config);
 Log::Log4perl->get_logger("")->trace("validate_test has initialized l4p!");
 
 
-#my $volume = HTFeed::Volume->new(objid => "b806977",namespace => "uc1",packagetype => "google");
+my $volume = HTFeed::Volume->new(objid => "b806977",namespace => "uc1",packagetype => "google");
 #my $volume = HTFeed::Volume->new(objid => "UOM-39015032210646",namespace => "mdp",packagetype => "google");
-my $volume = HTFeed::Volume->new(objid => "39015032210646",namespace => "mdp",packagetype => "google");
+#my $volume = HTFeed::Volume->new(objid => "39015032210646",namespace => "mdp",packagetype => "google");
 
 
 my $vol_val = HTFeed::VolumeValidator->new(volume => $volume);

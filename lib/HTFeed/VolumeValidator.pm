@@ -238,7 +238,6 @@ sub _validate_utf8 {
 	    binmode($utf8_fh,":bytes"); # ensure we're really reading it as bytes
 	    my $utf8_contents = <$utf8_fh>;
 	    my $decoded_utf8 = decode("utf-8-strict",$utf8_contents,Encode::FB_CROAK); # ensure it's really valid UTF-8 or croak
-
 	    croak("Invalid control characters in file $utf8_file") if $decoded_utf8 =~ /[\x00-\x08\x0B-\x1F]/m;
 	    close($utf8_fh);
 	};
@@ -258,7 +257,6 @@ Runs JHOVE on all the files for the given volume and validates their metadata.
 sub _validate_metadata {
     my $self   = shift;
     my $volume = $self->{volume};
-
 
 
     # get xpc
@@ -282,7 +280,7 @@ sub _validate_metadata {
 	# remove leading whitespace
 	$file =~ s/^\s*//g;
 
-	$logger->debug("validating $file");
+	$logger->trace("validating $file");
 	my $mod_val = HTFeed::ModuleValidator->new(
 	    xpc      => $jhove_xpc,
 	    node     => $node,

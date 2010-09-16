@@ -326,7 +326,7 @@ while(<STDIN>){
 		}
 		else{
 			#my $qlib = new HTFeed::QueryLib::JPEG2000_hul;
-			my $validator = HTFeed::ModuleValidator->new(xpc=> $jhove_xpc,node => $nodes[0],id => "39015000000086",filename => "00000004.tif");
+			my $validator = HTFeed::ModuleValidator->new(xpc=> $jhove_xpc,node => $nodes[0],id => "39015000000086",filename => "00000006.tif");
 			run $validator;
 			
 			print $validator->failed . " errors found\n";
