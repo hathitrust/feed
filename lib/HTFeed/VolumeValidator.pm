@@ -10,10 +10,11 @@ use Carp;
 use Digest::MD5;
 use Encode;
 use HTFeed::XMLNamespaces qw(register_namespaces);
+use IO::Pipe;
 
 use base qw(HTFeed::Stage);
 
-our $logger = get_logger(__PACKAGE__);
+my $logger = get_logger(__PACKAGE__);
 
 sub new {
     my $class = shift;
@@ -25,7 +26,7 @@ sub new {
         validate_filegroups_nonempty => \&_validate_filegroups_nonempty,
         validate_consistency         => \&_validate_consistency,
         validate_checksums           => \&_validate_checksums,
-	validate_utf8		     => \&_validate_utf8,
+	    validate_utf8		         => \&_validate_utf8,
         validate_metadata            => \&_validate_metadata
     };
 
@@ -257,64 +258,91 @@ Runs JHOVE on all the files for the given volume and validates their metadata.
 sub _validate_metadata {
     my $self   = shift;
     my $volume = $self->{volume};
-
-
-    # get xpc
-    my $jhove_xpc;
-    {
-	my $jhove_xml = _run_jhove( $volume );
-        my $jhove_parser = XML::LibXML->new();
-        my $jhove_doc    = $jhove_parser->parse_string($jhove_xml);
-        $jhove_xpc = XML::LibXML::XPathContext->new($jhove_doc);
-    }
-    
-    register_namespaces($jhove_xpc);
-    
-    # get repInfo nodes
-    my $nodelist = $jhove_xpc->findnodes('//jhove:repInfo');
-
-    while (my $node = $nodelist->pop()) {
-	# run module validator
-	# get uri for this node
-	my $file = $jhove_xpc->findvalue( '@uri', $node );
-	# remove leading whitespace
-	$file =~ s/^\s*//g;
-
-	$logger->trace("validating $file");
-	my $mod_val = HTFeed::ModuleValidator->new(
-	    xpc      => $jhove_xpc,
-	    node     => $node,
-	    volume   => $volume,
-	    filename => $file
-	);
-	$mod_val->run();
-
-	# check, log success
-	if ( $mod_val->succeeded() ) {
-	    $logger->debug("$file ok");
-	}
-	else {
-	   $self->_set_error("$file bad");
-	}
-    }
-
-    return;
-
-}
-
-# run jhove
-sub _run_jhove {
-    my $volume = shift;
+	
+	# make jhove command
     my $dir = $volume->get_staging_directory();
     my $files = $volume->get_metadata_files();
     # prepend directory to each file to validate
     my $files_for_cmd = join(' ', map { "$dir/$_"} @$files);
+	$jhove_cmd = 'jhove -h XML -c /l/local/jhove-1.5/conf/jhove.conf ' . $files_for_cmd;
+	
+	# make a hash of expected files
+	%files_left_to_validate = map { $_ => 1 } @$files;
 
-    $logger->trace("jhove run on $dir started");
-    my $xml = `jhove -h XML -c /l/local/jhove-1.5/conf/jhove.conf $files_for_cmd`;
-    $logger->trace("jhove run on $dir finished");
+    # open pipe to jhove
+    my $pipe = new IO::Pipe;
+    $pipe->reader($jhove_cmd);
     
-    return $xml;
+    # get the header
+    my $control_line = <$pipe>;
+    my $head = <$pipe>;
+    my $date_line = <$pipe>;
+    my $tail='</jhove>';
+    
+    # start looking for repInfo block
+    DOC_READER: while(<$pipe>){
+        if (m|^\s<repInfo.+>$|){
+            # save the fisrt line when we find it
+            my $xml_block = "$_";
+
+            # get the rest of the lines for this repInfo block
+            BLOCK_READER: while(<$pipe>){
+                # save more lines until we get to </repInfo>
+                $xml_block .= $_;
+                last BLOCK_READER if m|^\s</repInfo>$|;
+            }
+
+            # get file name from xml_block
+            $xml_block =~ m{<repInfo\suri=".*/(.*)"|\s<repInfo\suri="(.*)"};
+            my $file;
+            $file = $1 or $file = $2;
+			
+            # remove file from our list
+            delete $files_left_to_validate{$file};
+			
+            # validate file
+            {
+                # put the headers on xml_block, parse it as a doc
+                $xml_block = $control_line . $head . $date_line . $xml_frag . $tail;
+                my $parser = XML::LibXML->new();
+                $xml_block = $parser->parse_string($xml_block);
+                my $xpc = new XML::LibXML::XPathContext($xml_block);
+                register_namespaces($xpc);
+
+            	$logger->trace("validating $file");
+            	my $mod_val = HTFeed::ModuleValidator->new(
+            	    xpc      => $xpc,
+            	    #node    => $node,
+            	    volume   => $volume,
+            	    filename => $file
+            	);
+            	$mod_val->run();
+
+            	# check, log success
+            	if ( $mod_val->succeeded() ) {
+            	    $logger->debug("$file ok");
+            	}
+            	else {
+            	    $self->_set_error("$file bad");
+            	}
+            }
+
+        }
+        elsif(m|^</jhove>$|){
+            last DOC_READER;
+        }
+        else{
+            # this should never happen
+            die "jhove output bad";
+        }
+    }
+
+    if (keys %files_left_to_validate){
+        # this should never happen
+        die "missing a block in jhove output";
+    };
+
+    return;
 }
 
 sub md5sum {

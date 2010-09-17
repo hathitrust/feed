@@ -15,8 +15,9 @@ sub new{
 	# store all queries
 	my $self = {
 		contexts => {
+		    repInfo     => ["/jhove:jhove/jhove:repInfo","root"],
 			tiffMeta	=> ["jhove:properties/jhove:property[jhove:name='TIFFMetadata']/descendant::jhove:property[jhove:name='Entries']/jhove:values", "repInfo"],
-				mix			=> ["jhove:property[jhove:name='NisoImageMetadata']/jhove:values/jhove:value/mix:mix", "tiffMeta"],
+			mix			=> ["jhove:property[jhove:name='NisoImageMetadata']/jhove:values/jhove:value/mix:mix", "tiffMeta"],
 		},
 		queries => {
 			# top level

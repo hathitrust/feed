@@ -26,7 +26,7 @@ use HTFeed::ModuleValidator::TIFF_hul;
 
 =synopsis
 	my $context_node = $xpc->findnodes("$repInfo/$format"."Metadata");
-	my $validator = HTFeed::ModuleValidator::JPEG2000_hul->new(xpc => $xpc, node => $context_node, qlib => $querylib);
+	my $validator = HTFeed::ModuleValidator::JPEG2000_hul->new(xpc => $xpc, qlib => $querylib);
 	if ($validator->validate){
 		# SUCCESS code...
 	}	
@@ -42,9 +42,6 @@ sub new {
     # make empty object, populate with passed parameters
     my $object = {
         xpc => undef,    # XML::LibXML::XPathContext object
-        node =>
-          undef
-        ,    # XML::LibXML::Element object, represents starting context in xpc
         volume   => undef,    # HTFeed::Volume
         filename => undef,    # string, filename
         @_,                   # override blank placeholders with proper values
@@ -62,11 +59,9 @@ sub new {
     # check parameters
     croak "invalid args"
       unless ( $object->{xpc}
-        and $object->{node}
         and $object->{volume}
         and $object->{filename}
         and $object->{xpc}->isa("XML::LibXML::XPathContext")
-        and $object->{node}->isa("XML::LibXML::Element")
         and $object->{volume}->isa("HTFeed::Volume") );
 
     # get volume_id

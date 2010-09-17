@@ -120,10 +120,10 @@ sub run {
 
     # open contexts
     $self->_setcontext(
-        name => "repInfo",
-        node => $self->{node},
+        name => "root",
         xpc  => $self->{xpc}
     );
+    $self->_openonecontext("repInfo");
     $self->_openonecontext("jp2Meta");
     $self->_openonecontext("codestream");
     $self->_openonecontext("codingStyleDefault");

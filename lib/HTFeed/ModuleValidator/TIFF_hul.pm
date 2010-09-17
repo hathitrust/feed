@@ -103,13 +103,12 @@ sub run {
     # TODO: do this automatically
     # open contexts or fail
     $self->_setcontext(
-        name => "repInfo",
-        node => $self->{node},
+        name => "root",
         xpc  => $self->{xpc}
     );
-
+    $self->_openonecontext("repInfo") or return;
     $self->_openonecontext("tiffMeta") or return;
-    $self->_openonecontext("mix")      or return;
+    $self->_openonecontext("mix") or return;
 
     return $self->SUPER::run();
 
