@@ -87,7 +87,7 @@ sub _findcontexts{
 	my $base_node = $self->{contexts}->{$base}->{node};
 	my $xpc = $self->{contexts}->{$base}->{xpc};
 	
-	if ($xpc && $query && $base_node){
+	if ($xpc && $query){
 		my $nodelist = $xpc->findnodes($query,$base_node);
 		return $nodelist;
 	}

@@ -48,7 +48,7 @@ sub _set_done{
 
 sub failed{
 	my $self = shift;
-	return $self->{failed} if $self->{done};
+	return $self->{failed} if $self->{has_run};
 	croak "can't check success until run()";
 }
 

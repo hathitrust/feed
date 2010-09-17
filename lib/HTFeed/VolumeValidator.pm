@@ -293,7 +293,7 @@ sub _validate_metadata {
             }
 
             # get file name from xml_block
-            $xml_block =~ m{<repInfo\suri=".*/(.*)"|\s<repInfo\suri="(.*)"};
+            $xml_block =~ m{\s<repInfo\suri=".*/(.*)"|\s<repInfo\suri="(.*)"};
             my $file;
             $file = $1 or $file = $2;
 			
