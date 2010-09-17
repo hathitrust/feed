@@ -18,7 +18,7 @@ sub new {
 	    repInfo => [
 	    "/jhove:jhove/jhove:repInfo",
 	    "root"
-	    ]
+	    ],
 	    jp2Meta => [
 	    "jhove:properties/jhove:property[jhove:name='JPEG2000Metadata']/jhove:values",
 	    "repInfo"

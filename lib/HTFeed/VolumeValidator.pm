@@ -264,10 +264,10 @@ sub _validate_metadata {
     my $files = $volume->get_metadata_files();
     # prepend directory to each file to validate
     my $files_for_cmd = join(' ', map { "$dir/$_"} @$files);
-	$jhove_cmd = 'jhove -h XML -c /l/local/jhove-1.5/conf/jhove.conf ' . $files_for_cmd;
+	my $jhove_cmd = 'jhove -h XML -c /l/local/jhove-1.5/conf/jhove.conf ' . $files_for_cmd;
 	
 	# make a hash of expected files
-	%files_left_to_validate = map { $_ => 1 } @$files;
+	my %files_left_to_validate = map { $_ => 1 } @$files;
 
     # open pipe to jhove
     my $pipe = new IO::Pipe;
@@ -303,7 +303,7 @@ sub _validate_metadata {
             # validate file
             {
                 # put the headers on xml_block, parse it as a doc
-                $xml_block = $control_line . $head . $date_line . $xml_frag . $tail;
+                $xml_block = $control_line . $head . $date_line . $xml_block . $tail;
                 my $parser = XML::LibXML->new();
                 $xml_block = $parser->parse_string($xml_block);
                 my $xpc = new XML::LibXML::XPathContext($xml_block);
