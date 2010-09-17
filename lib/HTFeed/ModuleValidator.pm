@@ -81,6 +81,11 @@ sub new {
     $object->_xpathInit();
     $object->_set_validators();
 
+    my $overrides = $object->{volume}->get_nspkg()->get_validation_overrides($class);
+    while(my ($k,$v) = each(%$overrides)) {
+	$object->{validators}{$k} = $v;
+    }
+
     return $object;
 }
 
@@ -216,7 +221,7 @@ sub _set_error {
 sub run {
 
     my $self = shift;
-
+    
     foreach my $validator ( values( %{ $self->{validators} } ) ) {
         &{$validator}($self);
     }

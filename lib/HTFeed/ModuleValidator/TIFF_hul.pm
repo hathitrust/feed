@@ -77,11 +77,20 @@ sub _set_validators {
              # require XMP headers to exist and match TIFF headers if XMP exists
                 foreach my $field (
                     qw(bitsPerSample compression colorSpace orientation samplesPerPixel resUnit length
-                    width dateTime artist documentName)
+                    width artist )
                   )
                 {
                     $self->_require_same( 'mix', $field, 'xmp', $field );
                 }
+		$self->_require_same('tiffMeta','documentName','xmp','documentName');
+
+		my $xmp_datetime = $self->_findone("xmp","dateTime");
+		my $mix_datetime = $self->_findone("mix","dateTime");
+		# xmp has timezone, mix doesn't..
+		if($xmp_datetime !~ /^\Q$mix_datetime\E\+\d{2}:\d{2}/) {
+		    $self->_set_error("Invalid/non-matching xmp:dateTime $xmp_datetime (mix:dateTime was $mix_datetime)");
+		}
+
 
                 # mix lists as just '600'
                 $self->_validateone( "xmp", "xRes", "600/1" );

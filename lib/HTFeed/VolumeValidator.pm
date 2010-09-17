@@ -26,7 +26,7 @@ sub new {
         validate_filegroups_nonempty => \&_validate_filegroups_nonempty,
         validate_consistency         => \&_validate_consistency,
         validate_checksums           => \&_validate_checksums,
-	    validate_utf8		         => \&_validate_utf8,
+        validate_utf8                => \&_validate_utf8,
         validate_metadata            => \&_validate_metadata
     };
 
@@ -35,7 +35,7 @@ sub new {
           validate_filegroups_nonempty
           validate_consistency
           validate_checksums
-	  validate_utf8
+          validate_utf8
           validate_metadata)
     ];
 
@@ -47,7 +47,7 @@ sub run {
     my $self = shift;
 
     # Run each enabled stage
-    foreach my $stage ( @{$self->{run_stages}} ) {
+    foreach my $stage ( @{ $self->{run_stages} } ) {
         if ( exists( $self->{stages}{$stage} ) ) {
             my $sub = $self->{stages}{$stage};
             $logger->debug("Running validation stage $stage");
@@ -75,11 +75,11 @@ sub _validate_file_names {
     my $volume = $self->{volume};
 
     my $valid_file_pattern = $volume->get_nspkg()->get('valid_file_pattern');
-    my @bad =
-      grep( { !/$valid_file_pattern/ } @{ $volume->get_all_directory_files() } );
+    my @bad                = grep(
+        { !/$valid_file_pattern/ } @{ $volume->get_all_directory_files() } );
 
-    if (@bad) {
-       $self->_set_error( 'Invalid file name(s):' . join( q{,}, @bad ) );
+    foreach my $file (@bad) {
+        $self->_set_error( "Invalid file name $file" );
 
     }
 
@@ -102,14 +102,12 @@ sub _validate_filegroups_nonempty {
 
     my $prev_filecount      = undef;
     my $prev_filegroup_name = q{};
-    my $filegroups = $volume->get_file_groups();
-    while ( my ( $filegroup_name, $filegroup ) =
-        each( %{$filegroups} ) )
-    {
+    my $filegroups          = $volume->get_file_groups();
+    while ( my ( $filegroup_name, $filegroup ) = each( %{$filegroups} ) ) {
         $logger->debug("validating nonempty filegroup $filegroup_name");
         my $filecount = scalar( @{$filegroup} );
         if ( !$filecount ) {
-           $self->_set_error("File group $filegroup is empty");
+            $self->_set_error("File group $filegroup is empty");
         }
 
         $prev_filegroup_name = $filegroup_name;
@@ -131,35 +129,16 @@ sub _validate_consistency {
     my $self   = shift;
     my $volume = $self->{volume};
 
-    my $filegroups      = $volume->get_file_groups();
-    my @filegroup_names = ();
-    my %files           = ();
-
-    # First determine what files belong to each sequence number
-    while ( my ( $filegroup_name, $filegroup ) =
-        each( %{ $filegroups } ) )
-    {
-        push( @filegroup_names, $filegroup_name );
-        foreach my $file ( @{$filegroup} ) {
-            if ( $file =~ /(\d+)\.(\w+)$/ ) {
-                my $sequence_number = $1;
-                $files{$sequence_number}{$filegroup_name} = $file;
-            }
-            else {
-               $self->_set_error(
-"Can't extract sequence number from filename $file in group $filegroup_name"
-                );
-            }
-        }
-    }
+    my @filegroup_names = keys( %{ $volume->get_file_groups(); } );
+    my $files = $volume->get_file_groups_by_page();
 
     # Make sure there are no gaps in the sequence
     if ( !$volume->get_nspkg->get('allow_sequence_gaps') ) {
         my $prev_sequence_number = 0;
-        my @sequence_numbers     = sort( keys(%files) );
+        my @sequence_numbers     = sort( keys(%$files) );
         foreach my $sequence_number (@sequence_numbers) {
             if ( $sequence_number > $prev_sequence_number + 1 ) {
-               $self->_set_error(
+                $self->_set_error(
 "Skip sequence number from $prev_sequence_number to $sequence_number"
                 );
             }
@@ -168,11 +147,11 @@ sub _validate_consistency {
     }
 
     # Make sure each filegroup has an object for each sequence number
-    while ( my ( $sequence_number, $files ) = each(%files) ) {
-        if ( keys( %{ $files } ) != @filegroup_names ) {
-           $self->_set_error(
+    while ( my ( $sequence_number, $files ) = each( %{$files} ) ) {
+        if ( keys( %{$files} ) != @filegroup_names ) {
+            $self->_set_error(
                 "File missing for $sequence_number: have "
-                  . join( q{,}, @{$files} ),
+                  . join( q{,}, keys %{$files} ),
                 '; expected ' . join( q{,}, @filegroup_names )
             );
         }
@@ -193,23 +172,26 @@ sub _validate_checksums {
     my $volume        = $self->{volume};
     my $checksums     = $volume->get_checksums();
     my $checksum_file = $volume->get_checksum_file();
-    my $path = $volume->get_staging_directory();
+    my $path          = $volume->get_staging_directory();
 
    # make sure we check every file in the directory except for the checksum file
    # and make sure we check every file in the checksum file
 
     my @tovalidate = uniq(
-        sort( ( @{ $volume->get_all_directory_files() }, 
-              keys( %{ $volume->get_checksums() } ) ) ) );
+        sort( (
+                @{ $volume->get_all_directory_files() },
+                keys( %{ $volume->get_checksums() } )
+            ) )
+    );
 
     foreach my $file (@tovalidate) {
         next if $file eq $checksum_file;
         my $expected = $checksums->{$file};
         if ( not defined $expected ) {
-           $self->_set_error("No checksum found for $file");
+            $self->_set_error("No checksum found for $file");
         }
         elsif ( md5sum("$path/$file") ne $expected ) {
-           $self->_set_error("Checksums check failed for $file");
+            $self->_set_error("Checksums check failed for $file");
         }
 
     }
@@ -226,25 +208,30 @@ valid UTF8 and does not contain any control characters other than tab and CR.
 =cut
 
 sub _validate_utf8 {
-    my $self = shift;
-    my $volume = $self->{volume};
+    my $self       = shift;
+    my $volume     = $self->{volume};
     my $utf8_files = $volume->get_utf8_files();
-    my $path = $volume->get_staging_directory();
+    my $path       = $volume->get_staging_directory();
 
     foreach my $utf8_file (@$utf8_files) {
-	eval {
-	    my $utf8_fh;
-	    open($utf8_fh,"<","$path/$utf8_file") or croak("Can't open $utf8_file: $!");
-	    local $/ = undef; # turn on slurp mode
-	    binmode($utf8_fh,":bytes"); # ensure we're really reading it as bytes
-	    my $utf8_contents = <$utf8_fh>;
-	    my $decoded_utf8 = decode("utf-8-strict",$utf8_contents,Encode::FB_CROAK); # ensure it's really valid UTF-8 or croak
-	    croak("Invalid control characters in file $utf8_file") if $decoded_utf8 =~ /[\x00-\x08\x0B-\x1F]/m;
-	    close($utf8_fh);
-	};
-	if($@) {
-	    $self->_set_error("UTF8 validation failed for $utf8_file: $@");
-	}
+        eval {
+            my $utf8_fh;
+            open( $utf8_fh, "<", "$path/$utf8_file" )
+              or croak("Can't open $utf8_file: $!");
+            local $/ = undef;    # turn on slurp mode
+            binmode( $utf8_fh, ":bytes" )
+              ;                  # ensure we're really reading it as bytes
+            my $utf8_contents = <$utf8_fh>;
+            my $decoded_utf8 =
+              decode( "utf-8-strict", $utf8_contents, Encode::FB_CROAK )
+              ;                  # ensure it's really valid UTF-8 or croak
+            croak("Invalid control characters in file $utf8_file")
+              if $decoded_utf8 =~ /[\x00-\x08\x0B-\x1F]/m;
+            close($utf8_fh);
+        };
+        if ($@) {
+            $self->_set_error("UTF8 validation failed for $utf8_file: $@");
+        }
 
     }
 }
@@ -347,9 +334,9 @@ sub _validate_metadata {
 
 sub md5sum {
     my $file = shift;
-    my $ctx = new Digest::MD5;
+    my $ctx  = new Digest::MD5;
     my $fh;
-    open($fh,"<",$file) or croak("Can't open $file: $!");
+    open( $fh, "<", $file ) or croak("Can't open $file: $!");
     $ctx->addfile($fh);
     close($fh);
     return $ctx->hexdigest();

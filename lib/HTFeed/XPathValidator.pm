@@ -285,6 +285,7 @@ sub v_same {
 
 sub _make_op_compare {
     my ($ctx,$query,$expected,$op) = @_;
+    croak('Usage: _make_op_compare $ctx $query $expected $op') unless defined $ctx and defined $query and defined $expected and defined $op;
     return eval <<EOT
 sub {
     my \$self = shift;

@@ -64,6 +64,40 @@ sub get {
 
 }
 
+=item get_validation_overrides($module)
+
+Collects the validation overrides from the current namespace and package type
+for the given validation module (e.g.  HTFeed::ModuleValidator::JPEG2000_hul) 
+
+=cut
+
+sub get_validation_overrides {
+    my $self = shift;
+    my $module = shift;
+
+    my $class = ref($self);
+    no strict 'refs';
+    my $overrides = {};
+    my $packagetype_id = $self->{'packagetype'}->get_identifier();
+    my $ns_pkgtype_override = ${"${class}::packagetype_overrides"}->{$packagetype_id};
+    my $ns_config = ${"${class}::config"};
+    foreach my $override_source (
+	$self->{'packagetype'}->get('validation'), # lowest priority - packagetype-specific
+	$ns_config->{'validation'}, # then namespace-specific
+	$ns_pkgtype_override->{'validation'}) { # then namespace/packagetype-pair- specific
+	if(defined $override_source
+		and exists $override_source->{$module}) {
+	    while(my ($k,$v) = each ( %{ $override_source->{$module} })) {
+		$overrides->{$k} = $v;
+	    }
+	}
+    }
+
+    return $overrides;
+
+}
+
+
 # UTILITIES FOR SUBCLASSES
 
 =item luhn_is_valid($systemid,$barcode)

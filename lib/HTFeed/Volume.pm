@@ -7,6 +7,7 @@ use HTFeed::XMLNamespaces qw(register_namespaces);
 use HTFeed::Namespace;
 use XML::LibXML;
 use GROOVE::Book;
+use GROOVE::Tools;
 use Carp;
 
 our $logger = get_logger(__PACKAGE__);
@@ -208,8 +209,7 @@ sub get_source_mets_file {
 
 =item get_source_mets_xpc
 
-Returns an XML::LibXML::XPathContext with the following namespace set:
-
+Returns an XML::LibXML::XPathContext with namespaces set up 
 and the context node positioned at the document root of the source METS.
 
 =cut
@@ -270,6 +270,253 @@ sub get_utf8_files {
     my $book = $self->{groove_book};
     return [( @{ $book->get_all_ocr() }, @{ $book->get_all_hocr() })]; 
 }
+
+=item get_marc_xml
+
+Returns an XML::LibXML node with the MARCXML
+
+=cut
+
+sub get_marc_xml {
+    my $self = shift;
+    my $book = $self->{groove_book};
+
+    my $marcxml_string = $book->get_marcxml();
+
+    my $marcxml_doc;
+    eval {
+    	$marcxml_doc = XML::LibXML->new()->parse_string($marcxml_string);
+    };
+    if($@) {
+	croak("Could not get MARCXML: $@");
+    }
+
+    return $marcxml_doc;
+}
+
+=item get_repository_mets_xpc
+
+Returns an XML::LibXML::XPathContext with namespaces set up 
+and the context node positioned at the document root of the repository METS, if
+the object is already in the repository. Returns false if the object is not
+already in the repository.
+
+=cut
+
+sub get_repository_mets_xpc  {
+    my $self = shift;
+    my $book = $self->{groove_book};
+
+    my $repos_symlink = $book->get_repository_symlink();
+
+    return unless (-l $repos_symlink);
+
+    my $mets_in_repository_file = sprintf("%s/%s.mets.xml",
+	$repos_symlink,
+	$book->get_pt_objid());
+
+    return unless (-f $mets_in_repository_file);
+
+    my $xpc;
+
+    eval {
+        my $parser = XML::LibXML->new();
+        my $doc    = $parser->parse_file($mets_in_repository_file);
+        $xpc = XML::LibXML::XPathContext->new($doc);
+        register_namespaces($xpc);
+    };
+
+    if ($@) {
+        croak("Could not read METS file $mets_in_repository_file: $@");
+    }
+    return $xpc;
+
+}
+
+=item get_filecount
+
+Returns the total number of content files
+
+=cut
+
+sub get_file_count {
+
+    my $self = shift;
+    return scalar(@{$self->{groove_book}->get_all_content_files()});
+}
+
+=item get_page_count
+
+Returns the number of pages in the volume as determined by the number of
+images.
+
+=cut
+
+sub get_page_count {
+    my $self = shift;
+    return scalar(@{$self->{groove_book}->get_all_images()});
+}
+
+=item get_files_by_page
+
+Returns a data structure listing what files belong to each file group in
+physical page, e.g.:
+
+{ '0001' => { txt => ['0001.txt'], 
+	      img => ['0001.jp2'] },
+  '0002' => { txt => ['0002.txt'],
+  	      img => ['0002.tif'] },
+  '0003' => { txt => ['0003.txt'],
+	      img => ['0003.jp2','0003.tif'] }
+  };
+
+=cut
+
+sub get_file_groups_by_page {
+    my $self = shift;
+    my $filegroups      = $self->get_file_groups();
+    my $files           = {};
+
+    # First determine what files belong to each sequence number
+    while ( my ( $filegroup_name, $filegroup ) =
+        each( %{ $filegroups } ) )
+    {
+        foreach my $file ( @{$filegroup} ) {
+            if ( $file =~ /(\d+)\.(\w+)$/ ) {
+                my $sequence_number = $1;
+		if(not defined $files->{$sequence_number}{$filegroup_name}) {
+		    $files->{$sequence_number}{$filegroup_name} = [$file];
+		} else {
+		    push(@{ $files->{$sequence_number}{$filegroup_name} }, $file);
+		}
+            }
+            else {
+               $self->_set_error(
+"Can't extract sequence number from filename $file in group $filegroup_name"
+                );
+            }
+        }
+    }
+
+    return $files;
+
+}
+
+=item get_alt_record_id
+
+Returns the altrecordid for the volume, if there is one.
+
+=cut
+
+sub get_alt_record_id {
+    my $self = shift;
+
+    return $self->{groove_book}->get_altRecordID_ID();
+
+}
+
+=item record_premis_event($eventtype,  
+					date => $date,
+					outcome => $outcome,
+					eventid => $eventid)
+
+Records a PREMIS event that happens to the volume. Optionally, a PREMIS::Outcome object
+and an event ID can be passed. If no event ID is passed, a default ID will be generated
+automatically from the event type. If no date (in any format parseable by MySQL) is given,
+the current date will be used.
+
+The given event type must be present in the database.
+
+=cut
+
+sub record_premis_event {
+    my $self = shift;
+    my $eventtype = shift;
+    croak("Must provide an event type") unless $eventtype;
+
+    my %params = @_;
+
+    my $date = ($params{date} or $self->_get_current_date());
+    my $outcome_xml = $params{outcome}->as_node()->toString() if defined $params{outcome};
+    my $eventid_override = $params{eventid} if defined $params{eventid};
+
+    my $dbh = GRIN::DBTools->get_dbh();
+
+    my $set_premis_sth = $dbh->prepare("INSERT INTO premis_events (namespace, barcode, eventtype_id, outcome, eventid) VALUES
+	(?, ?, ?, ?, ?)");
+
+    $set_premis_sth->execute($self->get_namespace(),$self->get_objid(),$eventtype,$outcome_xml,$eventid_override);
+    
+}
+
+=item get_premis_events( $eventtype )
+
+Returns all recorded PREMIS events for the volume. Optionally, an event type can be passed; 
+only events matching the given event type will be returned.
+
+=cut
+
+sub get_premis_events {
+    my $self = shift;
+    my $eventtype = shift;
+    
+    my $dbh = GRIN::DBTools->get_dbh();
+
+    # TODO: move to replacement for DBTools
+    my $event_sql = "SELECT * FROM premis_events natural join premis_event_types where namespace = ? and barcode = ?";
+    $event_sql .= " and eventtype = ?" if defined $eventtype;
+
+    my $agent_sql = "SELECT * FROM premis_event_agents NATURAL JOIN premis_agents NATURAL JOIN premis_agent_types WHERE namespace = ? and barcode = ? and eventtype = ?";
+
+    my $event_sth = $dbh->prepare($event_sql);
+    my $agent_sth = $dbh->prepare($agent_sql);
+    my @params = ($self->get_namespace(),$self->get_objid());
+    push(@params,$eventtype) if defined $eventtype;
+
+    my @events = ();
+
+    my $event_rst = $event_sth->execute(@params);
+    while(my $event_row = $event_rst->fetchrow_hashref()) {
+	my $event = PREMIS::Event->new_from_db_row($event_row);
+	my $eventtype = $event_row->{eventtype};
+	my $agent_rst = $agent_sth->execute($self->get_namespace(),$self->get_objid(),$eventtype);
+	foreach my $agent_row ($agent_rst->fetchrow_hashref()) {
+	    my $agent = PREMIS::LinkingAgent->new_from_db_row($agent_row);
+	    $event->add_linking_agent($agent);
+	}
+	push(@events,$event);
+	
+    }
+
+    return @events;
+}
+
+=item _get_current_date
+
+Returns the current date and time in a format parseable by MySQL
+
+=cut
+
+sub _get_current_date {
+
+    my $self = shift;
+    my $ss1970 = shift;
+
+    my $localtime_obj = defined($ss1970) ? localtime($ss1970) : localtime();
+
+    my $ts = sprintf("%d-%02d-%02dT%02d:%02d:%02d",
+        (1900 + $localtime_obj->year()),
+        (1 + $localtime_obj->mon()),
+        $localtime_obj->mday(),
+        $localtime_obj->hour(),
+        $localtime_obj->min(),
+        $localtime_obj->sec());
+
+    return $ts;
+
+
+}
+
 
 
 1;
