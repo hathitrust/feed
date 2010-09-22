@@ -204,7 +204,9 @@ Returns the name of the source METS file
 
 sub get_source_mets_file {
     my $self = shift;
-    return $self->{groove_book}->get_source_mets_file();
+    my $mets = $self->{groove_book}->get_source_mets_file();
+    croak("Could not find source mets file") unless defined $mets and $mets;
+    return $mets;
 }
 
 =item get_source_mets_xpc
@@ -391,9 +393,7 @@ sub get_file_groups_by_page {
 		}
             }
             else {
-               $self->_set_error(
-"Can't extract sequence number from filename $file in group $filegroup_name"
-                );
+               $self->_set_error( "Error extracting field", field => 'sequence_number', file => $file);
             }
         }
     }

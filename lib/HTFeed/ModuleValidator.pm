@@ -98,7 +98,7 @@ sub _setdatetime {
 
     # validate
     unless ( $datetime =~ /^(\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d)(\+\d\d:\d\d|)$/ ) {
-        $self->_set_error("Invalid timestamp format found");
+        $self->_set_error("Invalid field value",field => 'datetime',actual => $datetime);
         return 0;
     }
 
@@ -106,11 +106,11 @@ sub _setdatetime {
     $datetime = $1;
 
     # match
-    if ( $$self{datetime} ) {
-        if ( $$self{datetime} eq $datetime ) {
+    if ( $self->{datetime} ) {
+        if ( $self->{datetime} eq $datetime ) {
             return 1;
         }
-        $self->_set_error("Unmatched timestamps found");
+        $self->_set_error("Mismatched values for field",field => 'datetime',expected => $self->{datetime},actual=>$datetime);
         return 0;
     }
 
@@ -127,11 +127,11 @@ sub _setartist {
     my $artist = shift;
 
     # match
-    if ( $$self{artist} ) {
-        if ( $$self{artist} eq $artist ) {
+    if ( $self->{artist} ) {
+        if ( $self->{artist} eq $artist ) {
             return 1;
         }
-        $self->_set_error("Unmatched artist / file creator found");
+        $self->_set_error("Mismatched values for field",field=>'artist',expected => $self->{artist},actual => $artist);
         return 0;
     }
 
@@ -148,11 +148,11 @@ sub _setdocumentname {
     my $documentname = shift;
 
     # match
-    if ( $$self{documentname} ) {
-        if ( $$self{documentname} eq $documentname ) {
+    if ( $self->{documentname} ) {
+        if ( $self->{documentname} eq $documentname ) {
             return 1;
         }
-        $self->_set_error("Unmatched document names found");
+        $self->_set_error("Mismatched values for field",field=>'documentname',expected => $self->{documentname}, actual=>$documentname);
         return 0;
     }
 
@@ -165,7 +165,7 @@ sub _setdocumentname {
     $pattern =~ s/[-_]/\[-_\]/g;
 
     unless ( $documentname =~ m|$pattern|i ) {
-        $self->_set_error("Invalid document name $documentname found");
+        $self->_set_error("Invalid value for field",field=>'documentname',actual=>$documentname);
         return 0;
     }
 
@@ -196,7 +196,7 @@ sub _setupXMPcontext {
         $xpc->registerNs( 'dc', $ns_dc );
     };
     if ($@) {
-        $self->_set_error("couldn't parse the xmp: $@");
+        $self->_set_error("Error extracting field",detail=>$@,field=>'xmp');
         return 0;
     }
     else {
@@ -208,13 +208,12 @@ sub _setupXMPcontext {
 # set fail, log errors
 sub _set_error {
     my $self = shift;
+    my $error = shift;
     $self->{fail}++;
 
     # log error w/ l4p
-    for (@_) {
         get_logger( ref($self) )
-          ->error( $_, $self->{volume_id}, $self->{filename} );
-    }
+          ->error( $_, volume => $self->{volume_id}, file => $self->{filename}, @_);
     return 1;
 }
 

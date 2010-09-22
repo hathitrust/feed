@@ -88,7 +88,7 @@ sub _set_validators {
 		my $mix_datetime = $self->_findone("mix","dateTime");
 		# xmp has timezone, mix doesn't..
 		if($xmp_datetime !~ /^\Q$mix_datetime\E\+\d{2}:\d{2}/) {
-		    $self->_set_error("Invalid/non-matching xmp:dateTime $xmp_datetime (mix:dateTime was $mix_datetime)");
+		    $self->_set_error("Mismatched/invalid values for field", field => 'dateTime', actual => {xmp_datetime => $xmp_datetime, mix_datetime => $mix_datetime});
 		}
 
 
@@ -129,7 +129,7 @@ sub _findxmp {
     my $count    = $nodelist->size();
     unless ($count) { return; }
     if ( $count > 1 ) {
-        $self->_set_error("$count XMPs found zero or one expected");
+        $self->_set_error("Error extracting field", detail => "$count XMPs found zero or one expected", field => 'xmp');
         return;
     }
     my $retstring = $self->_findone( "tiffMeta", "xmp" );
