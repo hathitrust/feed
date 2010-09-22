@@ -1,0 +1,11 @@
+# this is a tentative setup, we shouldn't need an l4p config per test, but that will require making some more specific settings here
+
+log4perl.rootLogger					= DEBUG, file
+
+log4perl.appender.file				= Log::Log4perl::Appender::File
+log4perl.appender.file.filename		= sub{ \
+use HTFeed::Test; \
+return HTFeed::Test::newLogFile();}
+
+log4perl.appender.file.mode			= write
+log4perl.appender.file.layout		= Log::Log4perl::Layout::SimpleLayout
