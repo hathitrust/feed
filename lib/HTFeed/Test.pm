@@ -8,26 +8,26 @@ use Carp;
     Support for unit test
 =cut
 
-our $logFile;
+our $log_file;
 
 ## TODO: more perl, less bash, more robust
 sub newLogFile{
     my $fname;
-    if ($logFile){
+    if ($log_file){
         croak "I already made a log file!";
     }
     else{
         $fname = '/tmp/' . int(rand(10000000)) . '.log';
         `touch $fname`;
-        $logFile = $fname;
+        $log_file = $fname;
     }
 
     return $fname;
 }
 
 sub getLogFile{
-    if ($logFile){
-        return $logfilel
+    if ($log_file){
+        return $log_file
     }
     else{
         croak "I haven't made a log file!";
@@ -35,13 +35,13 @@ sub getLogFile{
 }
 
 #sub _clearLogFile{
-#    `rm $logFile; touch $logFile`;
+#    `rm $log_file; touch $log_file`;
 #    return;
 #}
 
 sub deleteLogFile{
-    `rm $logFile`;
-    $logFile = "";
+    `rm $log_file`;
+    $log_file = "";
     return;
 }
 
