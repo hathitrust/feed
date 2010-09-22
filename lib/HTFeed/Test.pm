@@ -11,11 +11,10 @@ use Carp;
 our $logFile;
 
 ## TODO: more perl, less bash, more robust
-sub getLogFile{
+sub newLogFile{
     my $fname;
     if ($logFile){
-        $fname = $logFile;
-        _clearLogFile();
+        croak "I already made a log file!";
     }
     else{
         $fname = '/tmp/' . int(rand(10000000)) . '.log';
@@ -26,10 +25,19 @@ sub getLogFile{
     return $fname;
 }
 
-sub _clearLogFile{
-    `rm $logFile; touch $logFile`;
-    return;
+sub getLogFile{
+    if ($logFile){
+        return $logfilel
+    }
+    else{
+        croak "I haven't made a log file!";
+    }
 }
+
+#sub _clearLogFile{
+#    `rm $logFile; touch $logFile`;
+#    return;
+#}
 
 sub deleteLogFile{
     `rm $logFile`;

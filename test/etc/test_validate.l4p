@@ -5,8 +5,7 @@ log4perl.rootLogger					= DEBUG, file
 log4perl.appender.file				= Log::Log4perl::Appender::File
 log4perl.appender.file.filename		= sub{ \
 use HTFeed::Test; \
-print "trying it..."; \
-return HTFeed::Test::getLogFile();}
+return HTFeed::Test::newLogFile();}
 
 log4perl.appender.file.mode			= write
 log4perl.appender.file.layout		= Log::Log4perl::Layout::SimpleLayout
