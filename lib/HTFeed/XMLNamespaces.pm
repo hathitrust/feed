@@ -18,7 +18,7 @@ use constant {
     NS_MODS   => 'http://www.loc.gov/mods/v3',
     NS_OAI_DC => 'http://www.openarchives.org/OAI/2.0/oai_dc/',
     NS_PREMIS => 'info:lc/xmlns/premis-v2',
-    NS_RDF    => 'http://www.w3.org/1999/02/22-rdf-syntax-ns',
+    NS_RDF    => 'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
     NS_TIFF   => 'http://ns.adobe.com/tiff/1.0/',
     NS_XLINK  => 'http://www.w3.org/1999/xlink',
     NS_XSI    => 'http://www.w3.org/2001/XMLSchema-instance',

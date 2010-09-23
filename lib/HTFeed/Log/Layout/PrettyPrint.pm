@@ -27,6 +27,7 @@ sub render {
     my($self, $message, $category, $priority, $caller_level) = @_;
     
     my $error_message = shift @$message;
+    $Data::Dumper::Indent = 1;
     $error_message .= Dumper({@$message});
     
     return "$priority - $error_message\n";

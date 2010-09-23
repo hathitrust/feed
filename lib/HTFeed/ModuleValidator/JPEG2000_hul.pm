@@ -94,8 +94,8 @@ sub _set_validators {
 			"jp2Meta_colorSpace" => $meta_colorSpace,
 			"mix_bitsPerSample" => $mix_bitsPerSample,
 			"xmp_bitsPerSample_grey" => $xmp_bitsPerSample_grey,
-			"xmp_bitsPerSample_color" => $xmp_bitsPerSample_color,
-		})
+			"xmp_bitsPerSample_color" => $xmp_bitsPerSample_color,}
+		)
 		and return
 	    );
     },

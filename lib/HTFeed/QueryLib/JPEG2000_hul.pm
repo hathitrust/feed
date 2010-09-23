@@ -68,9 +68,7 @@ sub new {
 		width               => "//tiff:ImageWidth",
 		length              => "//tiff:ImageLength",
 		bitsPerSample_grey  => "//tiff:BitsPerSample",
-		# TODO: this should work, but it doesn't, so we are using the alternate query below
-		#bitsPerSample_color => "//tiff:BitsPerSample/rdf:Seq/rdf:li",
-		bitsPerSample_color => "//tiff:BitsPerSample/child::*/child::*",
+		bitsPerSample_color => "//tiff:BitsPerSample/rdf:Seq/rdf:li",
 		compression         => "//tiff:Compression",
 		colorSpace          => "//tiff:PhotometricInterpretation",
 		orientation         => "//tiff:Orientation",
