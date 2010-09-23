@@ -1,4 +1,4 @@
-package HTFeed::Test;
+package HTFeed::Test::Support;
 
 use warnings;
 use strict;

@@ -27,12 +27,9 @@
 use strict;
 use warnings;
 use XML::LibXML;
-use Log::Log4perl;
 use Getopt::Long;
 
-use HTFeed::ModuleValidator;
-
-my ($dump_file, $xdump_file, $file_list_cmd, $help, $xml_file_to_load, $l4p_config);
+my ($dump_file, $xdump_file, $file_list_cmd, $help, $xml_file_to_load);
 my @namespaces;
 
 my $x_mode_entered = 0;
@@ -41,7 +38,6 @@ GetOptions (	"dump=s"	=> \$dump_file,
 				"xdump=s"	=> \$xdump_file,
 				"list=s"	=> \$file_list_cmd,
 				"load=s"	=> \$xml_file_to_load,
-				"l4p=s"		=> \$l4p_config,
 				"ns=s"		=> \@namespaces,	
 				"help"		=> \$help,					);
 						
@@ -55,8 +51,8 @@ GetOptions (	"dump=s"	=> \$dump_file,
 if ($help){
 	
 	print "useage:\n";
-	print "xpathsuite -list 'command to list infiles' -l4p config.l4p [-dump dump.xml] [-xdump xdump.xml] [-ns mix:http://www.loc.gov/mix/]\n";
-	print "xpathsuite -load dump.xml -l4p \$HTFHOME/etc/config.l4p [-xdump xdump.xml] [-ns mix:http://www.loc.gov/mix/]\n";
+	print "xpathsuite -list 'command to list infiles' [-dump dump.xml] [-xdump xdump.xml] [-ns mix:http://www.loc.gov/mix/]\n";
+	print "xpathsuite -load dump.xml [-xdump xdump.xml] [-ns mix:http://www.loc.gov/mix/]\n";
 	exit 0;
 	
 }
@@ -65,15 +61,6 @@ unless ( $file_list_cmd xor $xml_file_to_load ){
 	print "list xor load field required, try -help flag\n"; 
 	exit 0;
 }
-
-unless ( $l4p_config ){ 
-	print "l4p field required, try -help flag\n"; 
-	exit 0;
-}
-
-Log::Log4perl->init($l4p_config);
-
-Log::Log4perl->get_logger("")->trace("xpathsuite has initialized l4p!");
 
 my $jhove_XML;
 if ($file_list_cmd){
@@ -311,27 +298,7 @@ while(<STDIN>){
 		print "\n";
 		
 	}
-	elsif ($_ eq "v"){
-		print "enter a context for a repInfo and we'll validate it!\n> ";
-		$xpath = <STDIN>;
-		chomp $xpath;
-		@nodes = $jhove_xpc->findnodes($xpath);
-		unless ($#nodes == 0){
-			if($#nodes > 0){
-				print "more than one hit, be more specific\n";
-			}
-			else{
-				print "context not found\n";
-			}
-		}
-		else{
-			#my $qlib = new HTFeed::QueryLib::JPEG2000_hul;
-			my $validator = HTFeed::ModuleValidator->new(xpc=> $jhove_xpc,node => $nodes[0],id => "39015000000086",filename => "00000006.tif");
-			run $validator;
-			
-			print $validator->failed . " errors found\n";
-		}	
-	}
+
 	else{
 		print "invalid command, try 'help'\n";
 	}
@@ -352,6 +319,10 @@ sub registerXMP_ns{
 	my $ns_dc = "http://purl.org/dc/elements/1.1/";
 	$jhove_xpc->registerNs('dc',$ns_dc);
 	print "registered ns, name = dc, uri = $ns_dc\n";
+	
+	my $ns_rdf = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#';
+	$jhove_xpc->registerNs('rdf',$ns_rdf);
+	print "registered ns, name = rdf, uri = $ns_rdf\n";
 	
 	# make a note of this
 	$x_mode_entered++;
