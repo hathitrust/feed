@@ -2,5 +2,4 @@ log4perl.rootLogger					= INFO, dbi
 
 log4perl.appender.dbi				= Log::Log4perl::Appender::DBI
 
-# this is likely wrong
 log4perl.appender.dbi.warp_message	= HTFeed::Log::Warp::toDBArray
