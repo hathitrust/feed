@@ -1,8 +1,7 @@
-package HTFeed::Log::Transform;
+package HTFeed::Log::Warp;
 
 use warnings;
 use strict;
-use HTFeed::Log::Strings;
 
 sub toDBArray{
     die "not implimented";

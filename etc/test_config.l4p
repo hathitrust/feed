@@ -1,6 +1,4 @@
-log4perl.rootLogger							= INFO, screen
-#log4perl.logger.HTFeed.ModuleValidator		= ALL, screen
-#log4perl.logger.HTFeed.Qlib				= ALL, screen
+log4perl.rootLogger						= INFO, screen
 
 log4perl.appender.screen				= Log::Log4perl::Appender::ScreenColoredLevels
 log4perl.appender.screen.stderr			= 0
@@ -10,7 +8,7 @@ log4perl.appender.screen.color.DEBUG	= blue
 log4perl.appender.screen.color.INFO		= black
 log4perl.appender.screen.color.ERROR	= bold black
 log4perl.appender.screen.color.WARN		= red
-log4perl.appender.screen.color.FATAL	= bold undeline red
+log4perl.appender.screen.color.FATAL	= bold red
 
 #log4perl.oneMessagePerAppender = 1
 

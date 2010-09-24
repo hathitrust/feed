@@ -97,7 +97,7 @@ sub _setdatetime {
     my $datetime = shift;
 
     # validate
-    unless ( $datetime =~ /^(\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d)(\+\d\d:\d\d|)$/ ) {
+    unless ( defined($datetime) and $datetime =~ /^(\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d)(\+\d\d:\d\d|)$/ ) {
         $self->_set_error("Invalid field value",field => 'datetime',actual => $datetime);
         return 0;
     }

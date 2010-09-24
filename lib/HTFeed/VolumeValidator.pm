@@ -79,7 +79,7 @@ sub _validate_file_names {
         { !/$valid_file_pattern/ } @{ $volume->get_all_directory_files() } );
 
     foreach my $file (@bad) {
-        $self->_set_error( "Invalid filename", field => 'filename', file => $file );
+        $self->_set_error( "BadFilename", field => 'filename', file => $file );
 
     }
 
@@ -107,7 +107,7 @@ sub _validate_filegroups_nonempty {
         $logger->debug("validating nonempty filegroup $filegroup_name");
         my $filecount = scalar( @{$filegroup} );
         if ( !$filecount ) {
-            $self->_set_error("File group is empty", filegroup => $filegroup);
+            $self->_set_error("EmptyFilegroup", filegroup => $filegroup);
         }
 
         $prev_filegroup_name = $filegroup_name;
@@ -138,7 +138,7 @@ sub _validate_consistency {
         my @sequence_numbers     = sort( keys(%$files) );
         foreach my $sequence_number (@sequence_numbers) {
             if ( $sequence_number > $prev_sequence_number + 1 ) {
-                $self->_set_error("Missing file", detail => "Skip sequence number from $prev_sequence_number to $sequence_number");
+                $self->_set_error("MissingFile", detail => "Skip sequence number from $prev_sequence_number to $sequence_number");
             }
             $prev_sequence_number = $sequence_number;
         }
@@ -147,10 +147,11 @@ sub _validate_consistency {
     # Make sure each filegroup has an object for each sequence number
     while ( my ( $sequence_number, $files ) = each( %{$files} ) ) {
         if ( keys( %{$files} ) != @filegroup_names ) {
-            $self->_set_error( "Missing file", detail => 
+            $self->_set_error( "MissingFile", detail => 
                 "File missing for $sequence_number: have "
-                  . join( q{,}, keys %{$files} ),
-                '; expected ' . join( q{,}, @filegroup_names )
+                  . join( q{,}, keys %{$files} )
+                  . '; expected '
+                  . join( q{,}, @filegroup_names )
             );
         }
     }
@@ -186,13 +187,13 @@ sub _validate_checksums {
         next if $file eq $checksum_file;
         my $expected = $checksums->{$file};
         if ( not defined $expected ) {
-            $self->_set_error("Checksum error",field => 'checksum',file => $file, detail => "File present in package but not in checksum file");
+            $self->_set_error("BadChecksum",field => 'checksum',file => $file, detail => "File present in package but not in checksum file");
         }
 	elsif ( ! -e "$path/$file") {
-	    $self->_set_error("Checksum error",file => $file, detail => "File listed in checksum file but not present in package");
+	    $self->_set_error("BadChecksum",file => $file, detail => "File listed in checksum file but not present in package");
 	}
         elsif ( (my $actual = md5sum("$path/$file")) ne $expected ) {
-            $self->_set_error("Checksum error", field => 'checksum', file => $file, expected => $expected, actual => $actual);
+            $self->_set_error("BadChecksum", field => 'checksum', file => $file, expected => $expected, actual => $actual);
         }
 
     }
@@ -231,7 +232,7 @@ sub _validate_utf8 {
             close($utf8_fh);
         };
         if ($@) {
-            $self->_set_error("UTF-8 validation error",field => 'utf8',detail => "@_",file => $utf8_file);
+            $self->_set_error("BadUTF",field => 'utf8',detail => "@_",file => $utf8_file);
         }
 
     }
@@ -311,13 +312,19 @@ sub _validate_metadata {
             	    $logger->debug("File validation succeeded",file => $file);
             	}
             	else {
-            	    $self->_set_error("File validation failed",file => $file);
+            	    $self->_set_error("BadFile",file => $file);
             	}
             }
 
         }
         elsif(m|^</jhove>$|){
             last DOC_READER;
+        }
+        elsif(m|<app>|){
+            ## TODO Perhaps we should do somthing else here, but we really shouldn't be running Jhove to find out everything is missing
+            # options: stop before running jhove, stop before running val_meta, log error her with out croaking
+            $logger->fatal("FatalError", detail => "jhove was run on zero files", volume => $volume->get_objid() );
+            croak "jhove was run on zero files";
         }
         else{
             # this should never happen

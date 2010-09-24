@@ -21,7 +21,6 @@ sub newLogFile{
         `touch $fname`;
         $log_file = $fname;
     }
-
     return $fname;
 }
 
