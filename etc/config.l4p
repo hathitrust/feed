@@ -1,5 +1,17 @@
-log4perl.rootLogger					= INFO, dbi
+log4perl.rootLogger                   = INFO, dbi
 
-log4perl.appender.dbi				= Log::Log4perl::Appender::DBI
+log4perl.appender.dbi                 = Log::Log4perl::Appender::DBI
+log4perl.appender.dbi.datasource      = xxx
+log4perl.appender.dbi.username        = xxx
+log4perl.appender.dbi.password        = xxx
+log4perl.appender.dbi.sql =         \
+            insert into ht_errors   \
+            (timestamp,level,message,obj_id,file,field,actual,expected,detail)\
+            values (?,?,?,?,?,?,?,?,?)
+log4perl.appender.dbi.params.1 = %d
+log4perl.appender.dbi.params.2 = %p
 
-log4perl.appender.dbi.warp_message	= HTFeed::Log::Warp::toDBArray
+log4perl.appender.dbi.layout          = Log::Log4perl::Layout::NoopLayout
+log4perl.appender.dbi.warp_message    = HTFeed::Log::Warp::toDBArray
+
+#log4perl.appender.dbi.bufferSize = 2

@@ -14,6 +14,7 @@ use HTFeed::Log::Layout::PrettyPrint;
 
 use Log::Log4perl;
 
+# list of acceptable error codes
 my %error_codes = (
     NotMatchedValue     => "Mismatched/invalid value for field",
     BadField            => "Error extracting field",
@@ -23,12 +24,13 @@ my %error_codes = (
     MissingFile         => "Missing file",
     BadChecksum         => "Checksum error",
     BadUTF              => "UTF-8 validation error",
-    ValidationFailed    => "File validation failed",
+    BadFile             => "File validation failed",
     MissingField        => "Missing field value",
     NotEqualValues      => "Mismatched field values",
     FatalError          => "Fatal error",
 );
 
+# list of fields accepted in error hash
 my @fields = qw(volume file field actual expected detail);
 
 sub init{

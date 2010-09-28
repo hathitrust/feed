@@ -248,9 +248,16 @@ sub _validate_metadata {
     my $self   = shift;
     my $volume = $self->{volume};
 	
-	# make jhove command
+	# get files
     my $dir = $volume->get_staging_directory();
     my $files = $volume->get_metadata_files();
+    
+    # make sure we have >0 files
+    if (! @$files){
+        $self->_set_error("BadFile",file => "all",detail => "Zero files found to validate");
+        return;
+    }
+    
     # prepend directory to each file to validate
     my $files_for_cmd = join(' ', map { "$dir/$_"} @$files);
 	my $jhove_cmd = 'jhove -h XML -c /l/local/jhove-1.5/conf/jhove.conf ' . $files_for_cmd;
@@ -321,8 +328,7 @@ sub _validate_metadata {
             last DOC_READER;
         }
         elsif(m|<app>|){
-            ## TODO Perhaps we should do somthing else here, but we really shouldn't be running Jhove to find out everything is missing
-            # options: stop before running jhove, stop before running val_meta, log error her with out croaking
+            # jhove was run on zero files, that should never happen
             $logger->fatal("FatalError", detail => "jhove was run on zero files", volume => $volume->get_objid() );
             croak "jhove was run on zero files";
         }
