@@ -74,7 +74,7 @@ sub _set_validators {
                 # setup xmp context
                 $self->_setupXMPcontext($xmp_xml) or return 0;
 
-             # require XMP headers to exist and match TIFF headers if XMP exists
+                # require XMP headers to exist and match TIFF headers if XMP exists
                 foreach my $field (
                     qw(bitsPerSample compression colorSpace orientation samplesPerPixel resUnit length
                     width artist )
@@ -82,15 +82,14 @@ sub _set_validators {
                 {
                     $self->_require_same( 'mix', $field, 'xmp', $field );
                 }
-		$self->_require_same('tiffMeta','documentName','xmp','documentName');
+		        $self->_require_same('tiffMeta','documentName','xmp','documentName');
 
-		my $xmp_datetime = $self->_findone("xmp","dateTime");
-		my $mix_datetime = $self->_findone("mix","dateTime");
-		# xmp has timezone, mix doesn't..
-		if($xmp_datetime !~ /^\Q$mix_datetime\E\+\d{2}:\d{2}/) {
-		    $self->_set_error("Mismatched/invalid values for field", field => 'dateTime', actual => {xmp_datetime => $xmp_datetime, mix_datetime => $mix_datetime});
-		}
-
+		        my $xmp_datetime = $self->_findone("xmp","dateTime");
+		        my $mix_datetime = $self->_findone("mix","dateTime");
+		        # xmp has timezone, mix doesn't..
+    		    if( (! $self->failed() ) and $xmp_datetime !~ /^\Q$mix_datetime\E\+\d{2}:\d{2}/) {
+    		        $self->_set_error("Mismatched/invalid values for field", field => 'dateTime', actual => {xmp_datetime => $xmp_datetime, mix_datetime => $mix_datetime});
+		        }
 
                 # mix lists as just '600'
                 $self->_validateone( "xmp", "xRes", "600/1" );
@@ -101,7 +100,7 @@ sub _set_validators {
                 $self->_findonenode( "xmp", "model" );
 
             }
-          }
+        }
 
     };
 }

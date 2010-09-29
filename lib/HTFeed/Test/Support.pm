@@ -1,4 +1,4 @@
-package HTFeed::Test;
+package HTFeed::Test::Support;
 
 use warnings;
 use strict;
@@ -21,7 +21,6 @@ sub newLogFile{
         `touch $fname`;
         $log_file = $fname;
     }
-
     return $fname;
 }
 

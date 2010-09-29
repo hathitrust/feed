@@ -8,9 +8,9 @@ use Log::Log4perl qw(get_logger);
 
 use base qw(HTFeed::XPathValidator);
 
-#use HTFeed::ModuleValidator::ACSII_hul;
 use HTFeed::ModuleValidator::JPEG2000_hul;
 use HTFeed::ModuleValidator::TIFF_hul;
+use HTFeed::XMLNamespaces qw(register_namespaces);
 
 #use HTFeed::ModuleValidator::WAVE_hul;
 
@@ -97,8 +97,8 @@ sub _setdatetime {
     my $datetime = shift;
 
     # validate
-    unless ( $datetime =~ /^(\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d)(\+\d\d:\d\d|)$/ ) {
-        $self->_set_error("Invalid field value",field => 'datetime',actual => $datetime);
+    unless ( defined($datetime) and $datetime =~ /^(\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d)(\+\d\d:\d\d|)$/ ) {
+        $self->_set_error("BadValue",field => 'datetime',actual => $datetime);
         return 0;
     }
 
@@ -187,13 +187,9 @@ sub _setupXMPcontext {
         my $doc    = $parser->parse_string($xml);
         $xpc = XML::LibXML::XPathContext->new($doc);
 
-        # register XMP namespace
-        my $ns_xmp = "http://ns.adobe.com/tiff/1.0/";
-        $xpc->registerNs( 'tiff', $ns_xmp );
+        # register namespaces
+        register_namespaces($xpc);
 
-        # register dc namespace
-        my $ns_dc = "http://purl.org/dc/elements/1.1/";
-        $xpc->registerNs( 'dc', $ns_dc );
     };
     if ($@) {
         $self->_set_error("Error extracting field",detail=>$@,field=>'xmp');
@@ -213,7 +209,7 @@ sub _set_error {
 
     # log error w/ l4p
         get_logger( ref($self) )
-          ->error( $_, volume => $self->{volume_id}, file => $self->{filename}, @_);
+          ->error( $error, volume => $self->{volume_id}, file => $self->{filename}, @_);
     return 1;
 }
 

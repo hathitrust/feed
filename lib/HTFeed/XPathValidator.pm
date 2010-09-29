@@ -70,7 +70,7 @@ sub _findnodes{
 		return $nodelist;
 	}
 	
-	$self->_set_error("Missing field value", field => "${base}_${qn}");
+	$self->_set_error("MissingField", field => "${base}_${qn}");
 	return;
 }
 
@@ -107,7 +107,7 @@ sub _findonenode{
 	
 	# detect error in _findnodes, fail
 	unless ($nodelist){
-		$self->_set_error("Missing field value", field => "${base}_${qn}");
+		$self->_set_error("MissingField", field => "${base}_${qn}");
 		return;
 	}
 	
@@ -116,7 +116,7 @@ sub _findonenode{
 		my $error_msg = "";
 		$error_msg .= $nodelist->size();
 		$error_msg .= " hits for context query; exactly one expected";
-		$self->_set_error("Invalid field value", field => "${base}_${qn}", detail => $error_msg);
+		$self->_set_error("BadField", field => "${base}_${qn}", detail => $error_msg);
 		return;
 	}
 
@@ -165,11 +165,11 @@ sub _validateone{
 	my ($self,$base,$qn,$expected) = @_;
 	
 	my $actual = $self->_findone($base,$qn);
-	if ($expected eq $actual){
+	if (defined($actual) and $expected eq $actual){
 		return 1;
 	}
 	else{
-		$self->_set_error("Invalid field value", field => "${base}_${qn}", actual => $actual, expected => $expected);
+		$self->_set_error("BadValue", field => "${base}_${qn}", actual => $actual, expected => $expected);
 		return;
 	}
 }
@@ -181,10 +181,10 @@ sub _require_same {
     my ($base1, $qn1, $base2, $qn2) = @_;
     my $found1 = $self->_findone($base1,$qn1);
     my $found2 = $self->_findone($base2,$qn2);
-    if($found1 eq $found2) {
+    if(defined($found1) and defined($found2) and $found1 eq $found2) {
 	return 1;
     } else {
-	$self->_set_error("Mismatched field values", field => "${base1}_${qn1},${base2}_${qn2}", actual => 
+	$self->_set_error("NotEqualValues", field => "${base1}_${qn1},${base2}_${qn2}", actual => 
 	    {"${base1}_${qn1}" => $found1,
 		"${base2}_${qn2}" => $found2});
 	return;
@@ -240,7 +240,7 @@ sub _openonecontext{
 		my $error_msg = "";
 		$error_msg .= $nodelist->size();
 		$error_msg .= " hits for context query: $cn exactly one expected";
-		$self->_set_error("Invalid field value", detail => $error_msg, field => $cn);
+		$self->_set_error("BadValue", detail => $error_msg, field => $cn);
 		return;
 	}
 	my $node = $nodelist->pop();
@@ -294,7 +294,7 @@ sub {
     if (\$actual $op \$expected) {
 	return 1;
     } else {
-	\$self->_set_error("Invalid field value", field => "\${ctx}_\${query}", actual => \$actual, expected => "$op \$expected");
+	\$self->_set_error("BadValue", field => "\${ctx}_\${query}", actual => \$actual, expected => "$op \$expected");
 	return;
     }
 }
@@ -328,7 +328,7 @@ sub v_in {
 	    return 1 if ($actual eq $expected);
 	}
 
-	$self->_set_error("Invalid field value", field => "\${ctx}_\$query", actual => $actual, expected => "one of (" . join(", ",@$allowed) . ")");
+	$self->_set_error("BadValue", field => "\${ctx}_\$query", actual => $actual, expected => "one of (" . join(", ",@$allowed) . ")");
     }
 }
 

@@ -60,7 +60,7 @@ sub _set_error{
 
 	# log error w/ l4p
 	my $logger = get_logger(ref($self));
-	$logger->error($error,$self->{volume}->get_objid(),@_);
+	$logger->error($error,volume => $self->{volume}->get_objid(),@_);
 	return 1;
 }
 

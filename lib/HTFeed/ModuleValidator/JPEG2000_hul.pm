@@ -69,21 +69,22 @@ sub _set_validators {
 	    $self->_findone( "mix", "samplesPerPixel" );
 	    my $meta_colorSpace = $self->_findone( "jp2Meta", "colorSpace" );
 	    my $mix_bitsPerSample = $self->_findone( "mix", "bitsPerSample" );
-	    my $xmp_bitsPerSample = $self->_findone( "xmp", "bitsPerSample" );
+	    my $xmp_bitsPerSample_grey = $self->_findvalue( "xmp", "bitsPerSample_grey" );
+	    my $xmp_bitsPerSample_color = $self->_findvalue( "xmp", "bitsPerSample_color" );
 	    # Greyscale: 1 sample per pixels, 8 bits per sample
-	    (        ( "1" eq $xmp_colorSpace ) 		
+	    (       ( "1" eq $xmp_colorSpace ) 		
 		&& ( "1"         eq $xmp_samplesPerPixel )   
 		&& ( "1"         eq $mix_samplesPerPixel )  
 		&& ( "Greyscale" eq $meta_colorSpace )
 		&& ( "8"         eq $mix_bitsPerSample )       
-		&& ( "8"         eq $xmp_bitsPerSample ) )
+		&& ( "8"         eq $xmp_bitsPerSample_grey ) )
 	    # sRGB: 3 samples per pixel, each sample 8 bits
-		or ( ( "2" eq $xmp_colorSpace )
+		or (    ( "2" eq $xmp_colorSpace )
 		&& ( "3"       eq $xmp_samplesPerPixel )
 		&& ( "3"       eq $mix_samplesPerPixel )
 		&& ( "sRGB"    eq $meta_colorSpace )
-		&& ( "8, 8, 8" eq $mix_bitsPerSample )
-		&& ( "8, 8, 8" eq $xmp_bitsPerSample ) )
+		&& ( "8,8,8"   eq $mix_bitsPerSample )
+		&& ( "888"     eq $xmp_bitsPerSample_color ))
 		or (
 		$self->_set_error(
 		    "Mismatched/invalid value for field", field => 'colorspace',
@@ -92,7 +93,9 @@ sub _set_validators {
 			"mix_samplesPerPixel" => $mix_samplesPerPixel,
 			"jp2Meta_colorSpace" => $meta_colorSpace,
 			"mix_bitsPerSample" => $mix_bitsPerSample,
-			"xmp_bitsPerSample" => $xmp_bitsPerSample})
+			"xmp_bitsPerSample_grey" => $xmp_bitsPerSample_grey,
+			"xmp_bitsPerSample_color" => $xmp_bitsPerSample_color,}
+		)
 		and return
 	    );
     },
