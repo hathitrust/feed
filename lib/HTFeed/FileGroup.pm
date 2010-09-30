@@ -1,5 +1,8 @@
 package HTFeed::FileGroup;
 
+use strict;
+use warnings;
+
 =item new([file1, file2, ...], use => 'use', prefix => 'prefix')
 
 Creates a new file group with the given files. The optional use and prefix
@@ -16,7 +19,7 @@ sub new {
 	use => undef,
 	prefix => undef,
 	@_
-    }
+    };
 
     bless($self,$class);
     return $self;
@@ -40,6 +43,7 @@ Returns the use for this group of files to set in the METS fileGrp
 =cut
 
 sub get_use {
+    my $self = shift;
     return $self->{use};
 }
 
@@ -50,6 +54,7 @@ Returns the prefix for this group of files to set in the METS fileGrp
 =cut
 
 sub get_prefix {
+    my $self = shift;
     return $self->{prefix};
 }
 

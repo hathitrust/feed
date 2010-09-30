@@ -2,13 +2,14 @@ package HTFeed::Volume;
 
 use warnings;
 use strict;
+use Carp;
 use Log::Log4perl qw(get_logger);
 use HTFeed::XMLNamespaces qw(register_namespaces);
 use HTFeed::Namespace;
+use HTFeed::FileGroup;
 use XML::LibXML;
 use GROOVE::Book;
 use GROOVE::Tools;
-use Carp;
 
 our $logger = get_logger(__PACKAGE__);
 
@@ -34,7 +35,7 @@ sub new {
     $self->{nspkg} = new HTFeed::Namespace($self->{namespace},$self->{packagetype});
 
     $self->{nspkg}->validate_barcode($self->{objid}) 
-	or croak("Invalid barcode $self->{objid} provided for $self->{namespace}");
+	or croak "Invalid barcode $self->{objid} provided for $self->{namespace}";
 
     bless( $self, $class );
     return $self;
@@ -94,15 +95,15 @@ sub get_file_groups {
     my $book = $self->{groove_book};
 
     my $filegroups = {};
-    $filegroups->{image} = new HTFeed::FileGroup($book->get_all_images(),
+    $filegroups->{image} = HTFeed::FileGroup->new($book->get_all_images(),
 	prefix => 'IMG',
 	use=>'image');
-    $filegroups->{ocr}   = new HTFeed::FileGroup($book->get_all_ocr(),
+    $filegroups->{ocr}   = HTFeed::FileGroup->new($book->get_all_ocr(),
 	prefix => 'OCR',
 	use => 'ocr');
 
     if ($book->hocr_files_used()) {
-	$filegroups->{hocr} = new HTFeed::FileGroup($book->get_all_hocr(),
+	$filegroups->{hocr} = HTFeed::FileGroup->new($book->get_all_hocr(),
 	    prefix => 'XML',
 	    use => 'coordOCR')
     }
@@ -295,14 +296,47 @@ sub get_marc_xml {
     my $marcxml_string = $book->get_marcxml();
 
     my $marcxml_doc;
-    eval {
-	$marcxml_doc = XML::LibXML->new()->parse_string($marcxml_string);
-    };
-    if($@) {
-	croak("Could not get MARCXML: $@");
-    }
 
-    return $marcxml_doc;
+    my $mets_xc = $self->get_source_mets_xpc();
+    my $mdsec_nodes = $mets_xc->find(
+        q(//mets:dmdSec/mets:mdWrap[@MDTYPE="MARC"]/mets:xmlData));
+
+    if ( $mdsec_nodes->size() ) {
+        warn("Multiple MARC mdsecs found") if ( $mdsec_nodes->size() > 1 );
+	my $node = $mdsec_nodes->get_node(0)->firstChild();
+	# ignore any whitespace, etc.
+	while($node->nodeType() != XML_ELEMENT_NODE) {
+	    $node = $node->nextSibling();
+	}
+	return $node if defined $node;
+    } 
+
+    # no metadata found, or metadata node didn't contain anything
+    croak("Could not find MARCXML in source METS");
+
+}
+
+=item get_repository_mets_path
+
+Returns the full path where the METS file for this object 
+would be, if this object was in the repository.
+
+=cut
+
+sub get_repository_mets_path {
+    my $self = shift;
+    my $book = $self->{groove_book};
+
+    my $repos_symlink = $book->get_repository_symlink();
+
+    return unless (-l $repos_symlink);
+
+    my $mets_in_repository_file = sprintf("%s/%s.mets.xml",
+	$repos_symlink,
+	$book->get_pt_objid());
+
+    return unless (-f $mets_in_repository_file);
+    return $mets_in_repository_file;
 }
 
 =item get_repository_mets_xpc
@@ -318,15 +352,8 @@ sub get_repository_mets_xpc  {
     my $self = shift;
     my $book = $self->{groove_book};
 
-    my $repos_symlink = $book->get_repository_symlink();
-
-    return unless (-l $repos_symlink);
-
-    my $mets_in_repository_file = sprintf("%s/%s.mets.xml",
-	$repos_symlink,
-	$book->get_pt_objid());
-
-    return unless (-f $mets_in_repository_file);
+    my $mets_in_repository_file = $self->get_repository_mets_path();
+    return if not defined $mets_in_repository_file;
 
     my $xpc;
 
@@ -353,7 +380,7 @@ Returns the total number of content files
 sub get_file_count {
 
     my $self = shift;
-    return scalar(@{$self->{groove_book}->get_all_content_files()});
+    return scalar(@{$self->get_all_content_files()});
 }
 
 =item get_page_count
@@ -536,7 +563,7 @@ sub get_zip {
     return $book->get_zip();
 }
 
-=item get_pagedata(file)
+=item get_page_data(file)
 
 Returns a reference to a hash:
 
@@ -554,7 +581,7 @@ sub get_page_data {
     my $self = shift;
     my $file = shift;
 
-    my $seqnum = ($file =~ /(\d+)/);
+    (my $seqnum) = ($file =~ /(\d+)/);
     croak("Can't extract sequence number from file $file") unless $seqnum;
     my $pagedata = {};
 
@@ -589,10 +616,13 @@ Returns the path to the METS file for this object
 =cut
 
 sub get_mets_path {
+    my $self = shift;
 
-    my $staging_path = $volume->get_staging_path();
-    my $objid = $volume->get_objid();
-    my $mets_path = "$staging_path/$objid.mets.xml");
+    my $staging_path = $self->get_staging_directory();
+    my $objid = $self->get_objid();
+    my $mets_path = "$staging_path/$objid.mets.xml";
+
+    return $mets_path;
 }
 1;
 
