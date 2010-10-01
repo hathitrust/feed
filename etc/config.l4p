@@ -1,8 +1,8 @@
 log4perl.rootLogger                   = INFO, dbi
 
 log4perl.appender.dbi                 = Log::Log4perl::Appender::DBI
-log4perl.appender.dbi.datasource      = xxx
-log4perl.appender.dbi.username        = xxx
+log4perl.appender.dbi.datasource      = dbi:mysql:mdp_tracking_rrotter:mysql-sdr
+log4perl.appender.dbi.username        = rrotter
 log4perl.appender.dbi.password        = xxx
 log4perl.appender.dbi.sql =         \
             insert into ht_errors   \
@@ -15,3 +15,18 @@ log4perl.appender.dbi.layout          = Log::Log4perl::Layout::NoopLayout
 log4perl.appender.dbi.warp_message    = HTFeed::Log::Warp::toDBArray
 
 #log4perl.appender.dbi.bufferSize = 2
+
+# Schema
+#CREATE TABLE `ht_errors` (
+#  `id` int(11) NOT NULL auto_increment,
+#  `level` varchar(5) NOT NULL,
+#  `timestamp` datetime NOT NULL,
+#  `obj_id` varchar(32) default NULL,
+#  `message` varchar(40) NOT NULL,
+#  `file` tinytext,
+#  `field` tinytext,
+#  `actual` tinytext,
+#  `expected` tinytext,
+#  `detail` tinytext,
+#  PRIMARY KEY  (`id`)
+#) ENGINE=MyISAM AUTO_INCREMENT=634 DEFAULT CHARSET=latin1;

@@ -1,8 +1,8 @@
-log4perl.rootLogger					= INFO, file
+log4perl.rootLogger                 = INFO, file
 
-log4perl.appender.file				= Log::Log4perl::Appender::File
-#log4perl.appender.file.filename		= HTFeed::Test::Support->newLogFile
-log4perl.appender.file.filename		= sub{return HTFeed::Test::Support->newLogFile();}
-log4perl.appender.file.mode			= write
-log4perl.appender.file.layout		= HTFeed::Log::Layout::PrettyPrint
-log4perl.appender.file.warp_message	= 0
+log4perl.appender.file              = Log::Log4perl::Appender::File
+#log4perl.appender.file.filename    = HTFeed::Test::Support->newLogFile
+log4perl.appender.file.filename     = sub{return HTFeed::Test::Support->newLogFile();}
+log4perl.appender.file.mode         = write
+log4perl.appender.file.layout       = HTFeed::Log::Layout::PrettyPrint
+log4perl.appender.file.warp_message = 0

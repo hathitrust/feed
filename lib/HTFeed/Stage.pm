@@ -2,7 +2,6 @@ package HTFeed::Stage;
 
 # abstract class, children must impliment following methods:
 # run
-# failed
 
 use warnings;
 use strict;
