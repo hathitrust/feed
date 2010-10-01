@@ -16,20 +16,20 @@ sub new {
     my $class = shift;
 
     my $self = {
-        objid     => undef,
-        namespace => undef,
-        packagetype => undef,
-        @_,
+	objid     => undef,
+	namespace => undef,
+	packagetype => undef,
+	@_,
 
-        #		files			=> [],
-        #		dir			=> undef,
-        #		mets_name		=> undef,
-        #		mets_xml		=> undef,
+	#		files			=> [],
+	#		dir			=> undef,
+	#		mets_name		=> undef,
+	#		mets_xml		=> undef,
     };
 
     $self->{groove_book} =
-      GROOVE::Book->new( $self->{objid}, $self->{namespace},
-        $self->{packagetype} );
+    GROOVE::Book->new( $self->{objid}, $self->{namespace},
+	$self->{packagetype} );
 
     $self->{nspkg} = new HTFeed::Namespace($self->{namespace},$self->{packagetype});
 
@@ -94,9 +94,18 @@ sub get_file_groups {
     my $book = $self->{groove_book};
 
     my $filegroups = {};
-    $filegroups->{image} = $book->get_all_images();
-    $filegroups->{ocr}   = $book->get_all_ocr();
-    $filegroups->{hocr} = $book->get_all_hocr() if $book->hocr_files_used();
+    $filegroups->{image} = new HTFeed::FileGroup($book->get_all_images(),
+	prefix => 'IMG',
+	use=>'image');
+    $filegroups->{ocr}   = new HTFeed::FileGroup($book->get_all_ocr(),
+	prefix => 'OCR',
+	use => 'ocr');
+
+    if ($book->hocr_files_used()) {
+	$filegroups->{hocr} = new HTFeed::FileGroup($book->get_all_hocr(),
+	    prefix => 'XML',
+	    use => 'coordOCR')
+    }
 
     return $filegroups;
 }
@@ -135,7 +144,7 @@ sub get_all_content_files {
     my $book = $self->{groove_book};
 
     return [( @{ $book->get_all_images() }, @{ $book->get_all_ocr() },
-        @{ $book->get_all_hocr() })];
+	@{ $book->get_all_hocr() })];
 }
 
 =item get_checksums
@@ -149,33 +158,33 @@ sub get_checksums {
     my $self = shift;
 
     if ( !defined $self->{checksums} ) {
-        my $checksums = {};
+	my $checksums = {};
 
-        my $path = $self->get_staging_directory();
-        my $checksum_file = $self->{groove_book}->get_checksum_file();
-        if ( defined $checksum_file ) {
-            my $checksum_fh;
-            open( $checksum_fh, "<", "$path/$checksum_file" )
-              or croak("Can't open $checksum_file: $!");
-            while ( my $line = <$checksum_fh> ) {
-                chomp $line;
-                my ( $checksum, $filename ) = split( /\s+/, $line );
-                $checksums->{$filename} = $checksum;
-            }
-            close($checksum_fh);
-        }
-        else {
+	my $path = $self->get_staging_directory();
+	my $checksum_file = $self->{groove_book}->get_checksum_file();
+	if ( defined $checksum_file ) {
+	    my $checksum_fh;
+	    open( $checksum_fh, "<", "$path/$checksum_file" )
+		or croak("Can't open $checksum_file: $!");
+	    while ( my $line = <$checksum_fh> ) {
+		chomp $line;
+		my ( $checksum, $filename ) = split( /\s+/, $line );
+		$checksums->{$filename} = $checksum;
+	    }
+	    close($checksum_fh);
+	}
+	else {
 
-            # try to extract from source METS
-            my $xpc = $self->get_source_mets_xpc();
-            foreach my $node ( $xpc->findnodes('//mets:file') ) {
-                my $checksum = $xpc->findvalue( './@CHECKSUM', $node );
-                my $filename =
-                  $xpc->findvalue( './mets:FLocat/@xlink:href', $node );
-                $checksums->{$filename} = $checksum;
-            }
-        }
-        $self->{checksums} = $checksums;
+	    # try to extract from source METS
+	    my $xpc = $self->get_source_mets_xpc();
+	    foreach my $node ( $xpc->findnodes('//mets:file') ) {
+		my $checksum = $xpc->findvalue( './@CHECKSUM', $node );
+		my $filename =
+		$xpc->findvalue( './mets:FLocat/@xlink:href', $node );
+		$checksums->{$filename} = $checksum;
+	    }
+	}
+	$self->{checksums} = $checksums;
     }
 
     return $self->{checksums};
@@ -192,7 +201,7 @@ sub get_checksum_file {
     my $self          = shift;
     my $checksum_file = $self->{groove_book}->get_checksum_file();
     $checksum_file = $self->{groove_book}->get_source_mets_file()
-      if not defined $checksum_file;
+    if not defined $checksum_file;
     return $checksum_file;
 }
 
@@ -224,14 +233,14 @@ sub get_source_mets_xpc {
     my $xpc;
 
     eval {
-        my $parser = XML::LibXML->new();
-        my $doc    = $parser->parse_file("$path/$mets");
-        $xpc = XML::LibXML::XPathContext->new($doc);
-        register_namespaces($xpc);
+	my $parser = XML::LibXML->new();
+	my $doc    = $parser->parse_file("$path/$mets");
+	$xpc = XML::LibXML::XPathContext->new($doc);
+	register_namespaces($xpc);
     };
 
     if ($@) {
-        croak("-ERR- Could not read XML file $mets: $@");
+	croak("-ERR- Could not read XML file $mets: $@");
     }
     return $xpc;
 
@@ -287,7 +296,7 @@ sub get_marc_xml {
 
     my $marcxml_doc;
     eval {
-    	$marcxml_doc = XML::LibXML->new()->parse_string($marcxml_string);
+	$marcxml_doc = XML::LibXML->new()->parse_string($marcxml_string);
     };
     if($@) {
 	croak("Could not get MARCXML: $@");
@@ -322,14 +331,14 @@ sub get_repository_mets_xpc  {
     my $xpc;
 
     eval {
-        my $parser = XML::LibXML->new();
-        my $doc    = $parser->parse_file($mets_in_repository_file);
-        $xpc = XML::LibXML::XPathContext->new($doc);
-        register_namespaces($xpc);
+	my $parser = XML::LibXML->new();
+	my $doc    = $parser->parse_file($mets_in_repository_file);
+	$xpc = XML::LibXML::XPathContext->new($doc);
+	register_namespaces($xpc);
     };
 
     if ($@) {
-        croak("Could not read METS file $mets_in_repository_file: $@");
+	croak("Could not read METS file $mets_in_repository_file: $@");
     }
     return $xpc;
 
@@ -367,7 +376,7 @@ physical page, e.g.:
 { '0001' => { txt => ['0001.txt'], 
 	      img => ['0001.jp2'] },
   '0002' => { txt => ['0002.txt'],
-  	      img => ['0002.tif'] },
+	      img => ['0002.tif'] },
   '0003' => { txt => ['0003.txt'],
 	      img => ['0003.jp2','0003.tif'] }
   };
@@ -381,21 +390,21 @@ sub get_file_groups_by_page {
 
     # First determine what files belong to each sequence number
     while ( my ( $filegroup_name, $filegroup ) =
-        each( %{ $filegroups } ) )
+	each( %{ $filegroups } ) )
     {
-        foreach my $file ( @{$filegroup} ) {
-            if ( $file =~ /(\d+)\.(\w+)$/ ) {
-                my $sequence_number = $1;
+	foreach my $file ( @{$filegroup->get_filenames()} ) {
+	    if ( $file =~ /(\d+)\.(\w+)$/ ) {
+		my $sequence_number = $1;
 		if(not defined $files->{$sequence_number}{$filegroup_name}) {
 		    $files->{$sequence_number}{$filegroup_name} = [$file];
 		} else {
 		    push(@{ $files->{$sequence_number}{$filegroup_name} }, $file);
 		}
-            }
-            else {
-               $self->_set_error( "Error extracting field", field => 'sequence_number', file => $file);
-            }
-        }
+	    }
+	    else {
+		$self->_set_error( "Error extracting field", field => 'sequence_number', file => $file);
+	    }
+	}
     }
 
     return $files;
@@ -446,7 +455,7 @@ sub record_premis_event {
 	(?, ?, ?, ?, ?)");
 
     $set_premis_sth->execute($self->get_namespace(),$self->get_objid(),$eventtype,$outcome_xml,$eventid_override);
-    
+
 }
 
 =item get_premis_events( $eventtype )
@@ -459,7 +468,7 @@ only events matching the given event type will be returned.
 sub get_premis_events {
     my $self = shift;
     my $eventtype = shift;
-    
+
     my $dbh = GRIN::DBTools->get_dbh();
 
     # TODO: move to replacement for DBTools
@@ -485,7 +494,7 @@ sub get_premis_events {
 	    $event->add_linking_agent($agent);
 	}
 	push(@events,$event);
-	
+
     }
 
     return @events;
@@ -505,20 +514,87 @@ sub _get_current_date {
     my $localtime_obj = defined($ss1970) ? localtime($ss1970) : localtime();
 
     my $ts = sprintf("%d-%02d-%02dT%02d:%02d:%02d",
-        (1900 + $localtime_obj->year()),
-        (1 + $localtime_obj->mon()),
-        $localtime_obj->mday(),
-        $localtime_obj->hour(),
-        $localtime_obj->min(),
-        $localtime_obj->sec());
+	(1900 + $localtime_obj->year()),
+	(1 + $localtime_obj->mon()),
+	$localtime_obj->mday(),
+	$localtime_obj->hour(),
+	$localtime_obj->min(),
+	$localtime_obj->sec());
 
     return $ts;
-
-
 }
 
+=item get_zip
 
+Returns the name of the zipfile for this volume, if it exists
 
+=cut
+
+sub get_zip {
+    my $self = shift;
+    my $book = $self->{groove_book};
+    return $book->get_zip();
+}
+
+=item get_pagedata(file)
+
+Returns a reference to a hash:
+
+    { orderlabel => page number
+      label => page tags }
+
+for the page containing the given file.
+
+If there is no detected page number or page tags for the given page,
+the corresponding entry in the hash will not exist.
+
+=cut
+
+sub get_page_data {
+    my $self = shift;
+    my $file = shift;
+
+    my $seqnum = ($file =~ /(\d+)/);
+    croak("Can't extract sequence number from file $file") unless $seqnum;
+    my $pagedata = {};
+
+    my $tags =  $self->{groove_book}->get_tags($seqnum);
+    my $pagenum = $self->{groove_book}->get_detected_pagenum($seqnum);
+
+    $pagedata->{'orderlabel'} = $pagenum if defined $pagenum;
+    $pagedata->{'label'} = $tags if defined $tags;
+
+    return $pagedata;
+}
+
+=item get_detected_pagenum(file)
+
+Returns the detected page number for the page containing a given file, if there is one
+
+=cut
+
+sub get_page_number {
+    my $self = shift;
+    my $file = shift;
+
+    my $seqnum = ($file =~ /(\d+)/);
+
+    return $self->{groove_book}->get_detected_pagenum($seqnum);
+}
+
+=item get_mets_path
+
+Returns the path to the METS file for this object
+
+=cut
+
+sub get_mets_path {
+
+    my $staging_path = $volume->get_staging_path();
+    my $objid = $volume->get_objid();
+    my $mets_path = "$staging_path/$objid.mets.xml");
+}
 1;
+
 
 __END__;
