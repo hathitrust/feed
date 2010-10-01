@@ -589,10 +589,13 @@ Returns the path to the METS file for this object
 =cut
 
 sub get_mets_path {
+    my $volume = shift;
 
     my $staging_path = $volume->get_staging_path();
     my $objid = $volume->get_objid();
-    my $mets_path = "$staging_path/$objid.mets.xml");
+    my $mets_path = "$staging_path/$objid.mets.xml";
+    
+    return $mets_path;
 }
 1;
 
