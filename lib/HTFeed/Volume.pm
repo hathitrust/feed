@@ -5,6 +5,7 @@ use strict;
 use Log::Log4perl qw(get_logger);
 use HTFeed::XMLNamespaces qw(register_namespaces);
 use HTFeed::Namespace;
+use HTFeed::FileGroup;
 use XML::LibXML;
 use GROOVE::Book;
 use GROOVE::Tools;

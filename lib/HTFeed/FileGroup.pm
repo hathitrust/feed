@@ -16,7 +16,7 @@ sub new {
 	use => undef,
 	prefix => undef,
 	@_
-    }
+    };
 
     bless($self,$class);
     return $self;
