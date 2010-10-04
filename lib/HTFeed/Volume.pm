@@ -403,7 +403,7 @@ sub get_file_groups_by_page {
 		}
 	    }
 	    else {
-		$self->_set_error( "Error extracting field", field => 'sequence_number', file => $file);
+		$self->_set_error( "BadField", field => 'sequence_number', file => $file);
 	    }
 	}
     }

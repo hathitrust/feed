@@ -172,11 +172,11 @@ sub _setupXMP {
 	my $uuidbox_cnt = $uuidbox_nodes->size();
 	unless ( $uuidbox_cnt == 1 ) {
 	    if ( $uuidbox_cnt > 1 ) {
-		$self->_set_error("Error extracting field",detail => "UUIDBox not found",field => 'xmp');
+		$self->_set_error("BadField",detail => "UUIDBox not found",field => 'xmp');
 	    }
 	    else {
 		$self->_set_error(
-		    "Error extracting field",field => 'xmp',detail => "$uuidbox_cnt UUIDBox's found, XMP must be in the only UUIDBox"
+		    "BadField",field => 'xmp',detail => "$uuidbox_cnt UUIDBox's found, XMP must be in the only UUIDBox"
 		);
 	    }
 

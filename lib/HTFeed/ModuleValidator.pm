@@ -192,7 +192,7 @@ sub _setupXMPcontext {
 
     };
     if ($@) {
-        $self->_set_error("Error extracting field",detail=>$@,field=>'xmp');
+        $self->_set_error("BadField",detail=>$@,field=>'xmp');
         return 0;
     }
     else {
