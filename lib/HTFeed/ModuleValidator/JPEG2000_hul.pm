@@ -87,7 +87,7 @@ sub _set_validators {
 		&& ( "888"     eq $xmp_bitsPerSample_color ))
 		or (
 		$self->_set_error(
-		    "Mismatched/invalid value for field", field => 'colorspace',
+		    "NotMatchedValue", field => 'colorspace',
 		    actual => {"xmp_colorSpace" => $xmp_colorSpace,
 			"xmp_samplesPerPixel" => $xmp_samplesPerPixel,
 			"mix_samplesPerPixel" => $mix_samplesPerPixel,
@@ -104,12 +104,12 @@ sub _set_validators {
 	my $y1 = $self->_findone( "mix", "length" );
 	my $x2 = $self->_findone( "xmp", "width" );
 	my $y2 = $self->_findone( "xmp", "length" );
-
-	(        ( $x1 > 0 && $y1 > 0 && $x2 > 0 && $y2 > 0 )
+    
+	( ( $x1 > 0 && $y1 > 0 && $x2 > 0 && $y2 > 0 )
 	    && ( $x1 == $x2 )
 	    && ( $y1 == $y2 ) )
 	    or $self->_set_error(
-	    "Mismatched/invalid value for field", field => 'dimensions',
+	    "NotMatchedValue", field => 'dimensions',
 	    actual => {"mix_width" => $x1,
 		"mix_length" => $y1,
 		"xmp_width" => $x2,
@@ -142,12 +142,17 @@ sub run {
     $self->_openonecontext("codingStyleDefault");
     $self->_openonecontext("mix");
 
-# if we already have errors, quit now, we won't get anything else out of this without usable contexts
+    # if we already have errors, quit now, we won't get anything else out of this without usable contexts
     if ( $self->failed ) {
-	return;
+	    return;
     }
 
     $self->_setupXMP;
+    
+    # make sure we have an xmp before we continue
+    if ( $self->failed ) {
+	    return;
+    }
 
     return $self->SUPER::run();
 

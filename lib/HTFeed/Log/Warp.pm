@@ -3,6 +3,8 @@ package HTFeed::Log::Warp;
 use warnings;
 use strict;
 
+# Synopsis
+# $logger->("ErrorCode",field => "data",...)
 sub toDBArray {
     my $error_message = HTFeed::Log->error_code_to_string(shift);
     my %message_fields = @_;

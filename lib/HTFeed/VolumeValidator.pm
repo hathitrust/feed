@@ -105,7 +105,7 @@ sub _validate_filegroups_nonempty {
     my $filegroups          = $volume->get_file_groups();
     while ( my ( $filegroup_name, $filegroup ) = each( %{$filegroups} ) ) {
         $logger->debug("validating nonempty filegroup $filegroup_name");
-        my $filecount = scalar( @{$filegroup->get_files()} );
+        my $filecount = scalar( @{$filegroup->get_filenames()} );
         if ( !$filecount ) {
             $self->_set_error("EmptyFilegroup", filegroup => $filegroup);
         }
