@@ -247,6 +247,35 @@ sub get_source_mets_xpc {
 
 }
 
+=item get_repos_mets_xpc
+
+Returns an XML::LibXML::XPathContext with namespaces set up 
+and the context node positioned at the document root of the source METS.
+
+=cut
+
+sub get_repos_mets_xpc {
+    my $self = shift;
+
+    my $mets = $self->get_repository_mets_path();
+    return unless defined $mets;
+
+    my $xpc;
+
+    eval {
+	my $parser = XML::LibXML->new();
+	my $doc    = $parser->parse_file("$mets");
+	$xpc = XML::LibXML::XPathContext->new($doc);
+	register_namespaces($xpc);
+    };
+
+    if ($@) {
+	croak("-ERR- Could not read XML file $mets: $@");
+    }
+    return $xpc;
+
+}
+
 =item get_nspkg
 
 Returns the HTFeed::Namespace object that provides namespace & package type-
@@ -625,6 +654,7 @@ sub get_mets_path {
     return $mets_path;
 }
 1;
+
 
 
 __END__;

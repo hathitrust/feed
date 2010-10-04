@@ -148,12 +148,20 @@ sub _extract_old_premis {
         my ($mets_in_rep_valid,$val_results) = validate_xml($self->{'config'},$mets_in_repos);
         if($mets_in_rep_valid) {
 	    print "METS in repository valid";
-            # TODO extract old premis events (old _store_premis_events)
+	    my $xc = $volume->get_repos_mets_xpc();
+
+	    foreach my $event ($xc->findnodes('//PREMIS:event')) {
+
+		my $eventType = $xc->findvalue("./PREMIS:eventType",$event);
+
+		push @{$self->{store_events}{$eventType}}, $event;
+	    }
+
         }
         else {
-	    print "METS in repository invalid";
+	    # TODO: should be warning, not error
+	    $self->_set_error("METS in repository invalid", detail => $val_results);
 	    print "$val_results";
-            # log warning that METS in repository exists but isn't valid
         }
     }
 }
@@ -162,7 +170,16 @@ sub _add_premis {
     my $self = shift;
     my $volume = $self->{volume};
 
-    $self->_extract_old_premis();
+    my $premis = new PREMIS;
+
+    # what if they fight?? need to merge.
+    my $old_events = $self->_extract_old_premis();
+
+    foreach my $src_event ($self->_extract_src_premis()) {
+	# do we want to keep this kind of event?
+	# is there already an event in the old premis with the same datetime and identifier type? if so, ignore it
+	# if not, do we need to generate a new identifier for this event? what would we say for the identifier type if we need to change it?
+    }
 
     # create PREMIS object
     my $premis = new PREMIS;
@@ -171,19 +188,36 @@ sub _add_premis {
     $premis_object->add_significant_property('file count',$volume->get_file_count());
     $premis_object->add_significant_property('page count',$volume->get_page_count());
 
-    # Events:
-    # capture
-    # message digest calculation
-    # compression (all but ia)
-    # blank OCR creation (ump only)
-    # decryption (mdp only)
-    # fixity check
-    # preingest transformation
-    # validation
-    # message digest calculation  (again??)
-    # page feature mapping
-    # ingestion
+    foreach my $eventtype (@{$nspkg->get('premis_event_types')}) {
+	# query database for: datetime, outcome
+	my ($datetime, $outcome) = $volume->get_event_info($eventtype);
+	my $description = $nspkg->get_event_description($eventtype);
+	my $executor = $nspkg->get_event_executor($eventtype);
+	$executor = $volume->get_artist() if $artist eq 'VOLUME_ARTIST';
 
+	# don't record event if there's already one of this type at the same or later time
+	next unless $self->_need_to_update_event($eventtype,$datetime);
+
+	my $eventid = $self->_get_next_eventid($eventtype);
+
+	my $event = new PREMIS::Event($eventid, $executor, $eventtype, $datetime, $description);
+	$event->add_outcome(new PREMIS::Outcome($outcome)) if defined $outcome;
+
+	# query namespace/packagetype for software tools to record for this event type
+	$event->add_linking_agent(new PREMIS::LinkingAgent('AgentID',$executor,'Executor'));
+
+	my @agents = ();
+	my $tools_config = $self->get_nspkg()->get_premis_tools($eventtype);
+	foreach my $agent (@$tools_config) {
+	    my $agent_name = undef;
+	    if(ref($agent) eq 'CODE') { $agent_name = &$agent; }
+	    elsif($agent eq 'GROOVE') { $agent_name = $self->get_groove_version(); }
+	    else { $agent_name = $agent; }
+
+	    $event->add_linking_agent(new PREMIS::LinkingAgent('tool',$agent_name,'software'));
+	}
+
+    }
 }
 
 
@@ -344,5 +378,62 @@ sub _get_createdate {
 
     return $ts;
 }
+
+=item _need_to_update_event ($event, $datetime)
+
+Evaluate all datetimes in existing METS file for $event and return true if we
+need to add a new event because $datetime is newer than any already in the METS
+file (or because there is not an existing METS file to evaluate).
+
+=cut
+
+sub _need_to_update_event {
+    my $self = shift;
+    my $event = shift;
+    my $datetime = shift;
+
+    my $date_new = ParseDate($datetime);
+
+    #
+    # Look at PREMIS events from METS file in repository. If this dateTime is newer, then we do need to insert a PREMIS:event element for this event.
+    #
+    # Return 1 if we need to add a <PREMIS:event> element for $datetime
+    #
+    # Return 0 if we don't need to because a <PREMIS:event> element already exists with this exact datetime
+    #
+    # Also return 1 if there is not a copy of this volume already in the repository (in which case $$self{'store_events'}{$event} will not exist and we'll never go through the foreach loop, so we'll just return with the $need_to_update default of true).
+
+    my $need_to_update = 1;
+    my $xc = $volume->get_repos_mets_xpc();
+
+    foreach my $event_element ( @{$$self{'store_events'}{$event}} ) {
+
+	my $event_dateTime = $xc->findvalue('./premis:eventDateTime',$event_element);
+
+	my $date_existing = ParseDate($event_dateTime);
+
+	my $flag = Date_Cmp($date_new, $date_existing);
+
+	if($flag > 0) {
+
+	    #print "$event: $datetime IS NEWER THAN $event_dateTime SO WE NEED TO ADD A NEW PREMIS EVENT ($flag)\n";
+
+	    $need_to_update = 1;
+	}
+	elsif ($flag == 0) {
+
+	    #print "$event: $datetime IS IDENTICAL TO $event_dateTime ($flag)\n";
+
+	    $need_to_update = 0;
+	}
+	else {
+	    #print "$event: $datetime IS EARLIER THAN $event_dateTime. That ought to be impossible, so WTF? ($flag)\n";
+	}
+    }
+
+    return($need_to_update);
+}
+
+
 
 1;
