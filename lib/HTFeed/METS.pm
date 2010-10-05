@@ -1,22 +1,49 @@
 #!/usr/bin/perl
 
 package HTFeed::METS;
+use strict;
+use warnings;
 use METS;
 use PREMIS;
 use HTFeed::XMLNamespaces qw(:namespaces :schemas);
+use Carp;
+use Log::Log4perl qw(get_logger);
+use Exporter;
+use Time::localtime;
+use Cwd qw(cwd);
+
+
+use base qw(HTFeed::Stage Exporter);
+
+my $logger = get_logger(__PACKAGE__);
 
 sub new {
     my $class  = shift;
-    my $volume = shift;
 
-    return bless { volume => $volume }, $class;
+    my $self = {
+	volume => undef,
+	@_,
 
+	#		files			=> [],
+	#		dir			=> undef,
+	#		mets_name		=> undef,
+	#		mets_xml		=> undef,
+    };
+
+    croak("Volume parameter required") unless defined $self->{volume};
+
+    bless( $self, $class );
+    return $self;
 }
 
 sub run_stage {
     my $self = shift;
-    my $mets = new METS( objid => "$namespace.$objid" );
+    my $mets = new METS( objid => $self->{volume}->get_identifier() );
     $self->{'mets'} = $mets;
+
+    my $olddir = cwd();
+    my $stage_path = $self->{volume}->get_staging_directory();
+    chdir($stage_path) or die("Can't chdir $stage_path: $!");
 
     eval {
         $self->_add_schemas();
@@ -25,9 +52,16 @@ sub run_stage {
         $self->_add_techmds();
         $self->_add_premis();
         $self->_add_filesecs();
-        $self->_add_structmap();
+        $self->_add_struct_map();
         $self->_save_mets();
     };
+    if($@) {
+	$self->{failed} = 1;
+	$self->_set_error("METS creation failed",detail=>$@);
+    }
+    $self->_set_done();
+
+    chdir($olddir) or die("Can't restore $olddir: $!");
 
 }
 
@@ -41,6 +75,9 @@ sub _add_schemas {
 }
 
 sub _add_header {
+    my $self = shift;
+    my $mets = $self->{mets};
+
     my $header = new METS::Header(
         createdate   => _get_createdate(),
         recordstatus => 'NEW'
@@ -85,6 +122,7 @@ sub _add_dmdsecs {
         mdtype => 'MARC',
         label  => 'Physical volume MARC record'
     );
+    $mets->add_dmd_sec($dmdsec);
 
     # MIU: add TEIHDR; do not add second call number??
 }
@@ -102,15 +140,19 @@ sub _add_techmds {
 # extract existing PREMIS events from object currently in repos
 sub _extract_old_premis {
     my $self = shift;
+    my $volume = $self->{volume};
 
-    my $mets_in_repos = $book->mets_in_repos();
+    my $mets_in_repos = $volume->get_repository_mets_path();
     if(defined $mets_in_repos) {
         # validate METS in repository
-        # my ($mets_in_rep_valid,$val_results) = validate_xml($self->{'config'},$mets_in_repository);
+        my ($mets_in_rep_valid,$val_results) = validate_xml($self->{'config'},$mets_in_repos);
         if($mets_in_rep_valid) {
+	    print "METS in repository valid";
             # TODO extract old premis events (old _store_premis_events)
         }
         else {
+	    print "METS in repository invalid";
+	    print "$val_results";
             # log warning that METS in repository exists but isn't valid
         }
     }
@@ -159,6 +201,7 @@ sub _add_filesecs {
     my $mets   = $self->{mets};
     my $volume = $self->{volume};
 
+
     # first add zip
     my $zip_filegroup = new METS::FileGroup(
         id  => $self->_get_subsec_id("FG"),
@@ -171,14 +214,14 @@ sub _add_filesecs {
     my $filegroups = $volume->get_file_groups();
     $self->{filegroups} = {};
     while ( my ( $filegroup_name, $filegroup ) = each(%$filegroups) ) {
-        my $mets_filegrp = new METS::FileGroup(
+        my $mets_filegroup = new METS::FileGroup(
             id  => $self->_get_subsec_id("FG"),
             use => $filegroup->get_use()
         );
-        $mets_filegrp->add_files( $filegroup->get_filenames(),
+        $mets_filegroup->add_files( $filegroup->get_filenames(),
             prefix => $filegroup->get_prefix() );
 
-        $self->{filegroups}{$filegroup_name} = $mets_filegrp;
+        $self->{filegroups}{$filegroup_name} = $mets_filegroup;
         $mets->add_filegroup($mets_filegroup);
     }
 
@@ -186,28 +229,31 @@ sub _add_filesecs {
 
 }
 
-sub _add_structmap {
+sub _add_struct_map {
     my $self   = shift;
     my $mets   = $self->{mets};
     my $volume = $self->{volume};
 
-    my $structmap = new METS::StructMap( id => 'SM1', type => 'physical' );
+    my $struct_map = new METS::StructMap( id => 'SM1', type => 'physical' );
     my $voldiv = new METS::StructMap::Div( type => 'volume' );
     $struct_map->add_div($voldiv);
     my $order               = 1;
     my $file_groups_by_page = $volume->get_file_groups_by_page();
-    foreach my $pagefiles (@$file_groups_by_page) {
+    foreach my $seqnum (sort(keys(%$file_groups_by_page))) {
+	my $pagefiles = $file_groups_by_page->{$seqnum};
         my $pagediv_ids = [];
         my $pagedata;
+	my @pagedata;
         while ( my ( $filegroup_name, $files ) = each(%$pagefiles) ) {
             foreach my $file (@$files) {
-                my $fileid = $self->{filegroups}{$filegroup_name}{$file};
+                my $fileid = $self->{filegroups}{$filegroup_name}->get_file_id($file);
                 croak("Can't find file ID for $file in $filegroup_name")
                   unless defined $fileid;
 
                 # try to find page number & page tags for this page
                 if ( not defined $pagedata ) {
-                    $pagedata = $volume->get_pagedata($fileid);
+                    $pagedata = $volume->get_page_data($fileid);
+		    @pagedata = %$pagedata;
                 }
 
                 push( @$pagediv_ids, $fileid );
@@ -217,9 +263,10 @@ sub _add_structmap {
             $pagediv_ids,
             order => $order++,
             type  => 'page',
-            @$pagedata
+            @pagedata
         );
     }
+    $mets->add_struct_map($struct_map);
 
 }
 
@@ -230,7 +277,7 @@ sub _save_mets {
 
     my $mets_path = $self->{volume}->get_mets_path();
 
-    open( $metsxml, ">", "$mets_path" )
+    open( my $metsxml, ">", "$mets_path" )
       or die("Can't open IA METS xml $mets_path for writing: $!");
     print $metsxml $mets->to_node()->toString(1);
     close($metsxml);
@@ -246,7 +293,7 @@ sub validate {
     my ( $mets_valid, $val_results ) =
       validate_xml( $self->{'config'}, $$self{'filename'} );
     if ( !$mets_valid ) {
-        $self->set_error(
+        $self->_set_error(
             "METS file invalid",
             file   => $mets_path,
             detail => $val_results
@@ -298,3 +345,4 @@ sub _get_createdate {
     return $ts;
 }
 
+1;
