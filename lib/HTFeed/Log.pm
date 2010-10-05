@@ -1,6 +1,8 @@
 package HTFeed::Log;
 
-# Loads HTFeed log support classes and initializes logging
+# Loads HTFeed log support classes,
+# initializes logging,
+# contains logging helper methods
 
 use warnings;
 use strict;
@@ -29,11 +31,16 @@ my %error_codes = (
     MissingField        => "Missing field value",
     NotEqualValues      => "Mismatched field values",
     FatalError          => "Fatal error",
+    DownloadFailed      => "Download failed",
 );
 
-# list of fields accepted in error hash
+# list of fields accepted in log hash
+# these fields are allowed in any log event (error, debug, etc)
+# as long as config.l4p runs it through one of our custom filters:
+#   HTFeed::Log::Warp (for DB appenders), HTFeed::Log::Layout::PrettyPrint (for text appenders)
 my @fields = qw(volume file field actual expected detail);
 
+# call EXACTLY ONCE to initialize logging
 sub init{
     # get log4perl config file
     my $l4p_config = get_config->("l4p")
@@ -44,6 +51,8 @@ sub init{
     return;
 }
 
+# convert a hash containing keys in @fields to an array
+# ordered like @fields, with undef where appropriate
 sub fields_hash_to_array{
     # get rid of package name
     shift;
@@ -70,6 +79,7 @@ sub fields_hash_to_array{
     return \@ret;
 }
 
+# take a string that should be a key in %error_codes, return appropriate error string
 sub error_code_to_string{
     # get rid of package name
     shift;
