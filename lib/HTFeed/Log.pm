@@ -11,6 +11,7 @@ $Data::Dumper::Indent = 0;
 
 use HTFeed::Log::Warp;
 use HTFeed::Log::Layout::PrettyPrint;
+use HTFeed::Config qw(get_config);
 
 use Log::Log4perl;
 
@@ -34,14 +35,8 @@ my %error_codes = (
 my @fields = qw(volume file field actual expected detail);
 
 sub init{
-    # check for / read environment var
-    my $l4p_config;
-    if (defined $ENV{HTFEED_L4P}){
-        $l4p_config = $ENV{HTFEED_L4P};
-    }
-    else{
-        croak print "set HTFEED_L4P\n";
-    }
+    # get log4perl config file
+    my $l4p_config = get_config->("l4p")
 
     Log::Log4perl->init($l4p_config);
     Log::Log4perl->get_logger(__PACKAGE__)->trace("l4p initialized");
