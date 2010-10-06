@@ -458,7 +458,7 @@ sub get_file_groups_by_page {
 		}
 	    }
 	    else {
-		$self->_set_error( "Error extracting field", field => 'sequence_number', file => $file);
+		$self->_set_error( "BadField", field => 'sequence_number', file => $file);
 	    }
 	}
     }
@@ -653,6 +653,22 @@ sub get_mets_path {
 
     return $mets_path;
 }
+
+=item get_grinid
+
+Returns grinid if Volume has one, else return false
+
+=cut
+
+sub get_grinid{
+    my $self = shift;
+    my $book = $self->{groove_book};
+    my $grin_id = $book->get_grinid();
+    
+    return $grin_id if ($grin_id);
+    return;
+}
+
 1;
 
 

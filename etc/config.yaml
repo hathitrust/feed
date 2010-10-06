@@ -1,0 +1,8 @@
+# this is a generated file
+# see: bin/config_yaml_prototype_struct.pl
+---
+database:
+  datasource: dbi:mysql:my_db:mysql-sdr
+  password: password
+  username: uname
+l4p: path/to/config.l4p
