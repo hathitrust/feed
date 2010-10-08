@@ -1,8 +1,13 @@
 # this is a generated file
 # see: bin/config_yaml_prototype_struct.pl
 ---
+config_directory: /some/path/etc
 database:
   datasource: dbi:mysql:my_db:mysql-sdr
   password: password
   username: uname
-l4p: path/to/config.l4p
+download_directory: /path/to/download
+jhove: /l/local/bin/jhove
+jhoveconf: /l/local/jhove/conf/jhove.conf
+l4p_config: config.l4p
+staging_directory: /path/to/staging
