@@ -32,6 +32,7 @@ my %error_codes = (
     NotEqualValues      => "Mismatched field values",
     FatalError          => "Fatal error",
     DownloadFailed      => "Download failed",
+    FileMissing         => "File Missing"
 );
 
 # list of fields accepted in log hash

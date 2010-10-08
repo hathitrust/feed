@@ -19,7 +19,12 @@ my $config = {
             password => "password",
             datasource => "dbi:mysql:my_db:mysql-sdr",
         },
-    l4p => "path/to/config.l4p",
+    config_directory => "/some/path/etc",
+    l4p_config => "config.l4p",
+    staging_directory => "/path/to/staging",
+    download_directory => "/path/to/download",
+    jhove => "/l/local/bin/jhove",
+    jhoveconf => "/l/local/jhove/conf/jhove.conf",
 };
 
 print "# this is a generated file\n";
