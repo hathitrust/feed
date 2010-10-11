@@ -4,10 +4,137 @@
 config_directory: /some/path/etc
 database:
   datasource: dbi:mysql:my_db:mysql-sdr
-  password: password
   username: uname
+  password: password
+
 download_directory: /path/to/download
 jhove: /l/local/bin/jhove
 jhoveconf: /l/local/jhove/conf/jhove.conf
 l4p_config: config.l4p
 staging_directory: /path/to/staging
+
+# Specify a path to the log4perl configuration file
+l4p: path/to/config.l4p
+
+xerces: /path/to/xerces
+
+# For each possible kind of PREMIS event, list the 
+# PREMIS eventType, the eventDetail, the executor linkingAgent (should be UM or
+# VOLUME_ARTIST), and any tool linkingAgents. The tools must be drawn from
+# the list in the 'tools' configuration variable here.
+
+premis_events:
+
+  capture:
+    type: capture
+    detail: Initial capture of item
+    executor: VOLUME_ARTIST
+
+  ht_mets_creation:
+    type: mets creation
+    detail: Creation of HathiTrust METS file
+    executor: UM
+    tools:
+    - GROOVE
+
+  image_compression:
+    type: compression
+    detail: Conversion of raw scans to compressed TIFF and JPEG2000
+    # executor is package-type specific
+    # tools is package-type specific
+
+  image_header_modification:
+    detail: Modification of image headers to meet HathiTrust conventions
+    executor: UM
+    tools:
+    - GROOVE
+    - EXIFTOOL
+    type: normalization
+
+  ingestion:
+    type: ingestion
+    detail: Ingestion of object package into repository
+    executor: UM
+    tools:
+    - GROOVE
+
+  mets_validation:
+    type: validation
+    detail: Validation of source METS file
+    executor: UM
+    tools:
+    - XERCES
+
+  ocr_normalize:
+    type: normalization
+    # detail is package-type specific
+    executor: UM
+    tools:
+    - GROOVE
+
+  package_validation:
+    type: validation
+    detail: Validation of object components
+    executor: UM
+    tools:
+    - GROOVE
+    - JHOVE
+    - XERCES
+
+  page_feature_mapping:
+    type: normalization
+    detail: Mapping of original page feature tags to HathiTrust tags
+    executor: UM
+    tools:
+    - GROOVE
+
+  page_md5_create:
+    type: message digest calculation
+    detail: Calculation of page-level MD5 checksums
+    executor: UM
+    tools:
+    - DIGEST_MD5
+
+  page_md5_fixity:
+    type: fixity check
+    detail: Validation of page-level MD5 checksums
+    executor: UM
+    tools:
+    - DIGEST_MD5
+
+  preingest:
+    type: normalization
+    detail: Transformation and normalization of files for ingest (normalization events in source METS)
+    executor: UM
+    tools:
+    - GROOVE
+    # list any other tools here??
+
+  source_md5_fixity:
+    type: fixity check
+    detail: Validation of MD5 checksums for downloaded file archives
+    executor: UM
+    tools:
+    - DIGEST_MD5
+
+  source_mets_creation:
+    type: mets creation
+    detail: Creation of source METS file
+    executor: UM
+    tools:
+    - GROOVE
+
+  zip_compression:
+    type: compression
+    detail: Compression of content files and source METS into zip archive
+    executor: UM
+    tools:
+    - ZIP
+
+  zip_md5_create:
+    type: message digest calculation
+    detail: Calculation of md5 checksum for zip archive
+    executor: UM
+    tools:
+    - DIGEST_MD5
+

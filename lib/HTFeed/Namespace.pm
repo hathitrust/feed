@@ -6,6 +6,7 @@ use Algorithm::LUHN;
 use Carp;
 use HTFeed::FactoryLoader 'load_subclasses';
 use HTFeed::PackageType;
+use HTFeed::Config qw(get_config);
 
 use base qw(HTFeed::FactoryLoader);
 
@@ -97,6 +98,28 @@ sub get_validation_overrides {
 
 }
 
+# PREMIS events
+
+=item get_event_description($eventtype)
+
+Collects the info for a given PREMIS event type, as specified in the global configuration
+and optionally overridden in package type and namespace configuration.
+
+=cut
+
+sub get_event_configuration {
+    my $self = shift;
+    my $eventtype = shift;
+
+    my $info = {};
+
+    my $eventtype_global = get_config('premis',$eventtype);
+    # Did he sell beans? Lord, no..
+    #
+    # Did he sell eggs? Lord, no..
+    #
+    # But he couldn't and he wouldn't and he shouldn't, so he stapled it down.
+}
 
 # UTILITIES FOR SUBCLASSES
 

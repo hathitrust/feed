@@ -11,6 +11,7 @@ use Log::Log4perl qw(get_logger);
 use Exporter;
 use Time::localtime;
 use Cwd qw(cwd);
+use HTFeed::Config qw(config);
 
 
 use base qw(HTFeed::Stage Exporter);
@@ -81,6 +82,7 @@ sub _add_header {
     my $header = new METS::Header(
         createdate   => _get_createdate(),
         recordstatus => 'NEW'
+	id => 'HDR1',
     );
     $header->add_agent(
         role => 'CREATOR',
@@ -175,8 +177,10 @@ sub _add_premis {
     # what if they fight?? need to merge.
     my $old_events = $self->_extract_old_premis();
 
+    my $src_to_keep = $nspkg->get('source_premis_events');
     foreach my $src_event ($self->_extract_src_premis()) {
 	# do we want to keep this kind of event?
+
 	# is there already an event in the old premis with the same datetime and identifier type? if so, ignore it
 	# if not, do we need to generate a new identifier for this event? what would we say for the identifier type if we need to change it?
     }
@@ -188,7 +192,7 @@ sub _add_premis {
     $premis_object->add_significant_property('file count',$volume->get_file_count());
     $premis_object->add_significant_property('page count',$volume->get_page_count());
 
-    foreach my $eventtype (@{$nspkg->get('premis_event_types')}) {
+    foreach my $eventtype (@{$nspkg->get('premis_events')}) {
 	# query database for: datetime, outcome
 	my ($datetime, $outcome) = $volume->get_event_info($eventtype);
 	my $description = $nspkg->get_event_description($eventtype);
@@ -209,12 +213,7 @@ sub _add_premis {
 	my @agents = ();
 	my $tools_config = $self->get_nspkg()->get_premis_tools($eventtype);
 	foreach my $agent (@$tools_config) {
-	    my $agent_name = undef;
-	    if(ref($agent) eq 'CODE') { $agent_name = &$agent; }
-	    elsif($agent eq 'GROOVE') { $agent_name = $self->get_groove_version(); }
-	    else { $agent_name = $agent; }
-
-	    $event->add_linking_agent(new PREMIS::LinkingAgent('tool',$agent_name,'software'));
+	    $event->add_linking_agent(new PREMIS::LinkingAgent('tool',$agent,'software'));
 	}
 
     }
@@ -340,9 +339,7 @@ sub validate {
 }
 
 sub validate_xml {
-    # TODO: Use new global config mechanism
-    my $config = new GROOVE::Config;
-    my $xerces = $config->get('xerces_command');
+    my $xerces = get_config('xerces');
 
     my $filename       = shift;
     my $validation_cmd = "$xerces -f -p $filename 2>&1";
