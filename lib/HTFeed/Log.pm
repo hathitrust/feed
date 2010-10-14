@@ -32,7 +32,8 @@ my %error_codes = (
     NotEqualValues      => "Mismatched field values",
     FatalError          => "Fatal error",
     DownloadFailed      => "Download failed",
-    FileMissing         => "File Missing"
+    FileMissing         => "File missing",
+    IncompleteStage     => "Stage did not complete",
 );
 
 # list of fields accepted in log hash
@@ -44,7 +45,7 @@ my @fields = qw(volume file field actual expected detail);
 # call EXACTLY ONCE to initialize logging
 sub init{
     # get log4perl config file
-    my $l4p_config = get_config->("l4p")
+    my $l4p_config = get_config("l4p_config");
 
     Log::Log4perl->init($l4p_config);
     Log::Log4perl->get_logger(__PACKAGE__)->trace("l4p initialized");

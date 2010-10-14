@@ -23,7 +23,7 @@ my $namespace = shift;
 my $objid = shift;
 
 unless ($objid and $namespace and $packagetype){
-    print "useage: vt packagetype namespace objid\n";
+    print "usage: vt packagetype namespace objid\n";
     exit 0;
 }
 

@@ -45,10 +45,13 @@ sub _set_done{
 	return $self->{has_run};
 }
 
+# Return true if failed, false if succeeded
+# Set error and return true if ! $self->{has_run}
 sub failed{
 	my $self = shift;
 	return $self->{failed} if $self->{has_run};
-	croak "can't check success until run()";
+	$self->_set_error('IncompleteStage',detail => ref($self));
+	return 1;
 }
 
 # set fail, log errors
