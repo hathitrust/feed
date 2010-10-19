@@ -3,6 +3,7 @@ package HTFeed::Config;
 use warnings;
 use strict;
 use YAML::XS;
+use Carp;
 
 use base qw(Exporter);
 our @EXPORT_OK = qw(get_config);
@@ -50,11 +51,18 @@ sub get_config{
     # drill down to the leaf
     my $cursor = $config;
     foreach my $hashlevel (@_) {
-        # TODO throw error if we go down an invalid path
         $cursor = $cursor->{$hashlevel};
+        
+        ## TODO: make this a better error message
+        # die if we go down an invalid path
+        croak("$hashlevel undef") if (! $cursor);
     }
     return $cursor;
 }
+
+=TODO
+add map of required/allowed/overridable/non_overridable/whatever items
+=cut
 
 1;
 

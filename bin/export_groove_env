@@ -1,0 +1,13 @@
+#!/bin/bash
+
+# usage: source export_groove_env
+
+last_dir=$PWD
+cd /htapps/rrotter.babel/git/feed/lib
+staging=`perl -e 'use HTFeed::Config qw(get_config); $staging = get_config("staging_directory"); print $staging;'`
+export GROOVE_WORKING_DIRECTORY=$staging
+echo "export GROOVE_WORKING_DIRECTORY=$staging done"
+
+echo "You did 'source export_groove_env' right?"
+
+cd $last_dir

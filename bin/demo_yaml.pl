@@ -1,10 +1,9 @@
 #!/usr/bin/perl
 
-# use this to develop the prototypical YAML file:
-# 1) add to $config as needed
-# 2) ./config_yaml_prototype_struct.pl > ../etc/config.yaml
+# Dump perl data structures to YAML
+# add to $data as needed
 
-# See also: Config.pm
+# See also: Config.pm, config.yaml
 
 use warnings;
 use strict;
@@ -12,7 +11,7 @@ use strict;
 use Data::Dumper;
 use YAML::XS;
 
-my $config = {
+my $data = {
     database =>
         {
             username => "uname",
@@ -27,6 +26,4 @@ my $config = {
     jhoveconf => "/l/local/jhove/conf/jhove.conf",
 };
 
-print "# this is a generated file\n";
-print "# see: bin/config_yaml_prototype_struct.pl\n";
 print Dump $config;

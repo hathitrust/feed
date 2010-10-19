@@ -1,7 +1,4 @@
-# this is a generated file
-# see: bin/config_yaml_prototype_struct.pl
 ---
-config_directory: /some/path/etc
 database:
   datasource: dbi:mysql:my_db:mysql-sdr
   username: uname
@@ -17,6 +14,15 @@ staging_directory: /path/to/staging
 l4p: path/to/config.l4p
 
 xerces: /path/to/xerces
+
+jhove: /l/local/bin/jhove
+jhoveconf: /l/local/jhove/conf/jhove.conf
+l4p_config: /htapps/rrotter.babel/git/feed/etc/config.l4p
+staging_directory: /htapps/ezbrooks.babel/GROOVE_2.0/break_GRIN/test/undamaged
+staging:
+  disk: /htapps/rrotter.babel/repos/staging
+  memory: /ram/staging
+key_directory: /sdr1/etc/g/groove
 
 # For each possible kind of PREMIS event, list the 
 # PREMIS eventType, the eventDetail, the executor linkingAgent (should be UM or

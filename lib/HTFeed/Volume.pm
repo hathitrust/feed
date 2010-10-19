@@ -637,21 +637,6 @@ sub get_mets_path {
     return $mets_path;
 }
 
-=item get_grinid
-
-Returns grinid if Volume has one, else return false
-
-=cut
-
-sub get_grinid{
-    my $self = shift;
-    my $book = $self->{groove_book};
-    my $grin_id = $book->get_grinid();
-    
-    return $grin_id if ($grin_id);
-    return;
-}
-
 1;
 
 
