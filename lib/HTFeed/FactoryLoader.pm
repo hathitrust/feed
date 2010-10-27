@@ -53,7 +53,7 @@ sub import {
 	    if ( $module =~ /\.pm$/ ) {
 		;
 		print "Requiring: $module_path/$module", "\n";
-		require "$module_path/$module";
+#		require "$module_path/$module";
 	    }
 	}
 	$subclass_map{$caller} = $subclasses;

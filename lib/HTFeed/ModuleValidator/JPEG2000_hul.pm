@@ -57,7 +57,7 @@ sub _set_validators {
 	'layers' => v_eq( 'codingStyleDefault', 'layers', '1' ),
 
 	'decomposition_levels' =>
-	v_between( 'codingStyleDefault', 'layers', '5', '32' ),
+	v_between( 'codingStyleDefault', 'decompositionLevels', '5', '32' ),
 
 	'colorspace' => sub {
 
