@@ -10,9 +10,10 @@ use Carp;
 use Log::Log4perl qw(get_logger);
 use Exporter;
 use Time::localtime;
-use Cwd qw(cwd);
+use Cwd qw(cwd abs_path);
 use HTFeed::Config qw(get_config);
 use Date::Manip;
+use File::Basename qw(basename dirname);
 
 
 use base qw(HTFeed::Stage Exporter);
@@ -532,5 +533,137 @@ sub _get_next_eventid {
     return $eventcode . ++$self->{'eventids'}{$eventcode};
 }
 
+
+# Getting software versions
+
+=item git_revision() 
+
+Returns the git revision of the currently running script
+
+=cut
+
+sub git_revision() {
+    my $self = shift;
+    my $path = dirname(abs_path($0)); # get path to this script, hope it's in a git repo
+    my $scriptname = basename($0);
+    my $olddir = cwd;
+    chdir($path) or die("Can't change directory to $path: $!");
+    my $gitrev = `git rev-parse HEAD`;
+    chomp $gitrev if defined $gitrev;
+    chdir $olddir or die("Can't change directory to $olddir: $!");
+    if (!$? and defined $gitrev and $gitrev =~ /^[0-9a-f]{40}/) {
+        return "$scriptname git rev $gitrev";
+    } else {
+	$self->_set_error('ToolVersionError',detail => "Can't get git revision for $0: git returned '$gitrev' with status $?");
+        return "$scriptname";
+    }
+
+}
+
+=item perl_mod_version($module)
+
+Returns $module::VERSION; $module must have already been loaded.
+
+=cut
+sub perl_mod_version() {
+    my $self = shift;
+    my $module = shift;
+    my $mod_req = $module;
+    $mod_req =~ s/::/\//g;
+    my $toreturn;
+    eval {
+	require "$mod_req.pm";
+    };
+    if($@) {
+	$self->_set_error('ToolVersionError',detail => "Error loading $module: $@");
+	return "$module";
+    }
+    no strict 'refs';
+    my $version = ${"${module}::VERSION"};
+    if(defined $version) {
+	return "$module $version";
+    } else {
+	$self->_set_error('ToolVersionError',detail => "Can't find ${module}::VERSION");
+	return "$module";
+    }
+}
+
+=item local_directory_version($package)
+
+Returns the version of a package installed in a local directory hierarchy,
+specified by the 'premis_tool_local' configuration directive
+
+=cut
+sub local_directory_version() {
+    my $self = shift;
+    my $package = shift;
+    my $tool_root = get_config("premis_tool_local");
+    if (not -l "$tool_root/$package") {
+	$self->_set_error('ToolVersionError',detail => "$tool_root/$package not a symlink");
+	return $package;
+    } else {
+	my $package_target;
+	if(!($package_target = readlink("$tool_root/$package")))
+	{	
+	    $self->_set_error('ToolVersionError',detail => "Error in readlink for $tool_root/$package: $!") if $!;
+	    return $package;
+	}
+
+	my ($package_version) = ($package_target  =~ /$package-([\w.]+)$/);
+	if($package_version) {
+	    return "$package $package_version";
+	} else {
+	    $self->_set_error('ToolVersionError', detail => "Couldn't extract version from symlink $package_version for $package");
+	    return $package;
+	}
+	
+    }
+
+}
+
+=item system_version($package)
+
+Returns the version of a system-installed RPM package.
+
+=cut
+
+sub system_version() {
+    my $self = shift;
+    my $package = shift;
+    my $version = `rpm -q $package`;
+
+
+    if($? or $version !~ /^$package[-.\w]+/) {
+	$self->_set_error('ToolVersionError', detail => "RPM returned '$version' with status $? for package $package");
+	return $package;
+    } else {
+	return $version;
+    }
+}
+
+=item get_tool_version($package_identifier)
+
+Gets the version of a tool defined in the premis_tools section in the configuration file.
+
+=cut
+
+sub get_tool_version {
+
+    my $self = shift;
+    my $package_id = shift;
+    my $to_eval = get_config('premis_tools',$package_id);
+    if(!$to_eval) {
+	$self->_set_error('ToolVersionError',detail => "$package_id missing from premis_tools");
+	return $package_id;
+    }
+
+    my $version = eval($to_eval);
+    if($@ or !$version) {
+	$self->_set_error('ToolVersionError', detail => $@);
+	return $package_id;
+    } else {
+	return $version;
+    }
+}
 
 1;

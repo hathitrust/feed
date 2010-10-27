@@ -6,6 +6,7 @@ package HTFeed::Log;
 
 use warnings;
 use strict;
+use HTFeed::Config qw(get_config);
 use Carp;
 
 use Data::Dumper;
@@ -13,9 +14,9 @@ $Data::Dumper::Indent = 0;
 
 use HTFeed::Log::Warp;
 use HTFeed::Log::Layout::PrettyPrint;
-use HTFeed::Config qw(get_config);
 
 use Log::Log4perl;
+
 
 # list of acceptable error codes
 my %error_codes = (
@@ -34,6 +35,7 @@ my %error_codes = (
     DownloadFailed      => "Download failed",
     FileMissing         => "File missing",
     IncompleteStage     => "Stage did not complete",
+    ToolVersionError	=> "Can't get tool version",
 );
 
 # list of fields accepted in log hash
