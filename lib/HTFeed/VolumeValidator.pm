@@ -38,6 +38,10 @@ sub new {
           validate_utf8
           validate_metadata)
     ];
+    if($self->{succeeded}) {
+	$self->{volume}->record_premis_event('package_validation',
+	    outcome => new PREMIS::Outcome('pass'));
+    } 
 
     return $self;
 

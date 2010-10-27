@@ -10,7 +10,7 @@ use Carp;
 # hash of allowed config variables
 our %allowed_config;
 our @allowed_config;
-our %subclasses;
+our %subclass_map;
 @allowed_config{@allowed_config} = undef;
 
 # Load all subclasses
@@ -22,6 +22,7 @@ sub import {
     if(@_ and $_[0] eq 'load_subclasses') {
 
 	my $caller = caller();
+	my $subclasses = {};
 	# determine the subdirectory to find plugins in
 	my $module_path = $caller;
 	$module_path =~ s/::/\//g;
@@ -44,7 +45,7 @@ sub import {
 	    my $subclass_identifier = ${"${caller}::${package}::identifier"};
 	    croak("${caller}::${package} missing identifier")
 	      unless defined $subclass_identifier;
-	    $subclasses{$subclass_identifier} = "${caller}::${package}";
+	    $subclasses->{$subclass_identifier} = "${caller}::${package}";
 
 	}
 
@@ -55,6 +56,7 @@ sub import {
 		require "$module_path/$module";
 	    }
 	}
+	$subclass_map{$caller} = $subclasses;
 
 	closedir($dh);
     }
@@ -74,10 +76,10 @@ sub new {
     my $class      = shift;
     my $identifier = shift;
 
-    $class = $subclasses{$identifier};
-    croak("Unknown subclass identifier $identifier") unless $class;
+    my $subclass = $subclass_map{$class}{$identifier};
+    croak("Unknown subclass identifier $identifier") unless $subclass;
 
-    return bless {}, $class;
+    return bless {}, $subclass;
 }
 
 1;

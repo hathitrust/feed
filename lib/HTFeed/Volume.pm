@@ -9,7 +9,8 @@ use HTFeed::Namespace;
 use HTFeed::FileGroup;
 use XML::LibXML;
 use GROOVE::Book;
-use GROOVE::Tools;
+use GROOVE::DBTools;
+use Time::localtime;
 
 our $logger = get_logger(__PACKAGE__);
 
@@ -487,7 +488,8 @@ sub get_alt_record_id {
 Records a PREMIS event that happens to the volume. Optionally, a PREMIS::Outcome object
 and an event ID can be passed. If no event ID is passed, a default ID will be generated
 automatically from the event type. If no date (in any format parseable by MySQL) is given,
-the current date will be used.
+the current date will be used. If the PREMIS event has already been recorded in the 
+database, the date and outcome will be updated.
 
 =cut
 
@@ -498,15 +500,16 @@ sub record_premis_event {
 
     my %params = @_;
 
-    my $date = ($params{date} or $self->_get_current_date());
+    my $date = $params{date} or $self->_get_current_date();
     my $outcome_xml = $params{outcome}->as_node()->toString() if defined $params{outcome};
 
-    my $dbh = GRIN::DBTools->get_dbh();
+    my $db = GROOVE::DBTools->new();
+    my $dbh = $db->get_dbh();
 
-    my $set_premis_sth = $dbh->prepare("INSERT INTO premis_events_new (namespace, barcode, eventtype_id, outcome, date) VALUES
+    my $set_premis_sth = $dbh->prepare("REPLACE INTO premis_events_new (namespace, barcode, eventtype_id, outcome, date) VALUES
 	(?, ?, ?, ?, ?)");
 
-    $set_premis_sth->execute($self->get_namespace(),$self->get_objid(),$eventtype,$outcome_xml,$eventid_override,$date);
+    $set_premis_sth->execute($self->get_namespace(),$self->get_objid(),$eventtype,$outcome_xml,$date);
 
 }
 
@@ -520,19 +523,20 @@ sub get_event_info {
     my $self = shift;
     my $eventtype = shift;
 
-    my $dbh = GRIN::DBTools->get_dbh();
+    my $db = GROOVE::DBTools->new();
+    my $dbh = $db->get_dbh();
 
     # TODO: move to replacement for DBTools
-    my $event_sql = "SELECT date,outcome FROM premis_events_new where namespace = ? and barcode = ? and eventtype = ?";
+    my $event_sql = "SELECT date,outcome FROM premis_events_new where namespace = ? and barcode = ? and eventtype_id = ?";
 
     my $event_sth = $dbh->prepare($event_sql);
     my @params = ($self->get_namespace(),$self->get_objid(),$eventtype);
 
     my @events = ();
 
-    my $event_rst = $event_sth->execute(@params);
+    $event_sth->execute(@params);
     # Should only be one event of each event type - enforced by primary key in DB
-    if (my ($date, $outcome) = $event_rst->fetchrow_array()) {
+    if (my ($date, $outcome) = $event_sth->fetchrow_array()) {
 	return ($date, $outcome);
     } else {
 	return;
@@ -593,6 +597,10 @@ sub get_page_data {
     my $self = shift;
     my $file = shift;
 
+    if(not defined $self->{'did_page_mapping'}) {
+	$self->record_premis_event('page_feature_mapping');
+	$self->{'did_page_mapping'} = 1;
+    }
     (my $seqnum) = ($file =~ /(\d+)/);
     croak("Can't extract sequence number from file $file") unless $seqnum;
     my $pagedata = {};
