@@ -10,11 +10,12 @@ use HTFeed::FileGroup;
 use XML::LibXML;
 use GROOVE::Book;
 use GROOVE::Tools;
+use HTFeed::Config qw(get_config);
 
 our $logger = get_logger(__PACKAGE__);
 
 sub new {
-    my $class = shift;
+    my $package = shift;
 
     my $self = {
 	objid     => undef,
@@ -36,6 +37,8 @@ sub new {
 
     $self->{nspkg}->validate_barcode($self->{objid}) 
 	or croak "Invalid barcode $self->{objid} provided for $self->{namespace}";
+	
+	my $class = $self->{nspkg}->get('volume_module');
 
     bless( $self, $class );
     return $self;
@@ -74,7 +77,6 @@ sub get_objid {
     my $self = shift;
     return $self->{objid};
 }
-
 
 =item get_file_groups 
 
@@ -131,7 +133,24 @@ Returns the staging directory for the volume's AIP
 
 sub get_staging_directory {
     my $self = shift;
-    return $self->{groove_book}->get_path();
+    
+    my $objid = $self->get_objid();
+    return sprintf("%s/%s", get_config(staging=>'memory'), $objid);
+}
+
+=item get_download_directory
+
+Returns the directory the volume's SIP should be downloaded to
+
+=cut
+
+sub get_download_directory {
+    my $self = shift;
+    my $dl_to_disk = $self->get_nspkg()->get('download_to_disk');
+    if ($dl_to_disk){
+        return get_config('staging'=>'disk');
+    }
+    return get_config('staging'=>'memory');
 }
 
 =item get_all_content_files

@@ -21,14 +21,18 @@ my $config;
         die "set HTFEED_CONFIG";
     }
 
-    # TODO: check file validity, can't do this until we establish what the file will look like
-
     # load config file
     eval{
         $config = YAML::XS::LoadFile($config_file);
     };
     if ($@){ die ("loading $config_file failed: $@"); }
+
+    # TODO: check file validity, can't do this until we establish what the file will look like
+
 }
+
+# build error message at startup in case $ENV{HTFEED_CONFIG} changes 
+my $bad_path_error_message = sprintf("%s Error: %%s is not data member in your config file (%s)", __PACKAGE__, $ENV{HTFEED_CONFIG});
 
 =get_config
 get an entry out
@@ -51,18 +55,17 @@ sub get_config{
     # drill down to the leaf
     my $cursor = $config;
     foreach my $hashlevel (@_) {
+        # die if we try to traverse the tree past a leaf
+        croak( sprintf("a $bad_path_error_message", join("=>",@_)) ) if (! ref($cursor));
         $cursor = $cursor->{$hashlevel};
         
-        ## TODO: make this a better error message
-        # die if we go down an invalid path
-        croak("$hashlevel undef") if (! $cursor);
+        # die if we try to traverse the tree where no path exists
+        croak( sprintf("b $bad_path_error_message", join("=>",@_)) ) if (! $cursor);
     }
-    return $cursor;
+    return $cursor if (! ref($cursor));
+    # die if we try to return a non-leaf node
+    croak( sprintf("c $bad_path_error_message", join("=>",@_)) );
 }
-
-=TODO
-add map of required/allowed/overridable/non_overridable/whatever items
-=cut
 
 1;
 

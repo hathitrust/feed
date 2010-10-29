@@ -3,6 +3,7 @@ package HTFeed::Namespace;
 use warnings;
 use strict;
 use Algorithm::LUHN;
+use Noid;
 use Carp;
 use HTFeed::FactoryLoader 'load_subclasses';
 use HTFeed::PackageType;
@@ -97,6 +98,36 @@ sub get_validation_overrides {
 
 }
 
+=item load_gpg()
+
+returns the gpg passphrase string from the file gpg in the namespace directory
+
+=cut
+
+sub get_gpg {
+    my $self = shift;
+    my $class = ref($self);
+    
+    no strict 'refs';
+    if (defined ${"${class}::config"}->{gpg_key}){
+        return ${"${class}::config"}->{gpg_key};
+    }
+    
+    my $module_path = $class;
+    $module_path =~ s/::/\//g;
+    $module_path .= '.pm';
+    $module_path = $INC{$module_path};
+    $module_path =~ s/.pm$//;
+    my $passphrase_file = sprintf('%s/%s',$module_path,'gpg');
+    open(my $fh, '<', "$passphrase_file")
+        or croak 'Can\'t open gpg passphrase file for ' . ref($self);
+    my $passphrase = <$fh>;
+    close($fh);
+    
+    ${"${class}::config"}->{gpg_key} = $passphrase;
+    
+    return $passphrase;
+}
 
 # UTILITIES FOR SUBCLASSES
 
@@ -115,6 +146,20 @@ sub luhn_is_valid {
     croak("Expected 5-digit item type + systemid") if $itemtype_systemid !~ /^\d{5}$/;
     return ($barcode =~ /^$itemtype_systemid\d{9}$/ and Algorithm::LUHN::is_valid($barcode));
     
+}
+
+sub ia_ark_id_is_valid {
+    my $self = shift;
+    my $ark_id = shift;
+    
+    # match ia scheme
+    return unless ( $ark_id =~ m|ark:/13960/t\d[a-z\d][a-z\d]\d[a-z\d][a-z\d]\d[a-z\d]| );
+    # trim off ark:/
+    $ark_id =~ s/^ark:\///;
+    # validate check char
+    return unless ( Noid::checkchar( $ark_id ) );
+    
+    return 1;
 }
 
 1;

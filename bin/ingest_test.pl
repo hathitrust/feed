@@ -7,7 +7,11 @@ use HTFeed::VolumeValidator;
 use HTFeed::Log;
 
 use HTFeed::PackageType::Google::Download;
+use HTFeed::PackageType::IA::Download;
 use HTFeed::PackageType::Google::Unpack;
+use HTFeed::Stage::Pack;
+use HTFeed::Stage::Sample;
+use HTFeed::Stage::Collate;
 
 HTFeed::Log->init();
 
@@ -42,35 +46,45 @@ my $stage;
 # Download
 print 'Downloading...';
 $stage = HTFeed::PackageType::Google::Download->new(volume => $volume);
-$stage->run();
-if ($stage->succeeded()){
-    print "success\n";
-}
-else{
-    print "failure\n";
-}
+#$stage = HTFeed::PackageType::IA::Download->new(volume => $volume);
+run_stage( $stage );
 
+#=skip
 # Unpack
 print 'Unpacking...';
 $stage = HTFeed::PackageType::Google::Unpack->new(volume => $volume);
-$stage->run();
-if ($stage->succeeded()){
-    print "success\n";
-}
-else{
-    print "failure\n";
-}
+run_stage( $stage );
 
-
-__END__
 # Validation
 print 'Validating...';
+$stage = HTFeed::VolumeValidator->new(volume => $volume);
+run_stage( $stage );
 
 # Pack
 print 'Packing...';
+$stage = HTFeed::Stage::Pack->new(volume => $volume);
+run_stage( $stage );
 
 # Mets
 print "Metsing...not implimented\n";
 
+# Sample
+print 'Sampling...';
+$stage = HTFeed::Stage::Sample->new(volume => $volume);
+run_stage( $stage );
+
 # Collate
-print "Collating...not implimented\n"
+print 'Collating...';
+$stage = HTFeed::Stage::Collate->new(volume => $volume);
+run_stage( $stage );
+#=cut
+sub run_stage{
+    my $stage = shift;
+    $stage->run();
+    if ($stage->succeeded()){
+        print "success\n";
+    }
+    else{
+        print "failure\n";
+    }
+}

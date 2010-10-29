@@ -2,6 +2,7 @@ package HTFeed::Log::Layout::PrettyPrint;
 
 use strict;
 use warnings;
+use Log::Log4perl;
 use Log::Log4perl::Level;
 
 # A Log::Log4perl::Layout
