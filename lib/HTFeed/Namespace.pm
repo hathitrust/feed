@@ -7,6 +7,7 @@ use Noid;
 use Carp;
 use HTFeed::FactoryLoader 'load_subclasses';
 use HTFeed::PackageType;
+use HTFeed::Config qw(get_config);
 
 use base qw(HTFeed::FactoryLoader);
 
@@ -76,28 +77,73 @@ sub get_validation_overrides {
     my $self = shift;
     my $module = shift;
 
-    my $class = ref($self);
-    no strict 'refs';
-    my $overrides = {};
-    my $packagetype_id = $self->{'packagetype'}->get_identifier();
-    my $ns_pkgtype_override = ${"${class}::packagetype_overrides"}->{$packagetype_id};
-    my $ns_config = ${"${class}::config"};
-    foreach my $override_source (
-	$self->{'packagetype'}->get('validation'), # lowest priority - packagetype-specific
-	$ns_config->{'validation'}, # then namespace-specific
-	$ns_pkgtype_override->{'validation'}) { # then namespace/packagetype-pair- specific
-	if(defined $override_source
-		and exists $override_source->{$module}) {
-	    while(my ($k,$v) = each ( %{ $override_source->{$module} })) {
-		$overrides->{$k} = $v;
-	    }
-	}
-    }
-
-    return $overrides;
+    return $self->_get_overrides('validation');
 
 }
 
+# PREMIS events
+
+=item get_event_description($eventtype)
+
+Collects the info for a given PREMIS event type, as specified in the global configuration
+and optionally overridden in package type and namespace configuration.
+
+=cut
+
+sub get_event_configuration {
+
+
+    my $self = shift;
+    my $eventtype = shift;
+
+    no strict 'refs';
+
+    my $eventinfo = get_config('premis_events',$eventtype);
+    $self->_get_overrides('premis_overrides',$eventtype,$eventinfo);
+
+    return $eventinfo;
+}
+
+# Gathers overrides for things like validation, PREMIS events 
+# from package type, namespace, pkgtype overrides.
+
+sub _get_overrides {
+    no strict 'refs'; 
+
+    sub _copyhash {
+	my $dest = shift;
+	my $src = shift;
+	my $subkey = shift;
+
+	$src = $src->{$subkey} if(defined $src and defined $subkey);
+
+	# falls through whether original source was undef or subkey is set and
+	# subkey value is undef
+	return if not defined $src;
+	croak("Given empty destination hash") if not defined $dest;
+
+	while(my ($key,$val) = each(%$src)) {
+	    $dest->{$key} = $val;
+	}
+    }
+
+    my $self = shift;
+    my $key = shift; # top-level key
+    my $subkey = shift; # subkey of top-level key
+    my $value = shift; # original values for field, optional
+    my $class = ref($self);
+
+    $value = {} if not defined $value;
+
+    my $packagetype_id = $self->{'packagetype'}->get_identifier();
+
+    my $ns_override = ${"${class}::$key"};
+    _copyhash($value,$ns_override,$subkey);
+
+    my $pkgtype_override = $self->{'packagetype'}->get($key);
+    _copyhash($value,$pkgtype_override,$subkey);
+
+<<<<<<< HEAD
 =item load_gpg()
 
 returns the gpg passphrase string from the file gpg in the namespace directory
@@ -127,6 +173,15 @@ sub get_gpg {
     ${"${class}::config"}->{gpg_key} = $passphrase;
     
     return $passphrase;
+=======
+    my $ns_pkgtype_override = ${"${class}::packagetype_overrides"}->{$packagetype_id};
+    if(defined $ns_pkgtype_override) {
+	my $ns_pkgtype_override = $ns_pkgtype_override->{$key};
+	_copyhash($value,$ns_pkgtype_override,$subkey);
+    }
+
+    return $ns_pkgtype_override;
+>>>>>>> 94295aae8bf9530549b8c08d046889aca6ca49a2
 }
 
 # UTILITIES FOR SUBCLASSES

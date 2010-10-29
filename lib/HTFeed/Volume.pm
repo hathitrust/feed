@@ -9,8 +9,9 @@ use HTFeed::Namespace;
 use HTFeed::FileGroup;
 use XML::LibXML;
 use GROOVE::Book;
-use GROOVE::Tools;
 use HTFeed::Config qw(get_config);
+use GROOVE::DBTools;
+use Time::localtime;
 
 our $logger = get_logger(__PACKAGE__);
 
@@ -266,6 +267,35 @@ sub get_source_mets_xpc {
 
 }
 
+=item get_repos_mets_xpc
+
+Returns an XML::LibXML::XPathContext with namespaces set up 
+and the context node positioned at the document root of the source METS.
+
+=cut
+
+sub get_repos_mets_xpc {
+    my $self = shift;
+
+    my $mets = $self->get_repository_mets_path();
+    return unless defined $mets;
+
+    my $xpc;
+
+    eval {
+	my $parser = XML::LibXML->new();
+	my $doc    = $parser->parse_file("$mets");
+	$xpc = XML::LibXML::XPathContext->new($doc);
+	register_namespaces($xpc);
+    };
+
+    if ($@) {
+	croak("-ERR- Could not read XML file $mets: $@");
+    }
+    return $xpc;
+
+}
+
 =item get_nspkg
 
 Returns the HTFeed::Namespace object that provides namespace & package type-
@@ -472,15 +502,13 @@ sub get_alt_record_id {
 
 =item record_premis_event($eventtype,  
 					date => $date,
-					outcome => $outcome,
 					eventid => $eventid)
 
 Records a PREMIS event that happens to the volume. Optionally, a PREMIS::Outcome object
 and an event ID can be passed. If no event ID is passed, a default ID will be generated
 automatically from the event type. If no date (in any format parseable by MySQL) is given,
-the current date will be used.
-
-The given event type must be present in the database.
+the current date will be used. If the PREMIS event has already been recorded in the 
+database, the date and outcome will be updated.
 
 =cut
 
@@ -491,59 +519,47 @@ sub record_premis_event {
 
     my %params = @_;
 
-    my $date = ($params{date} or $self->_get_current_date());
+    my $date = $params{date} or $self->_get_current_date();
     my $outcome_xml = $params{outcome}->as_node()->toString() if defined $params{outcome};
-    my $eventid_override = $params{eventid} if defined $params{eventid};
 
-    my $dbh = GRIN::DBTools->get_dbh();
+    my $db = GROOVE::DBTools->new();
+    my $dbh = $db->get_dbh();
 
-    my $set_premis_sth = $dbh->prepare("INSERT INTO premis_events (namespace, barcode, eventtype_id, outcome, eventid) VALUES
+    my $set_premis_sth = $dbh->prepare("REPLACE INTO premis_events_new (namespace, barcode, eventtype_id, outcome, date) VALUES
 	(?, ?, ?, ?, ?)");
 
-    $set_premis_sth->execute($self->get_namespace(),$self->get_objid(),$eventtype,$outcome_xml,$eventid_override);
+    $set_premis_sth->execute($self->get_namespace(),$self->get_objid(),$eventtype,$outcome_xml,$date);
 
 }
 
-=item get_premis_events( $eventtype )
+=item get_event_info( $eventtype )
 
-Returns all recorded PREMIS events for the volume. Optionally, an event type can be passed; 
-only events matching the given event type will be returned.
+Returns the date and outcome for the given event type for this volume.
 
 =cut
 
-sub get_premis_events {
+sub get_event_info {
     my $self = shift;
     my $eventtype = shift;
 
-    my $dbh = GRIN::DBTools->get_dbh();
+    my $db = GROOVE::DBTools->new();
+    my $dbh = $db->get_dbh();
 
     # TODO: move to replacement for DBTools
-    my $event_sql = "SELECT * FROM premis_events natural join premis_event_types where namespace = ? and barcode = ?";
-    $event_sql .= " and eventtype = ?" if defined $eventtype;
-
-    my $agent_sql = "SELECT * FROM premis_event_agents NATURAL JOIN premis_agents NATURAL JOIN premis_agent_types WHERE namespace = ? and barcode = ? and eventtype = ?";
+    my $event_sql = "SELECT date,outcome FROM premis_events_new where namespace = ? and barcode = ? and eventtype_id = ?";
 
     my $event_sth = $dbh->prepare($event_sql);
-    my $agent_sth = $dbh->prepare($agent_sql);
-    my @params = ($self->get_namespace(),$self->get_objid());
-    push(@params,$eventtype) if defined $eventtype;
+    my @params = ($self->get_namespace(),$self->get_objid(),$eventtype);
 
     my @events = ();
 
-    my $event_rst = $event_sth->execute(@params);
-    while(my $event_row = $event_rst->fetchrow_hashref()) {
-	my $event = PREMIS::Event->new_from_db_row($event_row);
-	my $eventtype = $event_row->{eventtype};
-	my $agent_rst = $agent_sth->execute($self->get_namespace(),$self->get_objid(),$eventtype);
-	foreach my $agent_row ($agent_rst->fetchrow_hashref()) {
-	    my $agent = PREMIS::LinkingAgent->new_from_db_row($agent_row);
-	    $event->add_linking_agent($agent);
-	}
-	push(@events,$event);
-
+    $event_sth->execute(@params);
+    # Should only be one event of each event type - enforced by primary key in DB
+    if (my ($date, $outcome) = $event_sth->fetchrow_array()) {
+	return ($date, $outcome);
+    } else {
+	return;
     }
-
-    return @events;
 }
 
 =item _get_current_date
@@ -600,6 +616,10 @@ sub get_page_data {
     my $self = shift;
     my $file = shift;
 
+    if(not defined $self->{'did_page_mapping'}) {
+	$self->record_premis_event('page_feature_mapping');
+	$self->{'did_page_mapping'} = 1;
+    }
     (my $seqnum) = ($file =~ /(\d+)/);
     croak("Can't extract sequence number from file $file") unless $seqnum;
     my $pagedata = {};
@@ -645,6 +665,7 @@ sub get_mets_path {
 }
 
 1;
+
 
 
 __END__;
