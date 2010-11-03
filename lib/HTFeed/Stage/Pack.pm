@@ -4,6 +4,7 @@ use warnings;
 use strict;
 
 use base qw(HTFeed::Stage);
+use HTFeed::Config qw(get_config);
 
 use Log::Log4perl qw(get_logger);
 my $logger = get_logger(__PACKAGE__);
@@ -14,11 +15,10 @@ sub run{
     my $volume = $self->{volume};
     my $objid = $volume->get_objid();
     
-    # TODO: make staging/working/download dir consistant clear and implimented
-    my $staging_dir = $volume->get_staging_directory();
-    my $working_dir = get_config('staging_directory');
-
-    my $cmd = sprintf("zip -q -r %s/%s.zip %s",$working_dir,$staging_dir,$objid);
+    my $working_dir = get_config('staging'=>'memory');
+    
+    chdir($working_dir);
+    my $cmd = sprintf("zip -q -r %s.zip %s",$objid,$objid);
     `$cmd`;
 
     # TODO: check, set errors

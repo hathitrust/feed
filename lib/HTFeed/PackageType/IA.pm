@@ -1,11 +1,16 @@
 package HTFeed::PackageType::IA;
-use HTFeed::PackageType;
-use base qw(HTFeed::PackageType);
+
+use warnings;
 use strict;
+
+use base qw(HTFeed::PackageType);
+use HTFeed::PackageType::IA::Volume;
 
 our $identifier = 'ia';
 
 our $config = {
+    volume_module => 'HTFeed::PackageType::IA::Volume',
+    
     # Regular expression that distinguishes valid files in the file package
     valid_file_pattern => qr/^( 
 		IA_\w+\.(xml) |

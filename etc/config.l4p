@@ -1,9 +1,9 @@
 log4perl.rootLogger                   = INFO, dbi
 
 log4perl.appender.dbi                 = Log::Log4perl::Appender::DBI
-log4perl.appender.dbi.datasource      = dbi:mysql:mdp_tracking_rrotter:mysql-sdr
-log4perl.appender.dbi.username        = rrotter
-log4perl.appender.dbi.password        = xxx
+log4perl.appender.dbi.datasource      = sub {return HTFeed::Config::get_config(database => 'datasource');}
+log4perl.appender.dbi.username        = sub {return HTFeed::Config::get_config(database => 'username');}
+log4perl.appender.dbi.password        = sub {return HTFeed::Config::get_config(database => 'password');}
 log4perl.appender.dbi.sql =         \
             insert into ht_errors   \
             (timestamp,level,message,obj_id,file,field,actual,expected,detail)\
