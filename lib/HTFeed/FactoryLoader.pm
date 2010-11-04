@@ -10,7 +10,7 @@ use Carp;
 # hash of allowed config variables
 our %allowed_config;
 our @allowed_config;
-our %subclasses;
+our %subclass_map;
 @allowed_config{@allowed_config} = undef;
 
 # Load all subclasses
@@ -45,8 +45,8 @@ sub import {
 	    my $subclass_identifier = ${"${caller}::${package}::identifier"};
 	    croak("${caller}::${package} missing identifier")
 	      unless defined $subclass_identifier;
-	    $subclasses{$subclass_identifier} = "${caller}::${package}";
-    }
+	    $subclass_map{$caller}{$subclass_identifier} = "${caller}::${package}";
+	}
 
 	closedir($dh);
     }
@@ -66,10 +66,10 @@ sub new {
     my $class      = shift;
     my $identifier = shift;
 
-    $class = $subclasses{$identifier};
-    croak("Unknown subclass identifier $identifier") unless $class;
+    my $subclass = $subclass_map{$class}{$identifier};
+    croak("Unknown subclass identifier $identifier") unless $subclass;
 
-    return bless {}, $class;
+    return bless {}, $subclass;
 }
 
 1;
