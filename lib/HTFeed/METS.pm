@@ -40,7 +40,7 @@ sub new {
     return $self;
 }
 
-sub run_stage {
+sub run {
     my $self = shift;
     my $mets = new METS( objid => $self->{volume}->get_identifier() );
     $self->{'mets'} = $mets;
@@ -60,7 +60,7 @@ sub run_stage {
         $self->_save_mets();
     };
     if($@) {
-	$self->_set_error("METS creation failed",detail=>$@);
+	$self->_set_error("IncompleteStage",detail=>$@);
     }
     $self->_set_done();
 
@@ -160,10 +160,10 @@ sub _extract_old_premis {
 		my $eventType = $xc->findvalue("./PREMIS:eventType",$event);
 		my $eventId = $xc->findvalue("./PREMIS:eventIdentifier/PREMIS:eventIdentifierValue",$event);
 
-		$self->_set_error("PREMIS in repository invalid", 
-		    detail => "Missing eventType", node => $event->toString()) unless defined $eventType and $eventType;
-		$self->_set_error("PREMIS in repository invalid", 
-		    detail => "Missing eventIdentifierValue", node => $event->toString()) unless defined $eventId and $eventId;
+		$self->_set_error("MissingField", 
+		    field => "eventType", node => $event->toString()) unless defined $eventType and $eventType;
+		$self->_set_error("MissingField", 
+		    field => "eventIdentifierValue", node => $event->toString()) unless defined $eventId and $eventId;
 
 		# Extract event count and make sure we don't try to reuse identifier
 		if($eventId =~ /^(\D+)(\d+)$/) {
@@ -177,8 +177,7 @@ sub _extract_old_premis {
 		     }
 
 		} else {
-		    $self->_set_error("PREMIS in repository invalid",
-			detail => "Malformed event ID $eventId");
+		    $self->_set_error("BadValue", field => 'eventID', actual => $eventId)
 		}
 
 		push @{$self->{store_events}{$eventType}}, $event;
@@ -190,7 +189,7 @@ sub _extract_old_premis {
         }
         else {
 	    # TODO: should be warning, not error
-	    $self->_set_error("METS in repository invalid", detail => $val_results);
+	    $self->_set_error("BadFile", file => $mets_in_repos, detail => $val_results);
 	    print "$val_results";
         }
     }
@@ -244,7 +243,7 @@ sub _add_premis {
 			$found_eventid_value++;
 		    }
 		}
-		$self->_set_error("PREMIS in source METS invalid",detail=>"Error updating event identifier in event",node => $src_event->toString()) 
+		$self->_set_error("BadValue",detail=>"Error updating event identifier in event",node => $src_event->toString()) 
 		    unless ($found_eventid_node == 1 && $found_eventid_type == 1&& $found_eventid_value == 1);
 		$premis->add_event($src_event);
 
@@ -265,15 +264,15 @@ sub _add_premis {
     foreach my $eventcode (@{$nspkg->get('premis_events')}) {
 	# query database for: datetime, outcome
 	my ($datetime, $outcome) = $volume->get_event_info($eventcode);
-	$self->_set_error("Missing datetime for $eventcode") if not defined $datetime;
+	$self->_set_error("MissingField",field => "datetime", detail => "Missing datetime for $eventcode") if not defined $datetime;
 	my $eventconfig = $nspkg->get_event_configuration($eventcode);
 
 	my $executor = $eventconfig->{'executor'} 
-	    or $self->_set_error("Missing event executor for $eventcode");
+	    or $self->_set_error("MissingField",field => "executor", detail => "Missing event executor for $eventcode");
 	my $detail = $eventconfig->{'detail'} 
-	    or $self->_set_error("Missing event detail for $eventcode");
+	    or $self->_set_error("MissingField",field => "event detail", detail => "Missing event detail for $eventcode");
 	my $eventtype = $eventconfig->{'type'}
-	    or $self->_set_error("Missing event type for $eventcode");
+	    or $self->_set_error("MissingField",field => "event type", detail => "Missing event type for $eventcode");
 
 	$executor = $volume->get_artist() if $executor eq 'VOLUME_ARTIST';
 
@@ -410,16 +409,16 @@ sub validate {
     my $self      = shift;
     my $mets_path = $self->{volume}->get_mets_path();
 
-    croak("METS file $$self{'filename'} does not exist. Cannot validate.")
+    croak("File $$self{'filename'} does not exist. Cannot validate.")
       unless -e $mets_path;
 
     my ( $mets_valid, $val_results ) =
       validate_xml( $self->{'config'}, $$self{'filename'} );
     if ( !$mets_valid ) {
         $self->_set_error(
-            "METS file invalid",
+            "BadFile",
             file   => $mets_path,
-            detail => $val_results
+            detail => "XML validation error: $val_results"
         );
 
         # TODO: set failure creating METS file
