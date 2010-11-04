@@ -40,7 +40,7 @@ get an entry out
 # Synopsis
 use HTFeed::Config qw(get_config);
 get_config('database' => 'datasource');
-get_config('l4p');
+get_config('l4p_config');
 
 =cut
 sub get_config{

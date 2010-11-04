@@ -1,6 +1,6 @@
 ---
 database:
-  datasource: dbi:mysql:my_db:mysql-sdr
+  datasource: dbi:mysql:my_db:mysql-htdev
   username: uname
   password: password
 
@@ -9,20 +9,17 @@ jhove: /l/local/bin/jhove
 jhoveconf: /l/local/jhove/conf/jhove.conf
 staging_directory: /path/to/staging
 
-# Specify a path to the log4perl configuration file
-l4p: /htapps/aelkiss.babel/feed/feed/etc/test_config.l4p
-
 xerces: /path/to/xerces
 
 jhove: /l/local/bin/jhove
 jhoveconf: /l/local/jhove/conf/jhove.conf
 l4p_config: /htapps/rrotter.babel/git/feed/etc/test_config.l4p
-staging_directory: /htapps/ezbrooks.babel/GROOVE_2.0/break_GRIN/test/undamaged
+
 staging:
   disk: /htapps/rrotter.babel/repos/staging
   memory: /ram/staging
-key_directory: /sdr1/etc/g/groove
-
+  zip: /ram/zip_staging
+#
 # A perl snippet returning the software name and version for each 'tool' code in the
 # PREMIS events below. $self is the HTFeed::METS stage generating the PREMIS events.
 
@@ -41,7 +38,6 @@ premis_tool_local: /l/local
 # PREMIS eventType, the eventDetail, the executor linkingAgent (should be UM or
 # VOLUME_ARTIST), and any tool linkingAgents. The tools must be drawn from
 # the list in the 'tools' configuration variable here.
-
 
 premis_events:
 
