@@ -98,9 +98,21 @@ sub get_event_configuration {
 
     no strict 'refs';
 
-    my $eventinfo = get_config('premis_events',$eventtype);
+    my $eventinfo = {};
+    # no problem if it's not in main config.. but it had better be in overrides
+    eval {
+	$eventinfo = get_config('premis_events',$eventtype);
+    };
     $self->_get_overrides('premis_overrides',$eventtype,$eventinfo);
 
+    if( not defined $eventinfo->{type}
+	or not defined $eventinfo->{executor}
+	or not defined $eventinfo->{detail}) {
+	use Data::Dumper;
+	print Dumper($eventinfo);
+	croak("Missing or incomplete configuration for premis event $eventtype") 
+    }
+    
     return $eventinfo;
 }
 

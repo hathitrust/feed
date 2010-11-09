@@ -62,9 +62,9 @@ sub get_config{
         # die if we try to traverse the tree where no path exists
         croak( sprintf("b $bad_path_error_message", join("=>",@_)) ) if (! $cursor);
     }
-    return $cursor if (! ref($cursor));
+    return $cursor;
     # die if we try to return a non-leaf node
-    croak( sprintf("c $bad_path_error_message", join("=>",@_)) );
+#    croak( sprintf("c $bad_path_error_message", join("=>",@_)) );
 }
 
 1;
