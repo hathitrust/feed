@@ -11,6 +11,7 @@ use Digest::MD5;
 use Encode;
 use HTFeed::XMLNamespaces qw(register_namespaces);
 use IO::Pipe;
+use PREMIS::Outcome;
 
 use base qw(HTFeed::Stage);
 
@@ -38,10 +39,6 @@ sub new {
           validate_utf8
           validate_metadata)
     ];
-    if($self->{succeeded}) {
-	$self->{volume}->record_premis_event('package_validation',
-	    outcome => new PREMIS::Outcome('pass'));
-    } 
 
     return $self;
 
@@ -64,6 +61,10 @@ sub run {
 
     # do this last
     $self->_set_done();
+    if(!$self->failed()) {
+	$self->{volume}->record_premis_event('package_validation',
+	    outcome => PREMIS::Outcome->new('pass'));
+    } 
 
     return;
 }
@@ -187,6 +188,8 @@ sub _validate_checksums {
             ) )
     );
 
+    my @bad_files = ();
+
     foreach my $file (@tovalidate) {
         next if $file eq $checksum_file;
         my $expected = $checksums->{$file};
@@ -198,9 +201,19 @@ sub _validate_checksums {
 	}
         elsif ( (my $actual = md5sum("$path/$file")) ne $expected ) {
             $self->_set_error("BadChecksum", field => 'checksum', file => $file, expected => $expected, actual => $actual);
+	    push(@bad_files,"$file");
         }
 
     }
+
+    my $outcome;
+    if(@bad_files) {
+	$outcome = PREMIS::Outcome->new('warning');
+	$outcome->add_file_list_detail("files failed checksum validation","failed",\@bad_files);
+    } else {
+	$outcome = PREMIS::Outcome->new('pass');
+    }
+    $volume->record_premis_event('page_md5_fixity',outcome => $outcome);
 
     return;
 
@@ -270,7 +283,7 @@ sub _validate_metadata {
 	my %files_left_to_validate = map { $_ => 1 } @$files;
 
     # open pipe to jhove
-    my $pipe = new IO::Pipe;
+    my $pipe = IO::Pipe->new();
     $pipe->reader($jhove_cmd);
     
     # get the header
@@ -306,7 +319,7 @@ sub _validate_metadata {
                 $xml_block = $control_line . $head . $date_line . $xml_block . $tail;
                 my $parser = XML::LibXML->new();
                 $xml_block = $parser->parse_string($xml_block);
-                my $xpc = new XML::LibXML::XPathContext($xml_block);
+                my $xpc = XML::LibXML::XPathContext->new($xml_block);
                 register_namespaces($xpc);
 
             	$logger->trace("validating $file");
@@ -352,7 +365,7 @@ sub _validate_metadata {
 
 sub md5sum {
     my $file = shift;
-    my $ctx  = new Digest::MD5;
+    my $ctx  = Digest::MD5->new();
     my $fh;
     open( $fh, "<", $file ) or croak("Can't open $file: $!");
     $ctx->addfile($fh);

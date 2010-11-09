@@ -64,6 +64,7 @@ sub run{
 
 
     $self->_set_done();
+    $volume->record_premis_event('zip_compression');
     return $self->succeeded();
 }
 

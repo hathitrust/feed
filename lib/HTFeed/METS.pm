@@ -287,7 +287,7 @@ sub _add_premis {
 	}
 
 	my $event = new PREMIS::Event($eventid, $executor, $eventtype, $datetime, $detail);
-	$event->add_outcome(new PREMIS::Outcome($outcome)) if defined $outcome;
+	$event->add_outcome($outcome) if defined $outcome;
 
 	# query namespace/packagetype for software tools to record for this event type
 	$event->add_linking_agent(new PREMIS::LinkingAgent('AgentID',$executor,'Executor'));
@@ -295,7 +295,7 @@ sub _add_premis {
 	my @agents = ();
 	my $tools_config = $eventconfig->{'tools'};
 	foreach my $agent (@$tools_config) {
-	    $event->add_linking_agent(new PREMIS::LinkingAgent('tool',$agent,'software'));
+	    $event->add_linking_agent(new PREMIS::LinkingAgent('tool',$self->get_tool_version($agent),'software'));
 	}
 	$premis->add_event($event);
 
@@ -541,9 +541,9 @@ Returns the git revision of the currently running script
 
 =cut
 
-sub git_revision() {
+sub git_revision {
     my $self = shift;
-    my $path = dirname(abs_path($0)); # get path to this script, hope it's in a git repo
+    my $path = dirname(abs_path(__FILE__)); # get path to this file, hope it's in a git repo
     my $scriptname = basename($0);
     my $olddir = cwd;
     chdir($path) or die("Can't change directory to $path: $!");
@@ -636,6 +636,7 @@ sub system_version() {
 	$self->_set_error('ToolVersionError', detail => "RPM returned '$version' with status $? for package $package");
 	return $package;
     } else {
+	chomp $version;
 	return $version;
     }
 }

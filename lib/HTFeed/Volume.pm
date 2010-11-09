@@ -502,11 +502,10 @@ sub get_alt_record_id {
 
 =item record_premis_event($eventtype,  
 					date => $date,
-					eventid => $eventid)
+					outcome => $outcome)
 
 Records a PREMIS event that happens to the volume. Optionally, a PREMIS::Outcome object
-and an event ID can be passed. If no event ID is passed, a default ID will be generated
-automatically from the event type. If no date (in any format parseable by MySQL) is given,
+can be passed. If no date (in any format parseable by MySQL) is given,
 the current date will be used. If the PREMIS event has already been recorded in the 
 database, the date and outcome will be updated.
 
@@ -520,7 +519,7 @@ sub record_premis_event {
     my %params = @_;
 
     my $date = $params{date} or $self->_get_current_date();
-    my $outcome_xml = $params{outcome}->as_node()->toString() if defined $params{outcome};
+    my $outcome_xml = $params{outcome}->to_node()->toString() if defined $params{outcome};
 
     my $db = GROOVE::DBTools->new();
     my $dbh = $db->get_dbh();
@@ -556,7 +555,14 @@ sub get_event_info {
     $event_sth->execute(@params);
     # Should only be one event of each event type - enforced by primary key in DB
     if (my ($date, $outcome) = $event_sth->fetchrow_array()) {
-	return ($date, $outcome);
+	# replace space separating date from time with 'T'
+	$date =~ s/ /T/g;
+	my $outcome_node = undef;
+	if($outcome) {
+	    $outcome_node = XML::LibXML->new()->parse_string($outcome);
+	    $outcome_node = $outcome_node->documentElement();
+	}
+	return ($date, $outcome_node);
     } else {
 	return;
     }
