@@ -10,9 +10,10 @@ use Carp;
 use Log::Log4perl qw(get_logger);
 use Exporter;
 use Time::localtime;
-use Cwd qw(cwd);
+use Cwd qw(cwd abs_path);
 use HTFeed::Config qw(get_config);
 use Date::Manip;
+use File::Basename qw(basename dirname);
 
 
 use base qw(HTFeed::Stage Exporter);
@@ -39,7 +40,7 @@ sub new {
     return $self;
 }
 
-sub run_stage {
+sub run {
     my $self = shift;
     my $mets = new METS( objid => $self->{volume}->get_identifier() );
     $self->{'mets'} = $mets;
@@ -59,7 +60,7 @@ sub run_stage {
         $self->_save_mets();
     };
     if($@) {
-	$self->_set_error("METS creation failed",detail=>$@);
+	$self->_set_error("IncompleteStage",detail=>$@);
     }
     $self->_set_done();
 
@@ -159,10 +160,10 @@ sub _extract_old_premis {
 		my $eventType = $xc->findvalue("./PREMIS:eventType",$event);
 		my $eventId = $xc->findvalue("./PREMIS:eventIdentifier/PREMIS:eventIdentifierValue",$event);
 
-		$self->_set_error("PREMIS in repository invalid", 
-		    detail => "Missing eventType", node => $event->toString()) unless defined $eventType and $eventType;
-		$self->_set_error("PREMIS in repository invalid", 
-		    detail => "Missing eventIdentifierValue", node => $event->toString()) unless defined $eventId and $eventId;
+		$self->_set_error("MissingField", 
+		    field => "eventType", node => $event->toString()) unless defined $eventType and $eventType;
+		$self->_set_error("MissingField", 
+		    field => "eventIdentifierValue", node => $event->toString()) unless defined $eventId and $eventId;
 
 		# Extract event count and make sure we don't try to reuse identifier
 		if($eventId =~ /^(\D+)(\d+)$/) {
@@ -176,8 +177,7 @@ sub _extract_old_premis {
 		     }
 
 		} else {
-		    $self->_set_error("PREMIS in repository invalid",
-			detail => "Malformed event ID $eventId");
+		    $self->_set_error("BadValue", field => 'eventID', actual => $eventId)
 		}
 
 		push @{$self->{store_events}{$eventType}}, $event;
@@ -189,7 +189,7 @@ sub _extract_old_premis {
         }
         else {
 	    # TODO: should be warning, not error
-	    $self->_set_error("METS in repository invalid", detail => $val_results);
+	    $self->_set_error("BadFile", file => $mets_in_repos, detail => $val_results);
 	    print "$val_results";
         }
     }
@@ -243,7 +243,7 @@ sub _add_premis {
 			$found_eventid_value++;
 		    }
 		}
-		$self->_set_error("PREMIS in source METS invalid",detail=>"Error updating event identifier in event",node => $src_event->toString()) 
+		$self->_set_error("BadValue",detail=>"Error updating event identifier in event",node => $src_event->toString()) 
 		    unless ($found_eventid_node == 1 && $found_eventid_type == 1&& $found_eventid_value == 1);
 		$premis->add_event($src_event);
 
@@ -264,15 +264,15 @@ sub _add_premis {
     foreach my $eventcode (@{$nspkg->get('premis_events')}) {
 	# query database for: datetime, outcome
 	my ($datetime, $outcome) = $volume->get_event_info($eventcode);
-	$self->_set_error("Missing datetime for $eventcode") if not defined $datetime;
+	$self->_set_error("MissingField",field => "datetime", detail => "Missing datetime for $eventcode") if not defined $datetime;
 	my $eventconfig = $nspkg->get_event_configuration($eventcode);
 
 	my $executor = $eventconfig->{'executor'} 
-	    or $self->_set_error("Missing event executor for $eventcode");
+	    or $self->_set_error("MissingField",field => "executor", detail => "Missing event executor for $eventcode");
 	my $detail = $eventconfig->{'detail'} 
-	    or $self->_set_error("Missing event detail for $eventcode");
+	    or $self->_set_error("MissingField",field => "event detail", detail => "Missing event detail for $eventcode");
 	my $eventtype = $eventconfig->{'type'}
-	    or $self->_set_error("Missing event type for $eventcode");
+	    or $self->_set_error("MissingField",field => "event type", detail => "Missing event type for $eventcode");
 
 	$executor = $volume->get_artist() if $executor eq 'VOLUME_ARTIST';
 
@@ -409,16 +409,16 @@ sub validate {
     my $self      = shift;
     my $mets_path = $self->{volume}->get_mets_path();
 
-    croak("METS file $$self{'filename'} does not exist. Cannot validate.")
+    croak("File $$self{'filename'} does not exist. Cannot validate.")
       unless -e $mets_path;
 
     my ( $mets_valid, $val_results ) =
       validate_xml( $self->{'config'}, $$self{'filename'} );
     if ( !$mets_valid ) {
         $self->_set_error(
-            "METS file invalid",
+            "BadFile",
             file   => $mets_path,
-            detail => $val_results
+            detail => "XML validation error: $val_results"
         );
 
         # TODO: set failure creating METS file
@@ -532,5 +532,137 @@ sub _get_next_eventid {
     return $eventcode . ++$self->{'eventids'}{$eventcode};
 }
 
+
+# Getting software versions
+
+=item git_revision() 
+
+Returns the git revision of the currently running script
+
+=cut
+
+sub git_revision() {
+    my $self = shift;
+    my $path = dirname(abs_path($0)); # get path to this script, hope it's in a git repo
+    my $scriptname = basename($0);
+    my $olddir = cwd;
+    chdir($path) or die("Can't change directory to $path: $!");
+    my $gitrev = `git rev-parse HEAD`;
+    chomp $gitrev if defined $gitrev;
+    chdir $olddir or die("Can't change directory to $olddir: $!");
+    if (!$? and defined $gitrev and $gitrev =~ /^[0-9a-f]{40}/) {
+        return "$scriptname git rev $gitrev";
+    } else {
+	$self->_set_error('ToolVersionError',detail => "Can't get git revision for $0: git returned '$gitrev' with status $?");
+        return "$scriptname";
+    }
+
+}
+
+=item perl_mod_version($module)
+
+Returns $module::VERSION; $module must have already been loaded.
+
+=cut
+sub perl_mod_version() {
+    my $self = shift;
+    my $module = shift;
+    my $mod_req = $module;
+    $mod_req =~ s/::/\//g;
+    my $toreturn;
+    eval {
+	require "$mod_req.pm";
+    };
+    if($@) {
+	$self->_set_error('ToolVersionError',detail => "Error loading $module: $@");
+	return "$module";
+    }
+    no strict 'refs';
+    my $version = ${"${module}::VERSION"};
+    if(defined $version) {
+	return "$module $version";
+    } else {
+	$self->_set_error('ToolVersionError',detail => "Can't find ${module}::VERSION");
+	return "$module";
+    }
+}
+
+=item local_directory_version($package)
+
+Returns the version of a package installed in a local directory hierarchy,
+specified by the 'premis_tool_local' configuration directive
+
+=cut
+sub local_directory_version() {
+    my $self = shift;
+    my $package = shift;
+    my $tool_root = get_config("premis_tool_local");
+    if (not -l "$tool_root/$package") {
+	$self->_set_error('ToolVersionError',detail => "$tool_root/$package not a symlink");
+	return $package;
+    } else {
+	my $package_target;
+	if(!($package_target = readlink("$tool_root/$package")))
+	{	
+	    $self->_set_error('ToolVersionError',detail => "Error in readlink for $tool_root/$package: $!") if $!;
+	    return $package;
+	}
+
+	my ($package_version) = ($package_target  =~ /$package-([\w.]+)$/);
+	if($package_version) {
+	    return "$package $package_version";
+	} else {
+	    $self->_set_error('ToolVersionError', detail => "Couldn't extract version from symlink $package_version for $package");
+	    return $package;
+	}
+	
+    }
+
+}
+
+=item system_version($package)
+
+Returns the version of a system-installed RPM package.
+
+=cut
+
+sub system_version() {
+    my $self = shift;
+    my $package = shift;
+    my $version = `rpm -q $package`;
+
+
+    if($? or $version !~ /^$package[-.\w]+/) {
+	$self->_set_error('ToolVersionError', detail => "RPM returned '$version' with status $? for package $package");
+	return $package;
+    } else {
+	return $version;
+    }
+}
+
+=item get_tool_version($package_identifier)
+
+Gets the version of a tool defined in the premis_tools section in the configuration file.
+
+=cut
+
+sub get_tool_version {
+
+    my $self = shift;
+    my $package_id = shift;
+    my $to_eval = get_config('premis_tools',$package_id);
+    if(!$to_eval) {
+	$self->_set_error('ToolVersionError',detail => "$package_id missing from premis_tools");
+	return $package_id;
+    }
+
+    my $version = eval($to_eval);
+    if($@ or !$version) {
+	$self->_set_error('ToolVersionError', detail => $@);
+	return $package_id;
+    } else {
+	return $version;
+    }
+}
 
 1;

@@ -77,7 +77,7 @@ sub get_validation_overrides {
     my $self = shift;
     my $module = shift;
 
-    return $self->_get_overrides('validation');
+    return $self->_get_overrides('validation',$module);
 
 }
 
@@ -143,7 +143,15 @@ sub _get_overrides {
     my $pkgtype_override = $self->{'packagetype'}->get($key);
     _copyhash($value,$pkgtype_override,$subkey);
 
-<<<<<<< HEAD
+    my $ns_pkgtype_override = ${"${class}::packagetype_overrides"}->{$packagetype_id};
+    if(defined $ns_pkgtype_override) {
+	my $ns_pkgtype_override = $ns_pkgtype_override->{$key};
+	_copyhash($value,$ns_pkgtype_override,$subkey);
+    }
+
+    return $value;
+}
+
 =item load_gpg()
 
 returns the gpg passphrase string from the file gpg in the namespace directory
@@ -173,15 +181,6 @@ sub get_gpg {
     ${"${class}::config"}->{gpg_key} = $passphrase;
     
     return $passphrase;
-=======
-    my $ns_pkgtype_override = ${"${class}::packagetype_overrides"}->{$packagetype_id};
-    if(defined $ns_pkgtype_override) {
-	my $ns_pkgtype_override = $ns_pkgtype_override->{$key};
-	_copyhash($value,$ns_pkgtype_override,$subkey);
-    }
-
-    return $ns_pkgtype_override;
->>>>>>> 94295aae8bf9530549b8c08d046889aca6ca49a2
 }
 
 # UTILITIES FOR SUBCLASSES

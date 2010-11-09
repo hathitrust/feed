@@ -27,6 +27,8 @@ sub download{
     my $not_found_ok = $arguments->{not_found_ok};
     
     my $pathname = "$path/$filename";
+    # already downloaded? just return
+    return if -e "$path/$filename";
 
     my $ua = LWP::UserAgent->new;
     $ua->agent('HTFeedBot/0.1 '); # space causes LWP to append its ua
@@ -41,14 +43,19 @@ sub download{
             $logger->debug("Download succeeded",volume => $self->{volume}->get_objid());
         }
         else{
-            $self->_set_error("DownloadFailed",detail => "size of $filename does not match HTTP header: actual $size, expected $expected_size");
+            $self->_set_error("OperationFailed",file=>$filename,operation=>'download',detail => "size of $filename does not match HTTP header: actual $size, expected $expected_size");
         }
     }
     elsif($not_found_ok and $response->code() eq 404){
         $logger->debug("404 recieved on optional file: $filename",volume => $self->{volume}->get_objid());
     }
     else{
-    	$self->_set_error("DownloadFailed",detail => "File: $filename, Error: " . $response->status_line);
+    	$self->_set_error("OperationFailed",file => $filename,operation=>'download',detail => $response->status_line);
+    }
+
+    # Try to clean up if download failed
+    if($self->{failed} and -e "$path/$filename") {
+	unlink($path/$filename) or $self->_set_error("OperationFailed",file=>"$path/$filename",operation=>'unlink',detail => "Error unlinking: $!");
     }
 }
 
