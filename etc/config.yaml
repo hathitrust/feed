@@ -19,6 +19,16 @@ staging:
   disk: /htapps/rrotter.babel/repos/staging
   memory: /ram/staging
   zip: /ram/zip_staging
+  
+handle:
+  repo_url_base: http://babel.hathitrust.org/cgi/pt?id=
+  root_admin: 0.NA/2027
+  local_admin: 2027/mdp
+  database:
+    datasource: dbi:mysql:my_db:mysql-htdev
+    username: uname
+    password: password
+
 #
 # A perl snippet returning the software name and version for each 'tool' code in the
 # PREMIS events below. $self is the HTFeed::METS stage generating the PREMIS events.
