@@ -11,23 +11,23 @@ sub new {
 	
 	my $params = 
 		{   
-		    name => undef,
-			url	=> undef,
-			email => undef,
-			root_admin => undef,
-			local_admin => undef,
-			@_,
+            name        => undef,
+            url         => undef,
+            email       => undef,
+            root_admin  => undef,
+            local_admin => undef,
+            @_,
 		};
 	
 	unless(defined $params->{name} and defined $params->{root_admin}){
-	    croak '__PACKAGE__: Missing required parameters';
+	    croak __PACKAGE__ . ' : Missing required parameters';
     }
     
     my $name = uc $params->{name};
     my $self = {name => $name, entries => {}};
     
 	if (defined $params->{url}){
-		$self->{entries}->{1} = HDL::Entry::URL->new($params->{url});		
+        $self->{entries}->{1} = HDL::Entry::URL->new($params->{url});
 	}
 	if (defined $params->{email}){
 		$self->{entries}->{2} = HDL::Entry::EMAIL->new($params->{email});
@@ -61,11 +61,13 @@ sub to_SQL{
     my $sql = 'INSERT INTO `handles` '
       .'(`handle`,`idx`,`type`,`data`,`ttl_type`,`ttl`,`timestamp`,`refs`,`admin_read`,`admin_write`,`pub_read`,`pub_write`) '
       .'VALUES ';
-    
+     
+    my @rows;
     foreach my $key (sort {$a <=> $b} keys %{ $entries }){
-        $sql .= $entries->{$key}->to_SQL_row($name,$key,$timestamp);
-        $sql .= "\n";
+        push @rows, $entries->{$key}->to_SQL_row($name,$key,$timestamp);
     }
+    
+    $sql .= join(q{,}, @rows) . q{;};
     
     return $sql;
 }

@@ -10,7 +10,7 @@ require HDL::Entry::EMAIL;
 sub new {
 	my $class = shift;
 	my $self =
-		{	
+        {
 			type => undef,
 			data => undef,
 			permissions => [1,1,1,0],
@@ -31,7 +31,7 @@ sub to_string {
 sub new2{
     my $class = shift;
 	my $self =
-		{	
+        {
 			type => undef,
 			data => undef,
 			permissions => [1,1,1,0],

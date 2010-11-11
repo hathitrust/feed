@@ -34,27 +34,28 @@ sub run{
 
     foreach my $file (@files) {
 	if(! -e "$path/$file") {
-	    $self->_set_error('MissingFile',file => "$path/$file");
+	    $self->set_error('MissingFile',file => "$path/$file");
 	}
 
 	if(!symlink("$path/$file","$objid/$file"))
 	{
-	    $self->_set_error('OperationFailed',operation=>'symlink',file => "$path/$file",description=>"Symlink to staging directory failed: $!");
+	    $self->set_error('OperationFailed',operation=>'symlink',file => "$path/$file",description=>"Symlink to staging directory failed: $!");
 	}
 
     }
 
-    my $zipret = system("zip -q -r -n $uncompressed_extensions $path/$objid.zip $objid");
+    my $working_dir = get_config('staging'=>'memory');
+    my $zipret = system("zip -q -r -n $uncompressed_extensions $working_dir/$objid.zip $objid");
 
     if($zipret) {
-	$self->_set_error('OperationFailed',operation=>'zip',detail=>'Creating zip file',exitstatus=>$zipret,file=>"$path/$objid.zip");
+	    $self->set_error('OperationFailed',operation=>'zip',detail=>'Creating zip file',exitstatus=>$zipret,file=>"$working_dir/$objid.zip");
     } else {
 
-	$zipret = system("unzip -q -t $path/$objid.zip");
+        $zipret = system("unzip -q -t $working_dir/$objid.zip");
 
-	if($zipret) {
-	    $self->_set_error('OperationFailed',operation=>'unzip',exitstatus=>$zipret,file=>"$path/$objid.zip",detail=>'Verifying zip file');
-	}
+        if($zipret) {
+            $self->set_error('OperationFailed',operation=>'unzip',exitstatus=>$zipret,file=>"$working_dir/$objid.zip",detail=>'Verifying zip file');
+	    }
 
     }
 

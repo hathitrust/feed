@@ -186,7 +186,7 @@ sub get_gpg {
     $module_path =~ s/.pm$//;
     my $passphrase_file = sprintf('%s/%s',$module_path,'gpg');
     open(my $fh, '<', "$passphrase_file")
-        or croak 'Can\'t open gpg passphrase file for ' . ref($self);
+        or croak 'Can\'t open gpg passphrase file for ' . ref($self) . " at $passphrase_file";
     my $passphrase = <$fh>;
     close($fh);
     

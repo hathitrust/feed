@@ -136,7 +136,7 @@ sub get_staging_directory {
     my $self = shift;
     
     my $objid = $self->get_objid();
-    return sprintf("%s/%s", get_config(staging=>'memory'), $objid);
+    return sprintf("%s/%s", get_config('staging'=>'memory'), $objid);
 }
 
 =item get_download_directory
@@ -188,21 +188,22 @@ sub get_checksums {
 	    open( $checksum_fh, "<", "$path/$checksum_file" )
 		or croak("Can't open $checksum_file: $!");
 	    while ( my $line = <$checksum_fh> ) {
-		chomp $line;
-		my ( $checksum, $filename ) = split( /\s+/, $line );
-		$checksums->{$filename} = $checksum;
+            chomp $line;
+            # ignore null char lines from poorly formed checksum file
+            next if $line =~ /^\0+$/;
+            my ( $checksum, $filename ) = split( /\s+/, $line );
+            $checksums->{$filename} = $checksum;
 	    }
 	    close($checksum_fh);
 	}
 	else {
-
 	    # try to extract from source METS
 	    my $xpc = $self->get_source_mets_xpc();
 	    foreach my $node ( $xpc->findnodes('//mets:file') ) {
-		my $checksum = $xpc->findvalue( './@CHECKSUM', $node );
-		my $filename =
-		$xpc->findvalue( './mets:FLocat/@xlink:href', $node );
-		$checksums->{$filename} = $checksum;
+		    my $checksum = $xpc->findvalue( './@CHECKSUM', $node );
+    		my $filename =
+    		  $xpc->findvalue( './mets:FLocat/@xlink:href', $node );
+    		$checksums->{$filename} = $checksum;
 	    }
 	}
 	$self->{checksums} = $checksums;
