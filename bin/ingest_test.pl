@@ -2,6 +2,7 @@
 
 use warnings;
 use strict;
+
 use HTFeed::Volume;
 use HTFeed::VolumeValidator;
 use HTFeed::Log;
@@ -10,8 +11,10 @@ use HTFeed::PackageType::Google::Download;
 use HTFeed::PackageType::IA::Download;
 use HTFeed::PackageType::Google::Unpack;
 use HTFeed::Stage::Pack;
+use HTFeed::METS;
 use HTFeed::Stage::Sample;
 use HTFeed::Stage::Collate;
+use HTFeed::Stage::Handle;
 
 HTFeed::Log->init();
 
@@ -49,7 +52,6 @@ $stage = HTFeed::PackageType::Google::Download->new(volume => $volume);
 #$stage = HTFeed::PackageType::IA::Download->new(volume => $volume);
 run_stage( $stage );
 
-#=skip
 # Unpack
 print 'Unpacking...';
 $stage = HTFeed::PackageType::Google::Unpack->new(volume => $volume);
@@ -66,7 +68,9 @@ $stage = HTFeed::Stage::Pack->new(volume => $volume);
 run_stage( $stage );
 
 # Mets
-print "Metsing...not implimented\n";
+print "Metsing...";
+$stage = HTFeed::METS->new(volume => $volume);
+run_stage( $stage );
 
 # Sample
 print 'Sampling...';
@@ -77,7 +81,12 @@ run_stage( $stage );
 print 'Collating...';
 $stage = HTFeed::Stage::Collate->new(volume => $volume);
 run_stage( $stage );
-#=cut
+
+# Handle
+print 'Handling...';
+$stage = HTFeed::Stage::Handle->new(volume => $volume);
+run_stage( $stage );
+
 sub run_stage{
     my $stage = shift;
     $stage->run();

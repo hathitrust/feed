@@ -50,12 +50,12 @@ sub _set_done{
 sub failed{
 	my $self = shift;
 	return $self->{failed} if $self->{has_run};
-	$self->_set_error('IncompleteStage',detail => ref($self));
+	$self->set_error('IncompleteStage',detail => ref($self));
 	return 1;
 }
 
 # set fail, log errors
-sub _set_error{
+sub set_error{
 	my $self = shift;
 	my $error = shift;
 	$self->{failed}++;
@@ -63,7 +63,15 @@ sub _set_error{
 	# log error w/ l4p
 	my $logger = get_logger(ref($self));
 	$logger->error($error,volume => $self->{volume}->get_objid(),@_);
-	return 1;
+}
+
+# log info message
+sub set_info{
+    my $self = shift;
+    my $message = shift;
+    
+    my $logger = get_logger(ref($self));
+    $logger->info('Info',detail => $message,volume => $self->{volume}->get_objid(),@_);
 }
 
 1;

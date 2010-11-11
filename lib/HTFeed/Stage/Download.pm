@@ -43,19 +43,19 @@ sub download{
             $logger->debug("Download succeeded",volume => $self->{volume}->get_objid());
         }
         else{
-            $self->_set_error("OperationFailed",file=>$filename,operation=>'download',detail => "size of $filename does not match HTTP header: actual $size, expected $expected_size");
+            $self->set_error("OperationFailed",file=>$filename,operation=>'download',detail => "size of $filename does not match HTTP header: actual $size, expected $expected_size");
         }
     }
     elsif($not_found_ok and $response->code() eq 404){
         $logger->debug("404 recieved on optional file: $filename",volume => $self->{volume}->get_objid());
     }
     else{
-    	$self->_set_error("OperationFailed",file => $filename,operation=>'download',detail => $response->status_line);
+    	$self->set_error("OperationFailed",file => $filename,operation=>'download',detail => $response->status_line);
     }
 
     # Try to clean up if download failed
     if($self->{failed} and -e "$path/$filename") {
-	unlink($path/$filename) or $self->_set_error("OperationFailed",file=>"$path/$filename",operation=>'unlink',detail => "Error unlinking: $!");
+	unlink($path/$filename) or $self->set_error("OperationFailed",file=>"$path/$filename",operation=>'unlink',detail => "Error unlinking: $!");
     }
 }
 

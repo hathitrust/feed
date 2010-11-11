@@ -84,7 +84,7 @@ sub _validate_file_names {
         { !/$valid_file_pattern/ } @{ $volume->get_all_directory_files() } );
 
     foreach my $file (@bad) {
-        $self->_set_error( "BadFilename", field => 'filename', file => $file );
+        $self->set_error( "BadFilename", field => 'filename', file => $file );
 
     }
 
@@ -112,7 +112,7 @@ sub _validate_filegroups_nonempty {
         $logger->debug("validating nonempty filegroup $filegroup_name");
         my $filecount = scalar( @{$filegroup->get_filenames()} );
         if ( !$filecount ) {
-            $self->_set_error("EmptyFilegroup", filegroup => $filegroup);
+            $self->set_error("EmptyFilegroup", filegroup => $filegroup);
         }
 
         $prev_filegroup_name = $filegroup_name;
@@ -143,7 +143,7 @@ sub _validate_consistency {
         my @sequence_numbers     = sort( keys(%$files) );
         foreach my $sequence_number (@sequence_numbers) {
             if ( $sequence_number > $prev_sequence_number + 1 ) {
-                $self->_set_error("MissingFile", detail => "Skip sequence number from $prev_sequence_number to $sequence_number");
+                $self->set_error("MissingFile", detail => "Skip sequence number from $prev_sequence_number to $sequence_number");
             }
             $prev_sequence_number = $sequence_number;
         }
@@ -152,7 +152,7 @@ sub _validate_consistency {
     # Make sure each filegroup has an object for each sequence number
     while ( my ( $sequence_number, $files ) = each( %{$files} ) ) {
         if ( keys( %{$files} ) != @filegroup_names ) {
-            $self->_set_error( "MissingFile", detail => 
+            $self->set_error( "MissingFile", detail => 
                 "File missing for $sequence_number: have "
                   . join( q{,}, keys %{$files} )
                   . '; expected '
@@ -194,13 +194,13 @@ sub _validate_checksums {
         next if $file eq $checksum_file;
         my $expected = $checksums->{$file};
         if ( not defined $expected ) {
-            $self->_set_error("BadChecksum",field => 'checksum',file => $file, detail => "File present in package but not in checksum file");
+            $self->set_error("BadChecksum",field => 'checksum',file => $file, detail => "File present in package but not in checksum file");
         }
 	elsif ( ! -e "$path/$file") {
-	    $self->_set_error("BadChecksum",file => $file, detail => "File listed in checksum file but not present in package");
+	    $self->set_error("BadChecksum",file => $file, detail => "File listed in checksum file but not present in package");
 	}
         elsif ( (my $actual = md5sum("$path/$file")) ne $expected ) {
-            $self->_set_error("BadChecksum", field => 'checksum', file => $file, expected => $expected, actual => $actual);
+            $self->set_error("BadChecksum", field => 'checksum', file => $file, expected => $expected, actual => $actual);
 	    push(@bad_files,"$file");
         }
 
@@ -249,7 +249,7 @@ sub _validate_utf8 {
             close($utf8_fh);
         };
         if ($@) {
-            $self->_set_error("BadUTF",field => 'utf8',detail => "@_",file => $utf8_file);
+            $self->set_error("BadUTF",field => 'utf8',detail => "@_",file => $utf8_file);
         }
 
     }
@@ -271,7 +271,7 @@ sub _validate_metadata {
     
     # make sure we have >0 files
     if (! @$files){
-        $self->_set_error("BadFile",file => "all",detail => "Zero files found to validate");
+        $self->set_error("BadFile",file => "all",detail => "Zero files found to validate");
         return;
     }
     
@@ -336,7 +336,7 @@ sub _validate_metadata {
             	    $logger->debug("File validation succeeded",file => $file);
             	}
             	else {
-            	    $self->_set_error("BadFile",file => $file);
+            	    $self->set_error("BadFile",file => $file);
             	}
             }
 

@@ -60,7 +60,7 @@ sub run {
         $self->_save_mets();
     };
     if($@) {
-	$self->_set_error("IncompleteStage",detail=>$@);
+        $self->set_error("IncompleteStage",detail=>$@);
     }
     $self->_set_done();
 
@@ -84,7 +84,7 @@ sub _add_header {
     my $header = new METS::Header(
         createdate   => _get_createdate(),
         recordstatus => 'NEW',
-	id => 'HDR1',
+        id => 'HDR1',
     );
     $header->add_agent(
         role => 'CREATOR',
@@ -160,9 +160,9 @@ sub _extract_old_premis {
 		my $eventType = $xc->findvalue("./PREMIS:eventType",$event);
 		my $eventId = $xc->findvalue("./PREMIS:eventIdentifier/PREMIS:eventIdentifierValue",$event);
 
-		$self->_set_error("MissingField", 
+		$self->set_error("MissingField", 
 		    field => "eventType", node => $event->toString()) unless defined $eventType and $eventType;
-		$self->_set_error("MissingField", 
+		$self->set_error("MissingField", 
 		    field => "eventIdentifierValue", node => $event->toString()) unless defined $eventId and $eventId;
 
 		# Extract event count and make sure we don't try to reuse identifier
@@ -177,7 +177,7 @@ sub _extract_old_premis {
 		     }
 
 		} else {
-		    $self->_set_error("BadValue", field => 'eventID', actual => $eventId)
+		    $self->set_error("BadValue", field => 'eventID', actual => $eventId)
 		}
 
 		push @{$self->{store_events}{$eventType}}, $event;
@@ -189,7 +189,7 @@ sub _extract_old_premis {
         }
         else {
 	    # TODO: should be warning, not error
-	    $self->_set_error("BadFile", file => $mets_in_repos, detail => $val_results);
+	    $self->set_error("BadFile", file => $mets_in_repos, detail => $val_results);
 	    print "$val_results";
         }
     }
@@ -243,7 +243,7 @@ sub _add_premis {
 			$found_eventid_value++;
 		    }
 		}
-		$self->_set_error("BadValue",detail=>"Error updating event identifier in event",node => $src_event->toString()) 
+		$self->set_error("BadValue",detail=>"Error updating event identifier in event",node => $src_event->toString()) 
 		    unless ($found_eventid_node == 1 && $found_eventid_type == 1&& $found_eventid_value == 1);
 		$premis->add_event($src_event);
 
@@ -264,15 +264,15 @@ sub _add_premis {
     foreach my $eventcode (@{$nspkg->get('premis_events')}) {
 	# query database for: datetime, outcome
 	my ($datetime, $outcome) = $volume->get_event_info($eventcode);
-	$self->_set_error("MissingField",field => "datetime", detail => "Missing datetime for $eventcode") if not defined $datetime;
+	$self->set_error("MissingField",field => "datetime", detail => "Missing datetime for $eventcode") if not defined $datetime;
 	my $eventconfig = $nspkg->get_event_configuration($eventcode);
 
 	my $executor = $eventconfig->{'executor'} 
-	    or $self->_set_error("MissingField",field => "executor", detail => "Missing event executor for $eventcode");
+	    or $self->set_error("MissingField",field => "executor", detail => "Missing event executor for $eventcode");
 	my $detail = $eventconfig->{'detail'} 
-	    or $self->_set_error("MissingField",field => "event detail", detail => "Missing event detail for $eventcode");
+	    or $self->set_error("MissingField",field => "event detail", detail => "Missing event detail for $eventcode");
 	my $eventtype = $eventconfig->{'type'}
-	    or $self->_set_error("MissingField",field => "event type", detail => "Missing event type for $eventcode");
+	    or $self->set_error("MissingField",field => "event type", detail => "Missing event type for $eventcode");
 
 	$executor = $volume->get_artist() if $executor eq 'VOLUME_ARTIST';
 
@@ -415,7 +415,7 @@ sub validate {
     my ( $mets_valid, $val_results ) =
       validate_xml( $self->{'config'}, $$self{'filename'} );
     if ( !$mets_valid ) {
-        $self->_set_error(
+        $self->set_error(
             "BadFile",
             file   => $mets_path,
             detail => "XML validation error: $val_results"
@@ -553,7 +553,7 @@ sub git_revision {
     if (!$? and defined $gitrev and $gitrev =~ /^[0-9a-f]{40}/) {
         return "$scriptname git rev $gitrev";
     } else {
-	$self->_set_error('ToolVersionError',detail => "Can't get git revision for $0: git returned '$gitrev' with status $?");
+        $self->set_error('ToolVersionError',detail => "Can't get git revision for $0: git returned '$gitrev' with status $?");
         return "$scriptname";
     }
 
@@ -574,7 +574,7 @@ sub perl_mod_version() {
 	require "$mod_req.pm";
     };
     if($@) {
-	$self->_set_error('ToolVersionError',detail => "Error loading $module: $@");
+	$self->set_error('ToolVersionError',detail => "Error loading $module: $@");
 	return "$module";
     }
     no strict 'refs';
@@ -582,7 +582,7 @@ sub perl_mod_version() {
     if(defined $version) {
 	return "$module $version";
     } else {
-	$self->_set_error('ToolVersionError',detail => "Can't find ${module}::VERSION");
+	$self->set_error('ToolVersionError',detail => "Can't find ${module}::VERSION");
 	return "$module";
     }
 }
@@ -598,13 +598,13 @@ sub local_directory_version() {
     my $package = shift;
     my $tool_root = get_config("premis_tool_local");
     if (not -l "$tool_root/$package") {
-	$self->_set_error('ToolVersionError',detail => "$tool_root/$package not a symlink");
+	$self->set_error('ToolVersionError',detail => "$tool_root/$package not a symlink");
 	return $package;
     } else {
 	my $package_target;
 	if(!($package_target = readlink("$tool_root/$package")))
 	{	
-	    $self->_set_error('ToolVersionError',detail => "Error in readlink for $tool_root/$package: $!") if $!;
+	    $self->set_error('ToolVersionError',detail => "Error in readlink for $tool_root/$package: $!") if $!;
 	    return $package;
 	}
 
@@ -612,7 +612,7 @@ sub local_directory_version() {
 	if($package_version) {
 	    return "$package $package_version";
 	} else {
-	    $self->_set_error('ToolVersionError', detail => "Couldn't extract version from symlink $package_version for $package");
+	    $self->set_error('ToolVersionError', detail => "Couldn't extract version from symlink $package_version for $package");
 	    return $package;
 	}
 	
@@ -633,7 +633,7 @@ sub system_version() {
 
 
     if($? or $version !~ /^$package[-.\w]+/) {
-	$self->_set_error('ToolVersionError', detail => "RPM returned '$version' with status $? for package $package");
+	$self->set_error('ToolVersionError', detail => "RPM returned '$version' with status $? for package $package");
 	return $package;
     } else {
 	chomp $version;
@@ -653,13 +653,13 @@ sub get_tool_version {
     my $package_id = shift;
     my $to_eval = get_config('premis_tools',$package_id);
     if(!$to_eval) {
-	$self->_set_error('ToolVersionError',detail => "$package_id missing from premis_tools");
+	$self->set_error('ToolVersionError',detail => "$package_id missing from premis_tools");
 	return $package_id;
     }
 
     my $version = eval($to_eval);
     if($@ or !$version) {
-	$self->_set_error('ToolVersionError', detail => $@);
+	$self->set_error('ToolVersionError', detail => $@);
 	return $package_id;
     } else {
 	return $version;

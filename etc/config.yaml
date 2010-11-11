@@ -1,8 +1,8 @@
 ---
 database:
-  datasource: dbi:mysql:my_db:mysql-htdev
-  username: uname
-  password: password
+  datasource: dbi:mysql:mdp_tracking_rrotter:mysql-htdev
+  username: rrotter
+  password: nothingness0
 
 jhove: /l/local/bin/jhove
 jhoveconf: /l/local/jhove/conf/jhove.conf
@@ -11,21 +11,24 @@ xerces: /path/to/xerces
 
 jhove: /l/local/bin/jhove
 jhoveconf: /l/local/jhove/conf/jhove.conf
-l4p_config: /htapps/rrotter.babel/git/feed/etc/test_config.l4p
+l4p_config: /htapps/rrotter.babel/git/feed/etc/config.l4p
 
 staging:
   disk: /htapps/rrotter.babel/repos/staging
   memory: /ram/staging
   zip: /ram/zip_staging
   
+sample_directory: /htapps/rrotter.babel/repos/samples
+repository_path: /htapps/rrotter.babel/repos
+  
 handle:
   repo_url_base: http://babel.hathitrust.org/cgi/pt?id=
   root_admin: 0.NA/2027
   local_admin: 2027/mdp
   database:
-    datasource: dbi:mysql:my_db:mysql-htdev
-    username: uname
-    password: password
+    datasource: dbi:mysql:handle:mysql-htdev
+    username: rrotter
+    password: nothingness0
 
 ###### PREMIS configuration ######################################################
 #

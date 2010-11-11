@@ -19,7 +19,7 @@ sub new {
 
 	my $data = _make_data_blob ($admin, $admin_permissions);
 	
-	return $class->SUPER::new(type => 'HS_ADMIN', data => $data, permissions => [1,1,0,0]);
+	return $class->SUPER::new(type => 'HS_ADMIN', data => $data);
 }
 
 # flips permissions between HDL representation and storage representation
