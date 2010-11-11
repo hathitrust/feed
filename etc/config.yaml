@@ -4,10 +4,8 @@ database:
   username: uname
   password: password
 
-download_directory: /path/to/download
 jhove: /l/local/bin/jhove
 jhoveconf: /l/local/jhove/conf/jhove.conf
-staging_directory: /path/to/staging
 
 xerces: /path/to/xerces
 
@@ -29,6 +27,7 @@ handle:
     username: uname
     password: password
 
+###### PREMIS configuration ######################################################
 #
 # A perl snippet returning the software name and version for each 'tool' code in the
 # PREMIS events below. $self is the HTFeed::METS stage generating the PREMIS events.
