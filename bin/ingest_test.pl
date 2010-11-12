@@ -44,51 +44,23 @@ print 'Instantiating Volume object...';
 my $volume = HTFeed::Volume->new(objid => $objid,namespace => $namespace,packagetype => $packagetype);
 print "success\n";
 
+print join qq{\n}, @{$volume->get_nspkg()->get('stages_to_run')};
+
 my $stage;
-
-# Download
-print 'Downloading...';
-$stage = HTFeed::PackageType::Google::Download->new(volume => $volume);
-#$stage = HTFeed::PackageType::IA::Download->new(volume => $volume);
-run_stage( $stage );
-
-# Unpack
-print 'Unpacking...';
-$stage = HTFeed::PackageType::Google::Unpack->new(volume => $volume);
-run_stage( $stage );
-
-# Validation
-print 'Validating...';
-$stage = HTFeed::VolumeValidator->new(volume => $volume);
-run_stage( $stage );
-
-# Pack
-print 'Packing...';
-$stage = HTFeed::Stage::Pack->new(volume => $volume);
-run_stage( $stage );
-
-# Mets
-print "Metsing...";
-$stage = HTFeed::METS->new(volume => $volume);
-run_stage( $stage );
-
-# Sample
-print 'Sampling...';
-$stage = HTFeed::Stage::Sample->new(volume => $volume);
-run_stage( $stage );
-
-# Collate
-print 'Collating...';
-$stage = HTFeed::Stage::Collate->new(volume => $volume);
-run_stage( $stage );
-
-# Handle
-print 'Handling...';
-$stage = HTFeed::Stage::Handle->new(volume => $volume);
-run_stage( $stage );
+my $errors = 0;
+foreach my $stage_name ( @{$volume->get_nspkg()->get('stages_to_run')} ){
+    my $stage = eval "$stage_name->new(volume => \$volume)";
+    $errors += run_stage($stage);
+}
 
 sub run_stage{
     my $stage = shift;
+    
+    ref($stage) =~ /^.*::(\w*)/;
+    my $verb = $1;
+    chop $verb if ($verb =~ /e$/);
+    print $verb . 'ing...';
+    
     $stage->run();
     if ($stage->succeeded()){
         print "success\n";
@@ -96,4 +68,9 @@ sub run_stage{
     else{
         print "failure\n";
     }
+    
+    return $stage->failed();
 }
+
+print 'Volume ' . $volume->get_identifier() . " ingested unsuccessfully with $errors errors!\n" if ($errors);
+print 'Volume ' . $volume->get_identifier() . " ingested successfully!\n" unless ($errors);

@@ -28,7 +28,7 @@ our $config = {
     },
 
     # A list of filegroups for which there must be a file for each page.
-    required_filegroups => [qw(image)],
+    required_filegroups => [qw(image txt)],
 
     # Allow gaps in numerical sequence of filenames?
     allow_sequence_gaps => 0,
