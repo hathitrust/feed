@@ -45,6 +45,7 @@ sub new {
 	    codingStyleDefault => {
 		layers => "jhove:property[jhove:name='NumberOfLayers']/jhove:values/jhove:value",
 		decompositionLevels => "jhove:property[jhove:name='NumberDecompositionLevels']/jhove:values/jhove:value",
+		transformation => "jhove:property[jhove:name='Transformation']/jhove:values/jhove:value",
 	    },
 
 	    # mix children

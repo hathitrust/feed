@@ -8,10 +8,10 @@ use HTFeed::XMLNamespaces qw(register_namespaces);
 use HTFeed::Namespace;
 use HTFeed::FileGroup;
 use XML::LibXML;
-use GROOVE::Book;
 use HTFeed::Config qw(get_config);
 use GROOVE::DBTools;
 use Time::localtime;
+use File::Pairtree;
 
 our $logger = get_logger(__PACKAGE__);
 
@@ -29,10 +29,6 @@ sub new {
 	#		mets_name		=> undef,
 	#		mets_xml		=> undef,
     };
-
-    $self->{groove_book} =
-    GROOVE::Book->new( $self->{objid}, $self->{namespace},
-	$self->{packagetype} );
 
     $self->{nspkg} = new HTFeed::Namespace($self->{namespace},$self->{packagetype});
 
@@ -79,39 +75,43 @@ sub get_objid {
     return $self->{objid};
 }
 
+=item get_pt_objid
+
+Returns the pairtreeized ID of the volume
+
+=cut
+
+sub get_pt_objid {
+    my $self = shift;
+    return s2ppchars($self->{objid});
+}
+
 =item get_file_groups 
 
-Returns a hash of lists containing the logical groups of files within the volume.
-
-For example:
-
-{ 
-  ocr => [0001.txt, 0002.txt, ...]
-  image => [0001.tif, 0002.jp2, ...]
-}
+Returns a hash of HTFeed::FileGroup objects containing info about the logical groups
+of files in the objects. Configure through the filegroups package type setting.
 
 =cut
 
 sub get_file_groups {
     my $self = shift;
 
-    my $book = $self->{groove_book};
+    if(not defined $self->{filegroups}) {
+	my $filegroups = {}; 
 
-    my $filegroups = {};
-    $filegroups->{image} = HTFeed::FileGroup->new($book->get_all_images(),
-	prefix => 'IMG',
-	use=>'image');
-    $filegroups->{ocr}   = HTFeed::FileGroup->new($book->get_all_ocr(),
-	prefix => 'OCR',
-	use => 'ocr');
-
-    if ($book->hocr_files_used()) {
-	$filegroups->{hocr} = HTFeed::FileGroup->new($book->get_all_hocr(),
-	    prefix => 'XML',
-	    use => 'coordOCR')
+	my $nspkg_filegroups = $self->{nspkg}->get('filegroups');
+	while( my ($key,$val) = each (%{ $nspkg_filegroups })) {
+	    my $files = [];
+	    my $re = $val->{file_pattern} or die("Missing pattern for filegroup $key");
+	    foreach my $file ( @{ $self->get_all_directory_files() }) {
+		push(@$files,$file) if $file =~ $re;
+	    }
+	    $filegroups->{$key} = new HTFeed::FileGroup($files,%$val);
+	}
+	$self->{filegroups} = $filegroups;
     }
 
-    return $filegroups;
+    return $self->{filegroups};
 }
 
 =item get_all_directory_files
@@ -123,7 +123,17 @@ Returns a list of all files in the staging directory for the volume's AIP
 sub get_all_directory_files {
     my $self = shift;
 
-    return $self->{groove_book}->get_all_files();
+    if(not defined $self->{directory_files}) {
+	my $stagedir = $self->get_staging_directory();
+	opendir(my $dh,$stagedir) or croak("Can't opendir $stagedir: $!");
+	foreach my $file (readdir $dh) {
+	    # ignore ., ..
+	    push(@{ $self->{directory_files} },$file) unless $file =~ /^\.+$/;
+	}
+	closedir($dh) or croak("Can't closedir $stagedir: $!");
+    }
+
+    return $self->{directory_files};
 }
 
 =item get_staging_directory
@@ -162,10 +172,14 @@ Returns a list of all files that will be validated.
 
 sub get_all_content_files {
     my $self = shift;
-    my $book = $self->{groove_book};
+    
+    if(not defined $self->{content_files}) {
+	foreach my $filegroup (values(%{ $self->get_file_groups()})) {
+	    push(@{ $self->{content_files} },@{ $filegroup->get_filenames() }) if $filegroup->{validate};
+	}
+    }
 
-    return [( @{ $book->get_all_images() }, @{ $book->get_all_ocr() },
-	@{ $book->get_all_hocr() })];
+    return $self->{content_files};
 }
 
 =item get_checksums
@@ -178,66 +192,49 @@ the keys are the filenames and the values are the MD5 checksums.
 sub get_checksums {
     my $self = shift;
 
-    if ( !defined $self->{checksums} ) {
-	my $checksums = {};
+    if ( not defined $self->{checksums} ) {
 
-	my $path = $self->get_staging_directory();
-	my $checksum_file = $self->{groove_book}->get_checksum_file();
-	if ( defined $checksum_file ) {
-	    my $checksum_fh;
-	    open( $checksum_fh, "<", "$path/$checksum_file" )
-		or croak("Can't open $checksum_file: $!");
-	    while ( my $line = <$checksum_fh> ) {
-            chomp $line;
-            # ignore null char lines from poorly formed checksum file
-            next if $line =~ /^\0+$/;
-            my ( $checksum, $filename ) = split( /\s+/, $line );
-            $checksums->{$filename} = $checksum;
-	    }
-	    close($checksum_fh);
+	my $checksums = {};
+	# try to extract from source METS
+	my $xpc = $self->get_source_mets_xpc();
+	foreach my $node ( $xpc->findnodes('//mets:file') ) {
+	    my $checksum = $xpc->findvalue( './@CHECKSUM', $node );
+	    my $filename =
+	    $xpc->findvalue( './mets:FLocat/@xlink:href', $node );
+	    $checksums->{$filename} = $checksum;
 	}
-	else {
-	    # try to extract from source METS
-	    my $xpc = $self->get_source_mets_xpc();
-	    foreach my $node ( $xpc->findnodes('//mets:file') ) {
-		    my $checksum = $xpc->findvalue( './@CHECKSUM', $node );
-    		my $filename =
-    		  $xpc->findvalue( './mets:FLocat/@xlink:href', $node );
-    		$checksums->{$filename} = $checksum;
-	    }
-	}
+
 	$self->{checksums} = $checksums;
     }
 
     return $self->{checksums};
 }
 
-=item get_checksum_file
-
-Returns the name of the file containing the checksums. Useful since that file won't have
-a checksum computed for it.
-
-=cut
-
-sub get_checksum_file {
-    my $self          = shift;
-    my $checksum_file = $self->{groove_book}->get_checksum_file();
-    $checksum_file = $self->{groove_book}->get_source_mets_file()
-    if not defined $checksum_file;
-    return $checksum_file;
-}
-
 =item get_source_mets_file
 
 Returns the name of the source METS file
+
+TODO: support more general creation, substitution of templates in METS file
 
 =cut
 
 sub get_source_mets_file {
     my $self = shift;
-    my $mets = $self->{groove_book}->get_source_mets_file();
-    croak("Could not find source mets file") unless defined $mets and $mets;
-    return $mets;
+    if(not defined $self->{source_mets_file}) {
+	my $src_mets_re = $self->{nspkg}->get('source_mets_file');
+
+	foreach my $file ( @{ $self->get_all_directory_files() }) {
+	    if($file =~ $src_mets_re) {
+		if(not defined $self->{source_mets_file}) {
+		    $self->{source_mets_file} = $file;
+		} else {
+		    croak("Two or more files match source METS RE $src_mets_re: $self->{source_mets_file} and $file");
+		}
+	    }
+	}
+    }
+
+    return $self->{source_mets_file};
 }
 
 =item get_source_mets_xpc
@@ -255,6 +252,7 @@ sub get_source_mets_xpc {
     my $xpc;
 
     eval {
+	die "Missing file $path/$mets" unless -e "$path/$mets";
 	my $parser = XML::LibXML->new();
 	my $doc    = $parser->parse_file("$path/$mets");
 	$xpc = XML::LibXML::XPathContext->new($doc);
@@ -309,16 +307,21 @@ sub get_nspkg{
     return $self->{nspkg};
 }
 
-=item get_metadata_files
+=item get_jhove_files
 
 Get all files that will need to have their metadata validated with JHOVE
 
 =cut
 
-sub get_metadata_files {
+sub get_jhove_files {
     my $self = shift;
-    my $book = $self->{groove_book};
-    return $book->get_all_images();
+    if(not defined $self->{jhove_files}) {
+	foreach my $filegroup (values(%{ $self->get_file_groups()})) {
+	    push(@{ $self->{jhove_files} },@{ $filegroup->get_filenames() }) if $filegroup->{jhove};
+	}
+    }
+
+    return $self->{jhove_files};
 }
 
 =item get_utf8_files
@@ -329,8 +332,13 @@ Get all files that should be valid UTF-8
 
 sub get_utf8_files {
     my $self = shift;
-    my $book = $self->{groove_book};
-    return [( @{ $book->get_all_ocr() }, @{ $book->get_all_hocr() })]; 
+    if(not defined $self->{utf8_files}) {
+	foreach my $filegroup (values(%{ $self->get_file_groups()})) {
+	    push(@{ $self->{utf8_files} },@{ $filegroup->get_filenames() }) if $filegroup->{utf8};
+	}
+    }
+
+    return $self->{utf8_files};
 }
 
 =item get_marc_xml
@@ -341,10 +349,6 @@ Returns an XML::LibXML node with the MARCXML
 
 sub get_marc_xml {
     my $self = shift;
-    my $book = $self->{groove_book};
-
-    my $marcxml_string = $book->get_marcxml();
-
     my $marcxml_doc;
 
     my $mets_xc = $self->get_source_mets_xpc();
@@ -366,6 +370,33 @@ sub get_marc_xml {
 
 }
 
+=item get_repository_symlink
+
+Returns the path to the repository symlink for the object.
+
+=cut
+
+sub get_repository_symlink {
+    my $self = shift;
+    
+
+    if(not defined $self->{repository_symlink}) {
+	my $authdir = get_config("repository","authdir");
+	my $namespace = $self->get_namespace();
+
+	my $objid = $self->get_objid();
+
+	my $pairtree_path = id2ppath($objid);
+
+	my $pt_objid = $self->get_pt_objid();
+
+	my $symlink = "$authdir/$namespace/$pairtree_path/$pt_objid";
+	$self->{repository_symlink} = $symlink;
+    }
+
+    return $self->{repository_symlink};
+}
+
 =item get_repository_mets_path
 
 Returns the full path where the METS file for this object 
@@ -375,15 +406,14 @@ would be, if this object was in the repository.
 
 sub get_repository_mets_path {
     my $self = shift;
-    my $book = $self->{groove_book};
 
-    my $repos_symlink = $book->get_repository_symlink();
+    my $repos_symlink = $self->get_repository_symlink();
 
     return unless (-l $repos_symlink);
 
     my $mets_in_repository_file = sprintf("%s/%s.mets.xml",
 	$repos_symlink,
-	$book->get_pt_objid());
+	$self->get_pt_objid());
 
     return unless (-f $mets_in_repository_file);
     return $mets_in_repository_file;
@@ -400,7 +430,6 @@ already in the repository.
 
 sub get_repository_mets_xpc  {
     my $self = shift;
-    my $book = $self->{groove_book};
 
     my $mets_in_repository_file = $self->get_repository_mets_path();
     return if not defined $mets_in_repository_file;
@@ -442,7 +471,9 @@ images.
 
 sub get_page_count {
     my $self = shift;
-    return scalar(@{$self->{groove_book}->get_all_images()});
+    my $image_group = $self->get_file_groups()->{image};
+    croak("Page count requested for object with no image filegroup") unless defined $image_group;
+    return scalar(@{ $image_group->get_filenames() });
 }
 
 =item get_files_by_page
@@ -479,7 +510,7 @@ sub get_file_groups_by_page {
 		}
 	    }
 	    else {
-		$self->_set_error( "BadField", field => 'sequence_number', file => $file);
+		$self->set_error( "BadField", field => 'sequence_number', file => $file);
 	    }
 	}
     }
@@ -488,18 +519,7 @@ sub get_file_groups_by_page {
 
 }
 
-=item get_alt_record_id
-
-Returns the altrecordid for the volume, if there is one.
-
-=cut
-
-sub get_alt_record_id {
-    my $self = shift;
-
-    return $self->{groove_book}->get_altRecordID_ID();
-
-}
+# TODO: altRecordID
 
 =item record_premis_event($eventtype,  
 					date => $date,
@@ -595,14 +615,14 @@ sub _get_current_date {
 
 =item get_zip
 
-Returns the name of the zipfile for this volume, if it exists
+Returns the filename of the zip archive of the volume
 
 =cut
 
 sub get_zip {
     my $self = shift;
-    my $book = $self->{groove_book};
-    return $book->get_zip();
+    return $self->get_pt_objid() . ".zip";
+
 }
 
 =item get_page_data(file)

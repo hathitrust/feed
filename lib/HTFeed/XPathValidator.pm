@@ -37,7 +37,7 @@ sub failed{
 
 # set fail, log errors
 # absract
-sub _set_error{
+sub set_error{
 	croak("This is an abstract method");
 }
 
@@ -70,7 +70,7 @@ sub _findnodes{
 		return $nodelist;
 	}
 	
-	$self->_set_error("MissingField", field => "${base}_${qn}");
+	$self->set_error("MissingField", field => "${base}_${qn}");
 	return;
 }
 
@@ -107,7 +107,7 @@ sub _findonenode{
 	
 	# detect error in _findnodes, fail
 	unless ($nodelist){
-		$self->_set_error("MissingField", field => "${base}_${qn}");
+		$self->set_error("MissingField", field => "${base}_${qn}");
 		return;
 	}
 	
@@ -116,7 +116,7 @@ sub _findonenode{
 		my $error_msg = "";
 		$error_msg .= $nodelist->size();
 		$error_msg .= " hits for context query; exactly one expected";
-		$self->_set_error("BadField", field => "${base}_${qn}", detail => $error_msg);
+		$self->set_error("BadField", field => "${base}_${qn}", detail => $error_msg);
 		return;
 	}
 
@@ -169,7 +169,7 @@ sub _validateone{
 		return 1;
 	}
 	else{
-		$self->_set_error("BadValue", field => "${base}_${qn}", actual => $actual, expected => $expected);
+		$self->set_error("BadValue", field => "${base}_${qn}", actual => $actual, expected => $expected);
 		return;
 	}
 }
@@ -184,7 +184,7 @@ sub _require_same {
     if(defined($found1) and defined($found2) and $found1 eq $found2) {
 	return 1;
     } else {
-	$self->_set_error("NotEqualValues", field => "${base1}_${qn1},${base2}_${qn2}", actual => 
+	$self->set_error("NotEqualValues", field => "${base1}_${qn1},${base2}_${qn2}", actual => 
 	    {"${base1}_${qn1}" => $found1,
 		"${base2}_${qn2}" => $found2});
 	return;
@@ -240,7 +240,7 @@ sub _openonecontext{
 		my $error_msg = "";
 		$error_msg .= $nodelist->size();
 		$error_msg .= " hits for context query: $cn exactly one expected";
-		$self->_set_error("BadValue", detail => $error_msg, field => $cn);
+		$self->set_error("BadValue", detail => $error_msg, field => $cn);
 		return;
 	}
 	my $node = $nodelist->pop();
@@ -294,7 +294,7 @@ sub {
     if (\$actual $op \$expected) {
 	return 1;
     } else {
-	\$self->_set_error("BadValue", field => "\${ctx}_\${query}", actual => \$actual, expected => "$op \$expected");
+	\$self->set_error("BadValue", field => "\${ctx}_\${query}", actual => \$actual, expected => "$op \$expected");
 	return;
     }
 }
@@ -328,7 +328,7 @@ sub v_in {
 	    return 1 if ($actual eq $expected);
 	}
 
-	$self->_set_error("BadValue", field => "\${ctx}_\$query", actual => $actual, expected => "one of (" . join(", ",@$allowed) . ")");
+	$self->set_error("BadValue", field => "\${ctx}_\$query", actual => $actual, expected => "one of (" . join(", ",@$allowed) . ")");
     }
 }
 

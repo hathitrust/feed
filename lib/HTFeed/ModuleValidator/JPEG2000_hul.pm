@@ -86,7 +86,7 @@ sub _set_validators {
 		&& ( "8,8,8"   eq $mix_bitsPerSample )
 		&& ( "888"     eq $xmp_bitsPerSample_color ))
 		or (
-		$self->_set_error(
+		$self->set_error(
 		    "NotMatchedValue", field => 'colorspace',
 		    actual => {"xmp_colorSpace" => $xmp_colorSpace,
 			"xmp_samplesPerPixel" => $xmp_samplesPerPixel,
@@ -108,7 +108,7 @@ sub _set_validators {
 	( ( $x1 > 0 && $y1 > 0 && $x2 > 0 && $y2 > 0 )
 	    && ( $x1 == $x2 )
 	    && ( $y1 == $y2 ) )
-	    or $self->_set_error(
+	    or $self->set_error(
 	    "NotMatchedValue", field => 'dimensions',
 	    actual => {"mix_width" => $x1,
 		"mix_length" => $y1,
@@ -172,10 +172,10 @@ sub _setupXMP {
 	my $uuidbox_cnt = $uuidbox_nodes->size();
 	unless ( $uuidbox_cnt == 1 ) {
 	    if ( $uuidbox_cnt > 1 ) {
-		$self->_set_error("BadField",detail => "UUIDBox not found",field => 'xmp');
+		$self->set_error("BadField",detail => "UUIDBox not found",field => 'xmp');
 	    }
 	    else {
-		$self->_set_error(
+		$self->set_error(
 		    "BadField",field => 'xmp',detail => "$uuidbox_cnt UUIDBox's found, XMP must be in the only UUIDBox"
 		);
 	    }
@@ -196,7 +196,7 @@ sub _setupXMP {
 
 	# check size
 	if ( $found_uuid->size() != 16 ) {
-	    $self->_set_error("Invalid value for field", field => 'xmp_uuid', actual => $found_uuid);
+	    $self->set_error("Invalid value for field", field => 'xmp_uuid', actual => $found_uuid);
 	}
 	else {
 	    my $found_entry;
@@ -208,7 +208,7 @@ sub _setupXMP {
 
 		    # found uuid that does not coorespond to an XMP
 		    # fail (this behavior may be changed later)
-		    $self->_set_error("Invalid value for field", field => 'xmp_uuid', actual => $found_uuid);
+		    $self->set_error("Invalid value for field", field => 'xmp_uuid', actual => $found_uuid);
 		    last;
 		}
 	    }
@@ -224,7 +224,7 @@ sub _setupXMP {
     my $char_node;
 
     while ( $char_node = $xml_char_nodes->shift() ) {
-	$xmp_xml .= chr( $char_node->textContent() );
+	$xmp_xml .= pack('c',$char_node->textContent() );
     }
 
     # setup xmp context
