@@ -2,7 +2,7 @@
 database:
   datasource: dbi:mysql:mdp_tracking_rrotter:mysql-htdev
   username: rrotter
-  password: nothingness0
+  password: xxxx
 
 jhove: /l/local/bin/jhove
 jhoveconf: /l/local/jhove/conf/jhove.conf
@@ -27,8 +27,8 @@ handle:
   local_admin: 2027/mdp
   database:
     datasource: dbi:mysql:handle:mysql-htdev
-    username: rrotter
-    password: nothingness0
+    username: handle
+    password: xxxx
 
 ###### PREMIS configuration ######################################################
 #
