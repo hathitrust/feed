@@ -4,17 +4,7 @@ use warnings;
 use strict;
 
 use HTFeed::Volume;
-use HTFeed::VolumeValidator;
 use HTFeed::Log;
-
-use HTFeed::PackageType::Google::Download;
-use HTFeed::PackageType::IA::Download;
-use HTFeed::PackageType::Google::Unpack;
-use HTFeed::Stage::Pack;
-use HTFeed::METS;
-use HTFeed::Stage::Sample;
-use HTFeed::Stage::Collate;
-use HTFeed::Stage::Handle;
 
 HTFeed::Log->init();
 
@@ -43,8 +33,6 @@ print sprintf("Test ingest of %s %s %s commencing...\n",$packagetype,$namespace,
 print 'Instantiating Volume object...';
 my $volume = HTFeed::Volume->new(objid => $objid,namespace => $namespace,packagetype => $packagetype);
 print "success\n";
-
-print join qq{\n}, @{$volume->get_nspkg()->get('stages_to_run')};
 
 my $stage;
 my $errors = 0;

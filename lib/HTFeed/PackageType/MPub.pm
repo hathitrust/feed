@@ -3,8 +3,17 @@ use HTFeed::PackageType;
 use base qw(HTFeed::PackageType);
 use strict;
 
+##TODO: commented out to not break compile
+#use HTFeed::PackageType::MPub::Fetch;
+use HTFeed::VolumeValidator;
+##TODO: commented out to not break compile
+#use HTFeed::PackageType::MPub::METS;
+use HTFeed::Stage::Pack;
+use HTFeed::Stage::Collate;
+use HTFeed::Stage::Handle;
+
 ########
-## TODO: this was copied from Google.pm, lots if it is wrong
+## TODO: this was copied from Google.pm, lots of it is wrong
 ########
 
 our $identifier = 'mpub';

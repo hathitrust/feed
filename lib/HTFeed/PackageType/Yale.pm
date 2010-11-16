@@ -3,6 +3,13 @@ use HTFeed::PackageType;
 use base qw(HTFeed::PackageType);
 use strict;
 
+use HTFeed::VolumeValidator;
+##TODO: commented out to not break compile
+#use HTFeed::PackageType::Yale::METS;
+use HTFeed::Stage::Handle;
+use HTFeed::Stage::Pack;
+use HTFeed::Stage::Collate;
+
 our $identifier = 'yale';
 
 our $config = {
@@ -59,8 +66,8 @@ our $config = {
     stages_to_run => [qw(
         HTFeed::VolumeValidator
         HTFeed::PackageType::Yale::METS
-        HTFeed::Handle
-        HTFeed::Zip
+        HTFeed::Stage::Handle
+        HTFeed::Stage::Pack
         HTFeed::Collate
 	)],
 

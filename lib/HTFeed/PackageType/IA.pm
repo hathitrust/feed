@@ -6,6 +6,13 @@ use strict;
 use base qw(HTFeed::PackageType);
 use HTFeed::PackageType::IA::Volume;
 
+use HTFeed::VolumeValidator;
+##TODO: commented out to not break compile
+#use HTFeed::PackageType::IA::METS;
+use HTFeed::Stage::Handle;
+use HTFeed::Stage::Pack;
+use HTFeed::Stage::Collate;
+
 our $identifier = 'ia';
 
 our $config = {
@@ -64,9 +71,9 @@ our $config = {
     stages_to_run => [qw(
         HTFeed::VolumeValidator
         HTFeed::PackageType::IA::METS
-        HTFeed::Handle
-        HTFeed::Zip
-        HTFeed::Collate
+        HTFeed::Stage::Handle
+        HTFeed::Stage::Pack
+        HTFeed::Stage::Collate
 	)],
 
     # The list of filegroups that contain files that will be validated
