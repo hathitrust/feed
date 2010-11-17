@@ -30,6 +30,10 @@ sub new {
 	#		mets_xml		=> undef,
     };
 
+    $self->{groove_book} =
+    GROOVE::Book->new( $self->{objid}, $self->{namespace},
+       $self->{packagetype} );
+
     $self->{nspkg} = new HTFeed::Namespace($self->{namespace},$self->{packagetype});
 
     $self->{nspkg}->validate_barcode($self->{objid}) 
@@ -249,6 +253,8 @@ sub get_source_mets_xpc {
 
     my $mets = $self->get_source_mets_file();
     my $path = $self->get_staging_directory();
+
+    die("Missing METS file") unless defined $mets and defined $path;
     my $xpc;
 
     eval {
@@ -510,7 +516,7 @@ sub get_file_groups_by_page {
 		}
 	    }
 	    else {
-		$self->set_error( "BadField", field => 'sequence_number', file => $file);
+		croak("Can't get sequence number for $file");
 	    }
 	}
     }

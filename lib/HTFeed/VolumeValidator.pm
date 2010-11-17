@@ -52,7 +52,12 @@ sub run {
         if ( exists( $self->{stages}{$stage} ) ) {
             my $sub = $self->{stages}{$stage};
             $logger->debug("Running validation stage $stage");
-            &{$sub}($self);
+	    eval {
+		&{$sub}($self);
+	    };
+	    if($@) {
+		$self->set_error("IncompleteStage",detail => "stage $stage of VolumeValidator failed: $@");
+	    }
         }
         else {
             croak("Undefined validation stage $stage requested");

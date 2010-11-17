@@ -30,6 +30,12 @@ handle:
     username: handle
     password: xxxx
 
+repository:
+  # The directory in which symbolic links will be created to each volume
+  authdir: /htapps/aelkiss.babel/repos/links
+  # The directory into which volumes will be loaded 
+  destdir: /htapps/aelkiss.babel/repos/obj
+
 ###### PREMIS configuration ######################################################
 #
 # A perl snippet returning the software name and version for each 'tool' code in the
