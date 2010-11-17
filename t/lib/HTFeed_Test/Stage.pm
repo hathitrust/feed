@@ -60,7 +60,7 @@ sub check_failure_fail : Test{
     my $self = shift;
     my $stage_obj = $self->{stage};
     
-    $stage_obj->_set_error("We Failed!");
+    $stage_obj->set_error("We Failed!");
     $stage_obj->_set_done;
     ok($stage_obj->failed);
 }

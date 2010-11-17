@@ -1,23 +1,20 @@
-package HTFeed::PackageType::Yale;
+package HTFeed::PackageType::MDLContone;
+use HTFeed::XPathValidator qw(:closures);
 use HTFeed::PackageType;
 use base qw(HTFeed::PackageType);
 use strict;
 
-use HTFeed::VolumeValidator;
-##TODO: commented out to not break compile
-#use HTFeed::PackageType::Yale::METS;
-use HTFeed::Stage::Handle;
-use HTFeed::Stage::Pack;
-use HTFeed::Stage::Collate;
-
-our $identifier = 'yale';
+our $identifier = 'mdlcontone';
 
 our $config = {
+    volume_module => 'HTFeed::Volume',
+    
     # Regular expression that distinguishes valid files in the file package
+    # HTML OCR is valid for the package type but only expected/required for UC1
     valid_file_pattern => qr/^( 
-		Yale_\w+\.(xml) |
-		39002\d{9}_\d{6}\.(xml|jp2|txt)$
-		)/x,
+		\w{3}\d{5}\.(jp2) |
+		\w{3}\d{5}\.(xml) 
+		$)/x,
 
     # Configuration for each filegroup. 
     # prefix: the prefix to use on file IDs in the METS for files in this filegruop
@@ -31,43 +28,25 @@ our $config = {
 	image => { 
 	    prefix => 'IMG',
 	    use => 'image',
-	    file_pattern => qr/39002\d{9}_\d{6}\.(jp2)$/,
+	    file_pattern => qr/\.(jp2)$/,
 	    required => 1,
 	    validate => 1,
 	    jhove => 1,
 	    utf8 => 0
 	},
-	ocr => { 
-	    prefix => 'OCR',
-	    use => 'ocr',
-	    file_pattern => qr/39002\d{9}_\d{6}\.txt$/,
-	    required => 1,
-	    validate => 1,
-	    jhove => 0,
-	    utf8 => 1
-	},
-	hocr => { 
-	    prefix => 'XML',
-	    use => 'coordOCR',
-	    file_pattern => qr/39002\d{9}_\d{6}\.xml$/,
-	    required => 1,
-	    validate => 1,
-	    jhove => 0,
-	    utf8 => 1
-	}
     },
 
-    source_mets_file => qr/^Yale_\w+\.xml$/,
+    source_mets_file => qr/^\w+\.xml$/,
 
     # Allow gaps in numerical sequence of filenames?
-    allow_sequence_gaps => 0,
+    allow_sequence_gaps => 1,
 
     # The list of stages to run to successfully ingest a volume.
     stages_to_run => [qw(
-        HTFeed::VolumeValidator
-        HTFeed::PackageType::Yale::METS
-        HTFeed::Stage::Handle
-        HTFeed::Stage::Pack
+        HTFeed::PackageType::MDLContone::VolumeValidator
+        HTFeed::PackageType::MDLContone::METS
+        HTFeed::Handle
+        HTFeed::Zip
         HTFeed::Collate
 	)],
 
@@ -75,35 +54,33 @@ our $config = {
     # by JHOVE
     metadata_filegroups => [qw(image)],
 
-    # The list of filegroups that contain files that should be validated
-    # to use valid UTF-8
-    utf8_filegroups => [qw(ocr hocr)],
 
     # The HTFeed::ModuleValidator subclass to use for validating
     # files with the given extensions
     module_validators => {
         'jp2'  => 'HTFeed::ModuleValidator::JPEG2000_hul',
-        'tif'  => 'HTFeed::ModuleValidator::TIFF_hul',
     },
 
     # Validation overrides
     validation => {
+	  'HTFeed::ModuleValidator::JPEG2000_hul' => {
+	      'layers' => v_eq( 'codingStyleDefault', 'layers', '8' ),
+		transformation => v_eq('codingStyleDefault','transformation','1')
+	  }
+
     },
 
     # What PREMIS events to extract from the source METS and include
     source_premis_events => [
-	'capture'
     ],
 
     # What PREMIS events to include (by internal PREMIS identifier, 
     # configured in config.yaml)
     premis_events => [
 	'page_md5_fixity',
-	'preingest',
 	'page_md5_create',
 	'package_validation',
-	'page_feature_mapping',
-#	'zip_compression',
+	'zip_compression',
 	'zip_md5_create',
 #	'ht_mets_creation',
 	'ingestion',
@@ -111,23 +88,32 @@ our $config = {
 
     # Overrides for the basic PREMIS event configuration
     premis_overrides => {
-	'ocr_normalize' => {
-	    description => 'Extraction of plain-text OCR from ALTO XML',
-	}
-    }
+    },
+
+    # download to disk (as opposed to ram) if true
+    download_to_disk => 0,    
+    
+    # delete package if ingest fails
+    # this should probably always be true if download_to_disk is false
+    delete_SIP_on_fail => 1,
+
+    # filename extensions not to compress in zip file
+    uncompressed_extensions => ['jp2'],
+
+    
 };
 
 __END__
 
 =pod
 
-This is the package type configuration file for Yale.
+This is the package type configuration file for Google / GRIN.
 
 =head1 SYNOPSIS
 
 use HTFeed::PackageType;
 
-my $pkgtype = new HTFeed::PackageType('yale');
+my $pkgtype = new HTFeed::PackageType('google');
 
 =head1 AUTHOR
 

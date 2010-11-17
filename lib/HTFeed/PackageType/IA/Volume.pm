@@ -3,7 +3,7 @@ package HTFeed::PackageType::IA::Volume;
 use warnings;
 use strict;
 use base qw(HTFeed::Volume);
-use DBI;
+use GROOVE::DBTools;
 use HTFeed::Config qw(get_config);
 
 sub get_ia_id{
@@ -18,12 +18,8 @@ sub get_ia_id{
     # else get it and memoize
     my $arkid = $self->get_objid();
     
-    ## TODO: replace this DB boilerplate with DB library
-    my $datasource = get_config('database'=>'datasource');
-    my $user = get_config('database'=>'username');
-    my $passwd = get_config('database'=>'password');
-
-    my $dbh = DBI->connect($datasource, $user, $passwd);
+    my $db = new GROOVE::DBTools;
+    my $dbh = $db->get_dbh();
     my $sth = $dbh->prepare("select ia_id from ia_arkid where arkid = ?");
     $sth->execute($arkid);
     

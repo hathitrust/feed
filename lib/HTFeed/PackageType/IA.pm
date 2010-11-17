@@ -21,20 +21,48 @@ our $config = {
     # Regular expression that distinguishes valid files in the file package
     valid_file_pattern => qr/^( 
 		IA_\w+\.(xml) |
-		\d{8}.(xml|jp2|txt)
+		\d{8}\.(xml|jp2|txt)
 		)/x,
 
-    # A set of regular expressions mapping files to the filegroups they belong
-    # in
-    filegroup_patterns => {
-	image => qr/\.(jp2)$/,
-	ocr => qr/\.txt$/,
-	hocr => qr/\.xml$/
+    # Configuration for each filegroup. 
+    # prefix: the prefix to use on file IDs in the METS for files in this filegruop
+    # use: the 'use' attribute on the file group in the METS
+    # file_pattern: a regular expression to determine if a file is in this filegroup
+    # required: set to 1 if a file from this filegroup is required for each page 
+    # validate: set to 1 if some kind of validation will be performed on this filegroup
+    # jhove: set to 1 if output from JHOVE will be used in validation
+    # utf8: set to 1 if files should be verified to be valid UTF-8
+    filegroups => {
+	image => { 
+	    prefix => 'IMG',
+	    use => 'image',
+	    file_pattern => qr/\d{8}\.(jp2|tif)$/,
+	    required => 1,
+	    validate => 1,
+	    jhove => 1,
+	    utf8 => 0
+	},
+	ocr => { 
+	    prefix => 'OCR',
+	    use => 'ocr',
+	    file_pattern => qr/\d{8}\.txt$/,
+	    required => 1,
+	    validate => 1,
+	    jhove => 0,
+	    utf8 => 1
+	},
+	hocr => { 
+	    prefix => 'XML',
+	    use => 'coordOCR',
+	    file_pattern => qr/\d{8}\.xml$/,
+	    required => 1,
+	    validate => 1,
+	    jhove => 0,
+	    utf8 => 1
+	}
     },
 
-    # A list of filegroups for which there must be a file for each page.
-    required_filegroups => [qw(image hocr ocr)],
-
+    source_mets_file => qr/^IA_\w+\.xml$/,
 
     # Allow gaps in numerical sequence of filenames?
     allow_sequence_gaps => 1,

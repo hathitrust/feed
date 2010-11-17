@@ -24,7 +24,7 @@ sub new {
 
     $self->{stages} = {
         validate_file_names          => \&_validate_file_names,
-        validate_filegroups_nonempty => \&_validate_filegroups_nonempty,
+        validate_filegroups	     => \&_validate_filegroups,
         validate_consistency         => \&_validate_consistency,
         validate_checksums           => \&_validate_checksums,
         validate_utf8                => \&_validate_utf8,
@@ -33,7 +33,7 @@ sub new {
 
     $self->{run_stages} = [
         qw(validate_file_names
-          validate_filegroups_nonempty
+          validate_filegroups
           validate_consistency
           validate_checksums
           validate_utf8
@@ -52,7 +52,12 @@ sub run {
         if ( exists( $self->{stages}{$stage} ) ) {
             my $sub = $self->{stages}{$stage};
             $logger->debug("Running validation stage $stage");
-            &{$sub}($self);
+	    eval {
+		&{$sub}($self);
+	    };
+	    if($@) {
+		$self->set_error("IncompleteStage",detail => "stage $stage of VolumeValidator failed: $@");
+	    }
         }
         else {
             croak("Undefined validation stage $stage requested");
@@ -92,7 +97,7 @@ sub _validate_file_names {
 
 }
 
-=item _validate_filegroups_nonempty
+=item _validate_filegroups
 
 Ensure that every listed filegroup (image, ocr, etc.) contains at least one file.
 
@@ -101,23 +106,17 @@ TODO: Use filegroup patterns from ns/packagetype config to populate filegroups
 
 =cut
 
-sub _validate_filegroups_nonempty {
+sub _validate_filegroups {
     my $self   = shift;
     my $volume = $self->{volume};
 
-    my $prev_filecount      = undef;
-    my $prev_filegroup_name = q{};
     my $filegroups          = $volume->get_file_groups();
     while ( my ( $filegroup_name, $filegroup ) = each( %{$filegroups} ) ) {
         $logger->debug("validating nonempty filegroup $filegroup_name");
         my $filecount = scalar( @{$filegroup->get_filenames()} );
         if ( !$filecount ) {
-            $self->set_error("EmptyFilegroup", filegroup => $filegroup);
+            $self->set_error("BadFilegroup", filegroup => $filegroup);
         }
-
-        $prev_filegroup_name = $filegroup_name;
-        $prev_filecount      = $filecount;
-
     }
 
     return;
@@ -175,7 +174,7 @@ sub _validate_checksums {
     my $self          = shift;
     my $volume        = $self->{volume};
     my $checksums     = $volume->get_checksums();
-    my $checksum_file = $volume->get_checksum_file();
+#    my $checksum_file = $volume->get_checksum_file();
     my $path          = $volume->get_staging_directory();
 
    # make sure we check every file in the directory except for the checksum file
@@ -191,7 +190,7 @@ sub _validate_checksums {
     my @bad_files = ();
 
     foreach my $file (@tovalidate) {
-        next if $file eq $checksum_file;
+#        next if $file eq $checksum_file;
         my $expected = $checksums->{$file};
         if ( not defined $expected ) {
             $self->set_error("BadChecksum",field => 'checksum',file => $file, detail => "File present in package but not in checksum file");
@@ -267,7 +266,7 @@ sub _validate_metadata {
 	
 	# get files
     my $dir = $volume->get_staging_directory();
-    my $files = $volume->get_metadata_files();
+    my $files = $volume->get_jhove_files();
     
     # make sure we have >0 files
     if (! @$files){

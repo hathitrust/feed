@@ -97,8 +97,8 @@ sub _setdatetime {
     my $datetime = shift;
 
     # validate
-    unless ( defined($datetime) and $datetime =~ /^(\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d)(\+\d\d:\d\d|)$/ ) {
-        $self->_set_error("BadValue",field => 'datetime',actual => $datetime);
+    unless ( defined($datetime) and $datetime =~ /^(\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d)(\+\d\d:\d\d|)?$/ ) {
+        $self->set_error("BadValue",field => 'datetime',actual => $datetime);
         return 0;
     }
 
@@ -110,7 +110,7 @@ sub _setdatetime {
         if ( $self->{datetime} eq $datetime ) {
             return 1;
         }
-        $self->_set_error("NotMatchedValue",field => 'datetime',expected => $self->{datetime},actual=>$datetime);
+        $self->set_error("NotMatchedValue",field => 'datetime',expected => $self->{datetime},actual=>$datetime);
         return 0;
     }
 
@@ -131,7 +131,7 @@ sub _setartist {
         if ( $self->{artist} eq $artist ) {
             return 1;
         }
-        $self->_set_error("NotMatchedValue",field=>'artist',expected => $self->{artist},actual => $artist);
+        $self->set_error("NotMatchedValue",field=>'artist',expected => $self->{artist},actual => $artist);
         return 0;
     }
 
@@ -152,7 +152,7 @@ sub _setdocumentname {
         if ( $self->{documentname} eq $documentname ) {
             return 1;
         }
-        $self->_set_error("NotMatchedValue",field=>'documentname',expected => $self->{documentname}, actual=>$documentname);
+        $self->set_error("NotMatchedValue",field=>'documentname',expected => $self->{documentname}, actual=>$documentname);
         return 0;
     }
 
@@ -165,7 +165,7 @@ sub _setdocumentname {
     $pattern =~ s/[-_]/\[-_\]/g;
 
     unless ( $documentname =~ m|$pattern|i ) {
-        $self->_set_error("BadValue",field=>'documentname',actual=>$documentname);
+        $self->set_error("BadValue",field=>'documentname',actual=>$documentname);
         return 0;
     }
 
@@ -192,7 +192,7 @@ sub _setupXMPcontext {
 
     };
     if ($@) {
-        $self->_set_error("BadField",detail=>$@,field=>'xmp');
+        $self->set_error("BadField",detail=>$@,field=>'xmp');
         return 0;
     }
     else {
@@ -202,7 +202,7 @@ sub _setupXMPcontext {
 }
 
 # set fail, log errors
-sub _set_error {
+sub set_error {
     my $self = shift;
     my $error = shift;
     $self->{fail}++;
