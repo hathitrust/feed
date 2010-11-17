@@ -110,7 +110,7 @@ sub _setdatetime {
         if ( $self->{datetime} eq $datetime ) {
             return 1;
         }
-        $self->_set_error("Mismatched values for field",field => 'datetime',expected => $self->{datetime},actual=>$datetime);
+        $self->_set_error("NotMatchedValue",field => 'datetime',expected => $self->{datetime},actual=>$datetime);
         return 0;
     }
 
@@ -131,7 +131,7 @@ sub _setartist {
         if ( $self->{artist} eq $artist ) {
             return 1;
         }
-        $self->_set_error("Mismatched values for field",field=>'artist',expected => $self->{artist},actual => $artist);
+        $self->_set_error("NotMatchedValue",field=>'artist',expected => $self->{artist},actual => $artist);
         return 0;
     }
 
@@ -152,7 +152,7 @@ sub _setdocumentname {
         if ( $self->{documentname} eq $documentname ) {
             return 1;
         }
-        $self->_set_error("Mismatched values for field",field=>'documentname',expected => $self->{documentname}, actual=>$documentname);
+        $self->_set_error("NotMatchedValue",field=>'documentname',expected => $self->{documentname}, actual=>$documentname);
         return 0;
     }
 
@@ -165,7 +165,7 @@ sub _setdocumentname {
     $pattern =~ s/[-_]/\[-_\]/g;
 
     unless ( $documentname =~ m|$pattern|i ) {
-        $self->_set_error("Invalid value for field",field=>'documentname',actual=>$documentname);
+        $self->_set_error("BadValue",field=>'documentname',actual=>$documentname);
         return 0;
     }
 

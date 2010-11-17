@@ -6,9 +6,6 @@ use HTFeed::Volume;
 use HTFeed::VolumeValidator;
 use HTFeed::Log;
 
-# for testing until we get the test harness going, then delete this line
-use HTFeed::Test::Support;
-
 HTFeed::Log->init();
 
 # check for legacy environment vars
