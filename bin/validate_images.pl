@@ -25,13 +25,16 @@ unless (defined $ENV{GROOVE_WORKING_DIRECTORY} and defined $ENV{GROOVE_CONFIG}){
 my $packagetype = shift;
 my $namespace = shift;
 my $dir = shift;
-unless ($objid and $namespace and $dir){
-    print "usage: validate_images.pl packagetype namespace dir\n";
+my $objid = shift;
+unless ($packagetype and $namespace and $dir){
+    print "usage: validate_images.pl packagetype namespace dir [objid]\n";
     exit 0;
 }
 
 # run validation
-my $volume = HTFeed::TestVolume->new(namespace => $namespace,packagetype => $packagetype,dir=>$dir);
+my $volume;
+$volume = HTFeed::TestVolume->new(namespace => $namespace,packagetype => $packagetype,dir=>$dir,objid=>$objid) if (defined $objid);
+$volume = HTFeed::TestVolume->new(namespace => $namespace,packagetype => $packagetype,dir=>$dir) if (! defined $objid);
 
 my $vol_val = HTFeed::VolumeValidator->new(volume => $volume);
 

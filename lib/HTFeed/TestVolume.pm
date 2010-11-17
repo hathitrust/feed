@@ -18,9 +18,9 @@ sub new{
         namespace => undef,
         packagetype => undef,
         dir => undef,
-        @_,
         # '' for the objid will make the file names in the image metadata pass validation
         objid => q{},
+        @_,
     };
     
     $self->{nspkg} = new HTFeed::Namespace($self->{namespace},$self->{packagetype});
