@@ -45,9 +45,14 @@ sub _set_validators {
 		),	
 		'profile2' 		=> v_eq( 'repInfo', 'profile2', 'PCM Wave Format'),
 		'originator' 		=> v_eq( 'wavMeta', 'originator', 'University of Michigan Library'),
+		'checksumKind'		=> v_eq ('mets', 'checksumKind', 'MD5'),
 
-		'mets' => sub { # change tests for specific test type
-			my $mets_mets = $self->_findeone("mets", "mets"); # <-- verify that section exists for this wav?
+		'originationDate'	=> v_exists( 'waveMeta', 'originationDate'),
+    		#regex to validate originationDate
+		#eg: ($date =~ m/^[0-9]{4}-(((0[13578]|(10|12))-(0[1-9]|[1-2][0-9]|3[0-1]))|(02-(0[1-9]|[1-2][0-9]))|((0[469]|11)-(0[1-9]|[1-2][0-9]|30)))$/)
+
+		'mets' => sub {
+			my $mets_mets = $self->_findeone("mets", "mets");
 			my $mets_analogDigitalFlag = $self->_findone("mets", "analogDigitalFlag");
 			my $mets_audioDataEncoding = $self->_findone("mets", "DataEncoding");
 			my $mets_bitDepth = $self->_findone("mets", "bitDepth");
@@ -74,10 +79,11 @@ sub run {
 	# open contexts
 	$self->_setcontext(
 		name => "root",
-		aes => $self->{aes}
+		xpc => $self->{xpc}
 	);
 	$self->_openonecontext("repInfo");
 	$self->_openonecontext("waveMeta");
+	$self->_openonecontect("aes");
 	
 	# if we already have errors, quit now, we won't get anything else out of this without usable contexts
 	if ($self->failed) {

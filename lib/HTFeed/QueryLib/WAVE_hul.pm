@@ -14,7 +14,7 @@ sub new{
 	my $self = {
 		contexts => {
 			waveMeta => ["jhove:properties/jhove:property[jhove:name='WAVEMetadata']/jhove:values", "repInfo"],
-				aes 	=> ["jhove:property[jhove:name='AESAudioMetadata']/jhove:values/jhove:value", "waveMeta"],
+			aes 	=> ["jhove:property[jhove:name='AESAudioMetadata']/jhove:values/jhove:value", "waveMeta"],
 		},
 		queries => {
 			# top level
