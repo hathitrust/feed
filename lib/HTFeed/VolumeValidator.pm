@@ -174,7 +174,8 @@ sub _validate_checksums {
     my $self          = shift;
     my $volume        = $self->{volume};
     my $checksums     = $volume->get_checksums();
-#    my $checksum_file = $volume->get_checksum_file();
+    my $checksum_file = $volume->get_nspkg()->get('checksum_file');
+    my $source_mets_file = $volume->get_source_mets_file();
     my $path          = $volume->get_staging_directory();
 
    # make sure we check every file in the directory except for the checksum file
@@ -190,7 +191,8 @@ sub _validate_checksums {
     my @bad_files = ();
 
     foreach my $file (@tovalidate) {
-#        next if $file eq $checksum_file;
+        next if $file eq $source_mets_file;
+	next if $checksum_file and $file eq $checksum_file;
         my $expected = $checksums->{$file};
         if ( not defined $expected ) {
             $self->set_error("BadChecksum",field => 'checksum',file => $file, detail => "File present in package but not in checksum file");

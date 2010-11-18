@@ -62,6 +62,7 @@ our $config = {
 	}
     },
 
+    checksum_file => 0, # no separate checksum file for IA
     source_mets_file => qr/^IA_\w+\.xml$/,
 
     # Allow gaps in numerical sequence of filenames?
