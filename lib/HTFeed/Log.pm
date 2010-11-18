@@ -10,7 +10,7 @@ use HTFeed::Config qw(get_config);
 use Carp;
 
 use Data::Dumper;
-$Data::Dumper::Indent = 0;
+#$Data::Dumper::Indent = 0;
 
 use Log::Log4perl;
 
@@ -43,7 +43,7 @@ my %error_codes = (
 # these fields are allowed in any log event (error, debug, etc)
 # as long as config.l4p runs it through one of our custom filters:
 #   HTFeed::Log::Warp (for DB appenders), HTFeed::Log::Layout::PrettyPrint (for text appenders)
-my @fields = qw(volume file field actual expected detail);
+my @fields = qw(volume file field actual expected detail operation);
 
 # call EXACTLY ONCE to initialize logging
 sub init{
@@ -59,8 +59,6 @@ sub init{
 # convert a hash containing keys in @fields to an array
 # ordered like @fields, with undef where appropriate
 sub fields_hash_to_array{
-    # get rid of package name
-    shift;
     my $hash = shift;
     my @ret = ();
     
@@ -86,10 +84,8 @@ sub fields_hash_to_array{
 
 # take a string that should be a key in %error_codes, return appropriate error string
 sub error_code_to_string{
-    # get rid of package name
-    shift;
-    
     my $error_code = shift;
+
     if (my $error_message = $error_codes{$error_code}){
         return $error_message;
     }

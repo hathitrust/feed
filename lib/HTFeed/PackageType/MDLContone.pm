@@ -36,6 +36,7 @@ our $config = {
 	},
     },
 
+    checksum_file => 0, # no separate checksum file for MDL contone
     source_mets_file => qr/^\w+\.xml$/,
 
     # Allow gaps in numerical sequence of filenames?

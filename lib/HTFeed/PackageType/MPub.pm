@@ -56,6 +56,9 @@ our $config = {
     # by JHOVE
     metadata_filegroups => [qw(image)],
 
+    # The file containing the checksums for each data file
+    checksum_file => qr/^checksum.md5$/,
+
     # The list of filegroups that contain files that should be validated
     # to use valid UTF-8
     utf8_filegroups => [qw(ocr)],
