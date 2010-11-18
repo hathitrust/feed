@@ -6,8 +6,8 @@ log4perl.appender.dbi.username        = sub {return HTFeed::Config::get_config(d
 log4perl.appender.dbi.password        = sub {return HTFeed::Config::get_config(database => 'password');}
 log4perl.appender.dbi.sql =         \
             insert into ht_errors   \
-            (timestamp,level,message,obj_id,file,field,actual,expected,detail)\
-            values (?,?,?,?,?,?,?,?,?)
+            (timestamp,level,message,obj_id,file,field,actual,expected,detail,operation)\
+            values (?,?,?,?,?,?,?,?,?,?)
 log4perl.appender.dbi.params.1 = %d
 log4perl.appender.dbi.params.2 = %p
 
@@ -22,6 +22,7 @@ log4perl.appender.dbi.warp_message    = HTFeed::Log::Warp::toDBArray
 #  `level` varchar(5) NOT NULL,
 #  `timestamp` datetime NOT NULL,
 #  `obj_id` varchar(32) default NULL,
+#  `operation` varchar(32) default NULL,
 #  `message` varchar(40) NOT NULL,
 #  `file` tinytext,
 #  `field` tinytext,
@@ -29,4 +30,4 @@ log4perl.appender.dbi.warp_message    = HTFeed::Log::Warp::toDBArray
 #  `expected` tinytext,
 #  `detail` tinytext,
 #  PRIMARY KEY  (`id`)
-#) ENGINE=MyISAM AUTO_INCREMENT=634 DEFAULT CHARSET=latin1;
+#);
