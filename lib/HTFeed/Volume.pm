@@ -13,6 +13,9 @@ use GROOVE::DBTools;
 use Time::localtime;
 use File::Pairtree;
 
+## TODO: delete this line, I added it back to get this running again
+use GROOVE::Book;
+
 our $logger = get_logger(__PACKAGE__);
 
 sub new {

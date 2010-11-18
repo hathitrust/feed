@@ -161,59 +161,68 @@ sub run {
 sub _setupXMP {
     my $self = shift;
 
-    # look for uuidbox
+    # look for uuidbox, set uuidbox context
     {
+        # find all UUID boxes
+        my $uuidbox_nodes = $self->_findcontexts('uuidBox');
 
-	# find all UUID boxes
+        # check that we have a uuidbox
+        my $uuidbox_cnt = $uuidbox_nodes->size();
+        unless ( $uuidbox_cnt > 0 ) {
+            # fail
+            $self->set_error('BadField',detail => 'UUIDBox not found',field => 'xmp');
+            return;
+        }
+        
+        my $uuidbox_node;
+        my $xmps_found = 0; # flag if we have found it yet, we better see exactly one
+        # the uuid for embedded XMP data
+        my @reference_uuid = (
+            -66,  122, -49,  -53,  -105, -87, 66,  -24,
+            -100, 113, -103, -108, -111, -29, -81, -84
+        );
+        my $found_uuid;
+        my $uuid_context_node_containing_xmp;
+        while ($uuidbox_node = $uuidbox_nodes->shift()){
+            $self->_setcontext( name => 'uuidBox', node => $uuidbox_node );
+            $found_uuid = $self->_findnodes( 'uuidBox', 'uuid' );
+            
+            # check size
+            if ( $found_uuid->size() != 16 ) {
+                $self->set_error('BadValue', field => 'xmp_uuid', actual => $found_uuid, detail => 'UUID size must be 16');
+                # punt, we won't be getting any further anyway
+                return;
+            }
+            else {
+                my $found_entry;
+                my $is_xmp = 1;
+                foreach my $ref_entry (@reference_uuid) {
+                    $found_entry = $found_uuid->shift()->textContent();
 
-	my $uuidbox_nodes = $self->_findcontexts("uuidBox");
+                    # fail as needed
+                    unless ( $found_entry == $ref_entry ) {
+                        # found uuid that does not coorespond to XMP
+                        $is_xmp = 0; # this isn't XMP, take the flag down
+                        last;
+                    }
+                }
+                if ($is_xmp){
+                    $xmps_found++;
+                    $uuid_context_node_containing_xmp = $uuidbox_node;
+                }
+            }
+        }
+        # set the uidBox context to the last uuidBox with xmp
+        # if there is more than one xmp we are punting anyhow, so it doesn't matter if this is the wrong one
+        $self->_setcontext( name => 'uuidBox', node => $uuid_context_node_containing_xmp );
 
-	# check number of uuidboxes (should equal 1)
-	my $uuidbox_cnt = $uuidbox_nodes->size();
-	unless ( $uuidbox_cnt == 1 ) {
-	    if ( $uuidbox_cnt > 1 ) {
-		$self->set_error("BadField",detail => "UUIDBox not found",field => 'xmp');
-	    }
-	    else {
-		$self->set_error(
-		    "BadField",field => 'xmp',detail => "$uuidbox_cnt UUIDBox's found, XMP must be in the only UUIDBox"
-		);
-	    }
-
-	    # fail
-	    return;
-	}
-
-	# check uuid
-	my $uuidbox_node = $uuidbox_nodes->shift();
-	$self->_setcontext( name => "uuidBox", node => $uuidbox_node );
-
-	my $found_uuid = $self->_findnodes( "uuidBox", "uuid" );
-	my @reference_uuid = (
-	    -66,  122, -49,  -53,  -105, -87, 66,  -24,
-	    -100, 113, -103, -108, -111, -29, -81, -84
-	);
-
-	# check size
-	if ( $found_uuid->size() != 16 ) {
-	    $self->set_error("Invalid value for field", field => 'xmp_uuid', actual => $found_uuid);
-	}
-	else {
-	    my $found_entry;
-	    foreach my $ref_entry (@reference_uuid) {
-		$found_entry = $found_uuid->shift()->textContent();
-
-		# fail as needed
-		unless ( $found_entry == $ref_entry ) {
-
-		    # found uuid that does not coorespond to an XMP
-		    # fail (this behavior may be changed later)
-		    $self->set_error("Invalid value for field", field => 'xmp_uuid', actual => $found_uuid);
-		    last;
-		}
-	    }
-	}
+        if ($xmps_found != 1){
+            $self->set_error('BadField',detail => "$xmps_found XMPs found, expected 1",field => 'xmp');
+            return;
+        }
+        
     }
+    
 
     # we are in a (the) UUIDBox that holds the XMP now
 
@@ -224,7 +233,7 @@ sub _setupXMP {
     my $char_node;
 
     while ( $char_node = $xml_char_nodes->shift() ) {
-	$xmp_xml .= pack('c',$char_node->textContent() );
+        $xmp_xml .= pack('c',$char_node->textContent() );
     }
 
     # setup xmp context

@@ -294,7 +294,7 @@ sub _validate_metadata {
     # start looking for repInfo block
     DOC_READER: while(<$pipe>){
         if (m|^\s<repInfo.+>$|){
-            # save the fisrt line when we find it
+            # save the first line when we find it
             my $xml_block = "$_";
 
             # get the rest of the lines for this repInfo block

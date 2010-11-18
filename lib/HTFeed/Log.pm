@@ -10,7 +10,7 @@ use HTFeed::Config qw(get_config);
 use Carp;
 
 use Data::Dumper;
-$Data::Dumper::Indent = 0;
+#$Data::Dumper::Indent = 0;
 
 use Log::Log4perl;
 
