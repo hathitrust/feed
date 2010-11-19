@@ -6,7 +6,7 @@ use YAML::XS;
 use Carp;
 
 use base qw(Exporter);
-our @EXPORT_OK = qw(get_config);
+our @EXPORT_OK = qw(get_config set_config);
 
 
 my $config;
@@ -44,27 +44,35 @@ get_config('l4p_config');
 
 =cut
 sub get_config{
-    # get rid of package name if we have it
-    {
-        my ($package) = @_;
-        if ($package eq __PACKAGE__){
-            shift;
-        }
-    }
-    
     # drill down to the leaf
     my $cursor = $config;
     foreach my $hashlevel (@_) {
         # die if we try to traverse the tree past a leaf
-        croak( sprintf("$bad_path_error_message", join("=>",@_)) ) if (! ref($cursor));
+        croak( sprintf($bad_path_error_message, join('=>',@_)) ) if (! ref($cursor));
         $cursor = $cursor->{$hashlevel};
         
         # die if we try to traverse the tree where no path exists
-        croak( sprintf("$bad_path_error_message", join("=>",@_)) ) if (! $cursor);
+        croak( sprintf($bad_path_error_message, join('=>',@_)) ) if (! $cursor);
     }
     return $cursor;
-    # die if we try to return a non-leaf node
-#    croak( sprintf("c $bad_path_error_message", join("=>",@_)) );
+}
+
+=set_config
+change an entry after config is loaded
+this probably shouldn't be used in production, but will be quite helpful in test scripts
+
+change_config('setting','path'=>'to'=>'my'=>'setting')
+=cut
+sub set_config{
+    my $setting = shift;
+    my $leaf = pop;
+    my $cursor = $config;
+    foreach my $hashlevel (@_) {
+        $cursor = $cursor->{$hashlevel};
+        croak( sprintf("$bad_path_error_message", join('=>',@_,$leaf)) ) if (! ref($cursor));
+    }
+    $cursor->{$leaf} = $setting;
+    return 1;
 }
 
 1;

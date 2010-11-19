@@ -318,6 +318,7 @@ sub _validate_metadata {
             {
                 # put the headers on xml_block, parse it as a doc
                 $xml_block = $control_line . $head . $date_line . $xml_block . $tail;
+#                print $xml_block;
                 my $parser = XML::LibXML->new();
                 $xml_block = $parser->parse_string($xml_block);
                 my $xpc = XML::LibXML::XPathContext->new($xml_block);
