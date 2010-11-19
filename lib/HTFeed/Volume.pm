@@ -669,7 +669,7 @@ Returns the path to the METS file for this object
 sub get_mets_path {
     my $self = shift;
 
-    my $staging_path = $self->get_staging_directory();
+    my $staging_path = get_config('staging'=>'memory');
     my $objid = $self->get_objid();
     my $mets_path = "$staging_path/$objid.mets.xml";
 

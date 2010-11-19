@@ -250,7 +250,7 @@ sub _validate_utf8 {
             close($utf8_fh);
         };
         if ($@) {
-            $self->set_error("BadUTF",field => 'utf8',detail => "@_",file => $utf8_file);
+            $self->set_error("BadUTF",field => 'utf8',detail => "$@",file => $utf8_file);
         }
 
     }
