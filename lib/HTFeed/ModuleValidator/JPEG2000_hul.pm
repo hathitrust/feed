@@ -77,7 +77,7 @@ sub _set_validators {
 		&& ( "1"         eq $mix_samplesPerPixel )  
 		&& ( "Greyscale" eq $meta_colorSpace )
 		&& ( "8"         eq $mix_bitsPerSample )       
-		&& ( "8"         eq $xmp_bitsPerSample_grey ) )
+		&& ( "8"         eq $xmp_bitsPerSample_grey  or "8" eq $xmp_bitsPerSample_color) )
 	    # sRGB: 3 samples per pixel, each sample 8 bits
 		or (    ( "2" eq $xmp_colorSpace )
 		&& ( "3"       eq $xmp_samplesPerPixel )
