@@ -15,11 +15,6 @@ HTFeed::Log->init();
 # autoflush STDOUT
 $| = 1;
 
-# check for legacy environment vars
-unless (defined $ENV{GROOVE_WORKING_DIRECTORY} and defined $ENV{GROOVE_CONFIG}){
-    print "GROOVE_WORKING_DIRECTORY and GROOVE_CONFIG must be set\n";
-    exit 0;
-}
 
 # read args
 my $packagetype = shift;

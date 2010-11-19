@@ -9,12 +9,9 @@ use HTFeed::Namespace;
 use HTFeed::FileGroup;
 use XML::LibXML;
 use HTFeed::Config qw(get_config);
-use GROOVE::DBTools;
+use HTFeed::DBTools;
 use Time::localtime;
 use File::Pairtree;
-
-## TODO: delete this line, I added it back to get this running again
-use GROOVE::Book;
 
 our $logger = get_logger(__PACKAGE__);
 
@@ -33,9 +30,6 @@ sub new {
 	#		mets_xml		=> undef,
     };
 
-    $self->{groove_book} =
-    GROOVE::Book->new( $self->{objid}, $self->{namespace},
-       $self->{packagetype} );
 
     $self->{nspkg} = new HTFeed::Namespace($self->{namespace},$self->{packagetype});
 
@@ -551,8 +545,7 @@ sub record_premis_event {
     my $date = $params{date} or $self->_get_current_date();
     my $outcome_xml = $params{outcome}->to_node()->toString() if defined $params{outcome};
 
-    my $db = GROOVE::DBTools->new();
-    my $dbh = $db->get_dbh();
+    my $dbh = HTFeed::DBTools::get_dbh();
 
     my $set_premis_sth = $dbh->prepare("REPLACE INTO premis_events_new (namespace, barcode, eventtype_id, outcome, date) VALUES
 	(?, ?, ?, ?, ?)");
@@ -571,10 +564,8 @@ sub get_event_info {
     my $self = shift;
     my $eventtype = shift;
 
-    my $db = GROOVE::DBTools->new();
-    my $dbh = $db->get_dbh();
+    my $dbh = HTFeed::DBTools::get_dbh();
 
-    # TODO: move to replacement for DBTools
     my $event_sql = "SELECT date,outcome FROM premis_events_new where namespace = ? and barcode = ? and eventtype_id = ?";
 
     my $event_sth = $dbh->prepare($event_sql);
@@ -660,28 +651,13 @@ sub get_page_data {
     croak("Can't extract sequence number from file $file") unless $seqnum;
     my $pagedata = {};
 
-    my $tags =  $self->{groove_book}->get_tags($seqnum);
-    my $pagenum = $self->{groove_book}->get_detected_pagenum($seqnum);
-
-    $pagedata->{'orderlabel'} = $pagenum if defined $pagenum;
-    $pagedata->{'label'} = $tags if defined $tags;
+#    my $tags =  $self->{groove_book}->get_tags($seqnum);
+#    my $pagenum = $self->{groove_book}->get_detected_pagenum($seqnum);
+#
+#    $pagedata->{'orderlabel'} = $pagenum if defined $pagenum;
+#    $pagedata->{'label'} = $tags if defined $tags;
 
     return $pagedata;
-}
-
-=item get_detected_pagenum(file)
-
-Returns the detected page number for the page containing a given file, if there is one
-
-=cut
-
-sub get_page_number {
-    my $self = shift;
-    my $file = shift;
-
-    my $seqnum = ($file =~ /(\d+)/);
-
-    return $self->{groove_book}->get_detected_pagenum($seqnum);
 }
 
 =item get_mets_path
