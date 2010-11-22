@@ -176,7 +176,7 @@ sub get_all_content_files {
     
     if(not defined $self->{content_files}) {
 	foreach my $filegroup (values(%{ $self->get_file_groups()})) {
-	    push(@{ $self->{content_files} },@{ $filegroup->get_filenames() }) if $filegroup->{validate};
+	    push(@{ $self->{content_files} },@{ $filegroup->get_filenames() }) if $filegroup->{content};
 	}
     }
 
