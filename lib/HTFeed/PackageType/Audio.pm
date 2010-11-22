@@ -18,13 +18,27 @@ our $config = {
 
     # A set of regular expressions mapping files to the filegroups they belong
     # in
-    filegroup_patterns => {
-	archival => qr/am.*\.wav$/,
-	production => qr/pm.*\.wav$/,
-    },
+    filegroups => {
+	archival => { 
+	    prefix => 'AM',
+	    use => 'archival',
+	    file_pattern => qr/am.*\.wav$/,
+	    required => 1,
+	    content => 1,
+	    jhove => 1,
+	    utf8 => 0
+	},
 
-    # A list of filegroups for which there must be a file for each page.
-    required_filegroups => [qw(archival production)],
+	production => { 
+	    prefix => 'PM',
+	    use => 'production',
+	    file_pattern => qr/pm.*\.wav$/,
+	    required => 1,
+	    content => 1,
+	    jhove => 1,
+	    utf8 => 0
+	}
+    },
 
     # Allow gaps in numerical sequence of filenames?
     allow_sequence_gaps => 0,
@@ -38,13 +52,6 @@ our $config = {
         HTFeed::Collate
 	)],
 
-    # The list of filegroups that contain files that will be validated
-    # by JHOVE
-    metadata_filegroups => [qw(archival production)],
-
-    # The list of filegroups that contain files that should be validated
-    # to use valid UTF-8
-    utf8_filegroups => [],
 
     # The HTFeed::ModuleValidator subclass to use for validating
     # files with the given extensions
@@ -68,6 +75,8 @@ our $config = {
 
     # What PREMIS events to include (by internal PREMIS identifier, 
     # configured in config.yaml)
+    # TODO: determine Audio HT PREMIS events
+    # TODO: determine Audio PREMIS source METS events toe xtract
     premis_events => [
     ],
 
