@@ -8,35 +8,29 @@ use PREMIS;
 use HTFeed::XMLNamespaces qw(:namespaces :schemas);
 use Carp;
 use Log::Log4perl qw(get_logger);
-use Exporter;
 use Time::localtime;
 use Cwd qw(cwd abs_path);
 use HTFeed::Config qw(get_config);
 use Date::Manip;
 use File::Basename qw(basename dirname);
 
-
-use base qw(HTFeed::Stage Exporter);
+use base qw(HTFeed::Stage);
 
 my $logger = get_logger(__PACKAGE__);
 
 sub new {
     my $class  = shift;
 
-    my $self = {
-	volume => undef,
+    my $self = $class->SUPER::new(
+	eventids => {},
 	@_,
 
 	#		files			=> [],
 	#		dir			=> undef,
 	#		mets_name		=> undef,
 	#		mets_xml		=> undef,
-	eventids => {},
-    };
+    );
 
-    croak("Volume parameter required") unless defined $self->{volume};
-
-    bless( $self, $class );
     return $self;
 }
 
@@ -329,7 +323,8 @@ sub _add_filesecs {
         id  => $self->_get_subsec_id("FG"),
         use => 'zip archive'
     );
-    $zip_filegroup->add_file( $volume->get_zip(), prefix => 'ZIP' );
+    my $working_dir = get_config('staging'=>'memory');
+    $zip_filegroup->add_file( "$working_dir/" . $volume->get_zip(), prefix => 'ZIP' );
     $mets->add_filegroup($zip_filegroup);
 
     # then add the actual content files

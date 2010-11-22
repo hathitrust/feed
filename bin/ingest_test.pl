@@ -11,11 +11,6 @@ HTFeed::Log->init();
 # autoflush STDOUT
 $| = 1;
 
-# check for legacy environment vars
-unless (defined $ENV{GROOVE_WORKING_DIRECTORY} and defined $ENV{GROOVE_CONFIG}){
-    print "GROOVE_WORKING_DIRECTORY and GROOVE_CONFIG must be set\n";
-    exit 0;
-}
 
 # read args
 my $packagetype = shift;
@@ -44,10 +39,7 @@ foreach my $stage_name ( @{$volume->get_nspkg()->get('stages_to_run')} ){
 sub run_stage{
     my $stage = shift;
     
-    ref($stage) =~ /^.*::(\w*)/;
-    my $verb = $1;
-    chop $verb if ($verb =~ /e$/);
-    print $verb . 'ing...';
+    print "Running stage $stage..\n";
     
     $stage->run();
     if ($stage->succeeded()){
