@@ -9,10 +9,12 @@ use HTFeed::VolumeValidator;
 use HTFeed::Stage::Handle;
 use HTFeed::Stage::Pack;
 use HTFeed::Stage::Collate;
+use HTFeed::PackageType::Yale::Volume;
 
 our $identifier = 'yale';
 
 our $config = {
+    volume_module => 'HTFeed::PackageType::Yale::Volume',
     # Regular expression that distinguishes valid files in the file package
     valid_file_pattern => qr/^( 
 		Yale_\w+\.(xml) |
@@ -57,6 +59,7 @@ our $config = {
 	}
     },
 
+    checksum_file => 0,
     source_mets_file => qr/^Yale_\w+\.xml$/,
 
     # Allow gaps in numerical sequence of filenames?
@@ -65,10 +68,10 @@ our $config = {
     # The list of stages to run to successfully ingest a volume.
     stages_to_run => [qw(
         HTFeed::VolumeValidator
-        HTFeed::PackageType::Yale::METS
-        HTFeed::Stage::Handle
         HTFeed::Stage::Pack
-        HTFeed::Collate
+        HTFeed::METS
+        HTFeed::Stage::Handle
+        HTFeed::Stage::Collate
 	)],
 
     # The list of filegroups that contain files that will be validated
@@ -103,7 +106,7 @@ our $config = {
 	'page_md5_create',
 	'package_validation',
 	'page_feature_mapping',
-#	'zip_compression',
+	'zip_compression',
 	'zip_md5_create',
 #	'ht_mets_creation',
 	'ingestion',
@@ -114,7 +117,11 @@ our $config = {
 	'ocr_normalize' => {
 	    description => 'Extraction of plain-text OCR from ALTO XML',
 	}
-    }
+    },
+
+    # File extensions not to compress
+    uncompressed_extensions => ['jp2'],
+
 };
 
 __END__

@@ -13,9 +13,10 @@ sub run{
     my $self = shift;
 
     my $volume = $self->{volume};
+    my $namespace = $volume->get_namespace();
     my $objid = $volume->get_objid();
     my $pairtree_objid = s2ppchars($objid);
-    my $pairtree_path = sprintf('%s/%s%s',get_config('repository_path'),id2ppath($pairtree_objid),$pairtree_objid);
+    my $pairtree_path = sprintf('%s/%s/%s%s',get_config('repository_path'),$namespace,id2ppath($pairtree_objid),$pairtree_objid);
     my $staging_dir = get_config('staging'=>'memory');
 
     # this is a re-ingest if the dir already exists, log this
