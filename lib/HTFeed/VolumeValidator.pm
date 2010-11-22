@@ -192,7 +192,7 @@ sub _validate_checksums {
 
     foreach my $file (@tovalidate) {
         next if $file eq $source_mets_file;
-	next if $checksum_file and $file eq $checksum_file;
+	next if $checksum_file and $file =~ $checksum_file;
         my $expected = $checksums->{$file};
         if ( not defined $expected ) {
             $self->set_error("BadChecksum",field => 'checksum',file => $file, detail => "File present in package but not in checksum file");

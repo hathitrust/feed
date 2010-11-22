@@ -209,7 +209,7 @@ sub _extract_page_tags {
 
         $pagedata->{$seqnum} = {
             orderlabel => $pagenum,
-            label      => join( ' ', @tags )
+            label      => join( ', ', @tags )
         };
 
     }

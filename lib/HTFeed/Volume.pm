@@ -640,24 +640,7 @@ the corresponding entry in the hash will not exist.
 =cut
 
 sub get_page_data {
-    my $self = shift;
-    my $file = shift;
-
-    if(not defined $self->{'did_page_mapping'}) {
-	$self->record_premis_event('page_feature_mapping');
-	$self->{'did_page_mapping'} = 1;
-    }
-    (my $seqnum) = ($file =~ /(\d+)/);
-    croak("Can't extract sequence number from file $file") unless $seqnum;
-    my $pagedata = {};
-
-#    my $tags =  $self->{groove_book}->get_tags($seqnum);
-#    my $pagenum = $self->{groove_book}->get_detected_pagenum($seqnum);
-#
-#    $pagedata->{'orderlabel'} = $pagenum if defined $pagenum;
-#    $pagedata->{'label'} = $tags if defined $tags;
-
-    return $pagedata;
+    return undef;
 }
 
 =item get_mets_path
