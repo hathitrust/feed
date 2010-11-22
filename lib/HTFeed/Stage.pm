@@ -33,11 +33,8 @@ sub new{
 	return $self;
 }
 
-# do somthing
 # abstract
-sub run{
-	croak 'this is an abstract method';
-}
+# sub run{}
 
 sub _set_done{
 	my $self = shift;
