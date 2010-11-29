@@ -29,15 +29,36 @@ our $config = {
 		\d{8}.(html|jp2|tif|txt)
 		)/x,
 
-    # A set of regular expressions mapping files to the filegroups they belong
-    # in
-    filegroup_patterns => {
-	image => qr/\.(jp2|tif)$/,
-	ocr => qr/\.txt$/,
-    },
+    # Configuration for each filegroup. 
+    # prefix: the prefix to use on file IDs in the METS for files in this filegruop
+    # use: the 'use' attribute on the file group in the METS
+    # file_pattern: a regular expression to determine if a file is in this filegroup
+    # required: set to 1 if a file from this filegroup is required for each page 
+    # content: set to 1 if file should be included in zip file
+    # jhove: set to 1 if output from JHOVE will be used in validation
+    # utf8: set to 1 if files should be verified to be valid UTF-8
+    filegroups => {
+	image => {
+	    prefix => 'IMG',
+	    use => 'image',
+	    file_pattern => qr/\d{8}\.(jp2|tif)$/,
+	    required => 1,
+	    content => 1,
+	    jhove => 1,
+	    utf8 => 0
+	},
 
-    # A list of filegroups for which there must be a file for each page.
-    required_filegroups => [qw(image txt)],
+        ocr => {
+            prefix => 'OCR',
+            use => 'ocr',
+            file_pattern => qr/\d{8}\.txt$/,
+            required => 1,
+            content => 1,
+            jhove => 0,
+            utf8 => 1
+        },
+
+    },
 
     # Allow gaps in numerical sequence of filenames?
     allow_sequence_gaps => 0,
@@ -52,16 +73,9 @@ our $config = {
         HTFeed::Stage::Handle
 	)],
 
-    # The list of filegroups that contain files that will be validated
-    # by JHOVE
-    metadata_filegroups => [qw(image)],
-
     # The file containing the checksums for each data file
     checksum_file => qr/^checksum.md5$/,
 
-    # The list of filegroups that contain files that should be validated
-    # to use valid UTF-8
-    utf8_filegroups => [qw(ocr)],
 
     # The HTFeed::ModuleValidator subclass to use for validating
     # files with the given extensions
@@ -74,19 +88,10 @@ our $config = {
     validation => {
     },
 
-    # What PREMIS events to extract from the source METS and include
-    source_premis_events => [
-    'capture',
-    'process',
-    'analyze',
-    'audit',
-    'rubbish',
-    ],
-
     # What PREMIS events to include (by internal PREMIS identifier, 
     # configured in config.yaml)
+    # TODO: review/fix MPub PREMIS events
     premis_events => [
-	'decryption',
 	'page_md5_fixity',
 	'page_md5_create',
 	'package_validation',

@@ -26,7 +26,7 @@ our $config = {
     # use: the 'use' attribute on the file group in the METS
     # file_pattern: a regular expression to determine if a file is in this filegroup
     # required: set to 1 if a file from this filegroup is required for each page 
-    # validate: set to 1 if some kind of validation will be performed on this filegroup
+    # content: set to 1 if file should be included in zip file
     # jhove: set to 1 if output from JHOVE will be used in validation
     # utf8: set to 1 if files should be verified to be valid UTF-8
     filegroups => {
@@ -35,7 +35,7 @@ our $config = {
 	    use => 'image',
 	    file_pattern => qr/39002\d{9}_\d{6}\.(jp2)$/,
 	    required => 1,
-	    validate => 1,
+	    content => 1,
 	    jhove => 1,
 	    utf8 => 0
 	},
@@ -44,7 +44,7 @@ our $config = {
 	    use => 'ocr',
 	    file_pattern => qr/39002\d{9}_\d{6}\.txt$/,
 	    required => 1,
-	    validate => 1,
+	    content => 1,
 	    jhove => 0,
 	    utf8 => 1
 	},
@@ -53,7 +53,7 @@ our $config = {
 	    use => 'coordOCR',
 	    file_pattern => qr/39002\d{9}_\d{6}\.xml$/,
 	    required => 1,
-	    validate => 1,
+	    content => 1,
 	    jhove => 0,
 	    utf8 => 1
 	}
