@@ -2,10 +2,27 @@
 
 use warnings;
 use strict;
-use lib qw(lib t/lib)
+use lib qw{lib};
 
-# load all the test classes I want to run
-use HTFeed_Test::Stage::Download;
+use HTFeed::Log;
 
-# and run them all
-Test::Class->runtests;
+HTFeed::Log->init();
+
+# define list of test classes
+use constant TEST_CLASSES => [qw(
+    HTFeed_Test::Stage::Download
+    )];
+    
+# requre all test classes
+BEGIN{
+    my $test_classes = TEST_CLASSES;
+    foreach my $class ( @$test_classes ){
+        eval "require $class";
+    }
+}
+
+# run all tests
+my $test_classes = TEST_CLASSES;
+foreach my $class ( @$test_classes ){
+    eval "$class->new->runtests";
+}
