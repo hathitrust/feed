@@ -198,7 +198,7 @@ sub _validate_checksums {
             $self->set_error("BadChecksum",field => 'checksum',file => $file, detail => "File present in package but not in checksum file");
         }
 	elsif ( ! -e "$path/$file") {
-	    $self->set_error("BadChecksum",file => $file, detail => "File listed in checksum file but not present in package");
+	    $self->set_error("MissingFile",file => $file, detail => "File listed in checksum file but not present in package");
 	}
         elsif ( (my $actual = md5sum("$path/$file")) ne $expected ) {
             $self->set_error("BadChecksum", field => 'checksum', file => $file, expected => $expected, actual => $actual);

@@ -10,69 +10,86 @@ use HTFeed::Stage::Handle;
 use HTFeed::Stage::Pack;
 use HTFeed::Stage::Collate;
 use HTFeed::PackageType::Yale::Volume;
+use HTFeed::PackageType::Yale::Unpack;
+use HTFeed::PackageType::Yale::VerifyManifest;
+use HTFeed::PackageType::Yale::ExtractOCR;
+use HTFeed::PackageType::Yale::ImageRemediate;
+use HTFeed::PackageType::Yale::SourceMETS;
 
 our $identifier = 'yale';
 
 our $config = {
+
+    # Yale volumes will be cached on disk
+    download_to_disk => 1,
+
     volume_module => 'HTFeed::PackageType::Yale::Volume',
+
     # Regular expression that distinguishes valid files in the file package
     valid_file_pattern => qr/^( 
 		Yale_\w+\.(xml) |
 		39002\d{9}_\d{6}\.(xml|jp2|txt)$
 		)/x,
 
-    # Configuration for each filegroup. 
-    # prefix: the prefix to use on file IDs in the METS for files in this filegruop
-    # use: the 'use' attribute on the file group in the METS
-    # file_pattern: a regular expression to determine if a file is in this filegroup
-    # required: set to 1 if a file from this filegroup is required for each page 
-    # content: set to 1 if file should be included in zip file
-    # jhove: set to 1 if output from JHOVE will be used in validation
-    # utf8: set to 1 if files should be verified to be valid UTF-8
+# Configuration for each filegroup.
+# prefix: the prefix to use on file IDs in the METS for files in this filegruop
+# use: the 'use' attribute on the file group in the METS
+# file_pattern: a regular expression to determine if a file is in this filegroup
+# required: set to 1 if a file from this filegroup is required for each page
+# content: set to 1 if file should be included in zip file
+# jhove: set to 1 if output from JHOVE will be used in validation
+# utf8: set to 1 if files should be verified to be valid UTF-8
     filegroups => {
-	image => { 
-	    prefix => 'IMG',
-	    use => 'image',
-	    file_pattern => qr/39002\d{9}_\d{6}\.(jp2)$/,
-	    required => 1,
-	    content => 1,
-	    jhove => 1,
-	    utf8 => 0
-	},
-	ocr => { 
-	    prefix => 'OCR',
-	    use => 'ocr',
-	    file_pattern => qr/39002\d{9}_\d{6}\.txt$/,
-	    required => 1,
-	    content => 1,
-	    jhove => 0,
-	    utf8 => 1
-	},
-	hocr => { 
-	    prefix => 'XML',
-	    use => 'coordOCR',
-	    file_pattern => qr/39002\d{9}_\d{6}\.xml$/,
-	    required => 1,
-	    content => 1,
-	    jhove => 0,
-	    utf8 => 1
-	}
+        image => {
+            prefix       => 'IMG',
+            use          => 'image',
+            file_pattern => qr/39002\d{9}_\d{6}\.(jp2)$/,
+            required     => 1,
+            content      => 1,
+            jhove        => 1,
+            utf8         => 0
+        },
+        ocr => {
+            prefix       => 'OCR',
+            use          => 'ocr',
+            file_pattern => qr/39002\d{9}_\d{6}\.txt$/,
+            required     => 1,
+            content      => 1,
+            jhove        => 0,
+            utf8         => 1
+        },
+        hocr => {
+            prefix       => 'XML',
+            use          => 'coordOCR',
+            file_pattern => qr/39002\d{9}_\d{6}\.xml$/,
+            required     => 1,
+            content      => 1,
+            jhove        => 0,
+            utf8         => 1
+        }
     },
 
-    checksum_file => 0,
+    checksum_file    => 0,
     source_mets_file => qr/^Yale_\w+\.xml$/,
 
     # Allow gaps in numerical sequence of filenames?
     allow_sequence_gaps => 0,
 
     # The list of stages to run to successfully ingest a volume.
-    stages_to_run => [qw(
-        HTFeed::VolumeValidator
-        HTFeed::Stage::Pack
-        HTFeed::METS
-        HTFeed::Stage::Handle
-        HTFeed::Stage::Collate
-	)],
+    stages_to_run => [
+#          'HTFeed::PackageType::Yale::Unpack',
+#          'HTFeed::PackageType::Yale::VerifyManifest',
+#          'HTFeed::PackageType::Yale::ExtractOCR',
+#          'HTFeed::PackageType::Yale::ImageRemediate',
+          'HTFeed::PackageType::Yale::SourceMETS',
+#          'HTFeed::VolumeValidator',
+#          'HTFeed::Stage::Pack',
+          'HTFeed::METS',
+#          'HTFeed::Stage::Handle',
+#          'HTFeed::Stage::Collate',
+    ],
+
+    #    stages_to_run => [qw( HTFeed::PackageType::Yale::SourceMETS )],
 
     # The list of filegroups that contain files that will be validated
     # by JHOVE
@@ -85,38 +102,49 @@ our $config = {
     # The HTFeed::ModuleValidator subclass to use for validating
     # files with the given extensions
     module_validators => {
-        'jp2'  => 'HTFeed::ModuleValidator::JPEG2000_hul',
-        'tif'  => 'HTFeed::ModuleValidator::TIFF_hul',
+        'jp2' => 'HTFeed::ModuleValidator::JPEG2000_hul',
+        'tif' => 'HTFeed::ModuleValidator::TIFF_hul',
     },
 
     # Validation overrides
-    validation => {
-    },
+    validation => {},
 
-    # What PREMIS events to extract from the source METS and include
+    # What PREMIS events to include in the source METS file
     source_premis_events => [
-	'capture'
+        qw(
+          capture
+          source_md5_fixity
+          image_header_modification
+          ocr_normalize
+          source_mets_creation
+          page_md5_create
+          mets_validation
+          )
     ],
 
-    # What PREMIS events to include (by internal PREMIS identifier, 
+ # What PREMIS events to extract from the source METS and include in the HT METS
+    source_premis_events_extract => [
+        qw(
+          capture
+          image_header_modification
+          ocr_normalize
+          source_mets_creation
+          page_md5_create
+          )
+    ],
+
+    # What PREMIS events to include (by internal PREMIS identifier,
     # configured in config.yaml)
     premis_events => [
-	'page_md5_fixity',
-	'preingest',
-	'page_md5_create',
-	'package_validation',
-	'page_feature_mapping',
-	'zip_compression',
-	'zip_md5_create',
-#	'ht_mets_creation',
-	'ingestion',
+        'page_md5_fixity',      'package_validation',
+        'page_feature_mapping', 'zip_compression',
+        'zip_md5_create',       'ingestion',
     ],
 
     # Overrides for the basic PREMIS event configuration
     premis_overrides => {
-	'ocr_normalize' => {
-	    description => 'Extraction of plain-text OCR from ALTO XML',
-	}
+        'ocr_normalize' =>
+          { detail => 'Extraction of plain-text OCR from ALTO XML', }
     },
 
     # File extensions not to compress
