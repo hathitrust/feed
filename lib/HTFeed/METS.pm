@@ -22,7 +22,6 @@ sub new {
     my $class  = shift;
 
     my $self = $class->SUPER::new(
-	eventids => {},
 	@_,
 
 	#		files			=> [],
@@ -141,7 +140,7 @@ sub _extract_old_premis {
     my $volume = $self->{volume};
 
     my $mets_in_repos = $volume->get_repository_mets_path();
-    my $old_events = [];
+    my $old_events = {};
 
     if(defined $mets_in_repos) {
         # validate METS in repository
@@ -159,23 +158,7 @@ sub _extract_old_premis {
 		$self->set_error("MissingField", 
 		    field => "eventIdentifierValue", node => $event->toString()) unless defined $eventId and $eventId;
 
-		# Extract event count and make sure we don't try to reuse identifier
-		if($eventId =~ /^(\D+)(\d+)$/) {
-		    my ($eventid_type, $eventIdCount) = ($1,$2);
-		     if(not defined $self->{'eventids'}{$eventid_type}) {
-			 $self->{'eventids'}{$eventid_type} = 0;
-		     }
-
-		     if($eventIdCount > $self->{'eventids'}{$eventid_type}) {
-			 $self->{'eventids'}{$eventid_type} = $eventIdCount;
-		     }
-
-		} else {
-		    $self->set_error("BadValue", field => 'eventID', actual => $eventId)
-		}
-
-		push @{$self->{store_events}{$eventType}}, $event;
-		push @{ $old_events }, $event
+		$old_events->{$eventId} = $event;
 	    }
 
 	    return $old_events;
@@ -189,77 +172,23 @@ sub _extract_old_premis {
     }
 }
 
-sub _add_premis {
+sub _add_premis_events {
     my $self = shift;
+    my $premis = shift;
+    my $events = shift;
     my $volume = $self->{volume};
     my $nspkg = $volume->get_nspkg();
+    my $included_events = $self->{included_events};
 
-    my $premis = new PREMIS;
-
-    my $old_events = $self->_extract_old_premis();
-    if ($old_events) {
-	foreach my $old_event (@$old_events) {
-	    $premis->add_event($old_event);
-	}
-    }
-
-    my $xc = $volume->get_source_mets_xpc();
-    my $src_premis_events = {};
-    foreach my $src_event ($xc->findnodes('//PREMIS:event')) {
-	# src event will be an XML node
-        # do we want to keep this kind of event?
-	my $event_type = $xc->findvalue('./PREMIS:eventType',$src_event);
-	$src_premis_events->{$event_type} = [] if not defined $src_premis_events->{$event_type};
-	push(@{ $src_premis_events->{$event_type} }, $src_event);
-    }
-
-    foreach my $eventtype ( @{ $nspkg->get('source_premis_events') } ) {
-	next unless defined $src_premis_events->{$eventtype};
-	foreach my $src_event ( @{ $src_premis_events->{$eventtype} } ) {
-	    my $datetime = $xc->findvalue('./PREMIS:eventDateTime',$src_event);
-	    if($self->_need_to_update_event($eventtype,$datetime)) {
-		# fix up the source METS event ID and event ID type
-		my $eventid = $self->_get_next_eventid($eventtype);
-		my $found_eventid_node = 0;
-		my $found_eventid_type = 0;
-		my $found_eventid_value = 0;
-		foreach my $eventid_node( $src_event->getChildrenByTagNameNS(NS_PREMIS,'eventIdentifier')) {
-		    $found_eventid_node++;
-
-		    foreach my $eventid_type ($eventid_node->getChildrenByTagNameNS(NS_PREMIS,'eventIdentifierType')) {
-			$eventid_type->removeChildNodes();
-			$eventid_type->appendText('UM');
-			$found_eventid_type++;
-		    }
-		    foreach my $eventid_value ($eventid_node->getChildrenByTagNameNS(NS_PREMIS,'eventIdentifierValue')) {
-			$eventid_value->removeChildNodes();
-			$eventid_value->appendText($eventid);
-			$found_eventid_value++;
-		    }
-		}
-		$self->set_error("BadValue",detail=>"Error updating event identifier in event",node => $src_event->toString()) 
-		    unless ($found_eventid_node == 1 && $found_eventid_type == 1&& $found_eventid_value == 1);
-		$premis->add_event($src_event);
-
-	    }
-	}
-    }
-
-    # create PREMIS object
-    my $premis_object = new PREMIS::Object('identifier',$volume->get_identifier());
-    $premis_object->set_preservation_level("1");
-    $premis_object->add_significant_property('file count',$volume->get_file_count());
-    $premis_object->add_significant_property('page count',$volume->get_page_count());
-    $premis->add_object($premis_object);
-
-    # last chance to record, even though it's not done yet
-    $volume->record_premis_event('ingestion');
-
-    foreach my $eventcode (@{$nspkg->get('premis_events')}) {
+    foreach my $eventcode (@{$events}) {
 	# query database for: datetime, outcome
-	my ($datetime, $outcome) = $volume->get_event_info($eventcode);
+	my ($eventid, $datetime, $outcome) = $volume->get_event_info($eventcode);
 	$self->set_error("MissingField",field => "datetime", detail => "Missing datetime for $eventcode") if not defined $datetime;
+	$self->set_error("MissingField",field => "eventid", detail => "Missing eventid for $eventcode") if not defined $eventid;
 	my $eventconfig = $nspkg->get_event_configuration($eventcode);
+	# already have event? if so, don't add it again
+	next if defined $eventid and defined $included_events->{$eventid};
+	
 
 	my $executor = $eventconfig->{'executor'} 
 	    or $self->set_error("MissingField",field => "executor", detail => "Missing event executor for $eventcode");
@@ -268,19 +197,9 @@ sub _add_premis {
 	my $eventtype = $eventconfig->{'type'}
 	    or $self->set_error("MissingField",field => "event type", detail => "Missing event type for $eventcode");
 
-	$executor = $volume->get_artist() if $executor eq 'VOLUME_ARTIST';
+#	$executor = $volume->get_artist() if $executor eq 'VOLUME_ARTIST';
 
-	# don't record event if there's already one of this type at the same or later time
-	next unless $self->_need_to_update_event($eventtype,$datetime);
-
-	my $eventid;
-	if(defined $eventconfig->{'eventid_override'}) {
-	    $eventid = $eventconfig->{'eventid_override'};
-	} else {
-	    $eventid = $self->_get_next_eventid($eventtype);
-	}
-
-	my $event = new PREMIS::Event($eventid, $executor, $eventtype, $datetime, $detail);
+	my $event = new PREMIS::Event($eventid, 'UUID', $eventtype, $datetime, $detail);
 	$event->add_outcome($outcome) if defined $outcome;
 
 	# query namespace/packagetype for software tools to record for this event type
@@ -294,6 +213,70 @@ sub _add_premis {
 	$premis->add_event($event);
 
     }
+
+}
+
+# Baseline source METS extraction for cases where source METS PREMIS events
+# need no modification for inclusion into HT METS
+
+sub _add_source_mets_events {
+    my $self = shift;
+    my $volume = $self->{volume};
+    my $premis = shift;
+
+    my $xc = $volume->get_source_mets_xpc();
+    my $src_premis_events = {};
+    foreach my $src_event ($xc->findnodes('//PREMIS:event')) {
+	# src event will be an XML node
+        # do we want to keep this kind of event?
+	my $event_type = $xc->findvalue('./PREMIS:eventType',$src_event);
+	$src_premis_events->{$event_type} = [] if not defined $src_premis_events->{$event_type};
+	push(@{ $src_premis_events->{$event_type} }, $src_event);
+    }
+
+    foreach my $eventtype ( @{ $volume->get_nspkg()->get('source_premis_events') } ) {
+	next unless defined $src_premis_events->{$eventtype};
+	foreach my $src_event ( @{ $src_premis_events->{$eventtype} } ) {
+	    my $eventid = $xc->findvalue("./PREMIS:eventIdentifier[PREMIS:eventIdentifierType='UUID']/PREMIS:eventIdentifierValue",$src_event);
+	    if (not defined $self->{included_events}{$eventid}) {
+		$premis->add_event($src_event);
+	    }
+	}
+    }
+}
+
+sub _add_premis {
+    my $self = shift;
+    my $volume = $self->{volume};
+    my $nspkg = $volume->get_nspkg();
+
+    # map from UUID to event - events that have already been added
+    $self->{included_events} = {};
+
+    my $premis = new PREMIS;
+
+    my $old_events = $self->_extract_old_premis();
+    if ($old_events) {
+	while(my ($event,$eventid) = each(%$old_events)) {
+	    $self->{included_events}{$eventid} = $event;
+	    $premis->add_event($event);
+	}
+    }
+
+    $self->_add_source_mets_events($premis);
+
+    # create PREMIS object
+    my $premis_object = new PREMIS::Object('identifier',$volume->get_identifier());
+    $premis_object->set_preservation_level("1");
+    $premis_object->add_significant_property('file count',$volume->get_file_count());
+    $premis_object->add_significant_property('page count',$volume->get_page_count());
+    $premis->add_object($premis_object);
+
+    # last chance to record, even though it's not done yet
+    $volume->record_premis_event('ingestion');
+
+    $self->_add_premis_events($premis,$nspkg->get('premis_events'));
+
     my $digiprovMD =
       new METS::MetadataSection( 'digiprovMD', 'id' => 'premis1' );
     $digiprovMD->set_xml_node( $premis->to_node(), mdtype => 'PREMIS' );
@@ -311,14 +294,12 @@ sub _get_subsec_id {
     return "$subsec_type" . ++$self->{counts}{$subsec_type};
 }
 
-sub _add_filesecs {
+sub _add_zip_fg {
     my $self   = shift;
     my $mets   = $self->{mets};
     my $volume = $self->{volume};
 
-
     $volume->record_premis_event('zip_md5_create');
-    # first add zip
     my $zip_filegroup = new METS::FileGroup(
         id  => $self->_get_subsec_id("FG"),
         use => 'zip archive'
@@ -326,6 +307,12 @@ sub _add_filesecs {
     my $working_dir = get_config('staging'=>'memory');
     $zip_filegroup->add_file( "$working_dir/" . $volume->get_zip(), prefix => 'ZIP' );
     $mets->add_filegroup($zip_filegroup);
+}
+
+sub _add_content_fgs {
+    my $self   = shift;
+    my $mets   = $self->{mets};
+    my $volume = $self->{volume};
 
     # then add the actual content files
     my $filegroups = $volume->get_file_groups();
@@ -341,6 +328,15 @@ sub _add_filesecs {
         $self->{filegroups}{$filegroup_name} = $mets_filegroup;
         $mets->add_filegroup($mets_filegroup);
     }
+}
+
+sub _add_filesecs {
+    my $self   = shift;
+
+    # first add zip
+    $self->_add_zip_fg();
+    $self->_add_content_fgs();
+
 
     # MIU: Extra stuff for MIU: archival XML, objid XML?
 
@@ -395,7 +391,7 @@ sub _save_mets {
     my $mets_path = $self->{volume}->get_mets_path();
 
     open( my $metsxml, ">", "$mets_path" )
-      or die("Can't open IA METS xml $mets_path for writing: $!");
+      or die("Can't open METS xml $mets_path for writing: $!");
     print $metsxml $mets->to_node()->toString(1);
     close($metsxml);
 }
@@ -459,74 +455,6 @@ sub _get_createdate {
 
     return $ts;
 }
-
-=item _need_to_update_event ($event, $datetime)
-
-Evaluate all datetimes in existing METS file for $event and return true if we
-need to add a new event because $datetime is newer than any already in the METS
-file (or because there is not an existing METS file to evaluate).
-
-=cut
-
-sub _need_to_update_event {
-    my $self = shift;
-    my $volume = $self->{volume};
-    my $event = shift;
-    my $datetime = shift;
-
-    my $date_new = ParseDate($datetime);
-
-    #
-    # Look at PREMIS events from METS file in repository. If this dateTime is newer, then we do need to insert a PREMIS:event element for this event.
-    #
-    # Return 1 if we need to add a <PREMIS:event> element for $datetime
-    #
-    # Return 0 if we don't need to because a <PREMIS:event> element already exists with this exact datetime
-    #
-    # Also return 1 if there is not a copy of this volume already in the repository (in which case $$self{'store_events'}{$event} will not exist and we'll never go through the foreach loop, so we'll just return with the $need_to_update default of true).
-
-    my $need_to_update = 1;
-    my $xc = $volume->get_repos_mets_xpc();
-
-    foreach my $event_element ( @{$$self{'store_events'}{$event}} ) {
-
-	my $event_dateTime = $xc->findvalue('./premis:eventDateTime',$event_element);
-
-	my $date_existing = ParseDate($event_dateTime);
-
-	my $flag = Date_Cmp($date_new, $date_existing);
-
-	if($flag > 0) {
-
-	    #print "$event: $datetime IS NEWER THAN $event_dateTime SO WE NEED TO ADD A NEW PREMIS EVENT ($flag)\n";
-
-	    $need_to_update = 1;
-	}
-	elsif ($flag == 0) {
-
-	    #print "$event: $datetime IS IDENTICAL TO $event_dateTime ($flag)\n";
-
-	    $need_to_update = 0;
-	}
-	else {
-	    #print "$event: $datetime IS EARLIER THAN $event_dateTime. That ought to be impossible, so WTF? ($flag)\n";
-	}
-    }
-
-    return($need_to_update);
-}
-
-sub _get_next_eventid {
-    my $self = shift;
-    my $eventcode = shift;
-
-    if(not defined $self->{'eventids'}{$eventcode}) {
-	$self->{'eventids'}{$eventcode} = 0;
-    }
-
-    return $eventcode . ++$self->{'eventids'}{$eventcode};
-}
-
 
 # Getting software versions
 

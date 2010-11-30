@@ -30,7 +30,8 @@ sub run{
     # Add OCR files with compression
     my $uncompressed_extensions = join(":",@{ $volume->get_nspkg()->get('uncompressed_extensions') });
     my @files = @{ $volume->get_all_content_files() };
-    push(@files, basename($volume->get_source_mets_file()));
+    my $source_mets = $volume->get_source_mets_file();
+    push(@files, basename($volume->get_source_mets_file())) if $source_mets;
 
     foreach my $file (@files) {
 	if(! -e "$path/$file") {
