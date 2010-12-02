@@ -133,6 +133,7 @@ sub get_all_directory_files {
 	    push(@{ $self->{directory_files} },$file) unless $file =~ /^\.+$/;
 	}
 	closedir($dh) or croak("Can't closedir $stagedir: $!");
+	@{ $self->{directory_files} } = sort( @{ $self->{directory_files} } );
     }
 
     return $self->{directory_files};
