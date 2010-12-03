@@ -2,11 +2,14 @@ package HTFeed::Stage;
 
 # abstract class, children must impliment following methods:
 # run
+# children may also override clean_* methods as needed
 
 use warnings;
 use strict;
 use Carp;
+use File::Path qw(remove_tree);
 use Log::Log4perl qw(get_logger);
+use HTFeed::Config qw(get_config);
 
 use base qw(HTFeed::SuccessOrFailure);
 
@@ -70,6 +73,81 @@ sub set_info{
     my $logger = get_logger(ref($self));
     $logger->info('Info',detail => $message,volume => $self->{volume}->get_objid(),@_);
 }
+
+# run this to do appropriate cleaning after run()
+# this generally should not be overriden,
+# instead override clean_success() and clean_failure()
+sub clean{
+    my $self = shift;
+    my $success = $self->succeeded();
+    
+    if ($success){
+        $self->clean_success();
+    }else{
+        $self->clean_failure();
+    }
+    
+    $self->clean_always();
+}
+
+# do cleaning that is appropriate after success
+sub clean_success{
+    return;
+}
+
+# do cleaning that is appropriate after failure
+sub clean_failure{
+    return;
+}
+
+# do cleaning independent of success
+sub clean_always{
+    return;
+}
+
+# unlink download from ram staging
+sub clean_ram_download{
+    my $self = shift;
+    my $volume = $self->{volume};
+    my $download_to_disk = $volume->get_nspkg()->get('download_to_disk');
+    
+    if(! $download_to_disk){
+        my $path = get_config('staging'=>'memory');
+        my $file = $volume->get_SIP_filename();
+        my $path_name = "$path/$file";
+        
+        return unlink $path_name;
+    }
+    
+    return 1;
+}
+
+# unlink unpacked object
+sub clean_unpacked_object{
+    my $self = shift;
+    my $dir = $self->{volume}->get_staging_directory();
+    
+    return remove_tree $dir;
+}
+
+# unlink zip
+sub clean_zip{
+    my $self = shift;
+    my $dir = get_config('staging'=>'memory');
+    my $zip_file = $self->{volume}->get_zip();
+    my $zip_path = "$dir/$zip_file";
+    
+    return unlink $zip_path;
+}
+
+# unlink mets file
+sub clean_mets{
+    my $self = shift;
+    my $mets = $self->{volume}->get_mets_path();
+    
+    return unlink $mets;
+}
+
 
 1;
 

@@ -26,4 +26,4 @@ my $data = {
     jhoveconf => "/l/local/jhove/conf/jhove.conf",
 };
 
-print Dump $config;
+print Dump $data;

@@ -374,6 +374,14 @@ sub md5sum {
     close($fh);
     return $ctx->hexdigest();
 }
+
+# do cleaning that is appropriate after failure
+sub clean_failure{
+    my $self = shift;
+    $self->clean_ram_download();
+    $self->clean_unpacked_object();
+}
+
 1;
 
 __END__;
