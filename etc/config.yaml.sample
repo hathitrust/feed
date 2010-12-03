@@ -1,23 +1,25 @@
 ---
 database:
-  datasource: dbi:mysql:mdp_tracking_rrotter:mysql-htdev
-  username: rrotter
-  password: xxxx
+  datasource: dbi:mysql:mdp_tracking:mysql-htdev
+  username: aelkiss
+  password: Acs301apr
 
 jhove: /l/local/bin/jhove
 jhoveconf: /l/local/jhove/conf/jhove.conf
 
-xerces: /path/to/xerces
+xerces: /l/local/xerces-c/bin/SAX2Count
+kdu_munge: /htapps/aelkiss.babel/Yale/kdu_munge
 
 jhove: /l/local/bin/jhove
 jhoveconf: /l/local/jhove/conf/jhove.conf
-l4p_config: /htapps/rrotter.babel/git/feed/etc/config.l4p
+l4p_config: /htapps/aelkiss.babel/feed/feed/etc/test_config.l4p
 
 staging:
-  disk: /htapps/rrotter.babel/repos/staging
+  disk: /htapps/aelkiss.babel/repos/staging
   memory: /ram/staging
   zip: /ram/zip_staging
-  
+  preingest: /ram/preingest
+
 sample_directory: /htapps/rrotter.babel/repos/samples
 repository:
   # The directory in which symbolic links will be created to each volume
@@ -149,7 +151,7 @@ premis_events:
 
   source_md5_fixity:
     type: fixity check
-    detail: Validation of MD5 checksums for downloaded file archives
+    detail: Calculation of md5 hash values for downloaded files, comparison with pre-download md5 values
     executor: UM
     tools:
     - DIGEST_MD5
@@ -162,7 +164,7 @@ premis_events:
     - GROOVE
 
   zip_compression:
-    type: zip compression
+    type: zip archive creation
     detail: Compression of content files and source METS into zip archive
     executor: UM
     tools:

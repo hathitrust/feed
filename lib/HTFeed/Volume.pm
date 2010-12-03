@@ -12,6 +12,7 @@ use HTFeed::Config qw(get_config);
 use HTFeed::DBTools;
 use Time::localtime;
 use File::Pairtree;
+use Data::UUID;
 
 our $logger = get_logger(__PACKAGE__);
 
@@ -22,6 +23,7 @@ sub new {
 	objid     => undef,
 	namespace => undef,
 	packagetype => undef,
+	uuidgen => new Data::UUID,
 	@_,
 
 	#		files			=> [],
@@ -29,7 +31,6 @@ sub new {
 	#		mets_name		=> undef,
 	#		mets_xml		=> undef,
     };
-
 
     $self->{nspkg} = new HTFeed::Namespace($self->{namespace},$self->{packagetype});
 
@@ -146,9 +147,19 @@ Returns the staging directory for the volume's AIP
 sub get_staging_directory {
     my $self = shift;
     
-    my $objid = $self->get_objid();
-    return sprintf("%s/%s", get_config('staging'=>'memory'), $objid);
+    if(not defined $self->{staging_directory}) {
+	my $objid = $self->get_objid();
+	my $stage_dir = sprintf("%s/%s", get_config('staging'=>'memory'), $objid);
+	if(!-e $stage_dir) {
+	    mkdir($stage_dir) or croak("Can't mkdir $stage_dir: $!");
+	}
+	$self->{staging_directory} = $stage_dir;
+    }
+
+    return $self->{staging_directory};
+
 }
+
 
 =item get_download_directory
 
@@ -248,25 +259,42 @@ and the context node positioned at the document root of the source METS.
 sub get_source_mets_xpc {
     my $self = shift;
 
-    my $mets = $self->get_source_mets_file();
-    my $path = $self->get_staging_directory();
+    if(not defined $self->{source_mets_xpc}) {
+	my $mets = $self->get_source_mets_file();
+	my $path = $self->get_staging_directory();
 
-    die("Missing METS file") unless defined $mets and defined $path;
+	die("Missing METS file") unless defined $mets and defined $path;
+	$self->{source_mets_xpc} = $self->_parse_xpc("$path/$mets");
+
+    }
+    return $self->{source_mets_xpc};
+
+}
+
+=item _parse_xpc
+
+Returns an XML::LibXML::XPathContext with namespaces set up
+and the context node positioned at the document root of the given XML file.
+
+=cut
+
+sub _parse_xpc {
+    my $self = shift;
+    my $file = shift;
     my $xpc;
-
     eval {
-	die "Missing file $path/$mets" unless -e "$path/$mets";
+	die "Missing file $file" unless -e "$file";
 	my $parser = XML::LibXML->new();
-	my $doc    = $parser->parse_file("$path/$mets");
+	my $doc    = $parser->parse_file("$file");
 	$xpc = XML::LibXML::XPathContext->new($doc);
 	register_namespaces($xpc);
     };
 
     if ($@) {
-	croak("-ERR- Could not read XML file $mets: $@");
+	croak("-ERR- Could not read XML file $file: $@");
+    } else {
+	return $xpc;
     }
-    return $xpc;
-
 }
 
 =item get_repos_mets_xpc
@@ -279,22 +307,15 @@ and the context node positioned at the document root of the source METS.
 sub get_repos_mets_xpc {
     my $self = shift;
 
-    my $mets = $self->get_repository_mets_path();
-    return unless defined $mets;
+    if (not defined $self->{repos_mets_xpc}) {
 
-    my $xpc;
+	my $mets = $self->get_repository_mets_path();
+	return unless defined $mets;
 
-    eval {
-	my $parser = XML::LibXML->new();
-	my $doc    = $parser->parse_file("$mets");
-	$xpc = XML::LibXML::XPathContext->new($doc);
-	register_namespaces($xpc);
-    };
-
-    if ($@) {
-	croak("-ERR- Could not read XML file $mets: $@");
+	$self->{repos_mets_xpc} = $self->_parse_xpc($mets);
     }
-    return $xpc;
+
+    return $self->{repos_mets_xpc};
 
 }
 
@@ -524,7 +545,7 @@ sub get_file_groups_by_page {
 
 # TODO: altRecordID
 
-=item record_premis_event($eventtype,  
+=item record_premis_event($eventtype_id,  
 					date => $date,
 					outcome => $outcome)
 
@@ -532,6 +553,9 @@ Records a PREMIS event that happens to the volume. Optionally, a PREMIS::Outcome
 can be passed. If no date (in any format parseable by MySQL) is given,
 the current date will be used. If the PREMIS event has already been recorded in the 
 database, the date and outcome will be updated.
+
+The eventtype_id refers to the event definitions in the application configuration file, not
+the PREMIS eventType (which is configured in the event definition)
 
 =cut
 
@@ -542,15 +566,18 @@ sub record_premis_event {
 
     my %params = @_;
 
-    my $date = $params{date} or $self->_get_current_date();
+    my $date = ($params{date} or $self->_get_current_date());
     my $outcome_xml = $params{outcome}->to_node()->toString() if defined $params{outcome};
 
     my $dbh = HTFeed::DBTools::get_dbh();
 
-    my $set_premis_sth = $dbh->prepare("REPLACE INTO premis_events_new (namespace, barcode, eventtype_id, outcome, date) VALUES
-	(?, ?, ?, ?, ?)");
+    my $tohash = join("-",$self->get_objid(),$eventtype,$date);
+    my $uuid = $self->{uuidgen}->create_from_name_str($self->{namespace},$tohash);
 
-    $set_premis_sth->execute($self->get_namespace(),$self->get_objid(),$eventtype,$outcome_xml,$date);
+    my $set_premis_sth = $dbh->prepare("REPLACE INTO premis_events_new (namespace, barcode, eventid, eventtype_id, outcome, date) VALUES
+	(?, ?, ?, ?, ?, ?)");
+
+    $set_premis_sth->execute($self->get_namespace(),$self->get_objid(),$uuid,$eventtype,$outcome_xml,$date);
 
 }
 
@@ -566,7 +593,7 @@ sub get_event_info {
 
     my $dbh = HTFeed::DBTools::get_dbh();
 
-    my $event_sql = "SELECT date,outcome FROM premis_events_new where namespace = ? and barcode = ? and eventtype_id = ?";
+    my $event_sql = "SELECT eventid,date,outcome FROM premis_events_new where namespace = ? and barcode = ? and eventtype_id = ?";
 
     my $event_sth = $dbh->prepare($event_sql);
     my @params = ($self->get_namespace(),$self->get_objid(),$eventtype);
@@ -575,7 +602,7 @@ sub get_event_info {
 
     $event_sth->execute(@params);
     # Should only be one event of each event type - enforced by primary key in DB
-    if (my ($date, $outcome) = $event_sth->fetchrow_array()) {
+    if (my ($eventid, $date, $outcome) = $event_sth->fetchrow_array()) {
 	# replace space separating date from time with 'T'
 	$date =~ s/ /T/g;
 	my $outcome_node = undef;
@@ -583,7 +610,7 @@ sub get_event_info {
 	    $outcome_node = XML::LibXML->new()->parse_string($outcome);
 	    $outcome_node = $outcome_node->documentElement();
 	}
-	return ($date, $outcome_node);
+	return ($eventid, $date, $outcome_node);
     } else {
 	return;
     }
