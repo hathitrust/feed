@@ -6,6 +6,7 @@ use strict;
 use base qw(HTFeed::Stage);
 use HTFeed::Config qw(get_config);
 use File::Basename qw(basename);
+use File::Path qw(remove_tree);
 use Cwd qw(getcwd);
 
 use Log::Log4perl qw(get_logger);
@@ -60,14 +61,20 @@ sub run{
 
     }
 
-    # clean up staging area
-    system("rm -rf $zip_stage/$objid");
     chdir($old_dir) or die("Can't chdir to $old_dir: $!");
 
 
     $self->_set_done();
     $volume->record_premis_event('zip_compression');
     return $self->succeeded();
+}
+
+sub clean_always{
+    my $self = shift;
+    my $objid = $self->{volume}->get_objid();
+    my $zip_stage = get_config('staging','zip');
+    
+    remove_tree "$zip_stage/$objid";
 }
 
 1;

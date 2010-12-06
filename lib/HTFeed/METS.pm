@@ -589,4 +589,16 @@ sub get_tool_version {
     }
 }
 
+sub clean_always{
+    my $self = shift;
+    $self->clean_ram_download();
+    $self->clean_unpacked_object();
+}
+
+# do cleaning that is appropriate after failure
+sub clean_failure{
+    my $self = shift;
+    $self->clean_mets();
+}
+
 1;

@@ -640,18 +640,6 @@ sub _get_current_date {
     return $ts;
 }
 
-=item get_zip
-
-Returns the filename of the zip archive of the volume
-
-=cut
-
-sub get_zip {
-    my $self = shift;
-    return $self->get_pt_objid() . ".zip";
-
-}
-
 =item get_page_data(file)
 
 Returns a reference to a hash:
@@ -685,6 +673,34 @@ sub get_mets_path {
 
     return $mets_path;
 }
+
+=item get_SIP_filename
+
+Returns the SIP's filename
+
+=cut
+
+sub get_SIP_filename {
+    my $self = shift;
+    my $objid = $self->{objid};
+    my $pattern = $self->{nspkg}->get('SIP_filename_pattern');
+    return sprintf($pattern,$objid);
+}
+
+=item get_zip
+
+Returns the filename of the zip archive of the volume
+
+=cut
+
+sub get_zip {
+    my $self = shift;
+    return $self->get_pt_objid() . ".zip";
+
+}
+
+
+
 
 1;
 

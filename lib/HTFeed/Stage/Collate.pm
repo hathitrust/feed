@@ -49,7 +49,7 @@ sub run{
     my $zip_target = sprintf("%s/%s.zip",$pairtree_object_path,$pairtree_objid);
 
     # make sure the operation will succeed
-    if (-f $mets_source and -f $zip_source and -d $mets_target and -d $zip_target){
+    if (-f $mets_source and -f $zip_source){
         # move mets and zip to repo
         copy($mets_source,$mets_target)
             or $self->set_error('OperationFailed', detail => "cp $mets_source $mets_target failed: $!");
@@ -61,8 +61,14 @@ sub run{
         return $self->succeeded();
     }
     
-    $self->set_error('OperationFailed', detail => 'Collate failed, file or target directory not found');
+    $self->set_error('OperationFailed', detail => 'Collate failed, file not found');
     return;
+}
+
+sub clean_always{
+    my $self = shift;
+    $self->clean_mets();
+    $self->clean_packed_object();
 }
 
 1;

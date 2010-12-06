@@ -19,10 +19,16 @@ staging:
   memory: /ram/staging
   zip: /ram/zip_staging
   preingest: /ram/preingest
-  
-sample_directory: /htapps/aelkiss.babel/repos/samples
-repository_path: /htapps/aelkiss.babel/repos/obj
-  
+
+sample_directory: /htapps/rrotter.babel/repos/samples
+repository:
+  # The directory in which symbolic links will be created to each volume
+  authdir: /htapps/rrotter.babel/repos/links
+  # The directory into which volumes will be loaded 
+  destdir: /htapps/rrotter.babel/repos/obj
+
+keep_defective_packages: false
+
 handle:
   repo_url_base: http://babel.hathitrust.org/cgi/pt?id=
   root_admin: 0.NA/2027
@@ -30,13 +36,9 @@ handle:
   database:
     datasource: dbi:mysql:handle:mysql-htdev
     username: handle
-    password: i<3$barcodeFTW!
+    password: xxxx
 
-repository:
-  # The directory in which symbolic links will be created to each volume
-  authdir: /htapps/aelkiss.babel/repos/links
-  # The directory into which volumes will be loaded 
-  destdir: /htapps/aelkiss.babel/repos/obj
+
 
 ###### PREMIS configuration ######################################################
 #
