@@ -77,16 +77,16 @@ our $config = {
 
     # The list of stages to run to successfully ingest a volume.
     stages_to_run => [
-#          'HTFeed::PackageType::Yale::Unpack',
-#          'HTFeed::PackageType::Yale::VerifyManifest',
-#          'HTFeed::PackageType::Yale::ExtractOCR',
-#          'HTFeed::PackageType::Yale::ImageRemediate',
+          'HTFeed::PackageType::Yale::Unpack',
+          'HTFeed::PackageType::Yale::VerifyManifest',
+          'HTFeed::PackageType::Yale::ExtractOCR',
+          'HTFeed::PackageType::Yale::ImageRemediate',
           'HTFeed::PackageType::Yale::SourceMETS',
-#          'HTFeed::VolumeValidator',
-#          'HTFeed::Stage::Pack',
+          'HTFeed::VolumeValidator',
+          'HTFeed::Stage::Pack',
           'HTFeed::METS',
-#          'HTFeed::Stage::Handle',
-#          'HTFeed::Stage::Collate',
+          'HTFeed::Stage::Handle',
+          'HTFeed::Stage::Collate',
     ],
 
     #    stages_to_run => [qw( HTFeed::PackageType::Yale::SourceMETS )],
