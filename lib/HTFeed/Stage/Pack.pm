@@ -15,7 +15,7 @@ sub run{
     my $self = shift;
 
     my $volume = $self->{volume};
-    my $objid = $volume->get_objid();
+    my $pt_objid = $volume->get_pt_objid();
     my $path = $volume->get_staging_directory();
 
     my @files_to_zip = ();
@@ -25,7 +25,7 @@ sub run{
     my $zip_stage = get_config('staging','zip');
     mkdir($zip_stage);
     chdir($zip_stage) or die("Can't use $zip_stage directory");
-    mkdir("$objid");
+    mkdir("$pt_objid");
 
     # Add OCR files with compression
     my $uncompressed_extensions = join(":",@{ $volume->get_nspkg()->get('uncompressed_extensions') });
@@ -38,30 +38,30 @@ sub run{
 	    $self->set_error('MissingFile',file => "$path/$file");
 	}
 
-	if(!symlink("$path/$file","$objid/$file"))
+	if(!symlink("$path/$file","$pt_objid/$file"))
 	{
 	    $self->set_error('OperationFailed',operation=>'symlink',file => "$path/$file",description=>"Symlink to staging directory failed: $!");
 	}
 
     }
 
-    my $working_dir = get_config('staging'=>'memory');
-    my $zipret = system("zip -q -r -n $uncompressed_extensions $working_dir/$objid.zip $objid");
+    my $zip_path = $volume->get_zip_path();
+    my $zipret = system("zip -q -r -n $uncompressed_extensions $zip_path $pt_objid");
 
     if($zipret) {
-	    $self->set_error('OperationFailed',operation=>'zip',detail=>'Creating zip file',exitstatus=>$zipret,file=>"$working_dir/$objid.zip");
+	    $self->set_error('OperationFailed',operation=>'zip',detail=>'Creating zip file',exitstatus=>$zipret,file=>$zip_path);
     } else {
 
-        $zipret = system("unzip -q -t $working_dir/$objid.zip");
+        $zipret = system("unzip -q -t $zip_path");
 
         if($zipret) {
-            $self->set_error('OperationFailed',operation=>'unzip',exitstatus=>$zipret,file=>"$working_dir/$objid.zip",detail=>'Verifying zip file');
+            $self->set_error('OperationFailed',operation=>'unzip',exitstatus=>$zipret,file=>$zip_path,detail=>'Verifying zip file');
 	    }
 
     }
 
     # clean up staging area
-    system("rm -rf $zip_stage/$objid");
+    system("rm -rf $zip_stage/$pt_objid");
     chdir($old_dir) or die("Can't chdir to $old_dir: $!");
 
 

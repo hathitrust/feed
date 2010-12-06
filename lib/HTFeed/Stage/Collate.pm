@@ -16,12 +16,12 @@ sub run{
     my $namespace = $volume->get_namespace();
     my $objid = $volume->get_objid();
     my $pairtree_objid = s2ppchars($objid);
-    my $pairtree_object_path = sprintf('%s/%s/%s%s',get_config('repository'=>'destdir'),$namespace,id2ppath($pairtree_objid),$pairtree_objid);
+    my $pairtree_object_path = sprintf('%s/%s/%s%s',get_config('repository'=>'destdir'),$namespace,id2ppath($objid),$pairtree_objid);
 
     # Create link from 'authdir' area, if needed
 
-    if(get_config('repository'=>'use_authdir')) {
-	my $pairtree_link_parent = sprintf('%s/%s/%s',get_config('repository','authdir'),$namespace,id2ppath($pairtree_objid));
+    if(get_config('repository'=>'use_authdir') == 1) {
+	my $pairtree_link_parent = sprintf('%s/%s/%s',get_config('repository','authdir'),$namespace,id2ppath($objid));
 	my $pairtree_link_path = $pairtree_link_parent . $pairtree_objid;
 
 	# this is a re-ingest if the dir already exists, log this
@@ -51,19 +51,17 @@ sub run{
     }
     
     my $staging_dir = get_config('staging'=>'memory');
-    my $mets_source = sprintf("%s/%s.mets.xml",$staging_dir,$objid);
-    my $mets_target = sprintf("%s/%s.mets.xml",$pairtree_object_path,$pairtree_objid);
-    my $zip_source = sprintf("%s/%s.zip",$staging_dir,$objid);
-    my $zip_target = sprintf("%s/%s.zip",$pairtree_object_path,$pairtree_objid);
+    my $mets_source = $volume->get_mets_path();
+    my $zip_source = $volume->get_zip_path();
 
     # make sure the operation will succeed
     if (-f $mets_source and -f $zip_source and -d $pairtree_object_path){
         # move mets and zip to repo
         copy($mets_source,$pairtree_object_path)
-            or $self->set_error('OperationFailed', detail => "cp $mets_source $mets_target failed: $!");
+            or $self->set_error('OperationFailed', detail => "cp $mets_source $pairtree_object_path failed: $!");
             
         copy($zip_source,$pairtree_object_path)
-            or $self->set_error('OperationFailed', detail => "cp $zip_source $zip_target failed: $!");
+            or $self->set_error('OperationFailed', detail => "cp $zip_source $pairtree_object_path failed: $!");
 
         $self->_set_done();
         return $self->succeeded();

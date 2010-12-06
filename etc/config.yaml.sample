@@ -21,7 +21,6 @@ staging:
   preingest: /ram/preingest
   
 sample_directory: /htapps/aelkiss.babel/repos/samples
-repository_path: /htapps/aelkiss.babel/repos/obj
   
 handle:
   repo_url_base: http://babel.hathitrust.org/cgi/pt?id=
@@ -37,6 +36,8 @@ repository:
   authdir: /htapps/aelkiss.babel/repos/links
   # The directory into which volumes will be loaded 
   destdir: /htapps/aelkiss.babel/repos/obj
+  # Create links in authdir? If not, authdir should be the same as destdir.
+  use_authdir: 1
 
 ###### PREMIS configuration ######################################################
 #
