@@ -5,7 +5,7 @@ use strict;
 use IO::Handle;
 use IO::File;
 
-use base qw(HTFeed::Stage);
+use base qw(HTFeed::Stage::Unpack);
 use HTFeed::Config qw(get_config);
 
 use Log::Log4perl qw(get_logger);
