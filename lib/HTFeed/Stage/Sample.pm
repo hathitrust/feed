@@ -74,6 +74,10 @@ sub run{
     return $self->succeeded();
 }
 
+sub stage_info{
+    return {success_state => 'sampled', failure_state => 'punted', failure_limit => 1};
+}
+
 sub get_date {
 
 	my $now = localtime();

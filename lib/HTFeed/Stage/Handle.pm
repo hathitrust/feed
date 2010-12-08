@@ -42,6 +42,10 @@ sub run {
     return $self->succeeded();
 }
 
+sub stage_info{
+    return {success_state => 'handled', failure_state => '', failure_limit => 5};
+}
+
 1;
 
 __END__

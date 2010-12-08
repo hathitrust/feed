@@ -168,12 +168,7 @@ Returns the directory the volume's SIP should be downloaded to
 =cut
 
 sub get_download_directory {
-    my $self = shift;
-    my $dl_to_disk = $self->get_nspkg()->get('download_to_disk');
-    if ($dl_to_disk){
-        return get_config('staging'=>'disk');
-    }
-    return get_config('staging'=>'memory');
+    return get_config('staging'=>'download');
 }
 
 =item get_all_content_files

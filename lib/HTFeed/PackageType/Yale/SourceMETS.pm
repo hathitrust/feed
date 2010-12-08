@@ -6,6 +6,9 @@ use base qw(HTFeed::METS);
 use strict;
 use warnings;
 
+sub stage_info{
+    return {success_state => 'src_metsed', failure_state => '', failure_limit => 5};
+}
 
 sub _add_dmdsecs {
     my $self   = shift;

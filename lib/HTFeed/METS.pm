@@ -61,6 +61,10 @@ sub run {
 
 }
 
+sub stage_info{
+    return {success_state => 'metsed', failure_state => 'punted', failure_limit => 1};
+}
+
 sub _add_schemas {
     my $self = shift;
     my $mets = $self->{mets};

@@ -28,26 +28,29 @@ sub run_stage{
 
     my $volume = HTFeed::Volume->new(objid => $objid,namespace => $namespace,packagetype => $packagetype);
     my $nspkg = $volume->get_nspkg();
+
     my $stage_map = $nspkg->get('stage_map');
-    my $stage_info = $nspkg->get('stage_info');
-    my $stage_name = $stage_map->{$status};
-    my $stage_directions = $stage_info->{$stage_name};
-    my $stage_class = $stage_directions->{class};
+    my $stage_class = $stage_map->{$status};
+
     my $stage = eval "$stage_class->new(volume => \$volume)";
-    
+
     $stage->run();
     $stage->clean();
-    
+
     # update_db
     my $new_status;
     if ($stage->succeeded()){
-        $new_status = $stage_directions->{success_state};
+        $new_status = $stage->get_stage_info('success_state');
     }else{
-        $new_status = $stage_directions->{failure_state};
+        $new_status = $stage->get_stage_info('failure_state');
     }
-    my $dbh = HTFeed::DBTools::get_dbh();
-    my $sth = $dbh->prepare(q(UPDATE `queue` SET `status` = ? WHERE `ns` = ? AND `pkg_type` = ? AND `objid` = ?;));
-    $sth->execute($new_status,$namespace,$packagetype,$objid);
+
+    # update status if $new_status isn't blank (signifying that there should be no staus update)
+    if ($new_status){
+        my $dbh = HTFeed::DBTools::get_dbh();
+        my $sth = $dbh->prepare(q(UPDATE `queue` SET `status` = ? WHERE `ns` = ? AND `pkg_type` = ? AND `objid` = ?;));
+        $sth->execute($new_status,$namespace,$packagetype,$objid);
+    }
 }
 
 # get_queued($number_of_items)

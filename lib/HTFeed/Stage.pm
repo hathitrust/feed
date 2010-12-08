@@ -36,6 +36,23 @@ sub new{
 	return $self;
 }
 
+# returns information about the stage
+# to support this children should impliment stage_info() that returns a hash ref like:
+#   {success_state => 'validated', failure_state => 'punted', failure_limit => 1};
+#
+# synopsis
+# my $info_hash = $stage->get_stage_info();
+# my $info_item = $stage->get_stage_info('item_name');
+sub get_stage_info{
+    my $self = shift;
+    my $field = shift;
+    
+    if ($field){
+        return $self->stage_info()->{$field};
+    }
+    return $self->stage_info();
+}
+
 # abstract
 # sub run{}
 
