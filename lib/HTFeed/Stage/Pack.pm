@@ -69,6 +69,10 @@ sub run{
     return $self->succeeded();
 }
 
+sub stage_info{
+    return {success_state => 'packed', failure_state => '', failure_limit => 5};
+}
+
 sub clean_always{
     my $self = shift;
     my $objid = $self->{volume}->get_objid();

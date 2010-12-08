@@ -50,6 +50,10 @@ sub run {
 
 }
 
+sub stage_info{
+    return {success_state => 'ocr_extracted', failure_state => '', failure_limit => 5};
+}
+
 package HTFeed::PackageType::Yale::AltoParse;
 use XML::LibXML::SAX;
 use base qw(XML::LibXML::SAX);

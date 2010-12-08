@@ -65,6 +65,10 @@ sub run{
     return;
 }
 
+sub stage_info{
+    return {success_state => 'collated', failure_state => 'punted', failure_limit => 1};
+}
+
 sub clean_always{
     my $self = shift;
     $self->clean_mets();

@@ -54,6 +54,10 @@ sub download{
     }
 }
 
+sub stage_info{
+    return {success_state => 'downloaded', failure_state => 'ready', failure_limit => 5};
+}
+
 # do cleaning that is appropriate after failure
 sub clean_failure{
     my $self = shift;
