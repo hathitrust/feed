@@ -31,9 +31,7 @@ sub get_page_data {
 	$self->{page_data} = $self->_extract_page_tags();
     }
 
-    (my $seqnum) = ($file =~ /(\d+)/);
-    croak("Can't extract sequence number from file $file") unless $seqnum;
-    return $self->{'page_data'}{$seqnum};
+    return $self->{'page_data'}{$file};
 
 }
 
@@ -64,7 +62,7 @@ my $label_map = {
     qr/^Appendi.*/i         => 'APPENDIX',
     qr/^Advert.*/i          => 'ADVERTISEMENTS',
     qr/^Back Cover$/i       => 'BACK_COVER',
-    qr/^Back Matter$/i      => 'CHAPTER_START',
+#    qr/^Back Matter$/i      => 'CHAPTER_START',
     qr/^Bibliography$/i     => 'REFERENCES',
     qr/^Body$/i             => 'FIRST_CONTENT_CHAPTER_START',
     qr/^Book title$/i       => 'TITLE',
@@ -80,7 +78,7 @@ my $label_map = {
     qr/^Front Matter.*$/i   => '??_PREFACE',
     qr/\bIndex\b/i          => 'INDEX',
     qr/^Introduct.*/i       => '??_PREFACE',
-    qr/^List of.*Plates.*/i => 'LIST_OF_PLATES',
+    qr/^List of.*Plates.*/i => 'LIST_OF_ILLUSTRATIONS',
     qr/^List of.*Illus.*/i  => 'LIST_OF_ILLUSTRATIONS',
     qr/^List of.*Map.*/i    => 'LIST_OF_MAPS',
     qr/^Map.*/i             => 'MAP',
@@ -127,13 +125,8 @@ sub _extract_page_tags {
 	my $fptr ( $struct_div->getChildrenByTagNameNS( NS_METS, 'fptr' ) )
 	{
 	    my $fileid = $fptr->getAttribute('FILEID');
-	    (my $seqnum) = ($fileid =~ /(\d+)/);
-	    die("Can't extract sequence number from file $fileid") unless $seqnum;
-
-	    if ( $fileid =~ /^IMG/i ) {
-		$self->_set_pagenumber( $seqnum, $orderlabel, $pagenumber_map );
-		$pagetag_map->{$seqnum} = $pagetags;
-	    }
+	    $self->_set_pagenumber( $fileid, $orderlabel, $pagenumber_map );
+	    $pagetag_map->{$fileid} = $pagetags;
 	}
     }
 
@@ -161,23 +154,19 @@ sub _extract_page_tags {
 		$struct_div->getChildrenByTagNameNS( NS_METS, 'fptr' ) )
 	    {
 		my $fileid = $fptr->getAttribute('FILEID');
-		(my $seqnum) = ($fileid =~ /(\d+)/);
-		die("Can't extract sequence number from file $fileid") unless $seqnum;
 
-		if ( $fileid =~ /^IMG/i ) {
-		    $self->_set_pagenumber( $seqnum, $orderlabel, $pagenumber_map )
-		    if defined $orderlabel;
-		    $self->_set_pagenumber( $seqnum, $label, $pagenumber_map )
-		    if defined $label;
+		$self->_set_pagenumber( $fileid, $orderlabel, $pagenumber_map )
+		if defined $orderlabel;
+		$self->_set_pagenumber( $fileid, $label, $pagenumber_map )
+		if defined $label;
 
-		    # update pagetags
-		    if (@$pagetags) {
-			my $file_pagetags = $pagetag_map->{$seqnum};
-			$file_pagetags = [] if not defined $file_pagetags;
-			push( @$file_pagetags, @$pagetags );
-			$pagetag_map->{$seqnum} = $file_pagetags;
-			$pagetags = [];
-		    }
+		# update pagetags
+		if (@$pagetags) {
+		    my $file_pagetags = $pagetag_map->{$fileid};
+		    $file_pagetags = [] if not defined $file_pagetags;
+		    push( @$file_pagetags, @$pagetags );
+		    $pagetag_map->{$fileid} = $file_pagetags;
+		    $pagetags = [];
 		}
 
 		$self->{at_start} = 0;
@@ -202,12 +191,12 @@ sub _extract_page_tags {
 	}
     }
 
-    foreach my $seqnum ( uniq( sort( keys(%$pagenumber_map), keys(%$pagetag_map) ) ) ) {
-	my $pagenum = $pagenumber_map->{$seqnum};
-	my $rawtags = $pagetag_map->{$seqnum};
+    foreach my $fileid ( uniq( sort( keys(%$pagenumber_map), keys(%$pagetag_map) ) ) ) {
+	my $pagenum = $pagenumber_map->{$fileid};
+	my $rawtags = $pagetag_map->{$fileid};
 	my @tags    = uniq( sort(@$rawtags) );
 
-	$pagedata->{$seqnum} = {
+	$pagedata->{$fileid} = {
 	    orderlabel => $pagenum,
 	    label      => join( ', ', @tags )
 	};

@@ -40,7 +40,7 @@ sub run {
     }
     else {
 
-        my $mets_xc = $volume->get_yale_mets_xc();
+        my $mets_xc = $volume->get_yale_mets_xpc();
 
         # check the METS file
         foreach my $file ( $mets_xc->findnodes("//mets:file") ) {
