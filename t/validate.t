@@ -8,8 +8,12 @@ use HTFeed::Config qw(set_config);
 use Getopt::Long;
 use FindBin;
 use HTFeed::Volume;
+use HTFeed::Log;
 
 use Test::More;
+
+HTFeed::Log->init();
+
 
 # get test config
 my $config_file = "$FindBin::Bin/etc/package.yaml";
@@ -21,7 +25,7 @@ GetOptions ( "s" => \$setup_mode );
 
 my $damaged_staging = $config_data->{package_directory}->{damaged};
 my $undamaged_staging = $config_data->{package_directory}->{undamaged};
-my $validation_logs_dir = $config_data->{package_directory}->{undamaged};
+my $validation_logs_dir = $config_data->{package_directory}->{logs};
 
 # iterate through all volumes in config
 my $package_types = $config_data->{package_types};
@@ -67,8 +71,8 @@ else{
     # since we are generating that data, so there are only 2*n tests
     done_testing( $config_data->{volume_count} * 2 );
     
-    # save yaml file, newly populated with error counts
-    YAML::XS::DumpFile($config_file);
+    ## save yaml file, newly populated with error counts
+    ##YAML::XS::DumpFile($config_file);
 }
 
 # test_package($package_type,$namespace,$objid,$damaged_pkg_path,$undamaged_pkg_path)
@@ -83,9 +87,9 @@ sub test_success{
         
     # validate undamaged package
     {
-        set_config($undamaged_pkg_path,'staging'=>'download');
+        set_config($undamaged_pkg_path,'staging'=>'memory');
         $volume = HTFeed::Volume->new(objid => $objid,namespace => $namespace,packagetype => $package_type);
-        $vol_val = HTFeed::VolumeValidator->new($volume);
+        $vol_val = HTFeed::VolumeValidator->new(volume => $volume);
 
         $vol_val->run();
     }
@@ -139,7 +143,7 @@ sub setup_failure{
     {
         set_config($damaged_pkg_path,'staging'=>'download');
         $volume = HTFeed::Volume->new(objid => $objid,namespace => $namespace,packagetype => $package_type);
-        $vol_val = HTFeed::VolumeValidator->new($volume);
+        $vol_val = HTFeed::VolumeValidator->new(volume => $volume);
 
         $vol_val->run();
     }
