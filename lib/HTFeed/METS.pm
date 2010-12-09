@@ -61,6 +61,10 @@ sub run {
 
 }
 
+sub stage_info{
+    return {success_state => 'metsed', failure_state => 'punted', failure_limit => 1};
+}
+
 sub _add_schemas {
     my $self = shift;
     my $mets = $self->{mets};
@@ -598,6 +602,18 @@ sub get_tool_version {
     } else {
 	return $version;
     }
+}
+
+sub clean_always{
+    my $self = shift;
+    $self->clean_ram_download();
+    $self->clean_unpacked_object();
+}
+
+# do cleaning that is appropriate after failure
+sub clean_failure{
+    my $self = shift;
+    $self->clean_mets();
 }
 
 1;

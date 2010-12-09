@@ -89,8 +89,6 @@ our $config = {
     	  'HTFeed::Stage::Collate',
     ],
 
-    #    stages_to_run => [qw( HTFeed::PackageType::Yale::SourceMETS )],
-
     # The list of filegroups that contain files that will be validated
     # by JHOVE
     metadata_filegroups => [qw(image)],

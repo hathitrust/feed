@@ -24,70 +24,52 @@ sub _validate_mets_consistency {
     # get top-level xpathcontext for METS
     my $xpc = $volume->get_source_mets_xpc();
 
-	my $sourceMD = ;
+	my $sourceMD = $xpc->findnodes("//mets:sourceMD");
 
-    foreach my $techmd_id ($xpc->findnodes('//mets:techMD/@ID')) {
-        my $file = $xpc->findnodes("//mets:file[\@ADMID=$techmd_id]");
-        if(! -e $file) {
-		#$self->set_error("METS file not found",...);
-	}
+	foreach my $techmd_id ($xpc->findnodes("//mets:techMD/\@ID")) {
+		my $file = $xpc->findnodes("//mets:file[\@ADMID=$techmd_id]");
+		if(! -e $file) {
+			$self->set_error("MissingFile", field => 'file');
+		}
 
-        #bitDepth & sampleRate
-		my $techBitDepth = $xpc->findnodes("//");
-		my $techSampleRate = $xpc->findnodes("//");
-		my $sourceFormat = (); #sourceMD format
-		my $sourceBitDepth = (); #sourceMD bitDepth
-		my $sourceSampleRate = (); #sourceMD sampleRate
-		if ($sourceFormat eq "CD" || $sourceFormat eq "DAT") {
-			if ($techBitdepth ne $sourceBitDepth) {
-				if ($techBitDepth != 24) {
-					#$self->set_error("");
-				}
-			} elsif ($techSampleRate ne $sourceSampleRate) {
-				if ($techSampleRate != 96000) {
-					#$self->set_error("");
-				}
-			}
-		}	
-
-        #useType
-		my $primaryIdentifier = $xpc->findnodes("//");
-		my $useType = $xpc->findnodes("//");
+		#useType
+		my $primaryIdentifier = $xpc->findnodes("//mets:techMD/mets:mdWrap/mets:xmlData/aes:audioObject/aes:primaryIdentifier/\@identifierType");
+		my $useType = $xpc->findnodes("//mets:techMD/mets:mdWrap/mets:xmlData/aes:audioObject/aes:use/\@useType");
 		if ($primaryIdentifier eq "am") {
 			if ($useType ne "PRESERVATION_MASTER") {
-				#self->set_error(...value must equal PRESERVATION_MASTER)
+				$self->set_error("BadValue");
 			}
 		} elsif ($primaryIdentifier eq "pm") {
 			if ($useType ne "PRODUCTION_MASTER" {
-				#$self->set_error(...value must equal PRODUCTION_MASTER)
+				$self->set_error("BadValue");
+			}
 		} else {
-			#$self->set_error(... $primaryIdentifier must be "am" or "pm")
-		}
+				$self->set_error("BadValue");
+			}
 
         # techMD section cross-checks    
-        my $audioDataEncoding = $xpc->findnodes("//");
-        my $byteOrder = $xpc->findnodes("//");
-        my $numChannels = $xpc->findnodes("//");
-        my $format = $xpc->findnones("//");
-        my $analogDigitalFlag = $xpc->findnodes("//");
-            
-    }
+        my $audioDataEncoding = $xpc->findnodes("//mets:techMD/mets:mdWrap/mets:xmlData/aes:audioObject/aes:audioDataEncoding");
+        my $byteOrder = $xpc->findnodes("//mets:techMD/mets:mdWrap/mets:xmlData/aes:audioObject/aes:byteOrder");
+        my $numChannels = $xpc->findnodes("//mets:techMD/mets:mdWrap/mets:xmlData/aes:audioObject/aes:face/aes:region/aes:numChannels");
+        my $format = $xpc->findnones("//mets:techMD/mets:mdWrap/mets:xmlData/aes:audioObject/aes:format");
+        my $analogDigitalFlag = $xpc->findnodes("//mets:techMD/mets:mdWrap/mets:xmlData/aes:audioObject/\@analogDigitalFlag");
+	}
 
-    my $sourceUseType = $xpc->findnodes('//mets:sourceMD/mets:mdWrap/mets:xmlData/aes:audioObject/aes:use/@useType');
+    my $sourceUseType = $xpc->findnodes("//mets:sourceMD/mets:mdWrap/mets:xmlData/aes:audioObject/aes:use/\@useType");
 	if(! -e $sourceUseType) {
-		#$self->set_error(value doesn't exist)
+		$self->set_error("MissingField");
 	} elsif($sourceUseType ne "ORIGINAL_MASTER") {
-    	#$self->set_error(must equal "ORIGINAL_MASTER")
+    		$self->set_error("BadValue");
 	}
     
     my $sourceFormat = (); #sourceMD/aes:format
-    my $analogDigitalFlag = (); #mets:sourcemd/aes:audioObject/analogDigitalFlag=""
+    my $analogDigitalFlag = $xpc->findnodes("//mets:sourcemd/aes:audioObject/\@DigitalFlag");
     if ($sourceFormat eq "DAT" || $sourceFormat eq "CD") {
         if ($analogDigitalFlag ne "PHYS_DIGITAL") {
-			#$self->set_error(wrong values)
+			$self->set_error("BadValue");
 		}
 	} elsif ($analogDigitalFlag ne "ANALOG") {
-		#$self->set_error(wrong values)
+		$self->set_error("BadValue");
 	}
 
     return;

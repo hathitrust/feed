@@ -19,9 +19,16 @@ staging:
   memory: /ram/staging
   zip: /ram/zip_staging
   preingest: /ram/preingest
-  
-sample_directory: /htapps/aelkiss.babel/repos/samples
-  
+
+sample_directory: /htapps/rrotter.babel/repos/samples
+repository:
+  # The directory in which symbolic links will be created to each volume
+  authdir: /htapps/rrotter.babel/repos/links
+  # The directory into which volumes will be loaded 
+  destdir: /htapps/rrotter.babel/repos/obj
+
+keep_defective_packages: false
+
 handle:
   repo_url_base: http://babel.hathitrust.org/cgi/pt?id=
   root_admin: 0.NA/2027
@@ -31,13 +38,6 @@ handle:
     username: USERNAME
     password: PASSWORD
 
-repository:
-  # The directory in which symbolic links will be created to each volume
-  authdir: /htapps/aelkiss.babel/repos/links
-  # The directory into which volumes will be loaded 
-  destdir: /htapps/aelkiss.babel/repos/obj
-  # Create links in authdir? If not, authdir should be the same as destdir.
-  use_authdir: 1
 
 ###### PREMIS configuration ######################################################
 #

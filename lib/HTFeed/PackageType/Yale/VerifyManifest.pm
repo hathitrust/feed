@@ -56,6 +56,10 @@ sub run {
     return $self->succeeded();
 }
 
+sub stage_info{
+    return {success_state => 'manifest_verified', failure_state => 'punt', failure_limit => 1};
+}
+
 =item $obj->_check_dospath_md5sum($dospath,$md5sum)
 
 Verifies an md5 checksum for a single filename specified with a DOS-style pathname

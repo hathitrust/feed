@@ -67,8 +67,18 @@ sub run{
         return $self->succeeded();
     }
     
-    $self->set_error('OperationFailed', detail => 'Collate failed, file or target directory not found');
+    $self->set_error('OperationFailed', detail => 'Collate failed, file not found');
     return;
+}
+
+sub stage_info{
+    return {success_state => 'collated', failure_state => 'punted', failure_limit => 1};
+}
+
+sub clean_always{
+    my $self = shift;
+    $self->clean_mets();
+    $self->clean_packed_object();
 }
 
 1;

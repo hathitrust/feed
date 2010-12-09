@@ -67,7 +67,7 @@ sub to_SQL{
         push @rows, $entries->{$key}->to_SQL_row($name,$key,$timestamp);
     }
     
-    $sql .= join(q{,}, @rows) . q{;};
+    $sql .= join(q{,}, @rows) . q{ ON DUPLICATE KEY UPDATE `data`=VALUES(data), `timestamp`=VALUES(timestamp);};
     
     return $sql;
 }

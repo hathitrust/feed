@@ -10,7 +10,7 @@ HTFeed::Log->init();
 
 # define list of test classes
 use constant TEST_CLASSES => [qw(
-    HTFeed_Test::Stage::Download
+    HTFeed::Stage::Download::Test
     )];
     
 # requre all test classes

@@ -67,6 +67,10 @@ sub run {
     return;
 }
 
+sub stage_info {
+    return {success_state => 'validated', failure_state => 'punted', failure_limit => 1};
+}
+
 =item _validate_file_names
 
 Ensures every file in the AIP staging directory is valid for the volume.
@@ -367,6 +371,14 @@ sub md5sum {
     close($fh);
     return $ctx->hexdigest();
 }
+
+# do cleaning that is appropriate after failure
+sub clean_failure{
+    my $self = shift;
+    $self->clean_ram_download();
+    $self->clean_unpacked_object();
+}
+
 1;
 
 __END__;

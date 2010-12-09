@@ -52,11 +52,16 @@ sub download{
     else{
     	$self->set_error("OperationFailed",file => $filename,operation=>'download',detail => $response->status_line);
     }
+}
 
-    # Try to clean up if download failed
-    if($self->{failed} and -e "$path/$filename") {
-	unlink($path/$filename) or $self->set_error("OperationFailed",file=>"$path/$filename",operation=>'unlink',detail => "Error unlinking: $!");
-    }
+sub stage_info{
+    return {success_state => 'downloaded', failure_state => 'ready', failure_limit => 5};
+}
+
+# do cleaning that is appropriate after failure
+sub clean_failure{
+    my $self = shift;
+    $self->clean_ram_download();
 }
 
 1;

@@ -116,6 +116,18 @@ sub get_event_configuration {
     return $eventinfo;
 }
 
+# returns namespace identifier
+sub get_namespace{
+    my $self = shift;
+    return $self->get_identifier();
+}
+
+# returns packagetype identifier
+sub get_packagetype{
+    my $self = shift;
+    return $self->{packagetype}->get_identifier();
+}
+
 # Gathers overrides for things like validation, PREMIS events 
 # from package type, namespace, pkgtype overrides.
 

@@ -170,12 +170,7 @@ Returns the directory the volume's SIP should be downloaded to
 =cut
 
 sub get_download_directory {
-    my $self = shift;
-    my $dl_to_disk = $self->get_nspkg()->get('download_to_disk');
-    if ($dl_to_disk){
-        return get_config('staging'=>'disk');
-    }
-    return get_config('staging'=>'memory');
+    return get_config('staging'=>'download');
 }
 
 =item get_all_content_files
@@ -705,6 +700,34 @@ sub get_mets_path {
 
     return $mets_path;
 }
+
+=item get_SIP_filename
+
+Returns the SIP's filename
+
+=cut
+
+sub get_SIP_filename {
+    my $self = shift;
+    my $objid = $self->{objid};
+    my $pattern = $self->{nspkg}->get('SIP_filename_pattern');
+    return sprintf($pattern,$objid);
+}
+
+=item get_zip
+
+Returns the filename of the zip archive of the volume
+
+=cut
+
+sub get_zip {
+    my $self = shift;
+    return $self->get_pt_objid() . ".zip";
+
+}
+
+
+
 
 1;
 
