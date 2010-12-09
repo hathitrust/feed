@@ -13,7 +13,7 @@ our $config = {
     # HTML OCR is valid for the package type but only expected/required for UC1
     valid_file_pattern => qr/^( 
 		\w{3}\d{5}\.(jp2) |
-		\w{3}\d{5}\.(xml) 
+		mdl\.\w+\.\w{3}\d{5}\w?\.(xml) |
 		$)/x,
 
     # Configuration for each filegroup. 
@@ -37,7 +37,7 @@ our $config = {
     },
 
     checksum_file => 0, # no separate checksum file for MDL contone
-    source_mets_file => qr/^\w+\.xml$/,
+    source_mets_file => qr/^mdl\.\w+\.\w{3}\d{5}\w?\.xml$/,
 
     # Allow gaps in numerical sequence of filenames?
     allow_sequence_gaps => 1,
@@ -64,22 +64,36 @@ our $config = {
 
     # Validation overrides
     validation => {
-	  'HTFeed::ModuleValidator::JPEG2000_hul' => {
-	      'layers' => v_eq( 'codingStyleDefault', 'layers', '8' ),
-		transformation => v_eq('codingStyleDefault','transformation','1')
-	  }
+	'HTFeed::ModuleValidator::JPEG2000_hul' => {
+	    'layers' => v_eq( 'codingStyleDefault', 'layers', '8' ),
+	    'transformation' => v_eq('codingStyleDefault','transformation','1'),
+	    'camera' => undef,
+	    'resolution'      => v_and(
+		v_in( 'xmp', 'xRes', [ '300/1', '400/1', '500/1', '600/1' ] ),
+		v_same( 'xmp', 'xRes', 'xmp', 'yRes' )
+	    ),
+	    'decomposition_levels' => v_eq( 'codingStyleDefault', 'decompositionLevels', '2' ),
+	},
 
+	'HTFeed::ModuleValidator::TIFF_hul' => {
+	    'resolution' =>
+	      v_and( v_in( 'mix', 'xRes', ['300','400','500','600'] ), v_in('mix', 'yRes', ['300','400','500','600'] ) ),
+	      'camera' => undef,
+	  }
     },
 
     # What PREMIS events to extract from the source METS and include
-    source_premis_events => [
+    source_premis_events_extract => [
+    	'capture',
+	'image compression',
+	'message digest calculation',
+	'source mets creation'
     ],
 
     # What PREMIS events to include (by internal PREMIS identifier, 
     # configured in config.yaml)
     premis_events => [
 	'page_md5_fixity',
-	'page_md5_create',
 	'package_validation',
 	'zip_compression',
 	'zip_md5_create',

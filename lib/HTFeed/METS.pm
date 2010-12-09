@@ -192,18 +192,18 @@ sub _add_premis_events {
 
 	my $executor = $eventconfig->{'executor'} 
 	    or $self->set_error("MissingField",field => "executor", detail => "Missing event executor for $eventcode");
+	my $executor_type = $eventconfig->{'executor_type'} 
+	    or $self->set_error("MissingField",field => "executor", detail => "Missing event executor type for $eventcode");
 	my $detail = $eventconfig->{'detail'} 
 	    or $self->set_error("MissingField",field => "event detail", detail => "Missing event detail for $eventcode");
 	my $eventtype = $eventconfig->{'type'}
 	    or $self->set_error("MissingField",field => "event type", detail => "Missing event type for $eventcode");
 
-#	$executor = $volume->get_artist() if $executor eq 'VOLUME_ARTIST';
-
 	my $event = new PREMIS::Event($eventid, 'UUID', $eventtype, $datetime, $detail);
 	$event->add_outcome($outcome) if defined $outcome;
 
 	# query namespace/packagetype for software tools to record for this event type
-	$event->add_linking_agent(new PREMIS::LinkingAgent('AgentID',$executor,'Executor'));
+	$event->add_linking_agent(new PREMIS::LinkingAgent($executor_type,$executor,'Executor'));
 
 	my @agents = ();
 	my $tools_config = $eventconfig->{'tools'};
@@ -234,7 +234,7 @@ sub _add_source_mets_events {
 	push(@{ $src_premis_events->{$event_type} }, $src_event);
     }
 
-    foreach my $eventtype ( @{ $volume->get_nspkg()->get('source_premis_events') } ) {
+    foreach my $eventtype ( @{ $volume->get_nspkg()->get('source_premis_events_extract') } ) {
 	next unless defined $src_premis_events->{$eventtype};
 	foreach my $src_event ( @{ $src_premis_events->{$eventtype} } ) {
 	    my $eventid = $xc->findvalue("./PREMIS:eventIdentifier[PREMIS:eventIdentifierType='UUID']/PREMIS:eventIdentifierValue",$src_event);
@@ -305,7 +305,7 @@ sub _add_zip_fg {
         use => 'zip archive'
     );
     my $working_dir = get_config('staging'=>'memory');
-    $zip_filegroup->add_file( "$working_dir/" . $volume->get_zip(), prefix => 'ZIP' );
+    $zip_filegroup->add_file( $volume->get_zip_path(), prefix => 'ZIP' );
     $mets->add_filegroup($zip_filegroup);
 }
 
@@ -360,14 +360,25 @@ sub _add_struct_map {
         while ( my ( $filegroup_name, $files ) = each(%$pagefiles) ) {
             foreach my $file (@$files) {
                 my $fileid = $self->{filegroups}{$filegroup_name}->get_file_id($file);
-                croak("Can't find file ID for $file in $filegroup_name")
-                  unless defined $fileid;
+		if(not defined $fileid) {
+		    $self->set_error("MissingField",field => "fileid", file => $file, filegroup => $filegroup_name, detail => "Can't find ID for file in file group");
+		    next;
+		}
 
                 # try to find page number & page tags for this page
+		my $thisfile_pagedata = $volume->get_page_data($fileid);
                 if ( not defined $pagedata ) {
                     $pagedata = $volume->get_page_data($fileid);
 		    @pagedata = %$pagedata;
-                }
+                } else {
+		    my $other_pagedata = $volume->get_page_data($fileid);
+		    while(my ($key,$val) = each (%$pagedata)) {
+			my $val1 = $other_pagedata->{$key};
+			$self->set_error("NotEqualValues",actual => "other=$val ,$fileid=$val1",detail => "Mismatched page data for different files in pagefiles")
+			    unless (not defined $val and not defined $val1) or ($val eq $val1);
+		    }
+
+		}
 
                 push( @$pagediv_ids, $fileid );
             }

@@ -77,16 +77,16 @@ our $config = {
 
     # The list of stages to run to successfully ingest a volume.
     stages_to_run => [
-#          'HTFeed::PackageType::Yale::Unpack',
-#          'HTFeed::PackageType::Yale::VerifyManifest',
-#          'HTFeed::PackageType::Yale::ExtractOCR',
-#          'HTFeed::PackageType::Yale::ImageRemediate',
+          'HTFeed::PackageType::Yale::Unpack',
+          'HTFeed::PackageType::Yale::VerifyManifest',
+          'HTFeed::PackageType::Yale::ExtractOCR',
+          'HTFeed::PackageType::Yale::ImageRemediate',
           'HTFeed::PackageType::Yale::SourceMETS',
-#          'HTFeed::VolumeValidator',
-#          'HTFeed::Stage::Pack',
-          'HTFeed::METS',
-#          'HTFeed::Stage::Handle',
-#          'HTFeed::Stage::Collate',
+	  'HTFeed::VolumeValidator',
+   	  'HTFeed::Stage::Pack',
+   	  'HTFeed::METS',
+    	  'HTFeed::Stage::Handle',
+    	  'HTFeed::Stage::Collate',
     ],
 
     #    stages_to_run => [qw( HTFeed::PackageType::Yale::SourceMETS )],
@@ -109,36 +109,44 @@ our $config = {
     # Validation overrides
     validation => {},
 
+    validation_run_stages => [
+	    qw(validate_file_names          
+	    validate_filegroups_nonempty 
+	    validate_consistency         
+	    validate_checksums           
+	    validate_utf8                
+	    validate_metadata)
+    ],
+
     # What PREMIS events to include in the source METS file
     source_premis_events => [
-        qw(
-          capture
-          source_md5_fixity
-          image_header_modification
-          ocr_normalize
-          source_mets_creation
-          page_md5_create
-          mets_validation
-          )
+	  # capture - included manually
+          'source_md5_fixity',
+          'image_header_modification',
+          'ocr_normalize',
+          'source_mets_creation',
+          'page_md5_create',
+          'mets_validation',
     ],
 
  # What PREMIS events to extract from the source METS and include in the HT METS
     source_premis_events_extract => [
-        qw(
-          capture
-          image_header_modification
-          ocr_normalize
-          source_mets_creation
-          page_md5_create
-          )
+	  'capture',
+          'image_header_modification',
+          'ocr_normalize',
+          'source_mets_creation',
+          'page_md5_create',
     ],
 
     # What PREMIS events to include (by internal PREMIS identifier,
     # configured in config.yaml)
     premis_events => [
-        'page_md5_fixity',      'package_validation',
-        'page_feature_mapping', 'zip_compression',
-        'zip_md5_create',       'ingestion',
+        'page_md5_fixity',      
+	'package_validation',
+        'page_feature_mapping', 
+	'zip_compression',
+        'zip_md5_create',       
+	'ingestion',
     ],
 
     # Overrides for the basic PREMIS event configuration

@@ -24,21 +24,13 @@ sub new {
 
     $self->{stages} = {
         validate_file_names          => \&_validate_file_names,
-        validate_filegroups	     => \&_validate_filegroups,
+        validate_filegroups_nonempty	     => \&_validate_filegroups,
         validate_consistency         => \&_validate_consistency,
         validate_checksums           => \&_validate_checksums,
         validate_utf8                => \&_validate_utf8,
         validate_metadata            => \&_validate_metadata
     };
 
-    $self->{run_stages} = [
-        qw(validate_file_names
-          validate_filegroups
-          validate_consistency
-          validate_checksums
-          validate_utf8
-          validate_metadata)
-    ];
 
     return $self;
 
@@ -47,8 +39,9 @@ sub new {
 sub run {
     my $self = shift;
 
+    my $run_stages = $self->{volume}->get_nspkg()->get('validation_run_stages');
     # Run each enabled stage
-    foreach my $stage ( @{ $self->{run_stages} } ) {
+    foreach my $stage ( @{ $run_stages } ) {
         if ( exists( $self->{stages}{$stage} ) ) {
             my $sub = $self->{stages}{$stage};
             $logger->debug("Running validation stage $stage");
