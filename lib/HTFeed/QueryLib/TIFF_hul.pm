@@ -59,7 +59,7 @@ sub new{
 			{
 				width			=> "//tiff:ImageWidth",
 				length			=> "//tiff:ImageLength",
-				bitsPerSample	=> "//tiff:BitsPerSample",
+				bitsPerSample		=> "//tiff:BitsPerSample/rdf:Seq/rdf:li",
 				compression		=> "//tiff:Compression",
 				colorSpace		=> "//tiff:PhotometricInterpretation",
 				orientation		=> "//tiff:Orientation",
