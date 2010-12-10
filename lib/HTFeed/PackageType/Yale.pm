@@ -76,18 +76,19 @@ our $config = {
     allow_sequence_gaps => 0,
 
     # The list of stages to run to successfully ingest a volume.
-    stages_to_run => [
-          'HTFeed::PackageType::Yale::Unpack',
-          'HTFeed::PackageType::Yale::VerifyManifest',
-          'HTFeed::PackageType::Yale::ExtractOCR',
-          'HTFeed::PackageType::Yale::ImageRemediate',
-          'HTFeed::PackageType::Yale::SourceMETS',
-	  'HTFeed::VolumeValidator',
-   	  'HTFeed::Stage::Pack',
-   	  'HTFeed::METS',
-    	  'HTFeed::Stage::Handle',
-    	  'HTFeed::Stage::Collate',
-    ],
+    # The list of stages to run to successfully ingest a volume
+    stage_map => {
+        ready       => 'HTFeed::PackageType::Yale::Unpack',
+        unpacked    => 'HTFeed::PackageType::Yale::VerifyManifest',
+        manifest_verified => 'HTFeed::PackageType::Yale::ExtractOCR',
+        ocr_extracted =>'HTFeed::PackageType::Yale::ImageRemediate',
+        images_remediated => 'HTFeed::PackageType::Yale::SourceMETS',
+        src_metsed  => 'HTFeed::VolumeValidator',
+        validated   => 'HTFeed::Stage::Pack',
+        packed      => 'HTFeed::METS',
+        metsed      => 'HTFeed::Stage::Handle',
+        handled     => 'HTFeed::Stage::Collate',
+    },
 
     # The list of filegroups that contain files that will be validated
     # by JHOVE
