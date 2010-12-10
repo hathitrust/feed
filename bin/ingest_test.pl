@@ -4,10 +4,8 @@ use warnings;
 use strict;
 
 use HTFeed::Volume;
-use HTFeed::Log;
+use HTFeed::Log {root_logger => 'INFO, screen'};
 use Getopt::Long;
-
-HTFeed::Log->init();
 
 # autoflush STDOUT
 $| = 1;

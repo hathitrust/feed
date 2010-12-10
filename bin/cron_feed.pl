@@ -11,10 +11,8 @@ use DBI;
 
 use HTFeed::Config qw(get_config);
 use HTFeed::Volume;
-use HTFeed::Log;
+use HTFeed::Log {root_logger => 'INFO, dbi'};
 use HTFeed::DBTools;
-
-HTFeed::Log->init();
 
 while(my $sth = get_queued(20)){
     while (my ($ns,$pkg_type,$objid,$status) = $sth->fetchrow_array()){

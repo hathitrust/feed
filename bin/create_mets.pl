@@ -6,12 +6,7 @@ use HTFeed::Volume;
 use HTFeed::METS;
 use DBI;
 
-use HTFeed::Log;
-
-# for testing until we get the test harness going, then delete this line
-use HTFeed::Test::Support;
-
-HTFeed::Log->init();
+use HTFeed::Log {root_logger => 'INFO, screen'};
 
 my $ns = $ARGV[0];
 my $objid = $ARGV[1];

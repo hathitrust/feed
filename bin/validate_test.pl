@@ -4,10 +4,8 @@ use strict;
 use warnings;
 use HTFeed::Volume;
 use HTFeed::VolumeValidator;
-use HTFeed::Log;
+use HTFeed::Log {root_logger => 'INFO, screen'};
 use HTFeed::Config qw(set_config);
-
-HTFeed::Log->init();
 
 # read args
 my $packagetype = shift;

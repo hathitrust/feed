@@ -1,12 +1,10 @@
-#! /usr/bin/perl
+#!/usr/bin/perl
 
 use warnings;
 use strict;
 use lib qw{lib};
 
-use HTFeed::Log;
-
-HTFeed::Log->init();
+use HTFeed::Log {root_logger => 'INFO, screen'};
 
 # define list of test classes
 use constant TEST_CLASSES => [qw(

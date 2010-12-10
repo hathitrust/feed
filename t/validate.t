@@ -1,3 +1,5 @@
+#!/usr/bin/perl
+
 use warnings;
 use strict;
 
@@ -8,12 +10,9 @@ use HTFeed::Config qw(set_config);
 use Getopt::Long;
 use FindBin;
 use HTFeed::Volume;
-use HTFeed::Log;
+use HTFeed::Log {root_logger => 'INFO, file'};
 
 use Test::More;
-
-HTFeed::Log->init();
-
 
 # get test config
 my $config_file = "$FindBin::Bin/etc/package.yaml";
@@ -71,8 +70,8 @@ else{
     # since we are generating that data, so there are only 2*n tests
     done_testing( $config_data->{volume_count} * 2 );
     
-    ## save yaml file, newly populated with error counts
-    ##YAML::XS::DumpFile($config_file);
+    # save yaml file, newly populated with error counts
+    YAML::XS::DumpFile($config_file,$config_data);
 }
 
 # test_package($package_type,$namespace,$objid,$damaged_pkg_path,$undamaged_pkg_path)
@@ -81,9 +80,8 @@ sub test_success{
     
     my ($volume, $vol_val);
     
-    # create logfile, File::Temp will unlink it automatically on DESTROY
-    my $logfile_handle = File::Temp->new();
-    my $logfile_name = $logfile_handle->filename;
+    # get logfile
+    my ($logfile_handle, $logfile_name) = get_temp();
         
     # validate undamaged package
     {
@@ -104,15 +102,14 @@ sub test_failure{
     
     my ($volume, $vol_val);
     
-    # create logfile, File::Temp will unlink it automatically on DESTROY
-    my $logfile_handle = File::Temp->new();
-    my $logfile_name = $logfile_handle->filename;
+    # get logfile
+    my ($logfile_handle, $logfile_name) = get_temp();
         
     # validate damaged package
     {
         set_config($damaged_pkg_path,'staging'=>'download');
         $volume = HTFeed::Volume->new(objid => $objid,namespace => $namespace,packagetype => $package_type);
-        $vol_val = HTFeed::VolumeValidator->new($volume);
+        $vol_val = HTFeed::VolumeValidator->new(volume => $volume);
 
         $vol_val->run();
     }
@@ -135,9 +132,8 @@ sub setup_failure{
     
     my ($volume, $vol_val);
     
-    # create logfile, File::Temp will unlink it automatically on DESTROY
-    my $logfile_handle = File::Temp->new();
-    my $logfile_name = $logfile_handle->filename;
+    # get logfile
+    my ($logfile_handle, $logfile_name) = get_temp();
         
     # validate damaged package
     {
@@ -149,11 +145,23 @@ sub setup_failure{
     }
     
     # test that we failed
-    ok($vol_val->failed());
+    ok($vol_val->failed(),"damaged package validation for $package_type $namespace $objid");
     
     # put error log where it belongs
     copy($logfile_name,$expected_log);
     
     # return number of errors
     return $vol_val->failed();
+}
+
+# get_temp()
+# creates logfile, sets L4P to log to the logfile, returns ($fh, $fname) for logfile
+sub get_temp{
+    # create logfile, File::Temp will unlink it automatically on DESTROY
+    my $logfile_handle = File::Temp->new();
+    my $logfile_name = $logfile_handle->filename;
+    
+    HTFeed::Log::set_logfile($logfile_name);
+    
+    return ($logfile_handle, $logfile_name);
 }

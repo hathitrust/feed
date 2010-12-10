@@ -4,13 +4,8 @@ use warnings;
 use strict;
 #use HTFeed::Volume;
 #use HTFeed::VolumeValidator;
-use HTFeed::Log;
+use HTFeed::Log {root_logger => 'INFO, screen'};
 use Test::More tests => 11;
-
-# for testing until we get the test harness going, then delete this line
-use HTFeed::Test::Support;
-
-HTFeed::Log->init();
 
 # check for legacy environment vars
 unless (defined $ENV{GROOVE_WORKING_DIRECTORY} and defined $ENV{GROOVE_CONFIG}){
