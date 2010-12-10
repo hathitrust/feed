@@ -126,6 +126,7 @@ sub get_all_directory_files {
     my $self = shift;
 
     if(not defined $self->{directory_files}) {
+	$self->{directory_files} = [];
 	my $stagedir = $self->get_staging_directory();
 	opendir(my $dh,$stagedir) or croak("Can't opendir $stagedir: $!");
 	foreach my $file (readdir $dh) {
@@ -133,6 +134,7 @@ sub get_all_directory_files {
 	    push(@{ $self->{directory_files} },$file) unless $file =~ /^\.+$/;
 	}
 	closedir($dh) or croak("Can't closedir $stagedir: $!");
+	@{ $self->{directory_files} } = sort( @{ $self->{directory_files} } );
     }
 
     return $self->{directory_files};
@@ -587,14 +589,30 @@ sub record_premis_event {
 
     my $dbh = HTFeed::DBTools::get_dbh();
 
-    my $tohash = join("-",$self->get_objid(),$eventtype,$date);
-    my $uuid = $self->{uuidgen}->create_from_name_str($self->{namespace},$tohash);
+    my $uuid = $self->make_premis_uuid($eventtype,$date); 
 
     my $set_premis_sth = $dbh->prepare("REPLACE INTO premis_events_new (namespace, barcode, eventid, eventtype_id, outcome, date) VALUES
 	(?, ?, ?, ?, ?, ?)");
 
     $set_premis_sth->execute($self->get_namespace(),$self->get_objid(),$uuid,$eventtype,$outcome_xml,$date);
 
+}
+
+=item make_premis_uuid($eventtype,$date)
+
+Returns a UUID for a PREMIS event for this object of type $eventtype occurring
+at time $date.  There is no required format for the date, but it should be
+consistent to get stable UUIDs for events occurring at the same time.
+
+=cut
+
+sub make_premis_uuid {
+    my $self = shift;
+    my $eventtype = shift;
+    my $date = shift;
+    my $tohash = join("-",$self->get_objid(),$eventtype,$date);
+    my $uuid = $self->{uuidgen}->create_from_name_str($self->{namespace},$tohash);
+    return $uuid;
 }
 
 =item get_event_info( $eventtype )
@@ -656,6 +674,20 @@ sub _get_current_date {
     return $ts;
 }
 
+=item get_zip_path
+
+Returns the path to the zip archive to construct for this object.
+
+=cut
+
+sub get_zip_path {
+    my $self = shift;
+    my $staging_path = get_config('staging'=>'memory');
+    my $pt_objid = $self->get_pt_objid();
+    my $zip_path = "$staging_path/$pt_objid.zip";
+
+}
+
 =item get_page_data(file)
 
 Returns a reference to a hash:
@@ -676,7 +708,7 @@ sub get_page_data {
 
 =item get_mets_path
 
-Returns the path to the METS file for this object
+Returns the path to the METS file to construct for this object
 
 =cut
 
@@ -684,8 +716,8 @@ sub get_mets_path {
     my $self = shift;
 
     my $staging_path = get_config('staging'=>'memory');
-    my $objid = $self->get_objid();
-    my $mets_path = "$staging_path/$objid.mets.xml";
+    my $pt_objid = $self->get_pt_objid();
+    my $mets_path = "$staging_path/$pt_objid.mets.xml";
 
     return $mets_path;
 }

@@ -217,7 +217,11 @@ sub run {
 
     my $self = shift;
     
-    foreach my $validator ( values( %{ $self->{validators} } ) ) {
+    while (my ($valname, $validator) = each( %{ $self->{validators } } ) ) {
+	next unless defined $validator;
+        get_logger( ref($self) )
+          ->trace( "Running validator $valname", volume => $self->{volume_id}, file => $self->{filename}, @_);
+
         &{$validator}($self);
     }
 

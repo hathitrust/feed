@@ -74,33 +74,68 @@ sub _set_validators {
                 # setup xmp context
                 $self->_setupXMPcontext($xmp_xml) or return 0;
 
-                # require XMP headers to exist and match TIFF headers if XMP exists
+             # require XMP headers to exist and match TIFF headers if XMP exists
                 foreach my $field (
-                    qw(bitsPerSample compression colorSpace orientation samplesPerPixel resUnit length
-                    width artist )
+                    qw(bitsPerSample compression colorSpace orientation samplesPerPixel resUnit length width artist )
                   )
                 {
                     $self->_require_same( 'mix', $field, 'xmp', $field );
                 }
-		        $self->_require_same('tiffMeta','documentName','xmp','documentName');
+                $self->_require_same( 'tiffMeta', 'documentName', 'xmp',
+                    'documentName' );
 
-		        my $xmp_datetime = $self->_findone("xmp","dateTime");
-		        my $mix_datetime = $self->_findone("mix","dateTime");
-		        # xmp has timezone, mix doesn't..
-    		    if( (! $self->failed() ) and $xmp_datetime !~ /^\Q$mix_datetime\E\+\d{2}:\d{2}/) {
-    		        $self->set_error("Mismatched/invalid values for field", field => 'dateTime', actual => {xmp_datetime => $xmp_datetime, mix_datetime => $mix_datetime});
-		        }
+                my $xmp_datetime = $self->_findone( "xmp", "dateTime" );
+                my $mix_datetime = $self->_findone( "mix", "dateTime" );
 
-                # mix lists as just '600'
+                # xmp has timezone, mix doesn't..
+                if ( $xmp_datetime !~ /^\Q$mix_datetime\E(\+\d{2}:\d{2})?/ ) {
+                    $self->set_error(
+                        "NotMatchedValue",
+                        field  => 'dateTime',
+                        actual => {
+                            xmp_datetime => $xmp_datetime,
+                            mix_datetime => $mix_datetime
+                        }
+                    );
+                }
+
+                # mix lists as just '600', XMP lists as '600/1'
+                my $xres = $self->_findonenode( "xmp", "xRes" );
+                if ( my $xres = /^(\d+)\/1$/ ) {
+                    $self->_validateone( "mix", "xRes", $1 );
+                }
+                else {
+                    $self->set_error(
+                        "BadValue",
+                        field  => "xmp_xRes",
+                        actual => "$xres",
+                        detail => "Should be in format NNN/1"
+                    );
+                }
+
                 $self->_validateone( "xmp", "xRes", "600/1" );
-                $self->_validateone( "xmp", "yRes", "600/1" );
-
-                # just require that they're there
-                $self->_findonenode( "xmp", "make" );
-                $self->_findonenode( "xmp", "model" );
+                $self->_require_same( "xmp", "xRes", "xmp", "yRes" );
 
             }
-        }
+          },
+
+          'camera' => sub {
+            my $self = shift;
+
+            # find xmp
+            my $xmp_found = 1;
+            my $xmp_xml = $self->_findxmp() or $xmp_found = 0;
+
+            if ($xmp_found) {
+
+                # setup xmp context
+                $self->_setupXMPcontext($xmp_xml) or return 0;
+
+                # Optional??
+                $self->_findonenode( "xmp", "make" );
+                $self->_findonenode( "xmp", "model" );
+            }
+          }
 
     };
 }
@@ -114,9 +149,9 @@ sub run {
         name => "root",
         xpc  => $self->{xpc}
     );
-    $self->_openonecontext("repInfo") or return;
+    $self->_openonecontext("repInfo")  or return;
     $self->_openonecontext("tiffMeta") or return;
-    $self->_openonecontext("mix") or return;
+    $self->_openonecontext("mix")      or return;
 
     return $self->SUPER::run();
 
@@ -128,7 +163,11 @@ sub _findxmp {
     my $count    = $nodelist->size();
     unless ($count) { return; }
     if ( $count > 1 ) {
-        $self->set_error("BadField", detail => "$count XMPs found zero or one expected", field => 'xmp');
+        $self->set_error(
+            "BadField",
+            detail => "$count XMPs found zero or one expected",
+            field  => 'xmp'
+        );
         return;
     }
     my $retstring = $self->_findone( "tiffMeta", "xmp" );

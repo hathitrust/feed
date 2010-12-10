@@ -66,13 +66,48 @@ sub _add_premis {
 #    $premis_object->add_significant_property('page count',$volume->get_page_count());
     $premis->add_object($premis_object);
 
-
+    $self->_add_capture_event($premis);
     $self->_add_premis_events($premis,$volume->get_nspkg()->get('source_premis_events'));
 
     my $digiprovMD =
       new METS::MetadataSection( 'digiprovMD', 'id' => 'premis1' );
     $digiprovMD->set_xml_node( $premis->to_node(), mdtype => 'PREMIS' );
     $self->{'mets'}->add_amd_sec( 'AMD1', $digiprovMD);
+}
+
+sub _add_capture_event {
+    my $self = shift;
+    my $premis = shift;
+    my $volume = $self->{volume};
+    # Add the custom capture event, extracting info from the Yale METS
+    my $eventcode = 'capture';
+    my $eventconfig = $volume->get_nspkg()->get_event_configuration($eventcode);
+    my $detail = $eventconfig->{'detail'} 
+	or $self->set_error("MissingField",field => "event detail", detail => "Missing event detail for $eventcode");
+    my $eventtype = $eventconfig->{'type'}
+	or $self->set_error("MissingField",field => "event type", detail => "Missing event type for $eventcode");
+    my $capture_date = $volume->get_capture_time()
+	or $self->set_error("MissingField",field => "event datetime",detail => "Missing event tiem for $eventcode");
+
+    my $eventid = $volume->make_premis_uuid($eventtype,$capture_date);
+    my $event = new PREMIS::Event($eventid, 'UUID', $eventtype, $capture_date, $detail);
+
+    # Hardcoded agent ID for capture for Yale..
+    $event->add_linking_agent(new PREMIS::LinkingAgent("HathiTrust AgentID","Kirtas",'Executor'));
+    # get the first processingSoftwareName and Version, if it exists -- the JPG
+    # MIX data won't have it but the JP2 will.
+    my $mets_xc = $volume->get_yale_mets_xpc();
+    my $capture_tool = $mets_xc->findvalue(
+	'concat(/descendant::mix:processingSoftwareName[1]," ",/descendant::mix:processingSoftwareVersion[1])'
+    );
+    if ( defined $capture_tool and $capture_tool and $capture_tool !~ /^\s*$/ ) {
+        $event->add_linking_agent(
+            new PREMIS::LinkingAgent( "tool", $capture_tool, "image capture" )
+        );
+    }
+
+    $premis->add_event($event);
+
 }
 
 sub _add_struct_map {

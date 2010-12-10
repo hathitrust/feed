@@ -48,11 +48,11 @@ sub get_config{
     my $cursor = $config;
     foreach my $hashlevel (@_) {
         # die if we try to traverse the tree past a leaf
-        croak( sprintf($bad_path_error_message, join('=>',@_)) ) if (! ref($cursor));
+        croak( sprintf($bad_path_error_message, join('=>',@_)) ) if (!ref($cursor));
         $cursor = $cursor->{$hashlevel};
         
         # die if we try to traverse the tree where no path exists
-        croak( sprintf($bad_path_error_message, join('=>',@_)) ) if (! $cursor);
+        croak( sprintf($bad_path_error_message, join('=>',@_)) ) if (not defined $cursor);
     }
     return $cursor;
 }

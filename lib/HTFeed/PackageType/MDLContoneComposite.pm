@@ -1,5 +1,10 @@
 package HTFeed::PackageType::MDLContoneComposite;
 use HTFeed::PackageType;
+use HTFeed::VolumeValidator;
+use HTFeed::PackageType::MDLContoneComposite::METS;
+use HTFeed::Stage::Handle;
+use HTFeed::Stage::Pack;
+use HTFeed::Stage::Collate;
 use base qw(HTFeed::PackageType::MDLContone);
 use strict;
 
@@ -11,8 +16,8 @@ our $config = {
     # Regular expression that distinguishes valid files in the file package
     # HTML OCR is valid for the package type but only expected/required for UC1
     valid_file_pattern => qr/^( 
-		\w{3}\d{5}\w?\.(jp2) |
-		\w{3}\d{5}\w?\.(xml) |
+		\w{3}\d{5}\w?\.(jp2|tif) |
+		mdl\.\w+\.\w{3}\d{5}\w?-all\.(xml) |
 		\w{3}\d{5}\w?\.(txt)
 		$)/x,
 
@@ -28,7 +33,7 @@ our $config = {
 	image => { 
 	    prefix => 'IMG',
 	    use => 'image',
-	    file_pattern => qr/\.(jp2)$/,
+	    file_pattern => qr/\.(jp2|tif)$/,
 	    required => 1,
 	    content => 1,
 	    jhove => 1,
@@ -45,14 +50,34 @@ our $config = {
 	},
     },
 
+    source_mets_file => qr/^mdl\.\w+\.\w{3}\d{5}\w?-all\.xml$/,
+
+    # Don't validate consistency for MDL Contone composite images -- there will not
+    # always be an OCR image for every page image and seq numbers need not be sequential.
+    validation_run_stages => [
+        qw(validate_file_names
+          validate_filegroups_nonempty
+          validate_checksums
+          validate_utf8
+          validate_metadata)
+    ],
+
     # The list of stages to run to successfully ingest a volume.
     stages_to_run => [qw(
         HTFeed::VolumeValidator
-        HTFeed::METS
-        HTFeed::Handle
-        HTFeed::Zip
-        HTFeed::Collate
+        HTFeed::Stage::Pack
+        HTFeed::PackageType::MDLContoneComposite::METS
+        HTFeed::Stage::Handle
+        HTFeed::Stage::Collate
 	)],
+
+    module_validators => {
+        'jp2'  => 'HTFeed::ModuleValidator::JPEG2000_hul',
+	'tif' => 'HTFeed::ModuleValidator::TIFF_hul'
+    },
+
+    uncompressed_extensions => ['jp2','tif'],
+
 };
 
 __END__

@@ -260,10 +260,12 @@ sub v_and {
 
     return sub {
 	my $self = shift;
-	foreach my $sub (@_) {
-	    &$sub($self) or return;
+	my $ok = 1;
+	# don't short circuit
+	foreach my $sub (@subs) {
+	    &$sub($self) or $ok = 0;
 	}
-	return 1;
+	return $ok;
     }
 
 }
@@ -328,7 +330,7 @@ sub v_in {
 	    return 1 if ($actual eq $expected);
 	}
 
-	$self->set_error("BadValue", field => "\${ctx}_\$query", actual => $actual, expected => "one of (" . join(", ",@$allowed) . ")");
+	$self->set_error("BadValue", field => "${ctx}_$query", actual => $actual, expected => "one of (" . join(", ",@$allowed) . ")");
     }
 }
 

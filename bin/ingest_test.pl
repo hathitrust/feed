@@ -26,15 +26,12 @@ unless ($objid and $namespace and $packagetype){
 
 print sprintf("Test ingest of %s %s %s commencing...\n",$packagetype,$namespace,$objid);
 
-# make Volume object
-print 'Instantiating Volume object...';
-my $volume = HTFeed::Volume->new(objid => $objid,namespace => $namespace,packagetype => $packagetype);
-print "success\n";
-
 my $stage;
 my $errors = 0;
+my $volume = HTFeed::Volume->new(objid => $objid,namespace => $namespace,packagetype => $packagetype);
 foreach my $stage_name ( @{$volume->get_nspkg()->get('stages_to_run')} ){
-    my $stage = eval "$stage_name->new(volume => \$volume)";
+    my $stage_volume = HTFeed::Volume->new(objid => $objid,namespace => $namespace,packagetype => $packagetype);
+    my $stage = eval "$stage_name->new(volume => \$stage_volume)";
     $errors += run_stage($stage);
     if ($errors and !$ignore_errors){
         print "Ingest terminated due to failure\n";
@@ -45,7 +42,7 @@ foreach my $stage_name ( @{$volume->get_nspkg()->get('stages_to_run')} ){
 sub run_stage{
     my $stage = shift;
     
-    print 'Running stage ' . ref($stage) ."..\n";
+    print "Running stage $stagename..\n";
     
     $stage->run();
     if ($stage->succeeded()){
