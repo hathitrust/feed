@@ -1,0 +1,14 @@
+---
+package_directory:
+  damaged: /htapps/ezbrooks.babel/break_GRIN/tests/DAMAGED
+  logs: /htapps/ezbrooks.babel/break_GRIN/tests/logs
+  undamaged: /htapps/ezbrooks.babel/break_GRIN/tests/UNDAMAGED
+package_types:
+  google:
+    inu:
+    - - '39000030000256'
+      - 165
+    umn:
+    - - 31951t004790395
+      - 209
+volume_count: 2

@@ -328,6 +328,27 @@ sub get_nspkg{
     return $self->{nspkg};
 }
 
+=item get_stages
+
+Returns array ref containing a list of stage this Volume needs for a full ingest process
+
+=cut
+
+sub get_stages{
+    my $self = shift;
+    my $stage_map = $self->get_nspkg()->get('stage_map');
+    my $stage_name = 'ready';
+    my $stages = [];
+    my $stage_class;
+    
+    while ($stage_class = $stage_map->{$stage_name}){
+        push ( @{ $stages }, $stage_class );
+        $stage_name = eval "$stage_class->get_stage_info('success_state')";
+    }
+    
+    return $stages;
+}
+
 =item get_jhove_files
 
 Get all files that will need to have their metadata validated with JHOVE

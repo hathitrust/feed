@@ -8,9 +8,7 @@ use strict;
 use warnings;
 use HTFeed::TestVolume;
 use HTFeed::VolumeValidator;
-use HTFeed::Log;
-
-HTFeed::Log->init();
+use HTFeed::Log {root_logger => 'INFO, screen'};
 
 # autoflush STDOUT
 $| = 1;

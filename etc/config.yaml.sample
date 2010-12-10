@@ -12,7 +12,9 @@ kdu_munge: /htapps/aelkiss.babel/Yale/kdu_munge
 
 jhove: /l/local/bin/jhove
 jhoveconf: /l/local/jhove/conf/jhove.conf
-l4p_config: /htapps/aelkiss.babel/feed/feed/etc/test_config.l4p
+l4p:
+  root_logger: 'INFO, file'
+  config: /htapps/rrotter.babel/git/feed/etc/config.l4p
 
 staging:
   disk: /htapps/aelkiss.babel/repos/staging

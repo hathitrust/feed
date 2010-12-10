@@ -1,9 +1,10 @@
-log4perl.rootLogger                   = INFO, dbi
+log4perl.rootLogger                     = sub {return HTFeed::Log::get_root_log_config();}
 
-log4perl.appender.dbi                 = Log::Log4perl::Appender::DBI
-log4perl.appender.dbi.datasource      = sub {return HTFeed::Config::get_config(database => 'datasource');}
-log4perl.appender.dbi.username        = sub {return HTFeed::Config::get_config(database => 'username');}
-log4perl.appender.dbi.password        = sub {return HTFeed::Config::get_config(database => 'password');}
+# appender dbi
+log4perl.appender.dbi                   = Log::Log4perl::Appender::DBI
+log4perl.appender.dbi.datasource        = sub {return HTFeed::Config::get_config('database' => 'datasource');}
+log4perl.appender.dbi.username          = sub {return HTFeed::Config::get_config('database' => 'username');}
+log4perl.appender.dbi.password          = sub {return HTFeed::Config::get_config('database' => 'password');}
 log4perl.appender.dbi.sql =         \
             insert into ht_errors   \
             (timestamp,level,message,obj_id,file,field,actual,expected,detail,operation)\
@@ -11,23 +12,28 @@ log4perl.appender.dbi.sql =         \
 log4perl.appender.dbi.params.1 = %d
 log4perl.appender.dbi.params.2 = %p
 
-log4perl.appender.dbi.layout          = Log::Log4perl::Layout::NoopLayout
-log4perl.appender.dbi.warp_message    = HTFeed::Log::Warp::toDBArray
+log4perl.appender.dbi.layout            = Log::Log4perl::Layout::NoopLayout
+log4perl.appender.dbi.warp_message      = HTFeed::Log::Warp::toDBArray
 
-#log4perl.appender.dbi.bufferSize = 2
+# appender screen
+log4perl.appender.screen                = Log::Log4perl::Appender::ScreenColoredLevels
+log4perl.appender.screen.stderr         = 0
+log4perl.appender.screen.layout         = HTFeed::Log::Layout::PrettyPrint
+log4perl.appender.screen.color.TRACE    = green
+log4perl.appender.screen.color.DEBUG    = blue
+log4perl.appender.screen.color.INFO     = black
+log4perl.appender.screen.color.ERROR    = bold black
+log4perl.appender.screen.color.WARN     = red
+log4perl.appender.screen.color.FATAL    = bold red
+# make sure HTFeed::Log::Layout::PrettyPrint gets an array and not a string
+log4perl.appender.screen.warp_message    = 0
 
-# Schema
-#CREATE TABLE `ht_errors` (
-#  `id` int(11) NOT NULL auto_increment,
-#  `level` varchar(5) NOT NULL,
-#  `timestamp` datetime NOT NULL,
-#  `obj_id` varchar(32) default NULL,
-#  `operation` varchar(32) default NULL,
-#  `message` varchar(40) NOT NULL,
-#  `file` tinytext,
-#  `field` tinytext,
-#  `actual` tinytext,
-#  `expected` tinytext,
-#  `detail` tinytext,
-#  PRIMARY KEY  (`id`)
-#);
+# appender file
+log4perl.appender.file              = Log::Log4perl::Appender::File
+log4perl.appender.file.filename     = /dev/null
+log4perl.appender.file.mode         = write
+log4perl.appender.file.layout       = HTFeed::Log::Layout::PrettyPrint
+log4perl.appender.file.warp_message = 0
+
+# general config
+log4perl.oneMessagePerAppender = 1

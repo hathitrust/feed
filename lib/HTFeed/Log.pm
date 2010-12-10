@@ -17,8 +17,7 @@ use Log::Log4perl;
 use HTFeed::Log::Warp;
 use HTFeed::Log::Layout::PrettyPrint;
 
-use Log::Log4perl;
-
+my $root_log_config = get_config('l4p' => 'root_logger');
 
 # list of acceptable error codes
 my %error_codes = (
@@ -45,15 +44,53 @@ my %error_codes = (
 #   HTFeed::Log::Warp (for DB appenders), HTFeed::Log::Layout::PrettyPrint (for text appenders)
 my @fields = qw(volume file field actual expected detail operation);
 
-# call EXACTLY ONCE to initialize logging
-sub init{
+# on import 
+sub import{
+    # init once and only once
+    return if(Log::Log4perl->initialized());
+
+    my $class = shift;
+    my $config = shift;
+    my $new_root_log_config = $config->{root_logger};
+    if ($new_root_log_config){
+        $root_log_config = $new_root_log_config;
+    }
+    _init();
+}
+
+# call to initialize logging
+sub _init{
     # get log4perl config file
-    my $l4p_config = get_config('l4p_config');
+    my $l4p_config = get_config('l4p'=>'config');
 
     Log::Log4perl->init($l4p_config);
     Log::Log4perl->get_logger(__PACKAGE__)->trace('l4p initialized');
+
+    return;
+}
+
+# change out file for file logger
+# if this isn't set and we use the file logger everything is logged to /dev/null
+# as per config.l4p
+#
+# set_logfile($filename)
+sub set_logfile{
+    my $file_name = shift;
+    my $appender = Log::Log4perl::appender_by_name('file');
+    $appender->file_switch($file_name);
     
     return;
+}
+
+# returns get_config('l4p' => 'root_logger')
+# unless an override was set by
+# use HTFeed::Log {root_logger => 'INFO, file'}
+#
+# should only be called by config.l4p
+#
+# get_root_log_config()
+sub get_root_log_config{
+    return $root_log_config;
 }
 
 # convert a hash containing keys in @fields to an array
