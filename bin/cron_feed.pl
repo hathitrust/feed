@@ -19,7 +19,7 @@ use Log::Log4perl qw(get_logger);
 my $failure_limit = get_config('failure_limit');
 my $volumes_in_process_limit = get_config('volumes_in_process_limit');
 
-while(HTFeed::DBTools::lock_volumes($volumes_in_process_limit)){
+while(HTFeed::DBTools::lock_volumes($volumes_in_process_limit) or HTFeed::DBTools::count_locks()){
     while(my $sth = HTFeed::DBTools::get_queued()){
         while (my ($ns,$pkg_type,$objid,$status,$failure_count) = $sth->fetchrow_array()){
             run_stage($ns,$pkg_type,$objid,$status,$failure_count);

@@ -50,7 +50,7 @@ sub get_dbh {
 sub get_queued{
     my $items = (shift or 1);
     
-    my $dbh = HTFeed::DBTools::get_dbh();
+    my $dbh = get_dbh();
     ## TODO: order by priority
     my $sth = $dbh->prepare(q(SELECT `ns`, `pkg_type`, `objid`, `status`, `failure_count` FROM `queue` WHERE `node` LIKE ? AND `status` NOT LIKE 'punted' AND `status` NOT LIKE 'collated';));
     $sth->execute(hostname);
@@ -67,10 +67,17 @@ sub lock_volumes{
     return 0 unless ($item_count > 0);
     
     ## TODO: order by priority
-    my $sth = HTFeed::DBTools::get_dbh()->prepare(q(UPDATE `queue` SET `node` = ? WHERE `node` IS NULL AND `status` LIKE 'ready' LIMIT ?;));
+    my $sth = get_dbh()->prepare(q(UPDATE `queue` SET `node` = ? WHERE `node` IS NULL AND `status` LIKE 'ready' LIMIT ?;));
     $sth->execute(hostname,$item_count);
     return $sth->rows;
 }
 
+# count_locks()
+# returns the number of volumes locked to this node
+sub count_locks{
+    my $sth = get_dbh()->prepare(q(SELECT COUNT(*) FROM queue WHERE `node` LIKE ? AND `status` NOT LIKE 'punted' AND `status` NOT LIKE 'collated';));
+    $sth->execute(hostname);
+    return $sth->fetchrow;
+}
 
 1;
