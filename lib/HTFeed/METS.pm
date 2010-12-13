@@ -29,6 +29,7 @@ sub new {
 	#		mets_name		=> undef,
 	#		mets_xml		=> undef,
     );
+    $self->{outfile} = $self->{volume}->get_mets_path();
 
     return $self;
 }
@@ -41,7 +42,6 @@ sub run {
     my $olddir = cwd();
     my $stage_path = $self->{volume}->get_staging_directory();
     chdir($stage_path) or die("Can't chdir $stage_path: $!");
-
     eval {
         $self->_add_schemas();
         $self->_add_header();
@@ -51,6 +51,7 @@ sub run {
         $self->_add_struct_map();
         $self->_add_premis();
         $self->_save_mets();
+	$self->_validate_mets();
     };
     if($@) {
         $self->set_error("IncompleteStage",detail=>$@);
@@ -148,7 +149,7 @@ sub _extract_old_premis {
 
     if(defined $mets_in_repos) {
         # validate METS in repository
-        my ($mets_in_rep_valid,$val_results) = validate_xml($self->{'config'},$mets_in_repos);
+        my ($mets_in_rep_valid,$val_results) = $self->validate_xml($mets_in_repos);
         if($mets_in_rep_valid) {
 	    my $xc = $volume->get_repos_mets_xpc();
 
@@ -172,6 +173,7 @@ sub _extract_old_premis {
 	    # TODO: should be warning, not error
 	    $self->set_error("BadFile", file => $mets_in_repos, detail => $val_results);
 	    print "$val_results";
+	    return 0;
         }
     }
 }
@@ -261,7 +263,7 @@ sub _add_premis {
 
     my $old_events = $self->_extract_old_premis();
     if ($old_events) {
-	while(my ($event,$eventid) = each(%$old_events)) {
+	while(my ($eventid,$event) = each(%$old_events)) {
 	    $self->{included_events}{$eventid} = $event;
 	    $premis->add_event($event);
 	}
@@ -401,9 +403,8 @@ sub _add_struct_map {
 sub _save_mets {
     my $self   = shift;
     my $mets   = $self->{mets};
-    my $volume = $self->{volume};
 
-    my $mets_path = $self->{volume}->get_mets_path();
+    my $mets_path = $self->{outfile};
 
     open( my $metsxml, ">", "$mets_path" )
       or die("Can't open METS xml $mets_path for writing: $!");
@@ -411,15 +412,15 @@ sub _save_mets {
     close($metsxml);
 }
 
-sub validate {
+sub _validate_mets {
     my $self      = shift;
-    my $mets_path = $self->{volume}->get_mets_path();
+    my $mets_path = $self->{outfile};
 
-    croak("File $$self{'filename'} does not exist. Cannot validate.")
+    croak("File $mets_path does not exist. Cannot validate.")
       unless -e $mets_path;
 
     my ( $mets_valid, $val_results ) =
-      validate_xml( $self->{'config'}, $$self{'filename'} );
+      $self->validate_xml( $mets_path );
     if ( !$mets_valid ) {
         $self->set_error(
             "BadFile",
@@ -434,6 +435,7 @@ sub validate {
 }
 
 sub validate_xml {
+    my $self = shift;
     my $xerces = get_config('xerces');
 
     my $filename       = shift;
