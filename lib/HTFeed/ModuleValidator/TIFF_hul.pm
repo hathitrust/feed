@@ -100,8 +100,8 @@ sub _set_validators {
                 }
 
                 # mix lists as just '600', XMP lists as '600/1'
-                my $xres = $self->_findonenode( "xmp", "xRes" );
-                if ( my $xres = /^(\d+)\/1$/ ) {
+                my $xres = $self->_findone( "xmp", "xRes" );
+                if ( $xres =~ /^(\d+)\/1$/ ) {
                     $self->_validateone( "mix", "xRes", $1 );
                 }
                 else {
@@ -113,7 +113,6 @@ sub _set_validators {
                     );
                 }
 
-                $self->_validateone( "xmp", "xRes", "600/1" );
                 $self->_require_same( "xmp", "xRes", "xmp", "yRes" );
 
             }

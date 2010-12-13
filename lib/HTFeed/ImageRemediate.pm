@@ -97,6 +97,9 @@ sub remediate_image($$;$$) {
             'XMP-tiff:SamplesPerPixel', '3' );
     }
 
+    # Other package types may have grayscale JP2s that need remediation.
+    # Final image validation should kick these out if grayscale is not 
+    # expected.
     if ( $oldFields->{'Jpeg2000:Colorspace'} eq 'Grayscale' ) {
         _set_new_if_undefined( $oldFields, $newFields, 'XMP-tiff:BitsPerSample',
             '8' );
