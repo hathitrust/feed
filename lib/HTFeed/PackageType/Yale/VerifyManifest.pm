@@ -57,7 +57,7 @@ sub run {
 }
 
 sub stage_info{
-    return {success_state => 'manifest_verified', failure_state => 'punt', failure_limit => 1};
+    return {success_state => 'manifest_verified', failure_state => 'punt'};
 }
 
 =item $obj->_check_dospath_md5sum($dospath,$md5sum)

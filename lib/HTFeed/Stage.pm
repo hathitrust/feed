@@ -38,7 +38,7 @@ sub new{
 
 # returns information about the stage
 # to support this children should impliment stage_info() that returns a hash ref like:
-#   {success_state => 'validated', failure_state => 'punted', failure_limit => 1};
+#   {success_state => 'validated', failure_state => 'punted'};
 #
 # synopsis
 # my $info_hash = $stage->get_stage_info();

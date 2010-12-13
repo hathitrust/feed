@@ -8,6 +8,7 @@ use warnings;
 use strict;
 
 use DBI;
+use Sys::Hostname;
 
 use HTFeed::Config qw(get_config);
 use HTFeed::Volume;
@@ -16,15 +17,20 @@ use HTFeed::DBTools;
 
 use Log::Log4perl qw(get_logger);
 
-while(my $sth = get_queued(20)){
-    while (my ($ns,$pkg_type,$objid,$status) = $sth->fetchrow_array()){
-        run_stage($ns,$pkg_type,$objid,$status);
-    }  
+my $failure_limit = get_config('failure_limit');
+my $volumes_in_process_limit = get_config('volumes_in_process_limit');
+
+while(HTFeed::DBTools::lock_volumes($volumes_in_process_limit)){
+    while(my $sth = HTFeed::DBTools::get_queued()){
+        while (my ($ns,$pkg_type,$objid,$status,$failure_count) = $sth->fetchrow_array()){
+            run_stage($ns,$pkg_type,$objid,$status,$failure_count);
+        }
+    }
 }
 
-# run_stage($ns,$pkg_type,$objid,$status)
+# run_stage($ns,$pkg_type,$objid,$status,$failure_count)
 sub run_stage{
-    my ($namespace,$packagetype,$objid,$status) = @_;
+    my ($namespace,$packagetype,$objid,$status,$failure_count) = @_;
 
     my $volume = HTFeed::Volume->new(objid => $objid,namespace => $namespace,packagetype => $packagetype);
     my $nspkg = $volume->get_nspkg();
@@ -38,37 +44,18 @@ sub run_stage{
     $stage->run();
     $stage->clean();
 
-    # update_db
-    my $new_status;
+    # update queue table with new status and failure_count
+    my $sth;
     if ($stage->succeeded()){
-        $new_status = $stage->get_stage_info('success_state');
+        $status = $stage->get_stage_info('success_state');
 	    ##print STDERR "OK\n";
+        $sth = HTFeed::DBTools::get_dbh()->prepare(q(UPDATE `queue` SET `status` = ? WHERE `ns` = ? AND `pkg_type` = ? AND `objid` = ?;));
     }else{
-        $new_status = $stage->get_stage_info('failure_state');
+        my $new_status = $stage->get_stage_info('failure_state');
+        $status = $new_status if ($new_status);
 	    ##print STDERR "Failed\n";
+	    $status = 'punted' if ($failure_count >= $failure_limit);
+        $sth = HTFeed::DBTools::get_dbh()->prepare(q(UPDATE `queue` SET `status` = ?, failure_count=failure_count+1 WHERE `ns` = ? AND `pkg_type` = ? AND `objid` = ?;));
     }
-
-    # update status if $new_status isn't blank (signifying that there should be no staus update)
-    if ($new_status){
-        my $dbh = HTFeed::DBTools::get_dbh();
-        my $sth = $dbh->prepare(q(UPDATE `queue` SET `status` = ? WHERE `ns` = ? AND `pkg_type` = ? AND `objid` = ?;));
-        $sth->execute($new_status,$namespace,$packagetype,$objid);
-    }
+    $sth->execute($status,$namespace,$packagetype,$objid);
 }
-
-# get_queued($number_of_items)
-# return $sth, with rows containing (ns,pkg_type,objid,status)
-# unless there are no items, then return false
-sub get_queued{
-    my $items = (shift or 1);
-    
-    my $dbh = HTFeed::DBTools::get_dbh();
-    ## TODO: tidy up or obviate this query
-    my $sth = $dbh->prepare(q(SELECT `ns`, `pkg_type`, `objid`, `status` FROM `queue` WHERE `status` NOT LIKE 'punted' AND `status` NOT LIKE 'collated' LIMIT ?;)); # ORDER BY ?
-    $sth->execute($items);
-    
-    return $sth if ($sth->rows > 0);
-    return;
-}
-
-

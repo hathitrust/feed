@@ -7,7 +7,7 @@ use strict;
 use warnings;
 
 sub stage_info{
-    return {success_state => 'src_metsed', failure_state => '', failure_limit => 5};
+    return {success_state => 'src_metsed', failure_state => ''};
 }
 
 sub _add_dmdsecs {

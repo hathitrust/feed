@@ -42,4 +42,35 @@ sub get_dbh {
     return($dbh);
 }
 
+# get_queued()
+# return $sth, with rows containing (ns,pkg_type,objid,status)
+# for queued volumes locked to host
+# unless there are no items, then return false
+sub get_queued{
+    my $items = (shift or 1);
+    my $node = hostname;
+    
+    my $dbh = HTFeed::DBTools::get_dbh();
+    ## TODO: order by priority
+    my $sth = $dbh->prepare(q(SELECT `ns`, `pkg_type`, `objid`, `status`, `failure_count` FROM `queue` WHERE `node` LIKE ? AND `status` NOT LIKE 'punted' AND `status` NOT LIKE 'collated';));
+    $sth->execute($node);
+    
+    return $sth if ($sth->rows);
+    return;
+}
+
+# lock_volumes($number_of_items)
+# locks available volumes to host, up to $number_of_items
+# returns number of volumes locked
+sub lock_volumes{
+    my $item_count = shift;
+    return 0 unless ($item_count > 0);
+    
+    ## TODO: order by priority
+    my $sth = HTFeed::DBTools::get_dbh()->prepare(q(UPDATE `queue` SET `node` = ? WHERE `node` IS NULL AND `status` LIKE 'ready' LIMIT $item_count;));
+    $sth->execute(hostname);
+    return $sth->rows;
+}
+
+
 1;

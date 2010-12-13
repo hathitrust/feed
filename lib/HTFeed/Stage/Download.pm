@@ -55,7 +55,7 @@ sub download{
 }
 
 sub stage_info{
-    return {success_state => 'downloaded', failure_state => 'ready', failure_limit => 5};
+    return {success_state => 'downloaded', failure_state => 'ready'};
 }
 
 # do cleaning that is appropriate after failure
