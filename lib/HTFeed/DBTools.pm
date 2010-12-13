@@ -52,7 +52,7 @@ sub get_queued{
     
     my $dbh = get_dbh();
     ## TODO: order by priority
-    my $sth = $dbh->prepare(q(SELECT `ns`, `pkg_type`, `objid`, `status`, `failure_count` FROM `queue` WHERE `node` LIKE ? AND `status` NOT LIKE 'punted' AND `status` NOT LIKE 'collated';));
+    my $sth = $dbh->prepare(q(SELECT ns, pkg_type, objid, status, failure_count FROM queue WHERE node = ? AND status != 'punted' AND status !=  'collated' and status != 'held'));
     $sth->execute(hostname);
     
     return $sth if ($sth->rows);
@@ -67,7 +67,7 @@ sub lock_volumes{
     return 0 unless ($item_count > 0);
     
     ## TODO: order by priority
-    my $sth = get_dbh()->prepare(q(UPDATE `queue` SET `node` = ? WHERE `node` IS NULL AND `status` LIKE 'ready' LIMIT ?;));
+    my $sth = get_dbh()->prepare(q(UPDATE queue SET node = ? WHERE node IS NULL AND status = 'ready' LIMIT ?;));
     $sth->execute(hostname,$item_count);
     return $sth->rows;
 }
@@ -75,7 +75,7 @@ sub lock_volumes{
 # count_locks()
 # returns the number of volumes locked to this node
 sub count_locks{
-    my $sth = get_dbh()->prepare(q(SELECT COUNT(*) FROM queue WHERE `node` LIKE ? AND `status` NOT LIKE 'punted' AND `status` NOT LIKE 'collated';));
+    my $sth = get_dbh()->prepare(q(SELECT COUNT(*) FROM queue WHERE node = ? AND status != 'punted' AND status != 'collated';));
     $sth->execute(hostname);
     return $sth->fetchrow;
 }
