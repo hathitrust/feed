@@ -29,7 +29,7 @@ print sprintf("Test ingest of %s %s %s commencing...\n",$packagetype,$namespace,
 my $stage;
 my $errors = 0;
 my $volume = HTFeed::Volume->new(objid => $objid,namespace => $namespace,packagetype => $packagetype);
-foreach my $stage_name ( @{$volume->get_nspkg()->get('stages_to_run')} ){
+foreach my $stage_name ( @{$volume->get_stages()} ){
     my $stage_volume = HTFeed::Volume->new(objid => $objid,namespace => $namespace,packagetype => $packagetype);
     my $stage = eval "$stage_name->new(volume => \$stage_volume)";
     $errors += run_stage($stage);

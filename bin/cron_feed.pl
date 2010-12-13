@@ -14,6 +14,8 @@ use HTFeed::Volume;
 use HTFeed::Log {root_logger => 'INFO, dbi'};
 use HTFeed::DBTools;
 
+use Log::Log4perl qw(get_logger);
+
 while(my $sth = get_queued(20)){
     while (my ($ns,$pkg_type,$objid,$status) = $sth->fetchrow_array()){
         run_stage($ns,$pkg_type,$objid,$status);
@@ -32,6 +34,7 @@ sub run_stage{
 
     my $stage = eval "$stage_class->new(volume => \$volume)";
 
+    #print STDERR "Running stage ". ref($stage) . " on $namespace.$objid..";
     $stage->run();
     $stage->clean();
 
@@ -39,8 +42,10 @@ sub run_stage{
     my $new_status;
     if ($stage->succeeded()){
         $new_status = $stage->get_stage_info('success_state');
+	    ##print STDERR "OK\n";
     }else{
         $new_status = $stage->get_stage_info('failure_state');
+	    ##print STDERR "Failed\n";
     }
 
     # update status if $new_status isn't blank (signifying that there should be no staus update)
@@ -58,6 +63,7 @@ sub get_queued{
     my $items = (shift or 1);
     
     my $dbh = HTFeed::DBTools::get_dbh();
+    ## TODO: tidy up or obviate this query
     my $sth = $dbh->prepare(q(SELECT `ns`, `pkg_type`, `objid`, `status` FROM `queue` WHERE `status` NOT LIKE 'punted' AND `status` NOT LIKE 'collated' LIMIT ?;)); # ORDER BY ?
     $sth->execute($items);
     

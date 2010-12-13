@@ -307,4 +307,15 @@ sub _add_filesecs {
 
 }
 
+sub clean_always{
+    my $self = shift;
+    ## TODO: clean preingest here
+}
+
+# do cleaning that is appropriate after failure
+sub clean_failure{
+    my $self = shift;
+    ## TODO clean remains of failed self here (if applicable)
+}
+
 1;
