@@ -80,10 +80,6 @@ our $config = {
     premis_events => [
     ],
 
-    # delete package if ingest fails
-    # this should probably always be true if download_to_disk is false
-    delete_SIP_on_fail => 0,
-
     # filename extensions not to compress in zip file
     uncompressed_extensions => [],
 

@@ -61,7 +61,7 @@ sub stage_info{
 # do cleaning that is appropriate after failure
 sub clean_failure{
     my $self = shift;
-    $self->clean_ram_download();
+    #$self->clean_ram_download();
 }
 
 1;

@@ -23,8 +23,6 @@ our $identifier = 'yale';
 our $config = {
 
     # Yale volumes will be cached on disk
-    download_to_disk => 1,
-
     volume_module => 'HTFeed::PackageType::Yale::Volume',
 
     # Regular expression that distinguishes valid files in the file package

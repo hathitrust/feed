@@ -95,9 +95,6 @@ our $config = {
     # Validation overrides
     validation => {
     },
-
-    # download to disk (as opposed to ram) if true
-    download_to_disk => 0,
 };
 
 __END__

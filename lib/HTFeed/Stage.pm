@@ -123,21 +123,21 @@ sub clean_always{
 }
 
 # unlink download from ram staging
-sub clean_ram_download{
-    my $self = shift;
-    my $volume = $self->{volume};
-    my $download_to_disk = $volume->get_nspkg()->get('download_to_disk');
-    
-    if(! $download_to_disk){
-        my $path = get_config('staging'=>'memory');
-        my $file = $volume->get_SIP_filename();
-        my $path_name = "$path/$file";
-        
-        return unlink $path_name;
-    }
-    
-    return 1;
-}
+#sub clean_ram_download{
+#    my $self = shift;
+#    my $volume = $self->{volume};
+#    my $download_to_disk = $volume->get_nspkg()->get('download_to_disk');
+#    
+#    if(! $download_to_disk){
+#        my $path = get_config('staging'=>'memory');
+#        my $file = $volume->get_SIP_filename();
+#        my $path_name = "$path/$file";
+#        
+#        return unlink $path_name;
+#    }
+#    
+#    return 1;
+#}
 
 # unlink unpacked object
 sub clean_unpacked_object{

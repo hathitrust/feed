@@ -606,7 +606,7 @@ sub get_tool_version {
 
 sub clean_always{
     my $self = shift;
-    $self->clean_ram_download();
+    #$self->clean_ram_download();
     $self->clean_unpacked_object();
 }
 

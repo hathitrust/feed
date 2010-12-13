@@ -105,13 +105,6 @@ our $config = {
     premis_overrides => {
     },
 
-    # download to disk (as opposed to ram) if true
-    download_to_disk => 0,    
-    
-    # delete package if ingest fails
-    # this should probably always be true if download_to_disk is false
-    delete_SIP_on_fail => 1,
-
     # filename extensions not to compress in zip file
     uncompressed_extensions => ['jp2'],
 
