@@ -8,7 +8,6 @@ use warnings;
 use strict;
 
 use DBI;
-use Sys::Hostname;
 
 use HTFeed::Config qw(get_config);
 use HTFeed::Volume;

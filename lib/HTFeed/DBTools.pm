@@ -5,6 +5,7 @@ use warnings;
 use HTFeed::Config qw(get_config);
 use Exporter;
 use DBI;
+use Sys::Hostname;
 use DBD::mysql;
 
 use base qw(Exporter);
@@ -48,12 +49,11 @@ sub get_dbh {
 # unless there are no items, then return false
 sub get_queued{
     my $items = (shift or 1);
-    my $node = hostname;
     
     my $dbh = HTFeed::DBTools::get_dbh();
     ## TODO: order by priority
     my $sth = $dbh->prepare(q(SELECT `ns`, `pkg_type`, `objid`, `status`, `failure_count` FROM `queue` WHERE `node` LIKE ? AND `status` NOT LIKE 'punted' AND `status` NOT LIKE 'collated';));
-    $sth->execute($node);
+    $sth->execute(hostname);
     
     return $sth if ($sth->rows);
     return;
@@ -67,8 +67,8 @@ sub lock_volumes{
     return 0 unless ($item_count > 0);
     
     ## TODO: order by priority
-    my $sth = HTFeed::DBTools::get_dbh()->prepare(q(UPDATE `queue` SET `node` = ? WHERE `node` IS NULL AND `status` LIKE 'ready' LIMIT $item_count;));
-    $sth->execute(hostname);
+    my $sth = HTFeed::DBTools::get_dbh()->prepare(q(UPDATE `queue` SET `node` = ? WHERE `node` IS NULL AND `status` LIKE 'ready' LIMIT ?;));
+    $sth->execute(hostname,$item_count);
     return $sth->rows;
 }
 
