@@ -70,7 +70,7 @@ sub run{
 }
 
 sub stage_info{
-    return {success_state => 'packed', failure_state => '', failure_limit => 5};
+    return {success_state => 'packed', failure_state => ''};
 }
 
 sub clean_always{

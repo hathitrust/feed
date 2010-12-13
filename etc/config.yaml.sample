@@ -29,6 +29,8 @@ repository:
   # The directory into which volumes will be loaded 
   destdir: /htapps/rrotter.babel/repos/obj
 
+volumes_in_process_limit: 5
+failure_limit: 5
 keep_defective_packages: false
 
 handle:

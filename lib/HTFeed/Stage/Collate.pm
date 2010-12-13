@@ -72,7 +72,7 @@ sub run{
 }
 
 sub stage_info{
-    return {success_state => 'collated', failure_state => 'punted', failure_limit => 1};
+    return {success_state => 'collated', failure_state => 'punted'};
 }
 
 sub clean_always{

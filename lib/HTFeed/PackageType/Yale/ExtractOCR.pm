@@ -51,7 +51,7 @@ sub run {
 }
 
 sub stage_info{
-    return {success_state => 'ocr_extracted', failure_state => '', failure_limit => 5};
+    return {success_state => 'ocr_extracted', failure_state => ''};
 }
 
 package HTFeed::PackageType::Yale::AltoParse;

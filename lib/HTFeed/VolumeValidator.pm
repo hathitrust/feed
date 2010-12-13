@@ -68,7 +68,7 @@ sub run {
 }
 
 sub stage_info {
-    return {success_state => 'validated', failure_state => 'punted', failure_limit => 1};
+    return {success_state => 'validated', failure_state => 'punted'};
 }
 
 =item _validate_file_names

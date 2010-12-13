@@ -8,7 +8,7 @@ use warnings;
 use File::Path qw(remove_tree);
 
 sub stage_info{
-    return {success_state => 'src_metsed', failure_state => '', failure_limit => 5};
+    return {success_state => 'src_metsed', failure_state => ''};
 }
 
 sub _add_dmdsecs {
