@@ -7,6 +7,26 @@ use strict;
 use warnings;
 use File::Path qw(remove_tree);
 
+sub new {
+    my $class  = shift;
+
+    my $self = $class->SUPER::new(
+	@_,
+
+	#		files			=> [],
+	#		dir			=> undef,
+	#		mets_name		=> undef,
+	#		mets_xml		=> undef,
+    );
+    my $volume = $self->{volume};
+    my $stage_path = $volume->get_staging_directory();
+    my $objid = $volume->get_objid();
+    my $mets_path = "$stage_path/Yale_" . $objid . ".xml";
+    $self->{outfile} = $mets_path;
+
+    return $self;
+}
+
 sub stage_info{
     return {success_state => 'src_metsed', failure_state => ''};
 }
@@ -224,22 +244,6 @@ sub _add_struct_map {
 
 
 }
-
-sub _save_mets {
-    my $self   = shift;
-    my $mets   = $self->{mets};
-    my $volume = $self->{volume};
-
-    my $stage_path = $volume->get_staging_directory();
-    my $objid = $volume->get_objid();
-    my $mets_path = "$stage_path/Yale_" . $objid . ".xml";
-
-    open( my $metsxml, ">", "$mets_path" )
-      or die("Can't open source METS xml $mets_path for writing: $!");
-    print $metsxml $mets->to_node()->toString(1);
-    close($metsxml);
-}
-
 
 =item _add_dmd_sec($mets,$id,$type,$desc,$path)
 

@@ -17,7 +17,7 @@ l4p:
   config: /htapps/rrotter.babel/git/feed/etc/config.l4p
 
 staging:
-  disk: /htapps/aelkiss.babel/repos/staging
+  download: /htapps/aelkiss.babel/repos/staging
   memory: /ram/staging
   zip: /ram/zip_staging
   preingest: /ram/preingest
