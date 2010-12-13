@@ -78,7 +78,7 @@ sub stage_info{
 sub clean_always{
     my $self = shift;
     $self->clean_mets();
-    $self->clean_packed_object();
+    $self->clean_zip();
 }
 
 1;
