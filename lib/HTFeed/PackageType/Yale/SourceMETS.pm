@@ -5,6 +5,7 @@ use HTFeed::METS;
 use base qw(HTFeed::METS);
 use strict;
 use warnings;
+use File::Path qw(remove_tree);
 
 sub stage_info{
     return {success_state => 'src_metsed', failure_state => '', failure_limit => 5};
@@ -308,14 +309,25 @@ sub _add_filesecs {
 }
 
 sub clean_always{
+    # clean volume preingest directory
     my $self = shift;
-    ## TODO: clean preingest here
+    my $dir = $self->{volume}->get_preingest_directory();
+    
+    return remove_tree $dir;
 }
 
 # do cleaning that is appropriate after failure
 sub clean_failure{
+    # remove partially constructed source METS file, if any
     my $self = shift;
-    ## TODO clean remains of failed self here (if applicable)
+    my $mets   = $self->{mets};
+    my $volume = $self->{volume};
+
+    my $stage_path = $volume->get_staging_directory();
+    my $objid = $volume->get_objid();
+    my $mets_path = "$stage_path/Yale_" . $objid . ".xml";
+
+    unlink($mets_path);
 }
 
 1;

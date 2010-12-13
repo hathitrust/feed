@@ -16,6 +16,8 @@ use HTFeed::PackageType::Yale::ExtractOCR;
 use HTFeed::PackageType::Yale::ImageRemediate;
 use HTFeed::PackageType::Yale::SourceMETS;
 
+use HTFeed::XPathValidator qw(:closures);
+
 our $identifier = 'yale';
 
 our $config = {
@@ -106,7 +108,12 @@ our $config = {
     },
 
     # Validation overrides
-    validation => {},
+    validation => {
+	'HTFeed::ModuleValidator::JPEG2000_hul' => {
+	    'camera' => undef,
+	    'decomposition_levels' => v_eq( 'codingStyleDefault', 'decompositionLevels', '3' ),
+	},
+    },
 
     validation_run_stages => [
 	    qw(validate_file_names          
