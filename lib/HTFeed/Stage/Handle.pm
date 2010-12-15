@@ -36,7 +36,7 @@ sub run {
         $sth = $dbh->prepare($handle->to_SQL());
         $sth->execute();
         #print "\n" . $handle->to_SQL() . "\n";
-    } or $self->set_error('OperationFailed', operation => 'write handle');
+    } or $self->set_error('OperationFailed', operation => 'write handle', detail => $@);
     
     $self->_set_done();
     return $self->succeeded();

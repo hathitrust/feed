@@ -345,7 +345,6 @@ sub _validate_metadata {
         }
         elsif(m|<app>|){
             # jhove was run on zero files, that should never happen
-            $logger->fatal("FatalError", detail => "jhove was run on zero files", volume => $volume->get_objid() );
             croak "jhove was run on zero files";
         }
         else{
