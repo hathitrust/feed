@@ -30,9 +30,10 @@ sub run {
 
         while ( my $line = <$manifest_fh> ) {
             chomp($line);
-            next if $line =~ /2Restore/;    # garbage files
-            next if $line =~ /Thumbs.db/;
             my ( $dospath, $manifest_md5sum ) = split( "\t", $line );
+            next if $dospath =~ /2Restore/;    # garbage files
+            next if $dospath =~ /Thumbs.db$/;
+	    next if $dospath =~ /\.jpg$/;
             $self->_check_dospath_md5sum( $dospath, $manifest_md5sum );
 
         }
@@ -57,7 +58,7 @@ sub run {
 }
 
 sub stage_info{
-    return {success_state => 'manifest_verified', failure_state => 'punt'};
+    return {success_state => 'manifest_verified', failure_state => 'punted'};
 }
 
 =item $obj->_check_dospath_md5sum($dospath,$md5sum)
