@@ -36,13 +36,20 @@ my %error_codes = (
     NotEqualValues      => 'Mismatched field values',
     NotMatchedValue     => 'Mismatched/invalid value for field',
     ToolVersionError	=> 'Can\'t get tool version',
+    VolumePunted	=> 'Volume punted',
+    RunStage		=> 'Running stage',
+    UnexpectedError	=> 'Unexpected error',
+    StageSucceeded	=> 'Stage succeeded',
+    StageFailed		=> 'Stage failed',
+
+
 );
 
 # list of fields accepted in log hash
 # these fields are allowed in any log event (error, debug, etc)
 # as long as config.l4p runs it through one of our custom filters:
 #   HTFeed::Log::Warp (for DB appenders), HTFeed::Log::Layout::PrettyPrint (for text appenders)
-my @fields = qw(volume file field actual expected detail operation);
+my @fields = qw(namespace objid file field actual expected detail operation stage);
 
 # on import 
 sub import{

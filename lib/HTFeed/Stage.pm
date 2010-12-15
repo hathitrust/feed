@@ -67,7 +67,6 @@ sub _set_done{
 sub failed{
 	my $self = shift;
 	return $self->{failed} if $self->{has_run};
-	$self->set_error('IncompleteStage',detail => ref($self));
 	return 1;
 }
 
@@ -79,7 +78,9 @@ sub set_error{
 
 	# log error w/ l4p
 	my $logger = get_logger(ref($self));
-	$logger->error($error,volume => $self->{volume}->get_objid(),@_);
+	$logger->error($error,
+	    namespace => $self->{volume}->get_namespace(), 
+	    objid => $self->{volume}->get_objid(),@_);
 }
 
 # log info message
@@ -88,7 +89,9 @@ sub set_info{
     my $message = shift;
     
     my $logger = get_logger(ref($self));
-    $logger->info('Info',detail => $message,volume => $self->{volume}->get_objid(),@_);
+    $logger->info('Info',detail => $message,
+	namespace => $self->{volume}->get_namespace(),
+	objid => $self->{volume}->get_objid(),@_);
 }
 
 # run this to do appropriate cleaning after run()
@@ -164,6 +167,7 @@ sub clean_mets{
     
     return unlink $mets;
 }
+
 
 
 1;

@@ -209,7 +209,10 @@ sub set_error {
 
     # log error w/ l4p
         get_logger( ref($self) )
-          ->error( $error, volume => $self->{volume_id}, file => $self->{filename}, @_);
+          ->error( $error, 
+	      objid => $self->{volume_id}, 
+	      namespace => $self->{volume}->get_namespace(),
+	      file => $self->{filename}, @_);
     return 1;
 }
 
@@ -220,7 +223,10 @@ sub run {
     while (my ($valname, $validator) = each( %{ $self->{validators } } ) ) {
 	next unless defined $validator;
         get_logger( ref($self) )
-          ->trace( "Running validator $valname", volume => $self->{volume_id}, file => $self->{filename}, @_);
+          ->trace( "Running validator $valname", 
+	      objid => $self->{volume_id}, 
+	      namespace => $self->{volume}->get_namespace(), 
+	      file => $self->{filename}, @_);
 
         &{$validator}($self);
     }
