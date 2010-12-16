@@ -47,7 +47,7 @@ sub render {
         $error_message = shift @$message;
     }
     
-    return "$priority - $error_message\n";
+    return "$$: $priority - $error_message\n";
 }
 
 1;

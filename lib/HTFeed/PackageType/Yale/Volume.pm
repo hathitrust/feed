@@ -6,6 +6,7 @@ use base qw(HTFeed::Volume);
 use HTFeed::XMLNamespaces qw(:namespaces);
 use HTFeed::Config qw(get_config);
 use List::MoreUtils qw(uniq);
+use File::Path qw(remove_tree);
 use Carp qw(croak);
 
 =item get_page_data(file)
@@ -422,4 +423,11 @@ sub get_capture_time {
     }
 
     return $self->{capture_time};
+}
+
+sub clean_all {
+    my $self = shift;
+    $self->SUPER::clean_all();
+    warn("Removing " . $self->get_preingest_directory());
+    remove_tree $self->get_preingest_directory();
 }

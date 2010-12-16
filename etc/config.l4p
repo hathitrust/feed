@@ -7,8 +7,8 @@ log4perl.appender.dbi.username          = sub {return HTFeed::Config::get_config
 log4perl.appender.dbi.password          = sub {return HTFeed::Config::get_config('database' => 'password');}
 log4perl.appender.dbi.sql =         \
             insert into ht_errors   \
-            (timestamp,level,message,obj_id,file,field,actual,expected,detail,operation)\
-            values (?,?,?,?,?,?,?,?,?,?)
+            (timestamp,level,message,namespace,objid,file,field,actual,expected,detail,operation,stage)\
+            values (?,?,?,?,?,?,?,?,?,?,?,?)
 log4perl.appender.dbi.params.1 = %d
 log4perl.appender.dbi.params.2 = %p
 

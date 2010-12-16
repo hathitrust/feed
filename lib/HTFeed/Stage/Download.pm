@@ -40,14 +40,14 @@ sub download{
         my $size = (-s $pathname);
         my $expected_size = $response->header('content-length');
         if ($size eq $expected_size){
-            $logger->debug("Download succeeded",volume => $self->{volume}->get_objid());
+	    # do nothing
         }
         else{
             $self->set_error("OperationFailed",file=>$filename,operation=>'download',detail => "size of $filename does not match HTTP header: actual $size, expected $expected_size");
         }
     }
     elsif($not_found_ok and $response->code() eq 404){
-        $logger->debug("404 recieved on optional file: $filename",volume => $self->{volume}->get_objid());
+	# do nothing
     }
     else{
     	$self->set_error("OperationFailed",file => $filename,operation=>'download',detail => $response->status_line);

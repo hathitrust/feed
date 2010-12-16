@@ -27,9 +27,9 @@ our $config = {
 
     # Regular expression that distinguishes valid files in the file package
     valid_file_pattern => qr/^( 
-		Yale_\w+\.(xml) |
-		39002\d{9}_\d{6}\.(xml|jp2|txt)$
-		)/x,
+    Yale_\w+\.(xml) |
+    39002\d{9}_\d{6}\.(xml|jp2|txt)$
+    )/x,
 
 # Configuration for each filegroup.
 # prefix: the prefix to use on file IDs in the METS for files in this filegruop
@@ -78,16 +78,16 @@ our $config = {
     # The list of stages to run to successfully ingest a volume.
     # The list of stages to run to successfully ingest a volume
     stage_map => {
-        ready       => 'HTFeed::PackageType::Yale::Unpack',
-        unpacked    => 'HTFeed::PackageType::Yale::VerifyManifest',
+        ready             => 'HTFeed::PackageType::Yale::Unpack',
+        unpacked          => 'HTFeed::PackageType::Yale::VerifyManifest',
         manifest_verified => 'HTFeed::PackageType::Yale::ExtractOCR',
-        ocr_extracted =>'HTFeed::PackageType::Yale::ImageRemediate',
+        ocr_extracted     => 'HTFeed::PackageType::Yale::ImageRemediate',
         images_remediated => 'HTFeed::PackageType::Yale::SourceMETS',
-        src_metsed  => 'HTFeed::VolumeValidator',
-        validated   => 'HTFeed::Stage::Pack',
-        packed      => 'HTFeed::METS',
-        metsed      => 'HTFeed::Stage::Handle',
-        handled     => 'HTFeed::Stage::Collate',
+        src_metsed        => 'HTFeed::VolumeValidator',
+        validated         => 'HTFeed::Stage::Pack',
+        packed            => 'HTFeed::METS',
+        metsed            => 'HTFeed::Stage::Handle',
+        handled           => 'HTFeed::Stage::Collate',
     },
 
     # The list of filegroups that contain files that will be validated
@@ -107,50 +107,48 @@ our $config = {
 
     # Validation overrides
     validation => {
-	'HTFeed::ModuleValidator::JPEG2000_hul' => {
-	    'camera' => undef,
-	    'decomposition_levels' => v_eq( 'codingStyleDefault', 'decompositionLevels', '3' ),
-	},
+        'HTFeed::ModuleValidator::JPEG2000_hul' => {
+            'camera'               => undef,
+            'decomposition_levels' => v_between(
+                'codingStyleDefault', 'decompositionLevels', '3', '32'
+            ),
+        },
     },
 
     validation_run_stages => [
-	    qw(validate_file_names          
-	    validate_filegroups_nonempty 
-	    validate_consistency         
-	    validate_checksums           
-	    validate_utf8                
-	    validate_metadata)
+        qw(validate_file_names
+          validate_filegroups_nonempty
+          validate_consistency
+          validate_checksums
+          validate_utf8
+          validate_metadata)
     ],
 
     # What PREMIS events to include in the source METS file
     source_premis_events => [
-	  # capture - included manually
-          'source_md5_fixity',
-          'image_header_modification',
-          'ocr_normalize',
-          'source_mets_creation',
-          'page_md5_create',
-          'mets_validation',
+
+        # capture - included manually
+        'source_md5_fixity',
+        'image_header_modification',
+        'ocr_normalize',
+        'source_mets_creation',
+        'page_md5_create',
+        'mets_validation',
     ],
 
  # What PREMIS events to extract from the source METS and include in the HT METS
     source_premis_events_extract => [
-	  'capture',
-          'image_header_modification',
-          'ocr_normalize',
-          'source_mets_creation',
-          'page_md5_create',
+        'capture',       'image_header_modification',
+        'ocr_normalize', 'source_mets_creation',
+        'page_md5_create',
     ],
 
     # What PREMIS events to include (by internal PREMIS identifier,
     # configured in config.yaml)
     premis_events => [
-        'page_md5_fixity',      
-	'package_validation',
-        'page_feature_mapping', 
-	'zip_compression',
-        'zip_md5_create',       
-	'ingestion',
+        'page_md5_fixity',      'package_validation',
+        'page_feature_mapping', 'zip_compression',
+        'zip_md5_create',       'ingestion',
     ],
 
     # Overrides for the basic PREMIS event configuration

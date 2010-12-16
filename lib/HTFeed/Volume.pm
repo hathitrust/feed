@@ -13,6 +13,7 @@ use HTFeed::DBTools;
 use Time::localtime;
 use File::Pairtree;
 use Data::UUID;
+use File::Path qw(remove_tree);
 
 our $logger = get_logger(__PACKAGE__);
 
@@ -747,6 +748,16 @@ sub get_zip {
 
 }
 
+
+sub clean_all {
+    my $self = shift;
+    warn("Removing " . $self->get_staging_directory());
+    remove_tree $self->get_staging_directory();
+    unlink($self->get_mets_path());
+    warn("Removing " . $self->get_mets_path());
+    unlink($self->get_zip_path());
+    warn("Removing " . $self->get_zip_path());
+}
 
 
 
