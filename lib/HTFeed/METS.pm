@@ -42,20 +42,15 @@ sub run {
     my $olddir = cwd();
     my $stage_path = $self->{volume}->get_staging_directory();
     chdir($stage_path) or die("Can't chdir $stage_path: $!");
-    eval {
-        $self->_add_schemas();
-        $self->_add_header();
-        $self->_add_dmdsecs();
-        $self->_add_techmds();
-        $self->_add_filesecs();
-        $self->_add_struct_map();
-        $self->_add_premis();
-        $self->_save_mets();
-	$self->_validate_mets();
-    };
-    if($@) {
-        $self->set_error("IncompleteStage",detail=>$@);
-    }
+    $self->_add_schemas();
+    $self->_add_header();
+    $self->_add_dmdsecs();
+    $self->_add_techmds();
+    $self->_add_filesecs();
+    $self->_add_struct_map();
+    $self->_add_premis();
+    $self->_save_mets();
+    $self->_validate_mets();
     $self->_set_done();
 
     chdir($olddir) or die("Can't restore $olddir: $!");

@@ -11,6 +11,7 @@ use base qw(HTFeed::XPathValidator);
 use HTFeed::ModuleValidator::JPEG2000_hul;
 use HTFeed::ModuleValidator::TIFF_hul;
 use HTFeed::XMLNamespaces qw(register_namespaces);
+use HTFeed::Config qw(get_config);
 
 #use HTFeed::ModuleValidator::WAVE_hul;
 
@@ -41,7 +42,7 @@ sub new {
 
     # make empty object, populate with passed parameters
     my $object = {
-        xpc => undef,    # XML::LibXML::XPathContext object
+        xpc      => undef,    # XML::LibXML::XPathContext object
         volume   => undef,    # HTFeed::Volume
         filename => undef,    # string, filename
         @_,                   # override blank placeholders with proper values
@@ -81,9 +82,10 @@ sub new {
     $object->_xpathInit();
     $object->_set_validators();
 
-    my $overrides = $object->{volume}->get_nspkg()->get_validation_overrides($class);
-    while(my ($k,$v) = each(%$overrides)) {
-	$object->{validators}{$k} = $v;
+    my $overrides =
+      $object->{volume}->get_nspkg()->get_validation_overrides($class);
+    while ( my ( $k, $v ) = each(%$overrides) ) {
+        $object->{validators}{$k} = $v;
     }
 
     return $object;
@@ -97,8 +99,15 @@ sub _setdatetime {
     my $datetime = shift;
 
     # validate
-    unless ( defined($datetime) and $datetime =~ /^(\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d)(\+\d\d:\d\d|)(Z|[+-]\d{2}:\d{2})?$/ ) {
-        $self->set_error("BadValue",field => 'datetime',actual => $datetime);
+    unless ( defined($datetime)
+        and $datetime =~
+        /^(\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d)(\+\d\d:\d\d|)(Z|[+-]\d{2}:\d{2})?$/ )
+    {
+        $self->set_error(
+            "BadValue",
+            field  => 'datetime',
+            actual => $datetime
+        );
         return 0;
     }
 
@@ -110,7 +119,12 @@ sub _setdatetime {
         if ( $self->{datetime} eq $datetime ) {
             return 1;
         }
-        $self->set_error("NotMatchedValue",field => 'datetime',expected => $self->{datetime},actual=>$datetime);
+        $self->set_error(
+            "NotMatchedValue",
+            field    => 'datetime',
+            expected => $self->{datetime},
+            actual   => $datetime
+        );
         return 0;
     }
 
@@ -131,7 +145,12 @@ sub _setartist {
         if ( $self->{artist} eq $artist ) {
             return 1;
         }
-        $self->set_error("NotMatchedValue",field=>'artist',expected => $self->{artist},actual => $artist);
+        $self->set_error(
+            "NotMatchedValue",
+            field    => 'artist',
+            expected => $self->{artist},
+            actual   => $artist
+        );
         return 0;
     }
 
@@ -152,7 +171,12 @@ sub _setdocumentname {
         if ( $self->{documentname} eq $documentname ) {
             return 1;
         }
-        $self->set_error("NotMatchedValue",field=>'documentname',expected => $self->{documentname}, actual=>$documentname);
+        $self->set_error(
+            "NotMatchedValue",
+            field    => 'documentname',
+            expected => $self->{documentname},
+            actual   => $documentname
+        );
         return 0;
     }
 
@@ -165,7 +189,11 @@ sub _setdocumentname {
     $pattern =~ s/[-_]/\[-_\]/g;
 
     unless ( $documentname =~ m|$pattern|i ) {
-        $self->set_error("BadValue",field=>'documentname',actual=>$documentname);
+        $self->set_error(
+            "BadValue",
+            field  => 'documentname',
+            actual => $documentname
+        );
         return 0;
     }
 
@@ -192,7 +220,7 @@ sub _setupXMPcontext {
 
     };
     if ($@) {
-        $self->set_error("BadField",detail=>$@,field=>'xmp');
+        $self->set_error( "BadField", detail => $@, field => 'xmp' );
         return 0;
     }
     else {
@@ -203,30 +231,37 @@ sub _setupXMPcontext {
 
 # set fail, log errors
 sub set_error {
-    my $self = shift;
+    my $self  = shift;
     my $error = shift;
     $self->{fail}++;
 
     # log error w/ l4p
-        get_logger( ref($self) )
-          ->error( $error, 
-	      objid => $self->{volume_id}, 
-	      namespace => $self->{volume}->get_namespace(),
-	      file => $self->{filename}, @_);
+    get_logger( ref($self) )->error(
+        $error,
+        objid     => $self->{volume_id},
+        namespace => $self->{volume}->get_namespace(),
+        file      => $self->{filename},
+        @_
+    );
+    if(get_config('stop_on_error')) {
+        croak("STAGE_ERROR");
+    }
     return 1;
 }
 
 sub run {
 
     my $self = shift;
-    
-    while (my ($valname, $validator) = each( %{ $self->{validators } } ) ) {
-	next unless defined $validator;
-        get_logger( ref($self) )
-          ->trace( "Running validator $valname", 
-	      objid => $self->{volume_id}, 
-	      namespace => $self->{volume}->get_namespace(), 
-	      file => $self->{filename}, @_);
+
+    while ( my ( $valname, $validator ) = each( %{ $self->{validators} } ) ) {
+        next unless defined $validator;
+        get_logger( ref($self) )->trace(
+            "Running validator $valname",
+            objid     => $self->{volume_id},
+            namespace => $self->{volume}->get_namespace(),
+            file      => $self->{filename},
+            @_
+        );
 
         &{$validator}($self);
     }

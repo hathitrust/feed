@@ -13,27 +13,27 @@ use HTFeed::Config qw(get_config);
 
 use base qw(HTFeed::SuccessOrFailure);
 
-sub new{
-	my $class = shift;
+sub new {
+    my $class = shift;
 
-	# make sure we are instantiating a child class, not self
-	if ($class eq __PACKAGE__){
-		croak __PACKAGE__ . ' can only construct subclass objects';
-	}
-		
-	my $self = {
-		volume  => undef,
-		@_,
-		has_run => 0,
-		failed  => 0,
-	};
-	
-	unless ($self->{volume} && $self->{volume}->isa("HTFeed::Volume")){
-		croak "$class cannot be constructed without an HTFeed::Volume";
-	}
+    # make sure we are instantiating a child class, not self
+    if ( $class eq __PACKAGE__ ) {
+        croak __PACKAGE__ . ' can only construct subclass objects';
+    }
 
-	bless ($self, $class);
-	return $self;
+    my $self = {
+        volume => undef,
+        @_,
+        has_run => 0,
+        failed  => 0,
+    };
+
+    unless ( $self->{volume} && $self->{volume}->isa("HTFeed::Volume") ) {
+        croak "$class cannot be constructed without an HTFeed::Volume";
+    }
+
+    bless( $self, $class );
+    return $self;
 }
 
 # returns information about the stage
@@ -43,11 +43,11 @@ sub new{
 # synopsis
 # my $info_hash = $stage->get_stage_info();
 # my $info_item = $stage->get_stage_info('item_name');
-sub get_stage_info{
-    my $self = shift;
+sub get_stage_info {
+    my $self  = shift;
     my $field = shift;
-    
-    if ($field){
+
+    if ($field) {
         return $self->stage_info()->{$field};
     }
     return $self->stage_info();
@@ -56,72 +56,84 @@ sub get_stage_info{
 # abstract
 # sub run{}
 
-sub _set_done{
-	my $self = shift;
-	$self->{has_run}++;
-	return $self->{has_run};
+sub _set_done {
+    my $self = shift;
+    $self->{has_run}++;
+    return $self->{has_run};
 }
 
 # Return true if failed, false if succeeded
 # Set error and return true if ! $self->{has_run}
-sub failed{
-	my $self = shift;
-	return $self->{failed} if $self->{has_run};
-	return 1;
+sub failed {
+    my $self = shift;
+    return $self->{failed} if $self->{has_run};
+    return 1;
 }
 
 # set fail, log errors
-sub set_error{
-	my $self = shift;
-	my $error = shift;
-	$self->{failed}++;
+sub set_error {
+    my $self  = shift;
+    my $error = shift;
+    $self->{failed}++;
 
-	# log error w/ l4p
-	my $logger = get_logger(ref($self));
-	$logger->error($error,
-	    namespace => $self->{volume}->get_namespace(), 
-	    objid => $self->{volume}->get_objid(),@_);
+    # log error w/ l4p
+    my $logger = get_logger( ref($self) );
+    $logger->error(
+        $error,
+        namespace => $self->{volume}->get_namespace(),
+        objid     => $self->{volume}->get_objid(),
+        @_
+    );
+
+    if ( get_config('stop_on_error') ) {
+        croak("STAGE_ERROR");
+    }
 }
 
 # log info message
-sub set_info{
-    my $self = shift;
+sub set_info {
+    my $self    = shift;
     my $message = shift;
-    
-    my $logger = get_logger(ref($self));
-    $logger->info('Info',detail => $message,
-	namespace => $self->{volume}->get_namespace(),
-	objid => $self->{volume}->get_objid(),@_);
+
+    my $logger = get_logger( ref($self) );
+    $logger->info(
+        'Info',
+        detail    => $message,
+        namespace => $self->{volume}->get_namespace(),
+        objid     => $self->{volume}->get_objid(),
+        @_
+    );
 }
 
 # run this to do appropriate cleaning after run()
 # this generally should not be overriden,
 # instead override clean_success() and clean_failure()
-sub clean{
-    my $self = shift;
+sub clean {
+    my $self    = shift;
     my $success = $self->succeeded();
-    
-    if ($success){
+
+    if ($success) {
         $self->clean_success();
-    }else{
+    }
+    else {
         $self->clean_failure();
     }
-    
+
     $self->clean_always();
 }
 
 # do cleaning that is appropriate after success
-sub clean_success{
+sub clean_success {
     return;
 }
 
 # do cleaning that is appropriate after failure
-sub clean_failure{
+sub clean_failure {
     return;
 }
 
 # do cleaning independent of success
-sub clean_always{
+sub clean_always {
     return;
 }
 
@@ -130,45 +142,43 @@ sub clean_always{
 #    my $self = shift;
 #    my $volume = $self->{volume};
 #    my $download_to_disk = $volume->get_nspkg()->get('download_to_disk');
-#    
+#
 #    if(! $download_to_disk){
 #        my $path = get_config('staging'=>'memory');
 #        my $file = $volume->get_SIP_filename();
 #        my $path_name = "$path/$file";
-#        
+#
 #        return unlink $path_name;
 #    }
-#    
+#
 #    return 1;
 #}
 
 # unlink unpacked object
-sub clean_unpacked_object{
+sub clean_unpacked_object {
     my $self = shift;
-    my $dir = $self->{volume}->get_staging_directory();
-    
+    my $dir  = $self->{volume}->get_staging_directory();
+
     return remove_tree $dir;
 }
 
 # unlink zip
-sub clean_zip{
-    my $self = shift;
-    my $dir = get_config('staging'=>'memory');
+sub clean_zip {
+    my $self     = shift;
+    my $dir      = get_config( 'staging' => 'memory' );
     my $zip_file = $self->{volume}->get_zip();
     my $zip_path = "$dir/$zip_file";
-    
+
     return unlink $zip_path;
 }
 
 # unlink mets file
-sub clean_mets{
+sub clean_mets {
     my $self = shift;
     my $mets = $self->{volume}->get_mets_path();
-    
+
     return unlink $mets;
 }
-
-
 
 1;
 
