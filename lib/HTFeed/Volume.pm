@@ -421,20 +421,20 @@ Returns the path to the repository symlink for the object.
 
 sub get_repository_symlink {
     my $self = shift;
-    
+
 
     if(not defined $self->{repository_symlink}) {
-	my $authdir = get_config("repository","authdir");
-	my $namespace = $self->get_namespace();
+        my $link_dir = get_config("repository","link_dir");
+        my $namespace = $self->get_namespace();
 
-	my $objid = $self->get_objid();
+        my $objid = $self->get_objid();
 
-	my $pairtree_path = id2ppath($objid);
+        my $pairtree_path = id2ppath($objid);
 
-	my $pt_objid = $self->get_pt_objid();
+        my $pt_objid = $self->get_pt_objid();
 
-	my $symlink = "$authdir/$namespace/$pairtree_path/$pt_objid";
-	$self->{repository_symlink} = $symlink;
+        my $symlink = "$link_dir/$namespace/$pairtree_path/$pt_objid";
+        $self->{repository_symlink} = $symlink;
     }
 
     return $self->{repository_symlink};
