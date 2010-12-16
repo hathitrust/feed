@@ -312,7 +312,11 @@ sub _add_filesecs {
 
 }
 
-sub clean_always{
+sub clean_always {
+    # do nothing
+}
+
+sub clean_success {
     # clean volume preingest directory
     my $self = shift;
     my $dir = $self->{volume}->get_preingest_directory();
