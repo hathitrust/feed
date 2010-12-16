@@ -1,6 +1,6 @@
 ---
 database:
-  datasource: dbi:mysql:mdp_tracking:mysql-htdev
+  datasource: dbi:mysql:mdp_tracking_new:mysql-htdev
   username: USERNAME
   password: PASSWORD
 
@@ -8,30 +8,58 @@ jhove: /l/local/bin/jhove
 jhoveconf: /l/local/jhove/conf/jhove.conf
 
 xerces: /l/local/xerces-c/bin/SAX2Count
-kdu_munge: /htapps/aelkiss.babel/Yale/kdu_munge
+kdu_munge: /l/local/bin/kdu_munge
 
 jhove: /l/local/bin/jhove
 jhoveconf: /l/local/jhove/conf/jhove.conf
 l4p:
   root_logger: 'INFO, file'
-  config: /htapps/rrotter.babel/git/feed/etc/config.l4p
+  config: /htapps/babel/feed/etc/config.l4p
 
 staging:
-  download: /htapps/aelkiss.babel/repos/staging
+  download: /htprep/download
   memory: /ram/staging
   zip: /ram/zip_staging
   preingest: /ram/preingest
 
-sample_directory: /htapps/rrotter.babel/repos/samples
+sample_directory: /htprep/qr
 repository:
   # The directory in which symbolic links will be created to each volume
-  authdir: /htapps/rrotter.babel/repos/links
+  authdir: /sdr1/obj
   # The directory into which volumes will be loaded 
-  destdir: /htapps/rrotter.babel/repos/obj
+  destdir: /sdr6/obj
+  use_authdir: 1
 
+rights:
+  # user barcode deposit must run as (for scp/ssh)
+  user: libadm
+  # Directory in which barcodes list files will be created and rights data files will be deposited
+  staging: /htapps/babel/groove/prep/rights
+  # Archive directory where rights data files will be deposited after they are processed
+  archive: /htapps/babel/groove/prep/rights/archive
+  # Email address of the person who should receive an email notification when new rights files are available
+  email: timothy@umich.edu
+  # SCP user, host, deposit directory
+  # Variables for forming scp/ssh commands.
+  # Ex: scp $barcodes_file $scpuser@scphost:$scp_barcodes_deposit_dir
+  # Ex: scp $scpuser@scphost:/scp_rights_pickup_dir/*.rights $rights_dir
+  scp:
+    user: aleph
+    host: irene
+    deposit_dir: /exlibris/aleph/u18_1/miu50/local/mdp/return
+    pickup_dir: /exlibris/aleph/u18_1/miu50/local/mdp/return
+
+admin_email: aelkiss@umich.edu
+from_email: lit-cs-groove@umich.edu
+
+# Configuration for how to run - how many subprocesses, how many retries, etc
+#
 volumes_in_process_limit: 5
-failure_limit: 5
-keep_defective_packages: false
+failure_limit: 1
+# true to immediately stop a module when an error is encountered
+stop_on_error: 1
+# true to spawn subprocesses to handle each stage
+fork: 1
 
 handle:
   repo_url_base: http://babel.hathitrust.org/cgi/pt?id=
