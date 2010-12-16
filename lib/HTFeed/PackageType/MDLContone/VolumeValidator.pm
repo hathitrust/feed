@@ -38,13 +38,4 @@ sub _validate_filegroups {
     return;
 }
 
-# No-op for MDL contones, since there are no sequence numbers..
-sub _validate_consistency {
-    my $self   = shift;
-    my $volume = $self->{volume};
-
-    return;
-
-}
-
 1;

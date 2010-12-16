@@ -42,6 +42,16 @@ our $config = {
     # Allow gaps in numerical sequence of filenames?
     allow_sequence_gaps => 1,
 
+    # Don't validate consistency for MDL Contone composite images -- there is only one
+    # image, so no sequence numbers..
+    validation_run_stages => [
+        qw(validate_file_names
+          validate_filegroups_nonempty
+          validate_checksums
+          validate_utf8
+          validate_metadata)
+    ],
+
     # The list of stages to run to successfully ingest a volume.
     stages_to_run => [qw(
         HTFeed::PackageType::MDLContone::VolumeValidator
@@ -69,7 +79,7 @@ our $config = {
 	    'transformation' => v_eq('codingStyleDefault','transformation','1'),
 	    'camera' => undef,
 	    'resolution'      => v_and(
-		v_in( 'xmp', 'xRes', [ '300/1', '400/1', '500/1', '600/1' ] ),
+		v_in( 'xmp', 'xRes', [ '300/1', '350/1', '400/1', '450/1', '500/1', '600/1', '650/1', '700/1', '750/1', '800/1', '900/1', '1000/1' ] ),
 		v_same( 'xmp', 'xRes', 'xmp', 'yRes' )
 	    ),
 	    'decomposition_levels' => v_eq( 'codingStyleDefault', 'decompositionLevels', '2' ),
