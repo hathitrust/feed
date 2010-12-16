@@ -24,7 +24,7 @@ sub new {
 
     $self->{stages} = {
         validate_file_names          => \&_validate_file_names,
-        validate_filegroups_nonempty	     => \&_validate_filegroups,
+        validate_filegroups_nonempty => \&_validate_filegroups,
         validate_consistency         => \&_validate_consistency,
         validate_checksums           => \&_validate_checksums,
         validate_utf8                => \&_validate_utf8,

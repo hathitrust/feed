@@ -20,24 +20,24 @@ sub new {
     my $package = shift;
 
     my $self = {
-	objid     => undef,
-	namespace => undef,
-	packagetype => undef,
-	uuidgen => new Data::UUID,
-	@_,
+    objid     => undef,
+    namespace => undef,
+    packagetype => undef,
+    uuidgen => new Data::UUID,
+    @_,
 
-	#		files			=> [],
-	#		dir			=> undef,
-	#		mets_name		=> undef,
-	#		mets_xml		=> undef,
+    #		files			=> [],
+    #		dir			=> undef,
+    #		mets_name		=> undef,
+    #		mets_xml		=> undef,
     };
 
     $self->{nspkg} = new HTFeed::Namespace($self->{namespace},$self->{packagetype});
 
     $self->{nspkg}->validate_barcode($self->{objid}) 
-	or croak "Invalid barcode $self->{objid} provided for $self->{namespace}";
-	
-	my $class = $self->{nspkg}->get('volume_module');
+    or croak "Invalid barcode $self->{objid} provided for $self->{namespace}";
+
+    my $class = $self->{nspkg}->get('volume_module');
 
     bless( $self, $class );
     return $self;
@@ -99,18 +99,18 @@ sub get_file_groups {
     my $self = shift;
 
     if(not defined $self->{filegroups}) {
-	my $filegroups = {}; 
+        my $filegroups = {}; 
 
-	my $nspkg_filegroups = $self->{nspkg}->get('filegroups');
-	while( my ($key,$val) = each (%{ $nspkg_filegroups })) {
-	    my $files = [];
-	    my $re = $val->{file_pattern} or die("Missing pattern for filegroup $key");
-	    foreach my $file ( @{ $self->get_all_directory_files() }) {
-		push(@$files,$file) if $file =~ $re;
-	    }
-	    $filegroups->{$key} = new HTFeed::FileGroup($files,%$val);
-	}
-	$self->{filegroups} = $filegroups;
+        my $nspkg_filegroups = $self->{nspkg}->get('filegroups');
+        while( my ($key,$val) = each (%{ $nspkg_filegroups })) {
+            my $files = [];
+            my $re = $val->{file_pattern} or die("Missing pattern for filegroup $key");
+            foreach my $file ( @{ $self->get_all_directory_files() }) {
+                push(@$files,$file) if $file =~ $re;
+            }
+            $filegroups->{$key} = new HTFeed::FileGroup($files,%$val);
+    	}
+    	$self->{filegroups} = $filegroups;
     }
 
     return $self->{filegroups};
@@ -261,7 +261,7 @@ sub get_source_mets_xpc {
 	my $path = $self->get_staging_directory();
 
 	die("Missing METS file") unless defined $mets and defined $path;
-	$self->{source_mets_xpc} = $self->_parse_xpc("$path/$mets");
+        $self->{source_mets_xpc} = $self->("$path/$mets");
 
     }
     return $self->{source_mets_xpc};
@@ -280,11 +280,11 @@ sub _parse_xpc {
     my $file = shift;
     my $xpc;
     eval {
-	die "Missing file $file" unless -e "$file";
-	my $parser = XML::LibXML->new();
-	my $doc    = $parser->parse_file("$file");
-	$xpc = XML::LibXML::XPathContext->new($doc);
-	register_namespaces($xpc);
+        die "Missing file $file" unless -e "$file";
+        my $parser = XML::LibXML->new();
+        my $doc    = $parser->parse_file("$file");
+        $xpc = XML::LibXML::XPathContext->new($doc);
+        register_namespaces($xpc);
     };
 
     if ($@) {
@@ -306,10 +306,10 @@ sub get_repos_mets_xpc {
 
     if (not defined $self->{repos_mets_xpc}) {
 
-	my $mets = $self->get_repository_mets_path();
-	return unless defined $mets;
+        my $mets = $self->get_repository_mets_path();
+        return unless defined $mets;
 
-	$self->{repos_mets_xpc} = $self->_parse_xpc($mets);
+        $self->{repos_mets_xpc} = $self->_parse_xpc($mets);
     }
 
     return $self->{repos_mets_xpc};
@@ -358,9 +358,9 @@ Get all files that will need to have their metadata validated with JHOVE
 sub get_jhove_files {
     my $self = shift;
     if(not defined $self->{jhove_files}) {
-	foreach my $filegroup (values(%{ $self->get_file_groups()})) {
-	    push(@{ $self->{jhove_files} },@{ $filegroup->get_filenames() }) if $filegroup->{jhove};
-	}
+        foreach my $filegroup (values(%{ $self->get_file_groups()})) {
+            push(@{ $self->{jhove_files} },@{ $filegroup->get_filenames() }) if $filegroup->{jhove};
+        }
     }
 
     return $self->{jhove_files};
@@ -375,9 +375,9 @@ Get all files that should be valid UTF-8
 sub get_utf8_files {
     my $self = shift;
     if(not defined $self->{utf8_files}) {
-	foreach my $filegroup (values(%{ $self->get_file_groups()})) {
-	    push(@{ $self->{utf8_files} },@{ $filegroup->get_filenames() }) if $filegroup->{utf8};
-	}
+        foreach my $filegroup (values(%{ $self->get_file_groups()})) {
+            push(@{ $self->{utf8_files} },@{ $filegroup->get_filenames() }) if $filegroup->{utf8};
+        }
     }
 
     return $self->{utf8_files};

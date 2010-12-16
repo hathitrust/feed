@@ -108,17 +108,26 @@ sub clean{
 }
 
 # do cleaning that is appropriate after success
+# run automatically by clean() when needed
 sub clean_success{
     return;
 }
 
 # do cleaning that is appropriate after failure
+# run automatically by clean() when needed
 sub clean_failure{
     return;
 }
 
 # do cleaning independent of success
+# run automatically by clean() when needed
 sub clean_always{
+    return;
+}
+
+# cleaning to do on punt
+# NOT run by clean(), because clean() doesn't know you punted
+sub clean_punt{
     return;
 }
 

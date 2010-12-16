@@ -76,7 +76,7 @@ else{
 
 # test_package($package_type,$namespace,$objid,$damaged_pkg_path,$undamaged_pkg_path)
 sub test_success{
-    my ($package_type,$namespace,$objid,$damaged_pkg_path,$undamaged_pkg_path,$expected_log) = @_;
+    my ($package_type,$namespace,$objid,$damaged_pkg_path,$undamaged_pkg_path) = @_;
     
     my ($volume, $vol_val);
     

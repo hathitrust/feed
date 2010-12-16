@@ -57,4 +57,6 @@ sub run_stage{
         $sth = HTFeed::DBTools::get_dbh()->prepare(q(UPDATE `queue` SET `status` = ?, failure_count=failure_count+1 WHERE `ns` = ? AND `pkg_type` = ? AND `objid` = ?;));
     }
     $sth->execute($status,$namespace,$packagetype,$objid);
+    
+    $stage->clean_punt() if ($status eq 'punted');
 }
