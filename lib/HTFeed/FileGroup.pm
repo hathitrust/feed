@@ -25,7 +25,7 @@ sub new {
     return $self;
 }
 
-=item get_files()
+=item get_filenames()
 
 Returns all the files in this file group
 

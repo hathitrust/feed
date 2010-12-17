@@ -262,7 +262,7 @@ sub get_source_mets_xpc {
 	my $path = $self->get_staging_directory();
 
 	die("Missing METS file") unless defined $mets and defined $path;
-        $self->{source_mets_xpc} = $self->("$path/$mets");
+        $self->{source_mets_xpc} = $self->_parse_xpc("$path/$mets");
 
     }
     return $self->{source_mets_xpc};
