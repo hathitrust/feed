@@ -3,8 +3,10 @@ package HTFeed::PackageType::IA::Volume;
 use warnings;
 use strict;
 use base qw(HTFeed::Volume);
-use HTFeed::DBTools;
+use HTFeed::DBTools qw(get_dbh);
 use HTFeed::Config qw(get_config);
+use File::Pairtree;
+use File::Path qw(make_path);
 
 my $pagetag_mapping = {
     'Blank Tissue' => 'BLANK',
@@ -33,8 +35,7 @@ sub get_ia_id{
     # else get it and memoize
     my $arkid = $self->get_objid();
 
-    my $db = new HTFeed::DBTools;
-    my $dbh = $db->get_dbh();
+    my $dbh = get_dbh();
     my $sth = $dbh->prepare("select ia_id from ia_arkid where arkid = ?");
     $sth->execute($arkid);
 
@@ -83,6 +84,15 @@ sub get_page_data {
     }
 
     return $self->{page_data}{$seqnum};
+}
+
+sub get_download_directory {
+    my $self = shift;
+    my $ia_id = $self->get_ia_id();
+    my $path = get_config('staging'=>'download');
+    my $pt_path = "$path/ia/" . id2ppath($ia_id);
+    make_path($pt_path) unless -e $pt_path;
+    return $pt_path;
 }
 
 1;

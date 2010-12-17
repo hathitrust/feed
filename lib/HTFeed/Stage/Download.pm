@@ -25,32 +25,37 @@ sub download{
     my $path = $arguments->{path};
     my $filename = $arguments->{filename};
     my $not_found_ok = $arguments->{not_found_ok};
-    
+
     my $pathname = "$path/$filename";
     # already downloaded? just return
     return if -e "$path/$filename";
 
     my $ua = LWP::UserAgent->new;
     $ua->agent('HTFeedBot/0.1 '); # space causes LWP to append its ua
-    
+
+    $logger->trace("Requesting $url");
     my $request = HTTP::Request->new('GET', $url);
     my $response = $ua->request($request, $pathname);
-    
+
     if( $response->is_success() ){
         my $size = (-s $pathname);
         my $expected_size = $response->header('content-length');
-        if ($size eq $expected_size){
-	    # do nothing
+        if (not defined $expected_size or $size eq $expected_size){
+            $logger->trace("Downloading $url succeeded, $size bytes downloaded");
+            return 1;
         }
         else{
             $self->set_error("OperationFailed",file=>$filename,operation=>'download',detail => "size of $filename does not match HTTP header: actual $size, expected $expected_size");
+            return 0;
         }
     }
     elsif($not_found_ok and $response->code() eq 404){
-	# do nothing
+        $logger->trace("$url not found");
+        return 0;
     }
     else{
-    	$self->set_error("OperationFailed",file => $filename,operation=>'download',detail => $response->status_line);
+        $self->set_error("OperationFailed",file => $filename,operation=>'download',detail => $response->status_line);
+        return 0;
     }
 }
 
