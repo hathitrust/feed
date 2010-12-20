@@ -26,22 +26,20 @@ sub run{
 
     foreach my $item (@$core_package_items){
         my $filename = sprintf($item,$ia_id);
-        my $url = $url . $filename;
-        $self->download(url => $url, path => $pt_path, filename => $filename);
+        $self->download(url => $url . $filename, path => $pt_path, filename => $filename);
     }
 
     foreach my $item (@$non_core_package_items){
         my $filename = sprintf($item,$ia_id);
-        my $url = $url . $filename;
-        $self->download(url => $url, path => $pt_path, filename => $filename, not_found_ok => 1) or push(@noncore_missing,$filename);
+        $self->download(url => $url . $filename, path => $pt_path, filename => $filename, not_found_ok => 1) or push(@noncore_missing,$filename);
     }
 
     # handle scandata..
 
-    if(!$self->download(url => $url, path => $pt_path, filename => "${ia_id}_scandata.xml", not_found_ok => 1)) {
-        $self->download(url => $url, path => $pt_path, filename => "scandata.zip", not_found_ok => 0) or return;
+    if(!$self->download(url => $url . "${ia_id}_scandata.xml", path => $pt_path, filename => "${ia_id}_scandata.xml", not_found_ok => 1)) {
+        $self->download(url => $url . "scandata.zip", path => $pt_path, filename => "scandata.zip", not_found_ok => 0) or return;
         unzip_file($self,"-d '$pt_path'","$pt_path/scandata.zip scandata.xml");
-        if(!-e "$pt_path/${ia_id}_scandata.xml") {
+        if(!-e "$pt_path/scandata.xml") {
             $self->set_error("MissingFile",file => 'scandata.zip/scandata.xml');
             return;
         }

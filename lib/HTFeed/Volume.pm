@@ -21,22 +21,22 @@ sub new {
     my $package = shift;
 
     my $self = {
-    objid     => undef,
-    namespace => undef,
-    packagetype => undef,
-    uuidgen => new Data::UUID,
-    @_,
+        objid     => undef,
+        namespace => undef,
+        packagetype => undef,
+        uuidgen => new Data::UUID,
+        @_,
 
-    #		files			=> [],
-    #		dir			=> undef,
-    #		mets_name		=> undef,
-    #		mets_xml		=> undef,
+        #		files			=> [],
+        #		dir			=> undef,
+        #		mets_name		=> undef,
+        #		mets_xml		=> undef,
     };
 
     $self->{nspkg} = new HTFeed::Namespace($self->{namespace},$self->{packagetype});
 
     $self->{nspkg}->validate_barcode($self->{objid}) 
-    or croak "Invalid barcode $self->{objid} provided for $self->{namespace}";
+        or croak "Invalid barcode $self->{objid} provided for $self->{namespace}";
 
     my $class = $self->{nspkg}->get('volume_module');
 
@@ -110,8 +110,8 @@ sub get_file_groups {
                 push(@$files,$file) if $file =~ $re;
             }
             $filegroups->{$key} = new HTFeed::FileGroup($files,%$val);
-    	}
-    	$self->{filegroups} = $filegroups;
+        }
+        $self->{filegroups} = $filegroups;
     }
 
     return $self->{filegroups};
@@ -127,15 +127,15 @@ sub get_all_directory_files {
     my $self = shift;
 
     if(not defined $self->{directory_files}) {
-	$self->{directory_files} = [];
-	my $stagedir = $self->get_staging_directory();
-	opendir(my $dh,$stagedir) or croak("Can't opendir $stagedir: $!");
-	foreach my $file (readdir $dh) {
-	    # ignore ., ..
-	    push(@{ $self->{directory_files} },$file) unless $file =~ /^\.+$/;
-	}
-	closedir($dh) or croak("Can't closedir $stagedir: $!");
-	@{ $self->{directory_files} } = sort( @{ $self->{directory_files} } );
+        $self->{directory_files} = [];
+        my $stagedir = $self->get_staging_directory();
+        opendir(my $dh,$stagedir) or croak("Can't opendir $stagedir: $!");
+        foreach my $file (readdir $dh) {
+            # ignore ., ..
+            push(@{ $self->{directory_files} },$file) unless $file =~ /^\.+$/;
+        }
+        closedir($dh) or croak("Can't closedir $stagedir: $!");
+        @{ $self->{directory_files} } = sort( @{ $self->{directory_files} } );
     }
 
     return $self->{directory_files};
@@ -149,14 +149,15 @@ Returns the staging directory for the volume's AIP
 
 sub get_staging_directory {
     my $self = shift;
-    
+
     if(not defined $self->{staging_directory}) {
-	my $objid = $self->get_objid();
-	my $stage_dir = sprintf("%s/%s", get_config('staging'=>'memory'), $objid);
-	if(!-e $stage_dir) {
-	    mkdir($stage_dir) or croak("Can't mkdir $stage_dir: $!");
-	}
-	$self->{staging_directory} = $stage_dir;
+        my $objid = $self->get_objid();
+        my $pt_objid = s2ppchars($objid);
+        my $stage_dir = sprintf("%s/%s", get_config('staging'=>'memory'), $pt_objid);
+        if(!-e $stage_dir) {
+            mkdir($stage_dir) or croak("Can't mkdir $stage_dir: $!");
+        }
+        $self->{staging_directory} = $stage_dir;
     }
 
     return $self->{staging_directory};
@@ -182,11 +183,11 @@ Returns a list of all files that will be validated.
 
 sub get_all_content_files {
     my $self = shift;
-    
+
     if(not defined $self->{content_files}) {
-	foreach my $filegroup (values(%{ $self->get_file_groups()})) {
-	    push(@{ $self->{content_files} },@{ $filegroup->get_filenames() }) if $filegroup->{content};
-	}
+        foreach my $filegroup (values(%{ $self->get_file_groups()})) {
+            push(@{ $self->{content_files} },@{ $filegroup->get_filenames() }) if $filegroup->{content};
+        }
     }
 
     return $self->{content_files};
@@ -204,17 +205,17 @@ sub get_checksums {
 
     if ( not defined $self->{checksums} ) {
 
-	my $checksums = {};
-	# try to extract from source METS
-	my $xpc = $self->get_source_mets_xpc();
-	foreach my $node ( $xpc->findnodes('//mets:file') ) {
-	    my $checksum = $xpc->findvalue( './@CHECKSUM', $node );
-	    my $filename =
-	    $xpc->findvalue( './mets:FLocat/@xlink:href', $node );
-	    $checksums->{$filename} = $checksum;
-	}
+        my $checksums = {};
+        # try to extract from source METS
+        my $xpc = $self->get_source_mets_xpc();
+        foreach my $node ( $xpc->findnodes('//mets:file') ) {
+            my $checksum = $xpc->findvalue( './@CHECKSUM', $node );
+            my $filename =
+            $xpc->findvalue( './mets:FLocat/@xlink:href', $node );
+            $checksums->{$filename} = $checksum;
+        }
 
-	$self->{checksums} = $checksums;
+        $self->{checksums} = $checksums;
     }
 
     return $self->{checksums};
@@ -231,17 +232,17 @@ TODO: support more general creation, substitution of templates in METS file
 sub get_source_mets_file {
     my $self = shift;
     if(not defined $self->{source_mets_file}) {
-	my $src_mets_re = $self->{nspkg}->get('source_mets_file');
+        my $src_mets_re = $self->{nspkg}->get('source_mets_file');
 
-	foreach my $file ( @{ $self->get_all_directory_files() }) {
-	    if($file =~ $src_mets_re) {
-		if(not defined $self->{source_mets_file}) {
-		    $self->{source_mets_file} = $file;
-		} else {
-		    croak("Two or more files match source METS RE $src_mets_re: $self->{source_mets_file} and $file");
-		}
-	    }
-	}
+        foreach my $file ( @{ $self->get_all_directory_files() }) {
+            if($file =~ $src_mets_re) {
+                if(not defined $self->{source_mets_file}) {
+                    $self->{source_mets_file} = $file;
+                } else {
+                    croak("Two or more files match source METS RE $src_mets_re: $self->{source_mets_file} and $file");
+                }
+            }
+        }
     }
 
     return $self->{source_mets_file};
@@ -258,10 +259,10 @@ sub get_source_mets_xpc {
     my $self = shift;
 
     if(not defined $self->{source_mets_xpc}) {
-	my $mets = $self->get_source_mets_file();
-	my $path = $self->get_staging_directory();
+        my $mets = $self->get_source_mets_file();
+        my $path = $self->get_staging_directory();
 
-	die("Missing METS file") unless defined $mets and defined $path;
+        die("Missing METS file") unless defined $mets and defined $path;
         $self->{source_mets_xpc} = $self->_parse_xpc("$path/$mets");
 
     }
@@ -289,9 +290,9 @@ sub _parse_xpc {
     };
 
     if ($@) {
-	croak("-ERR- Could not read XML file $file: $@");
+        croak("-ERR- Could not read XML file $file: $@");
     } else {
-	return $xpc;
+        return $xpc;
     }
 }
 
@@ -341,12 +342,12 @@ sub get_stages{
     my $stage_name = 'ready';
     my $stages = [];
     my $stage_class;
-    
+
     while ($stage_class = $stage_map->{$stage_name}){
         push ( @{ $stages }, $stage_class );
         $stage_name = eval "$stage_class->get_stage_info('success_state')";
     }
-    
+
     return $stages;
 }
 
@@ -400,12 +401,12 @@ sub get_marc_xml {
 
     if ( $mdsec_nodes->size() ) {
         warn("Multiple MARC mdsecs found") if ( $mdsec_nodes->size() > 1 );
-	my $node = $mdsec_nodes->get_node(0)->firstChild();
-	# ignore any whitespace, etc.
-	while($node->nodeType() != XML_ELEMENT_NODE) {
-	    $node = $node->nextSibling();
-	}
-	return $node if defined $node;
+        my $node = $mdsec_nodes->get_node(0)->firstChild();
+        # ignore any whitespace, etc.
+        while($node->nodeType() != XML_ELEMENT_NODE) {
+            $node = $node->nextSibling();
+        }
+        return $node if defined $node;
     } 
 
     # no metadata found, or metadata node didn't contain anything
@@ -421,20 +422,20 @@ Returns the path to the repository symlink for the object.
 
 sub get_repository_symlink {
     my $self = shift;
-    
+
 
     if(not defined $self->{repository_symlink}) {
-	my $authdir = get_config("repository","authdir");
-	my $namespace = $self->get_namespace();
+        my $authdir = get_config("repository","authdir");
+        my $namespace = $self->get_namespace();
 
-	my $objid = $self->get_objid();
+        my $objid = $self->get_objid();
 
-	my $pairtree_path = id2ppath($objid);
+        my $pairtree_path = id2ppath($objid);
 
-	my $pt_objid = $self->get_pt_objid();
+        my $pt_objid = $self->get_pt_objid();
 
-	my $symlink = "$authdir/$namespace/$pairtree_path/$pt_objid";
-	$self->{repository_symlink} = $symlink;
+        my $symlink = "$authdir/$namespace/$pairtree_path/$pt_objid";
+        $self->{repository_symlink} = $symlink;
     }
 
     return $self->{repository_symlink};
@@ -455,8 +456,8 @@ sub get_repository_mets_path {
     return unless (-l $repos_symlink);
 
     my $mets_in_repository_file = sprintf("%s/%s.mets.xml",
-	$repos_symlink,
-	$self->get_pt_objid());
+        $repos_symlink,
+        $self->get_pt_objid());
 
     return unless (-f $mets_in_repository_file);
     return $mets_in_repository_file;
@@ -480,14 +481,14 @@ sub get_repository_mets_xpc  {
     my $xpc;
 
     eval {
-	my $parser = XML::LibXML->new();
-	my $doc    = $parser->parse_file($mets_in_repository_file);
-	$xpc = XML::LibXML::XPathContext->new($doc);
-	register_namespaces($xpc);
+        my $parser = XML::LibXML->new();
+        my $doc    = $parser->parse_file($mets_in_repository_file);
+        $xpc = XML::LibXML::XPathContext->new($doc);
+        register_namespaces($xpc);
     };
 
     if ($@) {
-	croak("Could not read METS file $mets_in_repository_file: $@");
+        croak("Could not read METS file $mets_in_repository_file: $@");
     }
     return $xpc;
 
@@ -525,11 +526,11 @@ Returns a data structure listing what files belong to each file group in
 physical page, e.g.:
 
 { '0001' => { txt => ['0001.txt'], 
-	      img => ['0001.jp2'] },
+          img => ['0001.jp2'] },
   '0002' => { txt => ['0002.txt'],
-	      img => ['0002.tif'] },
+          img => ['0002.tif'] },
   '0003' => { txt => ['0003.txt'],
-	      img => ['0003.jp2','0003.tif'] }
+          img => ['0003.jp2','0003.tif'] }
   };
 
 =cut
@@ -541,21 +542,21 @@ sub get_file_groups_by_page {
 
     # First determine what files belong to each sequence number
     while ( my ( $filegroup_name, $filegroup ) =
-	each( %{ $filegroups } ) )
+        each( %{ $filegroups } ) )
     {
-	foreach my $file ( @{$filegroup->get_filenames()} ) {
-	    if ( $file =~ /(\d+)\.(\w+)$/ ) {
-		my $sequence_number = $1;
-		if(not defined $files->{$sequence_number}{$filegroup_name}) {
-		    $files->{$sequence_number}{$filegroup_name} = [$file];
-		} else {
-		    push(@{ $files->{$sequence_number}{$filegroup_name} }, $file);
-		}
-	    }
-	    else {
-		croak("Can't get sequence number for $file");
-	    }
-	}
+        foreach my $file ( @{$filegroup->get_filenames()} ) {
+            if ( $file =~ /(\d+)\.(\w+)$/ ) {
+                my $sequence_number = $1;
+                if(not defined $files->{$sequence_number}{$filegroup_name}) {
+                    $files->{$sequence_number}{$filegroup_name} = [$file];
+                } else {
+                    push(@{ $files->{$sequence_number}{$filegroup_name} }, $file);
+                }
+            }
+            else {
+                croak("Can't get sequence number for $file");
+            }
+        }
     }
 
     return $files;
@@ -565,8 +566,8 @@ sub get_file_groups_by_page {
 # TODO: altRecordID
 
 =item record_premis_event($eventtype_id,  
-					date => $date,
-					outcome => $outcome)
+                    date => $date,
+                    outcome => $outcome)
 
 Records a PREMIS event that happens to the volume. Optionally, a PREMIS::Outcome object
 can be passed. If no date (in any format parseable by MySQL) is given,
@@ -593,7 +594,7 @@ sub record_premis_event {
     my $uuid = $self->make_premis_uuid($eventtype,$date); 
 
     my $set_premis_sth = $dbh->prepare("REPLACE INTO premis_events_new (namespace, barcode, eventid, eventtype_id, outcome, date) VALUES
-	(?, ?, ?, ?, ?, ?)");
+        (?, ?, ?, ?, ?, ?)");
 
     $set_premis_sth->execute($self->get_namespace(),$self->get_objid(),$uuid,$eventtype,$outcome_xml,$date);
 
@@ -638,16 +639,16 @@ sub get_event_info {
     $event_sth->execute(@params);
     # Should only be one event of each event type - enforced by primary key in DB
     if (my ($eventid, $date, $outcome) = $event_sth->fetchrow_array()) {
-	# replace space separating date from time with 'T'
-	$date =~ s/ /T/g;
-	my $outcome_node = undef;
-	if($outcome) {
-	    $outcome_node = XML::LibXML->new()->parse_string($outcome);
-	    $outcome_node = $outcome_node->documentElement();
-	}
-	return ($eventid, $date, $outcome_node);
+        # replace space separating date from time with 'T'
+        $date =~ s/ /T/g;
+        my $outcome_node = undef;
+        if($outcome) {
+            $outcome_node = XML::LibXML->new()->parse_string($outcome);
+            $outcome_node = $outcome_node->documentElement();
+        }
+        return ($eventid, $date, $outcome_node);
     } else {
-	return;
+        return;
     }
 }
 
@@ -665,12 +666,12 @@ sub _get_current_date {
     my $localtime_obj = defined($ss1970) ? localtime($ss1970) : localtime();
 
     my $ts = sprintf("%d-%02d-%02dT%02d:%02d:%02d",
-	(1900 + $localtime_obj->year()),
-	(1 + $localtime_obj->mon()),
-	$localtime_obj->mday(),
-	$localtime_obj->hour(),
-	$localtime_obj->min(),
-	$localtime_obj->sec());
+        (1900 + $localtime_obj->year()),
+        (1 + $localtime_obj->mon()),
+        $localtime_obj->mday(),
+        $localtime_obj->hour(),
+        $localtime_obj->min(),
+        $localtime_obj->sec());
 
     return $ts;
 }
@@ -760,6 +761,16 @@ sub clean_all {
 }
 
 
+=item get_preingest_directory
+
+Returns the directory where the raw submitted object is staged. 
+Returns undef by default; package type subclasses must define.
+
+=cut
+
+sub get_preingest_directory {
+    return;
+}
 
 1;
 

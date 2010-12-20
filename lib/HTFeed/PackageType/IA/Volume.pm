@@ -29,7 +29,7 @@ sub get_ia_id{
     my $ia_id = $self->{ia_id};
     # return it if we have it
     if ($ia_id){
-	return $ia_id;
+        return $ia_id;
     }
 
     # else get it and memoize
@@ -57,30 +57,30 @@ sub get_page_data {
 
     if(not defined $self->{'page_data'}) {
         $self->record_premis_event('page_feature_mapping');
-	my $pagedata = {};
-	my $ia_pagedata = {};
+        my $pagedata = {};
+        my $ia_pagedata = {};
 
-	my $xc = $self->get_source_mets_xpc();
+        my $xc = $self->get_source_mets_xpc();
 
-	foreach my $pagenode ($xc->findnodes('//METS:techMD/book/pageData/page')) {
-	    my $leafnum = $pagenode->getAttribute('leafNum');
-	    my $seqnum_padded = sprintf("%08d",$leafnum);
-	    my $detected_pagenum = $xc->findvalue('./pageNumber',$pagenode);
-	    my $hand_side = $xc->findvalue('./handSide',$pagenode);
-	    my $page_type = $xc->findvalue('./pageType',$pagenode);
+        foreach my $pagenode ($xc->findnodes('//METS:techMD/book/pageData/page')) {
+            my $leafnum = $pagenode->getAttribute('leafNum');
+            my $seqnum_padded = sprintf("%08d",$leafnum);
+            my $detected_pagenum = $xc->findvalue('./pageNumber',$pagenode);
+            my $hand_side = $xc->findvalue('./handSide',$pagenode);
+            my $page_type = $xc->findvalue('./pageType',$pagenode);
 
-	    my $mapped_page_type = $pagetag_mapping->{$page_type};
-	    my @tags = ();
-	    push(@tags,$hand_side) if defined $hand_side;
-	    push(@tags,$mapped_page_type) if defined $mapped_page_type;
+            my $mapped_page_type = $pagetag_mapping->{$page_type};
+            my @tags = ();
+            push(@tags,$hand_side) if defined $hand_side;
+            push(@tags,$mapped_page_type) if defined $mapped_page_type;
 
-	    $pagedata->{$seqnum_padded} = {};
-	    $pagedata->{$seqnum_padded}{orderlabel} = $detected_pagenum if defined $detected_pagenum;
-	    $pagedata->{$seqnum_padded}{label} = join(", ",@tags) if @tags;
+            $pagedata->{$seqnum_padded} = {};
+            $pagedata->{$seqnum_padded}{orderlabel} = $detected_pagenum if defined $detected_pagenum;
+            $pagedata->{$seqnum_padded}{label} = join(", ",@tags) if @tags;
 
-	}
+        }
 
-	$self->{page_data} = $pagedata;
+        $self->{page_data} = $pagedata;
     }
 
     return $self->{page_data}{$seqnum};
@@ -93,6 +93,27 @@ sub get_download_directory {
     my $pt_path = "$path/ia/" . id2ppath($ia_id);
     make_path($pt_path) unless -e $pt_path;
     return $pt_path;
+}
+
+sub get_preingest_directory {
+    my $self = shift;
+
+    my $arkid = $self->get_objid();
+    return sprintf("%s/%s", get_config('staging'=>'preingest'), s2ppchars($arkid));
+}
+
+sub get_scandata_xpc {
+    my $self = shift;
+    if(not defined $self->{scandata_xpc}) {
+        my $path = $self->get_download_directory();
+        my $ia_id = $self->get_ia_id();
+
+        my $xpc = $self->_parse_xpc("$path/${ia_id}_scandata.xml");
+        $xpc->registerNs('scribe','http://archive.org/scribe/xml');
+        $self->{scandata_xpc} = $xpc;
+
+    }
+    return $self->{scandata_xpc};
 }
 
 1;

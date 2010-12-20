@@ -28,7 +28,7 @@ sub download{
 
     my $pathname = "$path/$filename";
     # already downloaded? just return
-    return if -e "$path/$filename";
+    return 1 if -e "$path/$filename";
 
     my $ua = LWP::UserAgent->new;
     $ua->agent('HTFeedBot/0.1 '); # space causes LWP to append its ua
