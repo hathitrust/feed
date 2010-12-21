@@ -8,10 +8,6 @@ use File::Fetch;
 use HTFeed::Config qw(get_config);
 use HTFeed::DBTools qw(get_dbh);
 
-my $dsn = get_config('database','datasource');
-my $user = get_config('database','username');
-my $passwd = get_config('database','password');
-
 my $dbh = get_dbh();
 
 #Working assumption: update HT Files on first of the month only, can modify this as needed
@@ -37,7 +33,7 @@ if ($month > 8) {
 }
 
 my $dFile= "hathi_full_$yr$mo$day.txt";
-my $temp_dir="/htapps/ezbrooks.babel/git/feed/bin/audit"; #can change if needed
+my $temp_dir="/htapps/ezbrooks.babel/git/feed/bin/audit"; #change if needed
 my $file = "$dFile" . ".gz";
 my $hathiTemp = "hathi_full_temp.txt";
 

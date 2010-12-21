@@ -10,18 +10,16 @@ my $namespace;
 my $type;
 my $barcode;
 
-my $dsn = get_config('database','datasource');
-my $user = get_config('database','username');
-my $passwd = get_config('database','password');
-
 my $dbh = get_dbh();
 
-# set /sdr1 to /sdrX for multiple runs
-open(RUN, "find /sdr1/obj/ -follow -type f|") or die ("Can't open pipe to find: $!");
+### set /sdr1 to /sdrX for test & parallelization
+my $base="sdr5";
+open(RUN, "find /$base/obj/ -follow -type f|") or die ("Can't open pipe to find: $!");
 
 while(my $line = <RUN>) {
 
 	my @newList=(); #initialize array
+
 	#skip mdl/reflections for now (nonstandard mdl barcodes, causing parsing issues)
 	next if $line =~ /reflect/; 
 	
@@ -46,6 +44,23 @@ while(my $line = <RUN>) {
 			my($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime($stat);
 			my $date=substr($year+1900, -4) . '-' . substr('0'.($mon+1), -2) . '-' . substr('0'.$mday, -2) . ' ' . substr('0'.$hour, -2) . ':' . substr('0'.$min, -2) . ':' . substr('0'.$sec, -2);
 
+			#test symlinks
+			my $slice = length($barcode);
+			if($type eq "mets") {
+				$root = substr($line, 6, length($line)-($slice+16));
+			} elsif($type eq "zip") {
+				$root = substr($line, 6, length($line)-($slice+11));
+			}
+
+			my $check = "/sdr1/$root";
+			my $sym= lstat $check;
+			my $test="/".substr($line,(length($sym)-length($line)),length($line)-1);
+
+			if($test ne $line) {
+				warn("symlink not valid for $line\n");
+			}
+
+			#insert
 			my $insert="insert into fs_log (namespace, id, type, size, date) values('$namespace', '$barcode', '$type', '$size', '$date');";
 			my $sth=$dbh->prepare($insert);
 			$sth->execute();
