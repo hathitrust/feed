@@ -8,18 +8,18 @@ require HDL::Entry::URL;
 require HDL::Entry::EMAIL;
 
 sub new {
-	my $class = shift;
-	my $self =
+    my $class = shift;
+    my $self =
         {
-			type => undef,
-			data => undef,
-			permissions => [1,1,1,0],
-			ttl_type => 0,
-			ttl => 86400,
-			@_,
-		};
-	bless $self, $class;
-	return $self;
+            type => undef,
+            data => undef,
+            permissions => [1,1,1,0],
+            ttl_type => 0,
+            ttl => 86400,
+            @_,
+        };
+    bless $self, $class;
+    return $self;
 }
 
 sub to_string {
@@ -30,17 +30,17 @@ sub to_string {
 # this is just for testing so we can bypass the override constructors
 sub new2{
     my $class = shift;
-	my $self =
+    my $self =
         {
-			type => undef,
-			data => undef,
-			permissions => [1,1,1,0],
-			ttl_type => 0,
-			ttl => 86400,
-			@_,
-		};
-	bless $self, $class;
-	return $self;
+            type => undef,
+            data => undef,
+            permissions => [1,1,1,0],
+            ttl_type => 0,
+            ttl => 86400,
+            @_,
+        };
+    bless $self, $class;
+    return $self;
 }
 
 # returns SQL syntax for one row

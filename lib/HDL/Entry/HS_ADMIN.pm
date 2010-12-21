@@ -5,21 +5,21 @@ use strict;
 use base qw(HDL::Entry);
 
 sub new {
-	my $class = shift;
-	my $admin = shift;
-	
-	my $admin_permissions = shift;
-	
-	if (defined $admin_permissions){
-	    $admin_permissions = flip $admin_permissions;
-	}
-	else{
-	    $admin_permissions = 0x0FF2;
-	}
+    my $class = shift;
+    my $admin = shift;
 
-	my $data = _make_data_blob ($admin, $admin_permissions);
-	
-	return $class->SUPER::new(type => 'HS_ADMIN', data => $data);
+    my $admin_permissions = shift;
+
+    if (defined $admin_permissions){
+        $admin_permissions = flip $admin_permissions;
+    }
+    else{
+        $admin_permissions = 0x0FF2;
+    }
+
+    my $data = _make_data_blob ($admin, $admin_permissions);
+
+    return $class->SUPER::new(type => 'HS_ADMIN', data => $data);
 }
 
 # flips permissions between HDL representation and storage representation

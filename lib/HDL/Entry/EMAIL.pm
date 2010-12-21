@@ -5,9 +5,9 @@ use strict;
 use base qw(HDL::Entry);
 
 sub new {
-	my $class = shift;
-	my $email = shift;
-	return $class->SUPER::new(type => 'EMAIL', data => $email);
+    my $class = shift;
+    my $email = shift;
+    return $class->SUPER::new(type => 'EMAIL', data => $email);
 }
 
 1;

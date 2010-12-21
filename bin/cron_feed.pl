@@ -40,37 +40,26 @@ my $max_subprocesses = $volumes_in_process_limit;
 eval {
 
   OUTER:
-    while (HTFeed::DBTools::lock_volumes($volumes_in_process_limit)
-        or HTFeed::DBTools::count_locks() )
-    {
+    while (HTFeed::DBTools::lock_volumes($volumes_in_process_limit) or HTFeed::DBTools::count_locks() ){
         while ( my $sth = HTFeed::DBTools::get_queued() ) {
-            while ( my ( $ns, $pkg_type, $objid, $status, $failure_count ) =
-                $sth->fetchrow_array() )
-            {
+            while ( my ( $ns, $pkg_type, $objid, $status, $failure_count ) = $sth->fetchrow_array() ){
                 @log_common = ( namespace => $ns, objid => $objid );
                 wait_kid() if $subprocesses >= $max_subprocesses;
 
                 if(get_config('fork')) {
                     my $pid = fork();
                     if ($pid) {
-
                         # parent process
                         $subprocesses++;
-                        warn(
-    "Spawned child process $pid, $subprocesses now running\n"
-                        );
+                        warn("Spawned child process $pid, $subprocesses now running\n");
                     }
                     elsif ( defined $pid ) {
-
-
                         # child process
                         eval {
-                            run_stage( $ns, $pkg_type, $objid, $status,
-                                $failure_count );
+                            run_stage( $ns, $pkg_type, $objid, $status, $failure_count );
                         };
                         if ($@) {
-                            $logger->error( "UnexpectedError", @log_common,
-                                detail => $@ );
+                            $logger->error( "UnexpectedError", @log_common, detail => $@ );
                             exit(1);
                         }
                         else {
@@ -83,15 +72,12 @@ eval {
                 } else {
                     # not forking - run in parent & don't exit
                     eval {
-                        run_stage( $ns, $pkg_type, $objid, $status,
-                            $failure_count );
+                        run_stage( $ns, $pkg_type, $objid, $status, $failure_count );
                     };
                     if ($@) {
-                        $logger->error( "UnexpectedError", @log_common,
-                            detail => $@ );
+                        $logger->error( "UnexpectedError", @log_common, detail => $@ );
                     }
                 }
-
             }
 
             # wait for all subprocesses to return before fetching a new set
@@ -116,7 +102,6 @@ sub wait_kid {
         $subprocesses = 0;
     }
     return 1;
-
 }
 
 # run_stage($ns,$pkg_type,$objid,$status,$failure_count)
@@ -146,12 +131,7 @@ sub run_stage {
     if ($clean) {
         eval { $stage->clean(); };
         if ($@) {
-            $logger->error(
-                "UnexpectedError",
-                @log_common,
-                stage  => ref($stage),
-                detail => $@
-            );
+            $logger->error( "UnexpectedError", @log_common, stage  => ref($stage), detail => $@ );
         }
     }
 
@@ -160,11 +140,9 @@ sub run_stage {
     if ( $stage->succeeded() ) {
         $status = $stage->get_stage_info('success_state');
         $logger->info( "StageSucceeded", @log_common, stage => ref($stage) );
-        $sth =
-          HTFeed::DBTools::get_dbh()
-          ->prepare(
-q(UPDATE `queue` SET `status` = ? WHERE `ns` = ? AND `pkg_type` = ? AND `objid` = ?;)
-          );
+        $sth = HTFeed::DBTools::get_dbh()->prepare(
+            q(UPDATE `queue` SET `status` = ? WHERE `ns` = ? AND `pkg_type` = ? AND `objid` = ?;)
+        );
     }
     else {
         my $new_status = $stage->get_stage_info('failure_state');
@@ -178,11 +156,9 @@ q(UPDATE `queue` SET `status` = ? WHERE `ns` = ? AND `pkg_type` = ? AND `objid` 
             $logger->info( "VolumePunted", @log_common );
             $volume->clean_all() if $clean;
         }
-        $sth =
-          HTFeed::DBTools::get_dbh()
-          ->prepare(
-q(UPDATE `queue` SET `status` = ?, failure_count=failure_count+1 WHERE `ns` = ? AND `pkg_type` = ? AND `objid` = ?;)
-          );
+        $sth = HTFeed::DBTools::get_dbh()->prepare(
+            q(UPDATE `queue` SET `status` = ?, failure_count=failure_count+1 WHERE `ns` = ? AND `pkg_type` = ? AND `objid` = ?;)
+        );
     }
     $sth->execute( $status, $namespace, $packagetype, $objid );
     
