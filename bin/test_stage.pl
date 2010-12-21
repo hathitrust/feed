@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use HTFeed::Volume;
-use HTFeed::Log {root_logger => 'DEBUG, screen'};
+use HTFeed::Log {root_logger => 'TRACE, screen'};
 use HTFeed::Config qw(set_config);
 
 # read args
@@ -14,7 +14,7 @@ my $objid = shift;
 my $dir = shift;
 
 unless ($module and $objid and $namespace and $packagetype){
-    print "usage: validate_test.pl packagetype namespace objid [staging dir]\n";
+    print "usage: test_stage.pl stage_module packagetype namespace objid [staging dir]\n";
     exit 0;
 }
 

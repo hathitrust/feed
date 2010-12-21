@@ -1,4 +1,4 @@
-package HTFeed::PackageType::Yale::Unpack;
+package HTFeed::PackageType::IA::Unpack;
 
 use warnings;
 use strict;
@@ -14,23 +14,24 @@ sub run{
     my $volume = $self->{volume};
 
     my $download_dir = $volume->get_download_directory();
-    my $preingest_dir = get_config('staging'=>'preingest');
+    my $preingest_dir = $volume->get_preingest_directory();
     my $objid = $volume->get_objid();
+    my $ia_id = $volume->get_ia_id();
 
-    my $outdir = $preingest_dir;
 
-    my $file = sprintf('%s/%s.zip',$download_dir,$objid);
+    my $file = sprintf('%s/%s_jp2.zip',$download_dir,$ia_id);
     # check that file exists
     if (-e $file){
         $logger->trace("Unpacking $file");
 
         # make directory
-        unless( -d $outdir or mkdir $outdir, 0770 ){
-            $self->set_error('OperationFailed',operation=>'mkdir',detail=>"$outdir could not be created");
+        unless( -d $preingest_dir or mkdir $preingest_dir, 0770 ){
+            $self->set_error('OperationFailed',operation=>'mkdir',detail=>"$preingest_dir could not be created");
             return;
         }
 
-        $self->unzip_file("-d '$outdir'","'$file'");
+        # junk paths and extract to preingest directory
+        $self->unzip_file("-j -d '$preingest_dir'","'$file'");
 
         $logger->debug("$file unzipped");
 

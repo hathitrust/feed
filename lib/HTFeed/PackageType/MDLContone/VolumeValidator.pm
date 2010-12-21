@@ -17,14 +17,14 @@ sub new {
 
     my $self = $class->SUPER::new(@_);
 
-    $self->{stages}{validate_filegroups} = \&_validate_filegroups;
+    $self->{stages}{validate_filegroups_nonempty} = \&_validate_filegroups_nonempty;
     $self->{stages}{validate_consistency} =  \&_validate_consistency;
 
     return $self;
 
 }
 
-sub _validate_filegroups {
+sub _validate_filegroups_nonempty {
     my $self   = shift;
     my $volume = $self->{volume};
     $self->SUPER::_validate_filegroups();
@@ -36,15 +36,6 @@ sub _validate_filegroups {
     }
 
     return;
-}
-
-# No-op for MDL contones, since there are no sequence numbers..
-sub _validate_consistency {
-    my $self   = shift;
-    my $volume = $self->{volume};
-
-    return;
-
 }
 
 1;
