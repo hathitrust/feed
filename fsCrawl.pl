@@ -16,9 +16,9 @@ my $insert="replace into fs_log (namespace, id, type, size, date) values(?,?,?,?
 my $sth=$dbh->prepare($insert);
 
 ### set /sdr1 to /sdrX for test & parallelization
-my $base="sdr5";
+my $base= shift @ARGV or die("Missing base directory..");
 my $filesProcessed = 0;
-open(RUN, "find /$base/obj/ -follow -type f|") or die ("Can't open pipe to find: $!");
+open(RUN, "find $base/obj/ -follow -type f|") or die ("Can't open pipe to find: $!");
 
 while(my $line = <RUN>) {
 
@@ -30,12 +30,12 @@ while(my $line = <RUN>) {
     eval {
         $filesProcessed++;
         if($filesProcessed % 10000== 0) {
-            print STDERR "$filesProcessed files processed\n";
+            print "$filesProcessed files processed\n";
         }
         chomp($line);
         my $size = -s $line;
 
-        if($line =~ m/\/$base\/obj\/(\w+)\//) {
+        if($line =~ m/$base\/obj\/(\w+)\//) {
             $namespace = $1;
         }
 
@@ -66,7 +66,7 @@ while(my $line = <RUN>) {
         my $test="/".substr($line,(length($sym)-length($line)),length($line)-1);
 
         if($test ne $line) {
-            warn("symlink not valid for $line\n");
+            print ("SYMLINK_INVALID $line\n");
         }
 
         #insert
@@ -74,11 +74,11 @@ while(my $line = <RUN>) {
 
         # barcode/dir != zip || xml
         if ($type ne "zip" && $type ne "mets") {
-            warn("Unexpected type $type for file $line\n");
+            print("BAD_TYPE $line $type");
         }
 
         # does barcode have a zip & xml, and do they match?
-        my $dir1 = "/$base/obj/$namespace/pairtree_root/";
+        my $dir1 = "$base/obj/$namespace/pairtree_root/";
         my $code = $barcode;
         $barcode =~ s/(..)/$1\//g;
         my $dir2 = $dir1 . $barcode . $code;
@@ -94,14 +94,14 @@ while(my $line = <RUN>) {
         for $newList(@newList) {
             my $sub = substr($newList,-3,3);
             if($sub ne "zip" && $sub ne "xml") {
-                warn("Unexpected type $type for file $line\n");
+                print("BAD_TYPE $line $type\n");
             }
         }
 
         #number files in dir
         my $count= $#newList+1;
         if($count != 2) {
-            warn("Unexpected filecount for barcode $code\n");
+            print("BAD_FILECOUNT $code $count\n");
         }
 
         # are the barcodes of the files identical? (and do they match the current barcode?)
@@ -113,7 +113,7 @@ while(my $line = <RUN>) {
                 $newBar = substr($newList, 0, length($newList)-9);
             }
             if($newBar ne $code) {
-                warn("Unexpected barcode mismatch for file $line\n");
+                print("BARCODE_MISMATCH $line $newBar $code\n");
             }
         }
 
