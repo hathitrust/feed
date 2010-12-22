@@ -15,23 +15,43 @@ sub stage_info{
 }
 
 sub unzip_file {
-    my $requester = shift; # not necessarily always self..
-    my $args = shift;
-    my $file = shift;
+    # extract - not using Archive::Zip because it doesn't handle ZIP64
+    return _extract_file(@_, q(yes 'n' | unzip '%s' -d '%s' -j -o -q 2>&1));
+}
 
-    # try to repress 'broken pipe' message
-    local $SIG{PIPE} = undef;
-    $logger->trace("Unzipping $file");
-    my $rstring = `yes 'n' | unzip $args -o -q $file`;
+sub untgz_file {
+    # extract - not using Archive::Tar because it is very slow
+    return _extract_file(@_, q(tar --strip-components 1 -zx -f '%s' -C '%s' 2>&1));
+}
+
+sub _extract_file {
+    my $requester = shift; # not necessarily self..
+    my $infile = shift;
+    my $outdir = shift;
+    my $command = shift;
+
+    $logger->trace("Extracting $infile with command $command");
+
+    # make directory
+    unless( -d $outdir or mkdir $outdir, 0770 ){
+        $requester->set_error('OperationFailed',operation=>'mkdir',detail=>"$outdir could not be created");
+        return;
+    }
+
+    unless( -e $infile ) {
+        $requester->set_error('MissingFile',file=>$infile);
+    }
+
+    my $cmd = sprintf($command, $infile, $outdir); 
+    my $rstring = `$cmd`;
     my $rval = $?;
     if($rval or $rstring) {
         $requester->set_error('OperationFailed',operation=>'unzip',exitstatus=>$rval,detail=>$rstring);
         return;
-    } else {
-        $logger->trace("Unzipping $file succeeded");
-        return 1;
     }
-    # otherwise ok..
+
+    $logger->trace("Extracting $infile succeeded");
+    return 1;
 }
 
 1;
