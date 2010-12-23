@@ -143,6 +143,13 @@ sub clean_always {
 # cleaning to do on punt
 # NOT run by clean(), because clean() doesn't know you punted
 sub clean_punt{
+    my $self = shift;
+    
+    $self->clean_mets();
+    $self->clean_zip();
+    $self->clean_unpacked_object();
+    $self->clean_preingest();
+    
     return;
 }
 
@@ -187,6 +194,17 @@ sub clean_mets {
     my $mets = $self->{volume}->get_mets_path();
 
     return unlink $mets;
+}
+
+# unlink preingest directory tree
+sub clean_preingest {
+    my $self = shift;
+    my $dir = $self->{volume}->get_preingest_directory;
+    
+    if($dir){
+        return remove_tree $dir;
+    }
+    return;
 }
 
 1;
