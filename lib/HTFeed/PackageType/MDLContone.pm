@@ -1,6 +1,12 @@
 package HTFeed::PackageType::MDLContone;
 use HTFeed::XPathValidator qw(:closures);
 use HTFeed::PackageType;
+use HTFeed::PackageType::MDLContone::Unpack;
+use HTFeed::PackageType::MDLContone::VolumeValidator;
+use HTFeed::PackageType::MDLContone::METS;
+use HTFeed::Stage::Handle;
+use HTFeed::Stage::Pack;
+use HTFeed::Stage::Collate;
 use base qw(HTFeed::PackageType);
 use strict;
 
@@ -8,13 +14,13 @@ our $identifier = 'mdlcontone';
 
 our $config = {
     volume_module => 'HTFeed::Volume',
-    
+
     # Regular expression that distinguishes valid files in the file package
     # HTML OCR is valid for the package type but only expected/required for UC1
     valid_file_pattern => qr/^( 
-		\w{3}\d{5}\.(jp2) |
-		mdl\.\w+\.\w{3}\d{5}\w?\.(xml) |
-		$)/x,
+    \w{3}\d{5}\.(jp2) |
+    mdl\.\w+\.\w{3}\d{5}\w?\.(xml) |
+    $)/x,
 
     # Configuration for each filegroup. 
     # prefix: the prefix to use on file IDs in the METS for files in this filegruop
@@ -25,15 +31,15 @@ our $config = {
     # jhove: set to 1 if output from JHOVE will be used in validation
     # utf8: set to 1 if files should be verified to be valid UTF-8
     filegroups => {
-	image => { 
-	    prefix => 'IMG',
-	    use => 'image',
-	    file_pattern => qr/\.(jp2)$/,
-	    required => 1,
-	    content => 1,
-	    jhove => 1,
-	    utf8 => 0
-	},
+        image => { 
+            prefix => 'IMG',
+            use => 'image',
+            file_pattern => qr/\.(jp2)$/,
+            required => 1,
+            content => 1,
+            jhove => 1,
+            utf8 => 0
+        },
     },
 
     checksum_file => 0, # no separate checksum file for MDL contone
@@ -45,21 +51,22 @@ our $config = {
     # Don't validate consistency for MDL Contone composite images -- there is only one
     # image, so no sequence numbers..
     validation_run_stages => [
-        qw(validate_file_names
-          validate_filegroups_nonempty
-          validate_checksums
-          validate_utf8
-          validate_metadata)
+    qw(validate_file_names
+    validate_filegroups_nonempty
+    validate_checksums
+    validate_utf8
+    validate_metadata)
     ],
 
-    # The list of stages to run to successfully ingest a volume.
-    stages_to_run => [qw(
-        HTFeed::PackageType::MDLContone::VolumeValidator
-        HTFeed::PackageType::MDLContone::METS
-        HTFeed::Handle
-        HTFeed::Zip
-        HTFeed::Collate
-	)],
+    # what stage to run given the current state
+    stage_map => {
+        ready      => 'HTFeed::PackageType::MDLContone::Unpack',
+        unpacked   => 'HTFeed::PackageType::MDLContone::VolumeValidator',
+        validated  => 'HTFeed::Stage::Pack',
+        packed     => 'HTFeed::PackageType::MDLContone::METS',
+        metsed     => 'HTFeed::Stage::Handle',
+        handled    => 'HTFeed::Stage::Collate',
+    },
 
     # The list of filegroups that contain files that will be validated
     # by JHOVE
@@ -74,41 +81,41 @@ our $config = {
 
     # Validation overrides
     validation => {
-	'HTFeed::ModuleValidator::JPEG2000_hul' => {
-	    'layers' => v_eq( 'codingStyleDefault', 'layers', '8' ),
-	    'transformation' => v_eq('codingStyleDefault','transformation','1'),
-	    'camera' => undef,
-	    'resolution'      => v_and(
-		v_in( 'xmp', 'xRes', [ '300/1', '350/1', '400/1', '450/1', '500/1', '600/1', '650/1', '700/1', '750/1', '800/1', '900/1', '1000/1' ] ),
-		v_same( 'xmp', 'xRes', 'xmp', 'yRes' )
-	    ),
-	    'decomposition_levels' => v_eq( 'codingStyleDefault', 'decompositionLevels', '2' ),
-	},
+        'HTFeed::ModuleValidator::JPEG2000_hul' => {
+            'layers' => v_eq( 'codingStyleDefault', 'layers', '8' ),
+            'transformation' => v_eq('codingStyleDefault','transformation','1'),
+            'camera' => undef,
+            'resolution'      => v_and(
+                v_in( 'xmp', 'xRes', [ '300/1', '350/1', '400/1', '450/1', '500/1', '600/1', '650/1', '700/1', '750/1', '800/1', '900/1', '1000/1' ] ),
+                v_same( 'xmp', 'xRes', 'xmp', 'yRes' )
+            ),
+            'decomposition_levels' => v_eq( 'codingStyleDefault', 'decompositionLevels', '2' ),
+        },
 
-	'HTFeed::ModuleValidator::TIFF_hul' => {
-	    'resolution' =>
-	      v_and( v_in( 'mix', 'xRes', ['300','400','500','600'] ), v_in('mix', 'yRes', ['300','400','500','600'] ) ),
-	      'camera' => undef,
-	  }
+        'HTFeed::ModuleValidator::TIFF_hul' => {
+            'resolution' =>
+            v_and( v_in( 'mix', 'xRes', ['300','400','500','600'] ), v_in('mix', 'yRes', ['300','400','500','600'] ) ),
+            'camera' => undef,
+        }
     },
 
     # What PREMIS events to extract from the source METS and include
     source_premis_events_extract => [
-    	'capture',
-	'image compression',
-	'message digest calculation',
-	'source mets creation'
+    'capture',
+    'image compression',
+    'message digest calculation',
+    'source mets creation'
     ],
 
     # What PREMIS events to include (by internal PREMIS identifier, 
     # configured in config.yaml)
     premis_events => [
-	'page_md5_fixity',
-	'package_validation',
-	'zip_compression',
-	'zip_md5_create',
+    'page_md5_fixity',
+    'package_validation',
+    'zip_compression',
+    'zip_md5_create',
 #	'ht_mets_creation',
-	'ingestion',
+    'ingestion',
     ],
 
     # Overrides for the basic PREMIS event configuration
@@ -118,7 +125,7 @@ our $config = {
     # filename extensions not to compress in zip file
     uncompressed_extensions => ['jp2'],
 
-    
+
 };
 
 __END__
