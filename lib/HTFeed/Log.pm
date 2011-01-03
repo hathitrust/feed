@@ -135,7 +135,8 @@ sub error_code_to_string{
     }
     
     # we don't recognise the error code
-    return "Invalid error code: $error_code";
+    #return "Invalid error code: $error_code";
+    return $error_code;
 }
 
 1;
