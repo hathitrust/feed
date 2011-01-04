@@ -87,7 +87,7 @@ eval {
 };
 
 if ($@) {
-    $logger->error( "UnexpectedError", $@ );
+    $logger->error( "UnexpectedError", detail => $@ );
     die($@);
 }
 
@@ -108,27 +108,34 @@ sub wait_kid {
 sub run_stage {
     my ( $namespace, $packagetype, $objid, $status, $failure_count ) = @_;
 
-    my $volume = HTFeed::Volume->new(
-        objid       => $objid,
-        namespace   => $namespace,
-        packagetype => $packagetype
-    );
-    my $nspkg = $volume->get_nspkg();
+    my $volume;
+    my $nspkg;
+    my $stage;
 
-    my $stage_map   = $nspkg->get('stage_map');
-    my $stage_class = $stage_map->{$status};
+    eval {
+        $volume = HTFeed::Volume->new(
+            objid       => $objid,
+            namespace   => $namespace,
+            packagetype => $packagetype
+        );
+        $nspkg = $volume->get_nspkg();
+        my $stage_map   = $nspkg->get('stage_map');
+        my $stage_class = $stage_map->{$status};
 
-    my $stage = eval "$stage_class->new(volume => \$volume)";
+        $stage = eval "$stage_class->new(volume => \$volume)";
 
-    $logger->info( "RunStage", @log_common, stage => ref($stage) );
-    eval { $stage->run(); };
+        $logger->info( "RunStage", @log_common, stage => ref($stage) );
+        $stage->run();
+    };
+
     my $err = $@;
     if ( $err and $err !~ /STAGE_ERROR/ ) {
         $logger->error( "UnexpectedError", @log_common, stage => ref($stage), detail => $@ );
     }
     chdir($wd);    # reset working path if changed
 
-    if ($clean) {
+
+    if ($stage and $clean) {
         eval { $stage->clean(); };
         if ($@) {
             $logger->error( "UnexpectedError", @log_common, stage  => ref($stage), detail => $@ );
@@ -137,7 +144,7 @@ sub run_stage {
 
     # update queue table with new status and failure_count
     my $sth;
-    if ( $stage->succeeded() ) {
+    if ( $stage and $stage->succeeded() ) {
         $status = $stage->get_stage_info('success_state');
         $logger->info( "StageSucceeded", @log_common, stage => ref($stage) );
         $sth = HTFeed::DBTools::get_dbh()->prepare(
@@ -145,16 +152,20 @@ sub run_stage {
         );
     }
     else {
-        my $new_status = $stage->get_stage_info('failure_state');
-        $status = $new_status if ($new_status);
+        # failure
+        if ( $failure_count >= $failure_limit or not defined $stage) {
+            # punt if failure limit exceeded or stage construction failed
+            $status = 'punted'; 
+        } elsif($stage) {
+            my $new_status = $stage->get_stage_info('failure_state');
+            $status = $new_status if ($new_status);
+        } 
+
         $logger->info( "StageFailed", @log_common, stage => ref($stage) );
-        if ( $failure_count >= $failure_limit ) {
-            $status = 'punted';
-        }
 
         if ( $status eq 'punted' ) {
             $logger->info( "VolumePunted", @log_common );
-            $volume->clean_all() if $clean;
+            $volume->clean_all() if $volume and $clean;
         }
         $sth = HTFeed::DBTools::get_dbh()->prepare(
             q(UPDATE `queue` SET `status` = ?, failure_count=failure_count+1 WHERE `ns` = ? AND `pkg_type` = ? AND `objid` = ?;)
@@ -162,7 +173,7 @@ sub run_stage {
     }
     $sth->execute( $status, $namespace, $packagetype, $objid );
     
-    $stage->clean_punt() if ($status eq 'punted');
+    $stage->clean_punt() if ($stage and $status eq 'punted');
 }
 
 __END__
