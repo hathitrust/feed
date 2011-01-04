@@ -5,10 +5,9 @@ use warnings;
 use DBI;
 use HTFeed::Config qw(get_config);
 use HTFeed::DBTools qw(get_dbh);
+use File::Basename;
+use POSIX qw(strftime);
 
-my $namespace;
-my $type;
-my $barcode;
 
 my $dbh = get_dbh();
 
@@ -20,101 +19,72 @@ my $base= shift @ARGV or die("Missing base directory..");
 my $filesProcessed = 0;
 open(RUN, "find $base/obj/ -follow -type f|") or die ("Can't open pipe to find: $!");
 
-while(my $line = <RUN>) {
+while(my $file = <RUN>) {
 
     my @newList=(); #initialize array
-
-    #skip mdl/reflections for now (nonstandard mdl barcodes, causing parsing issues)
-    next if $line =~ /reflect/; 
 
     eval {
         $filesProcessed++;
         if($filesProcessed % 10000== 0) {
             print "$filesProcessed files processed\n";
         }
-        chomp($line);
-        my $size = -s $line;
+        chomp($file);
+        my $size = -s $file;
 
-        if($line =~ m/$base\/obj\/(\w+)\//) {
-            $namespace = $1;
-        }
+        my ($barcode,$path,$type) =  fileparse($file,".mets.xml",".zip");
+        # strip trailing / from path
+        $path =~ s/\/$//;
 
-        if($line =~ m/\/([^\/.]+)\./) {
-            $barcode = $1;
-        }
+        my @pathcomp = split("/",$path);
 
-        if ($line =~ m/([^\/.]+)\/([^\/.]+)\.(\w+)/) {    
-            $type = $3;
-        }
+        # remove base & any empty components 
+        @pathcomp = grep { $_ ne '' } @pathcomp;  
+        shift @pathcomp; 
+        my $namespace = $pathcomp[1];
 
         #get last modified date
-        my $stat = (stat $line)[9];
-        my($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime($stat);
-        my $date=substr($year+1900, -4) . '-' . substr('0'.($mon+1), -2) . '-' . substr('0'.$mday, -2) . ' ' . substr('0'.$hour, -2) . ':' . substr('0'.$min, -2) . ':' . substr('0'.$sec, -2);
+        my $stat = (stat $file)[9];
+        my $date= strftime("%Y-%m-%d %H:%M:%S",localtime((stat($file))[9]));
 
         #test symlinks
-        my $slice = length($barcode);
-        my $root;
-        if($type eq "mets") {
-            $root = substr($line, 6, length($line)-($slice+16));
-        } elsif($type eq "zip") {
-            $root = substr($line, 6, length($line)-($slice+11));
-        }
+        my $link_path = join("/","/sdr1",@pathcomp);
+        my $link_target = readlink $link_path or print("CANT_LSTAT $link_path $!\n");
 
-        my $check = "/sdr1/$root";
-        my $sym= lstat $check;
-        my $test="/".substr($line,(length($sym)-length($line)),length($line)-1);
-
-        if($test ne $line) {
-            print ("SYMLINK_INVALID $line\n");
+        if($link_target ne $path) {
+            print ("SYMLINK_INVALID $path $link_target\n");
         }
 
         #insert
         $sth->execute($namespace,$barcode,$type,$size,$date);
 
-        # barcode/dir != zip || xml
-        if ($type ne "zip" && $type ne "mets") {
-            print("BAD_TYPE $line $type");
-        }
 
         # does barcode have a zip & xml, and do they match?
-        my $dir1 = "$base/obj/$namespace/pairtree_root/";
-        my $code = $barcode;
-        $barcode =~ s/(..)/$1\//g;
-        my $dir2 = $dir1 . $barcode . $code;
-        opendir(DIR, $dir2);
-        my @files =  readdir(DIR);
-        my $file;
-        for $file(@files) {
-            next if $file =~ /^\./;
-            push @newList, $file;
+        opendir(my $dh, $path);
+
+        my $filecount = 0;
+        my $found_zip = 0;
+        my $found_mets = 0;
+        while( my $file = readdir($dh))  {
+            next if $file eq '.' or $file eq '..';
+            if($file !~ /^([^.]+)\.(zip|mets.xml)$/) {
+                print("BAD_FILE $path $file\n");
+            }
+            my $dir_barcode = $1;
+            my $ext = $2;
+            $found_zip++ if $ext eq 'zip';
+            $found_mets++ if $ext eq 'mets.xml';
+            if($barcode ne $dir_barcode) { 
+                print ("BARCODE_MISMATCH $barcode $dir_barcode\n");
+            }
+            $filecount++;
         }
 
-        my $newList;
-        for $newList(@newList) {
-            my $sub = substr($newList,-3,3);
-            if($sub ne "zip" && $sub ne "xml") {
-                print("BAD_TYPE $line $type\n");
-            }
-        }
+
+        closedir($dh);
 
         #number files in dir
-        my $count= $#newList+1;
-        if($count != 2) {
-            print("BAD_FILECOUNT $code $count\n");
-        }
-
-        # are the barcodes of the files identical? (and do they match the current barcode?)
-        my $newBar;
-        for $newList(@newList) {
-            if (substr($newList, -3) eq "zip") {
-                $newBar = substr($newList, 0, length($newList)-4);
-            } else {
-                $newBar = substr($newList, 0, length($newList)-9);
-            }
-            if($newBar ne $code) {
-                print("BARCODE_MISMATCH $line $newBar $code\n");
-            }
+        if($filecount != 2 or $found_zip != 1 or $found_mets != 1) {
+            print("BAD_FILECOUNT $barcode zip=$found_zip mets=$found_mets total=$filecount");
         }
 
         # validate barcodes for namespace consistency
