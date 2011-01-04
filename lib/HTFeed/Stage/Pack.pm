@@ -75,10 +75,10 @@ sub stage_info{
 
 sub clean_always{
     my $self = shift;
-    my $objid = $self->{volume}->get_objid();
+    my $pt_objid = $self->{volume}->get_pt_objid();
     my $zip_stage = get_config('staging','zip');
     
-    remove_tree "$zip_stage/$objid";
+    remove_tree "$zip_stage/$pt_objid";
 }
 
 1;
