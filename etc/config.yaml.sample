@@ -21,6 +21,10 @@ staging:
   memory: /ram/staging
   zip: /ram/zip_staging
   preingest: /ram/preingest
+  disk:
+    memory: /htprep/ingest
+    preingest: /htprep/preingest
+    zip: /htprep/stage/zip
 
 sample_directory: /htprep/qr
 repository:

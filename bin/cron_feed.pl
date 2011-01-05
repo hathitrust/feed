@@ -10,6 +10,8 @@ use Cwd;
 
 use DBI;
 
+use HTFeed::Version;
+
 use HTFeed::Config qw(get_config);
 use HTFeed::Volume;
 use HTFeed::Log { root_logger => 'INFO, dbi, screen' };
