@@ -86,7 +86,7 @@ our $config = {
             'transformation' => v_eq('codingStyleDefault','transformation','1'),
             'camera' => undef,
             'resolution'      => v_and(
-                v_in( 'xmp', 'xRes', [ '300/1', '350/1', '400/1', '450/1', '500/1', '600/1', '650/1', '700/1', '750/1', '800/1', '900/1', '1000/1' ] ),
+                v_ge( 'xmp', 'xRes', 300 ), # should work even though resolution is specified as NNN/1
                 v_same( 'xmp', 'xRes', 'xmp', 'yRes' )
             ),
             'decomposition_levels' => v_eq( 'codingStyleDefault', 'decompositionLevels', '2' ),
