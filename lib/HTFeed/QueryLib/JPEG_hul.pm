@@ -1,4 +1,4 @@
-package HTFeed::QueryLib::TIFF_hul;
+package HTFeed::QueryLib::JPEG_hul;
 
 use warnings;
 use strict;
@@ -6,7 +6,7 @@ use strict;
 use base qw(HTFeed::QueryLib);
 
 =info
-	TIFF-hul HTFeed query plugin
+	JPEG-hul HTFeed query plugin
 =cut
 
 sub new{	
@@ -16,8 +16,9 @@ sub new{
 	my $self = {
 		contexts => {
 		    repInfo     => ["/jhove:jhove/jhove:repInfo","root"],
-			tiffMeta	=> ["jhove:properties/jhove:property[jhove:name='TIFFMetadata']/descendant::jhove:property[jhove:name='Entries']/jhove:values", "repInfo"],
-			mix			=> ["jhove:property[jhove:name='NisoImageMetadata']/jhove:values/jhove:value/mix:mix", "tiffMeta"],
+            imageMeta   => ["/jhove:jhove/jhove:repInfo/jhove:properties/jhove:property[jhove:name='JPEGMetadata']/\
+                             jhove:values/jhove:property[jhove:name='Images']/jhove:values/jhove:property[jhove:name='Image']/jhove:values","repInfo"],
+			mix			=> ["jhove:property[jhove:name='NisoImageMetadata']/jhove:values/jhove:value/mix:mix", "imageMeta"],
             # xmp is a custom context set up in modulevalidator
 		},
 		queries => {
@@ -28,12 +29,12 @@ sub new{
 				status		=> "jhove:status",
 				module		=> "jhove:sigMatch/jhove:module",
 				mimeType	=> "jhove:mimeType",
+                profile     => "jhove:profiles/jhove:profile",
 			},
-			
-			# tiffMeta children
-			tiffMeta =>
+
+			# imagemeta children
+			imageMeta =>
 			{
-				documentName	=> "jhove:property[jhove:name='DocmentName']/jhove:values/jhove:value",
 				xmp					=> "jhove:property[jhove:name='XMP']/jhove:values/jhove:value/text()",# XMP text
 			},
 			
@@ -60,7 +61,7 @@ sub new{
 			{
 				width			=> "//tiff:ImageWidth",
 				length			=> "//tiff:ImageLength",
-				bitsPerSample   => "//tiff:BitsPerSample//*[not(*)] | //tiff:BitsPerSample[not(*)]",
+				bitsPerSample		=> "//tiff:BitsPerSample/rdf:Seq/rdf:li",
 				compression		=> "//tiff:Compression",
 				colorSpace		=> "//tiff:PhotometricInterpretation",
 				orientation		=> "//tiff:Orientation",

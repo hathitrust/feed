@@ -22,6 +22,9 @@ sub new {
 
     my $self = $class->SUPER::new(@_);
 
+    if(not defined $self->{run_stages}) {
+        $self->{run_stages} = $self->{volume}->get_nspkg()->get('validation_run_stages');
+    }
     $self->{stages} = {
         validate_file_names          => \&_validate_file_names,
         validate_filegroups_nonempty => \&_validate_filegroups,
@@ -38,10 +41,9 @@ sub new {
 sub run {
     my $self = shift;
 
-    my $run_stages = $self->{volume}->get_nspkg()->get('validation_run_stages');
 
     # Run each enabled stage
-    foreach my $stage ( @{$run_stages} ) {
+    foreach my $stage ( @{$self->{run_stages}} ) {
         if ( exists( $self->{stages}{$stage} ) ) {
             my $sub = $self->{stages}{$stage};
             $logger->debug("Running validation stage $stage");
