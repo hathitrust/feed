@@ -17,13 +17,15 @@ sub new {
     my $packagetype = shift;
     my $self = $class->SUPER::new($namespace_id);
     if(defined $packagetype) {
-	# Can accept either a already-constructed HTFeed::PackageType or the package type identifier.
-	if(!ref($packagetype)) {
-	    $packagetype = new HTFeed::PackageType($packagetype);
-	}
-	$self->{'packagetype'} = $packagetype;
-    } else {
-	croak("Missing packagetype for namespace $namespace_id"); 
+        # Can accept either a already-constructed HTFeed::PackageType or the package type identifier.
+        if(!ref($packagetype)) {
+            $packagetype = new HTFeed::PackageType($packagetype);
+        }
+        $self->{'packagetype'} = $packagetype;
+    }
+   
+    else {
+        croak("Missing packagetype for namespace $namespace_id"); 
     }
 
     return $self;
@@ -51,17 +53,17 @@ sub get {
     my $ns_config = ${"${class}::config"};
 
     if (defined $ns_pkgtype_override and defined $ns_pkgtype_override->{$config_var}) {
-	return $ns_pkgtype_override->{$config_var};
+        return $ns_pkgtype_override->{$config_var};
     } elsif (defined $ns_config->{$config_var}) {
-	return $ns_config->{$config_var};
+        return $ns_config->{$config_var};
     } elsif (defined $self->{'packagetype'}) {
-	my $pkgtype_var = eval { $self->{'packagetype'}->get($config_var);
-	};
-	if($@) {
-	    croak("Can't find namespace/packagetype configuration variable $config_var");
-	} else {
-	    return $pkgtype_var;
-	}
+        my $pkgtype_var = eval { $self->{'packagetype'}->get($config_var);
+        };
+        if($@) {
+            croak("Can't find namespace/packagetype configuration variable $config_var");
+        } else {
+            return $pkgtype_var;
+        }
     }
 
 }
@@ -101,18 +103,18 @@ sub get_event_configuration {
     my $eventinfo = {};
     # no problem if it's not in main config.. but it had better be in overrides
     eval {
-	$eventinfo = get_config('premis_events',$eventtype);
+        $eventinfo = get_config('premis_events',$eventtype);
     };
     $self->_get_overrides('premis_overrides',$eventtype,$eventinfo);
 
     if( not defined $eventinfo->{type}
-	or not defined $eventinfo->{executor}
-	or not defined $eventinfo->{detail}) {
-	use Data::Dumper;
-	print Dumper($eventinfo);
-	croak("Missing or incomplete configuration for premis event $eventtype") 
+            or not defined $eventinfo->{executor}
+            or not defined $eventinfo->{detail}) {
+        use Data::Dumper;
+        print Dumper($eventinfo);
+        croak("Missing or incomplete configuration for premis event $eventtype") 
     }
-    
+
     return $eventinfo;
 }
 
@@ -135,20 +137,20 @@ sub _get_overrides {
     no strict 'refs'; 
 
     sub _copyhash {
-	my $dest = shift;
-	my $src = shift;
-	my $subkey = shift;
+        my $dest = shift;
+        my $src = shift;
+        my $subkey = shift;
 
-	$src = $src->{$subkey} if(defined $src and defined $subkey);
+        $src = $src->{$subkey} if(defined $src and defined $subkey);
 
-	# falls through whether original source was undef or subkey is set and
-	# subkey value is undef
-	return if not defined $src;
-	croak("Given empty destination hash") if not defined $dest;
+        # falls through whether original source was undef or subkey is set and
+        # subkey value is undef
+        return if not defined $src;
+        croak("Given empty destination hash") if not defined $dest;
 
-	while(my ($key,$val) = each(%$src)) {
-	    $dest->{$key} = $val;
-	}
+        while(my ($key,$val) = each(%$src)) {
+            $dest->{$key} = $val;
+        }
     }
 
     my $self = shift;
@@ -169,8 +171,8 @@ sub _get_overrides {
 
     my $ns_pkgtype_override = ${"${class}::packagetype_overrides"}->{$packagetype_id};
     if(defined $ns_pkgtype_override) {
-	my $ns_pkgtype_override = $ns_pkgtype_override->{$key};
-	_copyhash($value,$ns_pkgtype_override,$subkey);
+        my $ns_pkgtype_override = $ns_pkgtype_override->{$key};
+        _copyhash($value,$ns_pkgtype_override,$subkey);
     }
 
     return $value;
@@ -185,12 +187,12 @@ returns the gpg passphrase string from the file gpg in the namespace directory
 sub get_gpg {
     my $self = shift;
     my $class = ref($self);
-    
+
     no strict 'refs';
     if (defined ${"${class}::config"}->{gpg_key}){
         return ${"${class}::config"}->{gpg_key};
     }
-    
+
     my $module_path = $class;
     $module_path =~ s/::/\//g;
     $module_path .= '.pm';
@@ -201,9 +203,9 @@ sub get_gpg {
         or croak 'Can\'t open gpg passphrase file for ' . ref($self) . " at $passphrase_file";
     my $passphrase = <$fh>;
     close($fh);
-    
+
     ${"${class}::config"}->{gpg_key} = $passphrase;
-    
+
     return $passphrase;
 }
 
@@ -223,20 +225,20 @@ sub luhn_is_valid {
 
     croak("Expected 5-digit item type + systemid") if $itemtype_systemid !~ /^\d{5}$/;
     return ($barcode =~ /^$itemtype_systemid\d{9}$/ and Algorithm::LUHN::is_valid($barcode));
-    
+
 }
 
 sub ia_ark_id_is_valid {
     my $self = shift;
     my $ark_id = shift;
-    
+
     # match ia scheme
     return unless ( $ark_id =~ m|ark:/13960/t\d[a-z\d][a-z\d]\d[a-z\d][a-z\d]\d[a-z\d]| );
     # trim off ark:/
     $ark_id =~ s/^ark:\///;
     # validate check char
     return unless ( Noid::checkchar( $ark_id ) );
-    
+
     return 1;
 }
 
