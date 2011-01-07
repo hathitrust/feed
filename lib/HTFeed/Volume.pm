@@ -463,6 +463,28 @@ sub get_repository_mets_path {
     return $mets_in_repository_file;
 }
 
+=item get_repository_zip_path
+
+Returns the full path where the zip file for this object 
+would be, if this object was in the repository.
+
+=cut
+
+sub get_repository_zip_path {
+    my $self = shift;
+
+    my $repos_symlink = $self->get_repository_symlink();
+
+    return unless (-l $repos_symlink);
+
+    my $zip_in_repository_file = sprintf("%s/%s.zip",
+        $repos_symlink,
+        $self->get_pt_objid());
+
+    return unless (-f $zip_in_repository_file);
+    return $zip_in_repository_file;
+}
+
 =item get_repository_mets_xpc
 
 Returns an XML::LibXML::XPathContext with namespaces set up 
