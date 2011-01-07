@@ -18,6 +18,7 @@ sub new{
 		    repInfo     => ["/jhove:jhove/jhove:repInfo","root"],
 			tiffMeta	=> ["jhove:properties/jhove:property[jhove:name='TIFFMetadata']/descendant::jhove:property[jhove:name='Entries']/jhove:values", "repInfo"],
 			mix			=> ["jhove:property[jhove:name='NisoImageMetadata']/jhove:values/jhove:value/mix:mix", "tiffMeta"],
+            # xmp is a custom context set up in modulevalidator
 		},
 		queries => {
 			# top level
