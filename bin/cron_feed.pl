@@ -11,6 +11,7 @@ use Cwd;
 use DBI;
 
 use HTFeed::Version;
+use HTFeed::StagingSetup;
 
 use HTFeed::Config qw(get_config);
 use HTFeed::Volume;
@@ -33,6 +34,11 @@ my $result = GetOptions(
     "verbose+" => \$debug,
     "clean!"   => \$clean
 ) or pod2usage(1);
+
+HTFeed::StagingSetup::make_stage($clean);
+
+# store pid for use in END
+my $pid = $$;
 
 my @log_common;
 
@@ -84,6 +90,10 @@ eval {
 
             # wait for all subprocesses to return before fetching a new set
             wait_kid() while ($subprocesses);
+            
+            # release locks on completed and failed volumes
+            HTFeed::DBTools::release_completed_locks();
+            HTFeed::DBTools::release_failed_locks();
         }
     }
 };
@@ -176,6 +186,19 @@ sub run_stage {
     $sth->execute( $status, $namespace, $packagetype, $objid );
     
     $stage->clean_punt() if ($stage and $status eq 'punted');
+}
+
+END{
+    # clean up on exit of original pid (i.e. don't clean on END of fork()ed pid) if $clean
+    if ($$ eq $pid and $clean){
+        # delete everything in staging, except download
+        HTFeed::StagingSetup::clear_stage();
+        
+        # release all locks
+        HTFeed::DBTools::reset_in_flight_locks();
+        HTFeed::DBTools::release_completed_locks();
+        HTFeed::DBTools::release_failed_locks();
+    }
 }
 
 __END__

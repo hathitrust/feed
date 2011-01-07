@@ -51,4 +51,6 @@ use HTFeed::Version;
 
 # at command line
 script.pl -version
+=Descriptoin
+use in a pl to enable -version and -Version flags
 =cut
