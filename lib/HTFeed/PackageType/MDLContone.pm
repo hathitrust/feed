@@ -18,8 +18,8 @@ our $config = {
     # Regular expression that distinguishes valid files in the file package
     # HTML OCR is valid for the package type but only expected/required for UC1
     valid_file_pattern => qr/^( 
-    \w{3}\d{5}\.(jp2) |
-    mdl\.\w+\.\w{3}\d{5}\w?\.(xml) |
+    \w+\d+\w?\.(jp2) |
+    mdl\.\w+\.\w+\d+\w?\.(xml) |
     $)/x,
 
     # Configuration for each filegroup. 
@@ -43,7 +43,7 @@ our $config = {
     },
 
     checksum_file => 0, # no separate checksum file for MDL contone
-    source_mets_file => qr/^mdl\.\w+\.\w{3}\d{5}\w?\.xml$/,
+    source_mets_file => qr/^mdl\.\w+\.\w+\d+\w?\.xml$/,
 
     # Allow gaps in numerical sequence of filenames?
     allow_sequence_gaps => 1,
