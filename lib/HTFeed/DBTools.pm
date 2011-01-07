@@ -59,6 +59,20 @@ sub get_queued{
     return;
 }
 
+# enqueue(\@volumes)
+# 
+# add volumes to queue
+sub enqueue{
+    my $volumes = shift;
+    
+    $dbh = get_dbh();
+    my $sth = $dbh->prepare(q(INSERT INTO `queue` (ns, pkg_type, objid) VALUES (?,?,?)));
+    
+    foreach my $volume (@{$volumes}){
+        $sth->execute($volume->get_packagetype(), $volume->get_namespace(), $volume->get_objid());
+    }
+}
+
 # lock_volumes($number_of_items)
 # locks available volumes to host, up to $number_of_items
 # returns number of volumes locked
@@ -70,6 +84,27 @@ sub lock_volumes{
     my $sth = get_dbh()->prepare(q(UPDATE queue SET node = ? WHERE node IS NULL AND status = 'ready' LIMIT ?;));
     $sth->execute(hostname,$item_count);
     return $sth->rows;
+}
+
+# reset_in_flight_locks()
+# releases locks on in flight volumes for this node and resets status to ready
+sub reset_in_flight_locks{
+    my $sth = get_dbh()->prepare(q(UPDATE queue SET `node` = NULL, `status` = 'ready' WHERE node = ? AND status != 'punted' AND status != 'collated';));
+    return $sth->execute(hostname);
+}
+
+# release_completed_locks()
+# releases locks on in completed volumes for this node
+sub release_completed_locks{
+    my $sth = get_dbh()->prepare(q(UPDATE queue SET `node` = NULL WHERE node = ? AND status = 'collated';));
+    return $sth->execute(hostname);
+}
+
+# release_failed_locks()
+# releases locks on in failed volumes for this node
+sub release_failed_locks{
+    my $sth = get_dbh()->prepare(q(UPDATE queue SET `node` = NULL WHERE node = ? AND status = 'punted'));
+    return $sth->execute(hostname);
 }
 
 # count_locks()

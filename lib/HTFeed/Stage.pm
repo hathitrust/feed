@@ -9,6 +9,7 @@ use strict;
 use Carp;
 use File::Path qw(remove_tree);
 use Log::Log4perl qw(get_logger);
+use File::Find;
 use HTFeed::Config qw(get_config);
 
 use base qw(HTFeed::SuccessOrFailure);
@@ -34,6 +35,20 @@ sub new {
 
     bless( $self, $class );
     return $self;
+}
+
+# return space that we expect to use on the ramdisk
+sub ram_disk_size{
+    return 0;
+}
+
+# return the size of a directory
+sub dir_size{
+    shift if (ref $_[0]);
+    my $dir = shift;
+    my $size = 0;
+    find( sub{$size += -s if -f;}, $dir);
+    return $size;
 }
 
 # returns information about the stage

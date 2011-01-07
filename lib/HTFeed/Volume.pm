@@ -78,6 +78,17 @@ sub get_objid {
     return $self->{objid};
 }
 
+=item get_packagetype
+
+Returns the packagetype of the volume.
+
+=cut
+
+sub get_packagetype {
+    my $self = shift;
+    return $self->{packagetype};
+}
+
 =item get_pt_objid
 
 Returns the pairtreeized ID of the volume
@@ -144,17 +155,20 @@ sub get_all_directory_files {
 =item get_staging_directory
 
 Returns the staging directory for the volume's AIP
+makes directory if it does not exist
 
 =cut
 
 sub get_staging_directory {
     my $self = shift;
-
+    
+    my $config = {no_new => 0, @_};
+    
     if(not defined $self->{staging_directory}) {
         my $objid = $self->get_objid();
         my $pt_objid = s2ppchars($objid);
         my $stage_dir = sprintf("%s/%s", get_config('staging'=>'memory'), $pt_objid);
-        if(!-e $stage_dir) {
+        if(!-e $stage_dir and !$config->{no_new}) {
             mkdir($stage_dir) or croak("Can't mkdir $stage_dir: $!");
         }
         $self->{staging_directory} = $stage_dir;
@@ -774,8 +788,8 @@ sub get_zip {
 
 sub clean_all {
     my $self = shift;
-    warn("Removing " . $self->get_staging_directory());
-    remove_tree $self->get_staging_directory();
+    warn("Removing " . $self->get_staging_directory(no_new => 1));
+    remove_tree $self->get_staging_directory(no_new => 1);
     unlink($self->get_mets_path());
     warn("Removing " . $self->get_mets_path());
     unlink($self->get_zip_path());
