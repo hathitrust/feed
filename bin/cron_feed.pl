@@ -177,7 +177,12 @@ sub run_stage {
 
         if ( $status eq 'punted' ) {
             $logger->info( "VolumePunted", @log_common );
-            $volume->clean_all() if $volume and $clean;
+            eval {
+                $volume->clean_all() if $volume and $clean;
+            };
+            if($@) {
+                $logger->error( "UnexpectedError", @log_common, detail => "Error cleaning volume: $@");
+            }
         }
         $sth = HTFeed::DBTools::get_dbh()->prepare(
             q(UPDATE `queue` SET `status` = ?, failure_count=failure_count+1 WHERE `ns` = ? AND `pkg_type` = ? AND `objid` = ?;)
