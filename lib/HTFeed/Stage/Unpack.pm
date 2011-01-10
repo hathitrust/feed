@@ -16,7 +16,7 @@ sub stage_info{
 
 sub unzip_file {
     # extract - not using Archive::Zip because it doesn't handle ZIP64
-    return _extract_file(@_, q(yes 'n' | unzip '%s' -d '%s' -j -o -q 2>&1));
+    return _extract_file(@_, q(yes 'n' | unzip -j -o -q '%s' -d '%s' 2>&1));
 }
 
 sub untgz_file {

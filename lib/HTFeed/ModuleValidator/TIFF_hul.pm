@@ -116,9 +116,9 @@ sub _set_validators {
                 $self->_require_same( "xmp", "xRes", "xmp", "yRes" );
 
             }
-          },
+        },
 
-          'camera' => sub {
+        'camera' => sub {
             my $self = shift;
 
             # find xmp
