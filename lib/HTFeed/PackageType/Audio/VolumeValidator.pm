@@ -1,7 +1,9 @@
 #!/usr/bin/perl
 
+package HTFeed::PackageType::Audio::VolumeValidator;
+
 use strict;
-use base qw('HTFeed::VolumeValidator');
+use base qw(HTFeed::VolumeValidator);
 
 =item _validate_mets_consistency
 
@@ -40,7 +42,7 @@ sub _validate_mets_consistency {
 				$self->set_error("BadValue");
 			}
 		} elsif ($primaryIdentifier eq "pm") {
-			if ($useType ne "PRODUCTION_MASTER" {
+			if ($useType ne "PRODUCTION_MASTER") {
 				$self->set_error("BadValue");
 			}
 		} else {
