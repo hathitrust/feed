@@ -1,0 +1,35 @@
+Devel::Cover 0.73: Collecting coverage data for branch, condition, pod, statement, subroutine and time.
+Selecting packages matching:
+Ignoring packages matching:
+    /Devel/Cover[./]
+Ignoring packages in:
+    .
+    /usr/lib/perl5/5.8.8
+    /usr/lib/perl5/site_perl
+    /usr/lib/perl5/site_perl/5.8.8
+    /usr/lib/perl5/vendor_perl
+    /usr/lib/perl5/vendor_perl/5.8.8
+    /usr/lib64/perl5/5.8.8/x86_64-linux-thread-multi
+    /usr/lib64/perl5/site_perl/5.8.8/x86_64-linux-thread-multi
+    /usr/lib64/perl5/vendor_perl/5.8.8/x86_64-linux-thread-multi
+objid.t ..... ok
+validate.t .. 
+Dubious, test returned 2 (wstat 512, 0x200)
+No subtests run 
+
+Test Summary Report
+-------------------
+validate.t (Wstat: 512 Tests: 0 Failed: 0)
+  Non-zero exit status: 2
+  Parse errors: No plan found in TAP output
+Files=2, Tests=32,  2 wallclock secs ( 0.06 usr  0.01 sys +  1.05 cusr  0.14 csys =  1.26 CPU)
+Result: FAIL
+Devel::Cover: Writing coverage database to /htapps/ezbrooks.babel/git/feed/t/coverage/cover_db/runs/1294856127.8485.41356
+---------------------------- ------ ------ ------ ------ ------ ------ ------
+File                           stmt   bran   cond    sub    pod   time  total
+---------------------------- ------ ------ ------ ------ ------ ------ ------
+...bel/git/feed/t/test_all.t  100.0    n/a    n/a  100.0    n/a  100.0  100.0
+Total                         100.0    n/a    n/a  100.0    n/a  100.0  100.0
+---------------------------- ------ ------ ------ ------ ------ ------ ------
+
+
