@@ -13,7 +13,7 @@ our $config = {
     valid_file_pattern => qr/^( 
 		checksum\.md5 |
 		\w+\.(xml) |
-		[ap]m\d{8}.(wav)
+		[ap]m\d{2,8}.(wav)
 		)/x,
 
     # A set of regular expressions mapping files to the filegroups they belong

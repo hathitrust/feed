@@ -15,10 +15,10 @@ sub new {
     my $files = shift;
 
     my $self = {
-	files => $files,
-	use => undef,
-	prefix => undef,
-	@_
+        files => $files,
+        use => undef,
+        prefix => undef,
+        @_
     };
 
     bless($self,$class);
@@ -56,6 +56,18 @@ Returns the prefix for this group of files to set in the METS fileGrp
 sub get_prefix {
     my $self = shift;
     return $self->{prefix};
+}
+
+=item get_required()
+
+Returns whether this filegroup is required to have content.
+
+=cut
+
+
+sub get_required {
+    my $self = shift;
+    return $self->{required};
 }
 
 

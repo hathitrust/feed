@@ -28,9 +28,9 @@ sub run{
         if (-d $pairtree_link_parent){
             $self->set_info('Collating volume that is already in repo');
             # make sure we have a link
-            unless (-l $pairtree_link_path){
+            unless ($pairtree_object_path = readlink($pairtree_link_path)){
                 # there is no good reason we chould have a dir and no link
-                $self->set_error('OperationFailed', detail => "link $pairtree_link_path missing, cannot reingest")
+                $self->set_error('OperationFailed', operation => 'readlink', file => $pairtree_link_path, detail => "readlink failed: $!") 
                     and return;
             }
         }

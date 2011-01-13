@@ -115,7 +115,7 @@ sub _validate_filegroups {
     while ( my ( $filegroup_name, $filegroup ) = each( %{$filegroups} ) ) {
         $logger->debug("validating nonempty filegroup $filegroup_name");
         my $filecount = scalar( @{ $filegroup->get_filenames() } );
-        if ( !$filecount ) {
+        if ( !$filecount and $filegroup->get_required() ) {
             $self->set_error( "BadFilegroup", filegroup => $filegroup );
         }
     }

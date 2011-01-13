@@ -18,8 +18,8 @@ our $config = {
     # Regular expression that distinguishes valid files in the file package
     # HTML OCR is valid for the package type but only expected/required for UC1
     valid_file_pattern => qr/^( 
-    \w{3}\d{5}\.(jp2) |
-    mdl\.\w+\.\w{3}\d{5}\w?\.(xml) |
+    \w+\d+\w?\.(jp2) |
+    mdl\.\w+\.\w+\d+\w?\.(xml) |
     $)/x,
 
     # Configuration for each filegroup. 
@@ -43,7 +43,7 @@ our $config = {
     },
 
     checksum_file => 0, # no separate checksum file for MDL contone
-    source_mets_file => qr/^mdl\.\w+\.\w{3}\d{5}\w?\.xml$/,
+    source_mets_file => qr/^mdl\.\w+\.\w+\d+\w?\.xml$/,
 
     # Allow gaps in numerical sequence of filenames?
     allow_sequence_gaps => 1,
@@ -86,7 +86,7 @@ our $config = {
             'transformation' => v_eq('codingStyleDefault','transformation','1'),
             'camera' => undef,
             'resolution'      => v_and(
-                v_in( 'xmp', 'xRes', [ '300/1', '350/1', '400/1', '450/1', '500/1', '600/1', '650/1', '700/1', '750/1', '800/1', '900/1', '1000/1' ] ),
+                v_ge( 'xmp', 'xRes', 300 ), # should work even though resolution is specified as NNN/1
                 v_same( 'xmp', 'xRes', 'xmp', 'yRes' )
             ),
             'decomposition_levels' => v_eq( 'codingStyleDefault', 'decompositionLevels', '2' ),

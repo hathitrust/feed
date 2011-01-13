@@ -17,9 +17,9 @@ our $config = {
     # Regular expression that distinguishes valid files in the file package
     # HTML OCR is valid for the package type but only expected/required for UC1
     valid_file_pattern => qr/^( 
-    \w{3}\d{5}\w?\.(jp2|tif) |
-    mdl\.\w+\.\w{3}\d{5}\w?-all\.(xml) |
-    \w{3}\d{5}\w?\.(txt)
+    \w+\d+\w?\.(jp2|tif) |
+    mdl\.\w+\.\w+\d+\w?-all\.(xml) |
+    \w+\d+\w?\.(txt)
     $)/x,
 
     # Configuration for each filegroup. 
@@ -51,7 +51,7 @@ our $config = {
         },
     },
 
-    source_mets_file => qr/^mdl\.\w+\.\w{3}\d{5}\w?-all\.xml$/,
+    source_mets_file => qr/^mdl\.\w+\.\w+\d+\w?-all\.xml$/,
 
     # Don't validate consistency for MDL Contone composite images -- there will not
     # always be an OCR image for every page image and seq numbers need not be sequential.
