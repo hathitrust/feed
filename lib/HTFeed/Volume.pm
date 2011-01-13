@@ -157,18 +157,21 @@ sub get_all_directory_files {
 Returns the staging directory for the volume's AIP
 makes directory if it does not exist
 
+=synopsis
+# set flag to true if you DON'T want to create the staging directory if it doesn't exist
+get_staging_directory($flag);
 =cut
 
 sub get_staging_directory {
     my $self = shift;
     
-    my $config = {no_new => 0, @_};
+    my $make_new_dirs = not shift;
     
     if(not defined $self->{staging_directory}) {
         my $objid = $self->get_objid();
         my $pt_objid = s2ppchars($objid);
         my $stage_dir = sprintf("%s/%s", get_config('staging'=>'memory'), $pt_objid);
-        if(!-e $stage_dir and !$config->{no_new}) {
+        if(!-e $stage_dir and $make_new_dirs) {
             mkdir($stage_dir) or croak("Can't mkdir $stage_dir: $!");
         }
         $self->{staging_directory} = $stage_dir;

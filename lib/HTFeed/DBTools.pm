@@ -62,15 +62,48 @@ sub get_queued{
 # enqueue(\@volumes)
 # 
 # add volumes to queue
-sub enqueue{
+sub enqueue_volumes{
     my $volumes = shift;
+    my $ignore = shift;
     
     $dbh = get_dbh();
-    my $sth = $dbh->prepare(q(INSERT INTO `queue` (ns, pkg_type, objid) VALUES (?,?,?)));
-    
-    foreach my $volume (@{$volumes}){
-        $sth->execute($volume->get_packagetype(), $volume->get_namespace(), $volume->get_objid());
+    my $sth;
+    if($ignore){
+        $sth = $dbh->prepare(q(INSERT IGNORE INTO `queue` (ns, pkg_type, objid) VALUES (?,?,?);));
+    }else {
+        $sth = $dbh->prepare(q(INSERT INTO `queue` (ns, pkg_type, objid) VALUES (?,?,?);));
     }
+    
+    my @results;
+    foreach my $volume (@{$volumes}){
+        eval{
+            push @results, $sth->execute($volume->get_packagetype(), $volume->get_namespace(), $volume->get_objid());
+        } or print $@ and return \@results;
+    }
+    return \@results;
+}
+
+# reset(\@volumes, $force)
+# 
+# reset punted volumes, reset all volumes if $force
+sub reset_volumes{
+    my $volumes = shift;
+    my $force = shift;
+    
+    $dbh = get_dbh();
+    my $sth;
+    if($force){
+        $sth = $dbh->prepare(q(UPDATE queue SET `node` = NULL, `status` = 'ready', failure_count = 0 WHERE ns = ? and objid = ?;));
+    }
+    else{
+        $sth = $dbh->prepare(q(UPDATE queue SET `node` = NULL, `status` = 'ready', failure_count = 0 WHERE status = 'punted' and ns = ? and objid = ?;));
+    }
+    
+    my @results;
+    foreach my $volume (@{$volumes}){
+        push @results, $sth->execute($volume->get_namespace(), $volume->get_objid());
+    }
+    return \@results;
 }
 
 # lock_volumes($number_of_items)
