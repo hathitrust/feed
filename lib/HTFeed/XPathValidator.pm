@@ -236,7 +236,7 @@ sub _openonecontext{
     my $nodelist = $self->_findcontexts(@_);
 
     # if hit count != 1 fail
-    unless ($nodelist->size() == 1){
+    unless ($nodelist and $nodelist->size() == 1){
         my $error_msg = "";
         $error_msg .= $nodelist->size();
         $error_msg .= " hits for context query: $cn exactly one expected";
