@@ -144,8 +144,6 @@ sub run_stage {
     if ( $err and $err !~ /STAGE_ERROR/ ) {
         $logger->error( "UnexpectedError", @log_common, stage => ref($stage), detail => $@ );
     }
-    chdir($wd);    # reset working path if changed
-
 
     if ($stage and $clean) {
         eval { $stage->clean(); };
