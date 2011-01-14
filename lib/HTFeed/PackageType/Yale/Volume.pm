@@ -28,8 +28,8 @@ sub get_page_data {
     my $file = shift;
 
     if ( not defined $self->{'page_data'} ) {
-	$self->record_premis_event('page_feature_mapping');
-	$self->{page_data} = $self->_extract_page_tags();
+        $self->record_premis_event('page_feature_mapping');
+        $self->{page_data} = $self->_extract_page_tags();
     }
 
     return $self->{'page_data'}{$file};
@@ -92,6 +92,16 @@ my $label_map = {
     qr/^Title Page$/i       => 'TITLE'
 };
 
+# Returns the filename a given fptr points to
+sub _get_fptr_filename {
+    my $self = shift;
+    my $fptr = shift;
+    my $xc = shift;
+    my $fileid = $fptr->getAttribute('FILEID');
+    my $filename = $xc->findvalue(qq(//METS:file[\@ID='$fileid']/METS:FLocat/\@xlink:href));
+
+    return $filename;
+}
 
 sub _extract_page_tags {
 
@@ -108,27 +118,27 @@ sub _extract_page_tags {
 
     # Extract info from the physical structmap
     foreach my $struct_div (
-	$xc->findnodes(
-	    q(//mets:structMap[@TYPE='physical']//mets:div[mets:fptr]))
+        $xc->findnodes(
+            q(//mets:structMap[@TYPE='physical']//mets:div[mets:fptr]))
     )
     {
-	my $pagetags = [];
+        my $pagetags = [];
 
-	$self->_check_is_page($struct_div);
+        $self->_check_is_page($struct_div);
 
-	my $orderlabel = $self->_extract_page_number( $struct_div, 'ORDERLABEL' );
+        my $orderlabel = $self->_extract_page_number( $struct_div, 'ORDERLABEL' );
 
-	$self->_map_label_page_tag( $struct_div, $pagetags );
+        $self->_map_label_page_tag( $struct_div, $pagetags );
 
-	$self->{at_start} = 0;
+        $self->{at_start} = 0;
 
-	foreach
-	my $fptr ( $struct_div->getChildrenByTagNameNS( NS_METS, 'fptr' ) )
-	{
-	    my $fileid = $fptr->getAttribute('FILEID');
-	    $self->_set_pagenumber( $fileid, $orderlabel, $pagenumber_map );
-	    $pagetag_map->{$fileid} = $pagetags;
-	}
+        foreach
+        my $fptr ( $struct_div->getChildrenByTagNameNS( NS_METS, 'fptr' ) )
+        {
+            my $filename = $self->_get_fptr_filename($fptr,$xc);
+            $self->_set_pagenumber( $filename, $orderlabel, $pagenumber_map );
+            $pagetag_map->{$filename} = $pagetags;
+        }
     }
 
     # Extract info from the logical structmap
@@ -140,67 +150,67 @@ sub _extract_page_tags {
     $self->{had_backcover} = 0;
 
     foreach my $struct_div (
-	$xc->findnodes(q(//mets:structMap[@TYPE='logical']//mets:div)) )
+        $xc->findnodes(q(//mets:structMap[@TYPE='logical']//mets:div)) )
     {
-	my @fptrs = $struct_div->getChildrenByTagNameNS( NS_METS, 'fptr' );
-	if (@fptrs) {
+        my @fptrs = $struct_div->getChildrenByTagNameNS( NS_METS, 'fptr' );
+        if (@fptrs) {
 
-	    # div representing actual page
-	    $self->_check_is_page($struct_div);
+            # div representing actual page
+            $self->_check_is_page($struct_div);
 
-	    my $orderlabel = $self->_extract_page_number( $struct_div, 'ORDERLABEL' );
-	    my $label      = $self->_extract_page_number( $struct_div, 'LABEL' );
+            my $orderlabel = $self->_extract_page_number( $struct_div, 'ORDERLABEL' );
+            my $label      = $self->_extract_page_number( $struct_div, 'LABEL' );
 
-	    foreach my $fptr (
-		$struct_div->getChildrenByTagNameNS( NS_METS, 'fptr' ) )
-	    {
-		my $fileid = $fptr->getAttribute('FILEID');
+            foreach my $fptr (
+                $struct_div->getChildrenByTagNameNS( NS_METS, 'fptr' ) )
+            {
+                my $filename = $self->_get_fptr_filename($fptr,$xc);
 
-		$self->_set_pagenumber( $fileid, $orderlabel, $pagenumber_map )
-		if defined $orderlabel;
-		$self->_set_pagenumber( $fileid, $label, $pagenumber_map )
-		if defined $label;
+                $self->_set_pagenumber( $filename, $orderlabel, $pagenumber_map )
+                if defined $orderlabel;
+                $self->_set_pagenumber( $filename, $label, $pagenumber_map )
+                if defined $label;
 
-		# update pagetags
-		if (@$pagetags) {
-		    my $file_pagetags = $pagetag_map->{$fileid};
-		    $file_pagetags = [] if not defined $file_pagetags;
-		    push( @$file_pagetags, @$pagetags );
-		    $pagetag_map->{$fileid} = $file_pagetags;
-		    $pagetags = [];
-		}
+                # update pagetags
+                if (@$pagetags) {
+                    my $file_pagetags = $pagetag_map->{$filename};
+                    $file_pagetags = [] if not defined $file_pagetags;
+                    push( @$file_pagetags, @$pagetags );
+                    $pagetag_map->{$filename} = $file_pagetags;
+                    $pagetags = [];
+                }
 
-		$self->{at_start} = 0;
-	    }
+                $self->{at_start} = 0;
+            }
 
-	}
-	else {
+        }
+        else {
 
-	    # non-leaf div
-	    my $type = $struct_div->getAttribute('TYPE');
-	    if ( defined $type ) {
-		my $type_tag = $type_map->{$type};
-		push( @$pagetags, $self->_map_preface_chapter($type_tag) )
-		if defined $type_tag;
-	    }
-	    else {
-		warn( "Missing type on div" . $struct_div->toString() );
-	    }
+            # non-leaf div
+            my $type = $struct_div->getAttribute('TYPE');
+            if ( defined $type ) {
+                my $type_tag = $type_map->{$type};
+                push( @$pagetags, $self->_map_preface_chapter($type_tag) )
+                if defined $type_tag;
+            }
+            else {
+                warn( "Missing type on div" . $struct_div->toString() );
+            }
 
-	    $self->_map_label_page_tag( $struct_div, $pagetags );
+            $self->_map_label_page_tag( $struct_div, $pagetags );
 
-	}
+        }
     }
 
-    foreach my $fileid ( uniq( sort( keys(%$pagenumber_map), keys(%$pagetag_map) ) ) ) {
-	my $pagenum = $pagenumber_map->{$fileid};
-	my $rawtags = $pagetag_map->{$fileid};
-	my @tags    = uniq( sort(@$rawtags) );
+    foreach my $filename ( uniq( sort( keys(%$pagenumber_map), keys(%$pagetag_map) ) ) ) {
+        my $pagenum = $pagenumber_map->{$filename};
+        my $rawtags = $pagetag_map->{$filename};
+        my @tags    = uniq( sort(@$rawtags) );
 
-	$pagedata->{$fileid} = {
-	    orderlabel => $pagenum,
-	    label      => join( ', ', @tags )
-	};
+        $pagedata->{$filename} = {
+            orderlabel => $pagenum,
+            label      => join( ', ', @tags )
+        };
 
     }
 
@@ -216,23 +226,23 @@ sub _map_preface_chapter {
     # be tagged as CHAPTER_START if it uses the regular page
     # numbering, PREFACE otherwise
     if ( $tag eq '??_PREFACE' ) {
-	if ($self->{in_body}) {
-	    $tag = 'CHAPTER_START';
-	}
-	else {
-	    $tag = 'PREFACE';
-	}
+        if ($self->{in_body}) {
+            $tag = 'CHAPTER_START';
+        }
+        else {
+            $tag = 'PREFACE';
+        }
     }
     elsif ( $tag eq '??_COVER' ) {
 
-	# Try to figure out which cover this is..
-	if ($self->{at_start}) {
-	    $tag = 'FRONT_COVER';
-	}
-	else {
-	    $self->{had_backcover} = 1;
-	    $tag           = 'BACK_COVER';
-	}
+        # Try to figure out which cover this is..
+        if ($self->{at_start}) {
+            $tag = 'FRONT_COVER';
+        }
+        else {
+            $self->{had_backcover} = 1;
+            $tag           = 'BACK_COVER';
+        }
     }
     return $tag;
 }
@@ -243,16 +253,16 @@ sub _map_label_page_tag {
     my $pagetags   = shift;
 
     if ( $struct_div->hasAttribute('LABEL') ) {
-	my $label = $struct_div->getAttribute('LABEL');
-	while ( my ( $tag_re, $tag ) = each %$label_map ) {
-	    if ( $label =~ $tag_re ) {
+        my $label = $struct_div->getAttribute('LABEL');
+        while ( my ( $tag_re, $tag ) = each %$label_map ) {
+            if ( $label =~ $tag_re ) {
 
-		$tag = $self->_map_preface_chapter($tag);
+                $tag = $self->_map_preface_chapter($tag);
 
-	    }
-	    push( @$pagetags, $tag ) if $label =~ $tag_re;
+            }
+            push( @$pagetags, $tag ) if $label =~ $tag_re;
 
-	}
+        }
     }
 }
 
@@ -260,11 +270,11 @@ sub _check_is_page {
     my $self = shift;
     my $struct_div = shift;
     if ( $struct_div->hasAttribute('TYPE') ) {
-	my $type = $struct_div->getAttribute('TYPE');
-	warn("Unexpected type $type") unless $type eq 'page';
+        my $type = $struct_div->getAttribute('TYPE');
+        warn("Unexpected type $type") unless $type eq 'page';
     }
     else {
-	warn('Missing TYPE attribute on div');
+        warn('Missing TYPE attribute on div');
     }
 }
 
@@ -274,17 +284,17 @@ sub _extract_page_number {
     my $attribute  = shift;
 
     if ( $struct_div->hasAttribute($attribute) ) {
-	my $pagenum = $struct_div->getAttribute($attribute);
-	warn( "missing attribute $attribute on div " . $struct_div->toString() )
-	if not defined $pagenum;
-	warn("Unexpected page number $pagenum")
-	unless $pagenum =~ /^\d+$/
-	    or $pagenum =~ /^[ivxlcdm]+$/;
-	$self->{in_body} = 1 if $pagenum =~ /^\d+$/;
-	return $pagenum;
+        my $pagenum = $struct_div->getAttribute($attribute);
+        warn( "missing attribute $attribute on div " . $struct_div->toString() )
+        if not defined $pagenum;
+        warn("Unexpected page number $pagenum")
+        unless $pagenum =~ /^\d+$/
+            or $pagenum =~ /^[ivxlcdm]+$/;
+        $self->{in_body} = 1 if $pagenum =~ /^\d+$/;
+        return $pagenum;
     }
     else {
-	return;
+        return;
     }
 }
 
@@ -294,11 +304,11 @@ sub _set_pagenumber {
     my $newnumber      = shift;
     my $pagenumber_map = shift;
     if ( defined $newnumber ) {
-	warn("Inconsistent page numbering for $filename")
-	if (  $pagenumber_map->{$filename}
-		and $pagenumber_map->{$filename} ne $newnumber );
+        warn("Inconsistent page numbering for $filename")
+        if (  $pagenumber_map->{$filename}
+                and $pagenumber_map->{$filename} ne $newnumber );
 
-	$pagenumber_map->{$filename} = $newnumber;
+        $pagenumber_map->{$filename} = $newnumber;
     }
 }
 
@@ -333,25 +343,25 @@ sub dospath_to_path($) {
     my $preingest_path = $self->get_preingest_directory();
 
     if ( $dospath =~ /^\.\.\.\\$objid\\(.*)/ ) {
-	my $relpath = $1;
+        my $relpath = $1;
 
-	# convert DOS-style paths to Unix-style
-	$relpath =~ s/\\/\//g;
-	my $abspath = "$preingest_path/$relpath";
+        # convert DOS-style paths to Unix-style
+        $relpath =~ s/\\/\//g;
+        my $abspath = "$preingest_path/$relpath";
 
-	if ( -e $abspath ) {
-	    return $abspath;
+        if ( -e $abspath ) {
+            return $abspath;
 
-	}
-	else {
-	    croak("Missing file $abspath");
-	    return;
-	}
+        }
+        else {
+            croak("Missing file $abspath");
+            return;
+        }
 
     }
     else {
-	croak("Unrecognized path '$dospath' in manifest");
-	return;
+        croak("Unrecognized path '$dospath' in manifest");
+        return;
     }
 
 }
@@ -368,12 +378,12 @@ sub get_yale_mets_xpc {
     my $directory = $self->get_preingest_directory();
     my $objid = $self->get_objid();
     if(not defined $self->{yale_mets_xc}) {
-	my $mets = "$directory/METADATA/${objid}_METS.xml";
-	if ( !-e $mets ) {
-	    $mets = "$directory/METADATA/${objid}_Mets.xml";
-	}
+        my $mets = "$directory/METADATA/${objid}_METS.xml";
+        if ( !-e $mets ) {
+            $mets = "$directory/METADATA/${objid}_Mets.xml";
+        }
 
-	$self->{yale_mets_xc} = $self->_parse_xpc($mets);
+        $self->{yale_mets_xc} = $self->_parse_xpc($mets);
 
 
     }
@@ -394,32 +404,32 @@ sub get_capture_time {
 
     if(not defined $self->{capture_time}) {
 
-	my $mets_xc = $self->get_yale_mets_xpc();
-	my $capture_time = $mets_xc->findvalue(
-	    '//mets:techMD[@ID="TM_ScanJob"]//dateTimeCreated[last()]');
+        my $mets_xc = $self->get_yale_mets_xpc();
+        my $capture_time = $mets_xc->findvalue(
+            '//mets:techMD[@ID="TM_ScanJob"]//dateTimeCreated[last()]');
 
-	if(!$capture_time) {
-	    my $preingest_dir = $self->get_preingest_directory();
+        if(!$capture_time) {
+            my $preingest_dir = $self->get_preingest_directory();
 
-	    my $metadata_dir = "$preingest_dir/METADATA";
-	    my $scanjob = "$metadata_dir/${objid}_ScanJob.xml";
-	    my $doc;
-	    my $xc;
-	    eval {
-		my $parser = new XML::LibXML;
-		$doc    = $parser->parse_file($scanjob);
-		$xc = new XML::LibXML::XPathContext($doc);
-	    };
-	    if($@) {
-		die("Can't get capture time: $!");
-	    }
-	    $capture_time = $xc->findvalue(
-	    '//dateTimeCreated[last()]')
-		    or die("Capture time not found in METS or ScanJob");
+            my $metadata_dir = "$preingest_dir/METADATA";
+            my $scanjob = "$metadata_dir/${objid}_ScanJob.xml";
+            my $doc;
+            my $xc;
+            eval {
+                my $parser = new XML::LibXML;
+                $doc    = $parser->parse_file($scanjob);
+                $xc = new XML::LibXML::XPathContext($doc);
+            };
+            if($@) {
+                die("Can't get capture time: $!");
+            }
+            $capture_time = $xc->findvalue(
+                '//dateTimeCreated[last()]')
+                or die("Capture time not found in METS or ScanJob");
 
-	}
+        }
 
-	$self->{capture_time} = $capture_time;
+        $self->{capture_time} = $capture_time;
     }
 
     return $self->{capture_time};
