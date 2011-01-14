@@ -423,7 +423,13 @@ sub get_marc_xml {
         while($node->nodeType() != XML_ELEMENT_NODE) {
             $node = $node->nextSibling();
         }
-        return $node if defined $node;
+        if(defined $node) {
+            # check & remediate MARC
+            my $marc_xc = new XML::LibXML::XPathContext($node);
+            register_namespaces($marc_xc);
+            HTFeed::METS::_remediate_marc($self,$marc_xc);
+            return $node;
+        }
     } 
 
     # no metadata found, or metadata node didn't contain anything
