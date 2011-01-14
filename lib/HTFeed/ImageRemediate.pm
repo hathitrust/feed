@@ -4,7 +4,6 @@ use strict;
 use warnings;
 use HTFeed::Config qw(get_config);
 
-
 =item get_exiftool_fields($file)
 
     Returns a hash of all the tags found by ExifTool in the specified file.
@@ -80,7 +79,8 @@ sub remediate_image($$;$$) {
         $newFields, 'XMP-tiff:Compression' );
 
     # IFD0:Make -> XMP-tiff:Make
-    _copy_old_to_new( $oldFields->{'IFD0:Make'}, $newFields, 'XMP-tiff:Make' );
+    _copy_old_to_new( $oldFields->{'IFD0:Make'}, $newFields, 
+        'XMP-tiff:Make' );
 
     # IFD0:Model -> XMP-tiff:Model
     _copy_old_to_new( $oldFields->{'IFD0:Model'}, $newFields,
@@ -98,13 +98,14 @@ sub remediate_image($$;$$) {
     }
 
     # Other package types may have grayscale JP2s that need remediation.
-    # Final image validation should kick these out if grayscale is not 
+    # Final image validation should kick these out if grayscale is not
     # expected.
     if ( $oldFields->{'Jpeg2000:Colorspace'} eq 'Grayscale' ) {
         _set_new_if_undefined( $oldFields, $newFields, 'XMP-tiff:BitsPerSample',
             '8' );
         _set_new_if_undefined( $oldFields, $newFields,
-            'XMP-tiff:PhotometricInterpretation', 'BlackIsZero' );
+            'XMP-tiff:PhotometricInterpretation',
+            'BlackIsZero' );
         _set_new_if_undefined( $oldFields, $newFields,
             'XMP-tiff:SamplesPerPixel', '1' );
     }
@@ -120,31 +121,39 @@ sub remediate_image($$;$$) {
     my $resolution = undef;
 
     # try to get resolution from JPEG2000 headers
-    if(!$force_headers->{'Resolution'})  {
-	my $xres = $oldFields->{'Jpeg2000:CaptureXResolution'};
-	my $yres = $oldFields->{'Jpeg2000:CaptureYResolution'};
-	warn ("Non-square pixels??! XRes $xres YRes $yres") if( ($xres or $yres) and $xres != $yres);
+    if ( !$force_headers->{'Resolution'} ) {
+        my $xres = $oldFields->{'Jpeg2000:CaptureXResolution'};
+        my $yres = $oldFields->{'Jpeg2000:CaptureYResolution'};
+        warn("Non-square pixels??! XRes $xres YRes $yres")
+          if ( ( $xres or $yres ) and $xres != $yres );
 
-	if($xres) {
-	    my $xresunit = $oldFields->{'Jpeg2000:CaptureXResolutionUnit'};
-	    my $yresunit = $oldFields->{'Jpeg2000:CaptureXResolutionUnit'};
+        if ($xres) {
+            my $xresunit = $oldFields->{'Jpeg2000:CaptureXResolutionUnit'};
+            my $yresunit = $oldFields->{'Jpeg2000:CaptureXResolutionUnit'};
 
-	    warn("Resolution unit awry") if (not $xresunit or not $yresunit or $xresunit ne $yresunit);
+            warn("Resolution unit awry")
+              if ( not $xresunit or not $yresunit or $xresunit ne $yresunit );
 
-	    $xresunit eq 'um' and $force_headers->{'Resolution'} = sprintf("%.0f",$xres*25400);
-	    $xresunit eq 'mm' and $force_headers->{'Resolution'} = sprintf("%.0f",$xres*25.4);
-	    $xresunit eq 'cm' and $force_headers->{'Resolution'} = sprintf("%.0f",$xres*2.54);
-	    $xresunit eq 'in' and $force_headers->{'Resolution'} = sprintf("%.0f",$xres);
-	}
+            $xresunit eq 'um'
+              and $force_headers->{'Resolution'} =
+              sprintf( "%.0f", $xres * 25400 );
+            $xresunit eq 'mm'
+              and $force_headers->{'Resolution'} =
+              sprintf( "%.0f", $xres * 25.4 );
+            $xresunit eq 'cm'
+              and $force_headers->{'Resolution'} =
+              sprintf( "%.0f", $xres * 2.54 );
+            $xresunit eq 'in'
+              and $force_headers->{'Resolution'} = sprintf( "%.0f", $xres );
+        }
 
     }
 
-
-    my $force_res  = 0;
+    my $force_res = 0;
     if (
         (
             defined( $resolution = $force_headers->{'Resolution'} )
-            && ($force_res = 1)
+            && ( $force_res = 1 )
         )    # force resolution change if field is set in $force_headers
         or defined( $resolution = $set_if_undefined_headers->{'Resolution'} )
       )
@@ -171,19 +180,26 @@ sub remediate_image($$;$$) {
         }
     }
 
+    # Add other provided new headers if requested and the file does not
+    # already have a value set for the given field
+    while( my ( $field, $val ) = each (%$set_if_undefined_headers) ) {
+        _set_new_if_undefined( $oldFields, $newFields, $field, $val );
+    }
+
     my $exifTool = new Image::ExifTool;
     while ( my ( $field, $val ) = each(%$newFields) ) {
         my ( $success, $errStr ) = $exifTool->SetNewValue( $field, $val );
         if ( defined $errStr ) {
-            warn("Error setting new tag $field => $val: $errStr\n");
+            croak("Error setting new tag $field => $val: $errStr\n");
         }
     }
 
+
     my $kdu_munge = get_config('kdu_munge');
-    system( "$kdu_munge -i $infile -o $outfile 2>&1 > /dev/null");
+    system("$kdu_munge -i $infile -o $outfile 2>&1 > /dev/null");
 
     if ( !$exifTool->WriteInfo($outfile) ) {
-        die(   "Couldn't update JPEG2000 tags for $outfile: "
+        die(    "Couldn't update JPEG2000 tags for $outfile: "
               . $exifTool->GetValue('Error')
               . "\n" );
     }
