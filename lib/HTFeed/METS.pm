@@ -19,15 +19,15 @@ use base qw(HTFeed::Stage);
 my $logger = get_logger(__PACKAGE__);
 
 sub new {
-    my $class  = shift;
+    my $class = shift;
 
     my $self = $class->SUPER::new(
-	@_,
+        @_,
 
-	#		files			=> [],
-	#		dir			=> undef,
-	#		mets_name		=> undef,
-	#		mets_xml		=> undef,
+        #		files			=> [],
+        #		dir			=> undef,
+        #		mets_name		=> undef,
+        #		mets_xml		=> undef,
     );
     $self->{outfile} = $self->{volume}->get_mets_path();
 
@@ -37,11 +37,9 @@ sub new {
 sub run {
     my $self = shift;
     my $mets = new METS( objid => $self->{volume}->get_identifier() );
-    $self->{'mets'} = $mets;
+    $self->{'mets'}    = $mets;
+    $self->{'amdsecs'} = [];
 
-    my $olddir = cwd();
-    my $stage_path = $self->{volume}->get_staging_directory();
-    chdir($stage_path) or die("Can't chdir $stage_path: $!");
     $self->_add_schemas();
     $self->_add_header();
     $self->_add_dmdsecs();
@@ -49,16 +47,15 @@ sub run {
     $self->_add_filesecs();
     $self->_add_struct_map();
     $self->_add_premis();
+    $self->_add_amdsecs();
     $self->_save_mets();
     $self->_validate_mets();
     $self->_set_done();
 
-    chdir($olddir) or die("Can't restore $olddir: $!");
-
 }
 
-sub stage_info{
-    return {success_state => 'metsed', failure_state => 'punted'};
+sub stage_info {
+    return { success_state => 'metsed', failure_state => 'punted' };
 }
 
 sub _add_schemas {
@@ -77,7 +74,7 @@ sub _add_header {
     my $header = new METS::Header(
         createdate   => _get_createdate(),
         recordstatus => 'NEW',
-        id => 'HDR1',
+        id           => 'HDR1',
     );
     $header->add_agent(
         role => 'CREATOR',
@@ -93,6 +90,7 @@ sub _add_header {
     # bibkey not null, but it doesn't hurt to check.
 
     # IA: add an altRecordID with the IA identifier
+    return $header;
 }
 
 sub _add_dmdsecs {
@@ -100,6 +98,7 @@ sub _add_dmdsecs {
     my $volume = $self->{volume};
     my $mets   = $self->{mets};
 
+    # TODO: validate/remediate MARC
     my $dmdsec =
       new METS::MetadataSection( 'dmdSec',
         'id' => $self->_get_subsec_id("DMD") );
@@ -107,7 +106,7 @@ sub _add_dmdsecs {
         mdtype       => 'MARC',
         loctype      => 'OTHER',
         otherloctype => 'Item ID stored as second call number in item record',
-        xptr => $volume->get_identifier()
+        xptr         => $volume->get_identifier()
     );
     $mets->add_dmd_sec($dmdsec);
 
@@ -115,7 +114,7 @@ sub _add_dmdsecs {
       new METS::MetadataSection( 'dmdSec',
         'id' => $self->_get_subsec_id("DMD") );
     $dmdsec->set_data(
-        $volume->get_marc_xml(), # will throw an exception if no MARC found
+        $volume->get_marc_xml(),    # will throw an exception if no MARC found
         mdtype => 'MARC',
         label  => 'Physical volume MARC record'
     );
@@ -136,82 +135,127 @@ sub _add_techmds {
 
 # extract existing PREMIS events from object currently in repos
 sub _extract_old_premis {
-    my $self = shift;
+    my $self   = shift;
     my $volume = $self->{volume};
 
     my $mets_in_repos = $volume->get_repository_mets_path();
-    my $old_events = {};
+    my $old_events    = {};
 
-    if(defined $mets_in_repos) {
+    if ( defined $mets_in_repos ) {
+
         # validate METS in repository
-        my ($mets_in_rep_valid,$val_results) = $self->validate_xml($mets_in_repos);
-        if($mets_in_rep_valid) {
-	    my $xc = $volume->get_repos_mets_xpc();
+        my ( $mets_in_rep_valid, $val_results ) =
+          $self->validate_xml($mets_in_repos);
+        if ($mets_in_rep_valid) {
+            my $xc = $volume->get_repos_mets_xpc();
 
-	    foreach my $event ($xc->findnodes('//PREMIS:event')) {
+            foreach my $event ( $xc->findnodes('//PREMIS:event') ) {
 
-		my $eventType = $xc->findvalue("./PREMIS:eventType",$event);
-		my $eventId = $xc->findvalue("./PREMIS:eventIdentifier/PREMIS:eventIdentifierValue",$event);
+                my $eventType = $xc->findvalue( "./PREMIS:eventType", $event );
+                my $eventId = $xc->findvalue(
+                    "./PREMIS:eventIdentifier/PREMIS:eventIdentifierValue",
+                    $event );
 
-		$self->set_error("MissingField", 
-		    field => "eventType", node => $event->toString()) unless defined $eventType and $eventType;
-		$self->set_error("MissingField", 
-		    field => "eventIdentifierValue", node => $event->toString()) unless defined $eventId and $eventId;
+                $self->set_error(
+                    "MissingField",
+                    field => "eventType",
+                    node  => $event->toString()
+                ) unless defined $eventType and $eventType;
+                $self->set_error(
+                    "MissingField",
+                    field => "eventIdentifierValue",
+                    node  => $event->toString()
+                ) unless defined $eventId and $eventId;
 
-		$old_events->{$eventId} = $event;
-	    }
+                $old_events->{$eventId} = $event;
+            }
 
-	    return $old_events;
+            return $old_events;
 
         }
         else {
-	    # TODO: should be warning, not error
-	    $self->set_error("BadFile", file => $mets_in_repos, detail => $val_results);
-	    print "$val_results";
-	    return 0;
+
+            # TODO: should be warning, not error
+            $self->set_error(
+                "BadFile",
+                file   => $mets_in_repos,
+                detail => $val_results
+            );
+            print "$val_results";
+            return 0;
         }
     }
 }
 
 sub _add_premis_events {
-    my $self = shift;
-    my $premis = shift;
-    my $events = shift;
-    my $volume = $self->{volume};
-    my $nspkg = $volume->get_nspkg();
+    my $self            = shift;
+    my $premis          = shift;
+    my $events          = shift;
+    my $volume          = $self->{volume};
+    my $nspkg           = $volume->get_nspkg();
     my $included_events = $self->{included_events};
 
-    foreach my $eventcode (@{$events}) {
-	# query database for: datetime, outcome
-	my ($eventid, $datetime, $outcome) = $volume->get_event_info($eventcode);
-	$self->set_error("MissingField",field => "datetime", detail => "Missing datetime for $eventcode") if not defined $datetime;
-	$self->set_error("MissingField",field => "eventid", detail => "Missing eventid for $eventcode") if not defined $eventid;
-	my $eventconfig = $nspkg->get_event_configuration($eventcode);
-	# already have event? if so, don't add it again
-	next if defined $eventid and defined $included_events->{$eventid};
-	
+    foreach my $eventcode ( @{$events} ) {
 
-	my $executor = $eventconfig->{'executor'} 
-	    or $self->set_error("MissingField",field => "executor", detail => "Missing event executor for $eventcode");
-	my $executor_type = $eventconfig->{'executor_type'} 
-	    or $self->set_error("MissingField",field => "executor", detail => "Missing event executor type for $eventcode");
-	my $detail = $eventconfig->{'detail'} 
-	    or $self->set_error("MissingField",field => "event detail", detail => "Missing event detail for $eventcode");
-	my $eventtype = $eventconfig->{'type'}
-	    or $self->set_error("MissingField",field => "event type", detail => "Missing event type for $eventcode");
+        # query database for: datetime, outcome
+        my ( $eventid, $datetime, $outcome ) =
+          $volume->get_event_info($eventcode);
+        $self->set_error(
+            "MissingField",
+            field  => "datetime",
+            detail => "Missing datetime for $eventcode"
+        ) if not defined $datetime;
+        $self->set_error(
+            "MissingField",
+            field  => "eventid",
+            detail => "Missing eventid for $eventcode"
+        ) if not defined $eventid;
+        my $eventconfig = $nspkg->get_event_configuration($eventcode);
 
-	my $event = new PREMIS::Event($eventid, 'UUID', $eventtype, $datetime, $detail);
-	$event->add_outcome($outcome) if defined $outcome;
+        # already have event? if so, don't add it again
+        next if defined $eventid and defined $included_events->{$eventid};
 
-	# query namespace/packagetype for software tools to record for this event type
-	$event->add_linking_agent(new PREMIS::LinkingAgent($executor_type,$executor,'Executor'));
+        my $executor = $eventconfig->{'executor'}
+          or $self->set_error(
+            "MissingField",
+            field  => "executor",
+            detail => "Missing event executor for $eventcode"
+          );
+        my $executor_type = $eventconfig->{'executor_type'}
+          or $self->set_error(
+            "MissingField",
+            field  => "executor",
+            detail => "Missing event executor type for $eventcode"
+          );
+        my $detail = $eventconfig->{'detail'}
+          or $self->set_error(
+            "MissingField",
+            field  => "event detail",
+            detail => "Missing event detail for $eventcode"
+          );
+        my $eventtype = $eventconfig->{'type'}
+          or $self->set_error(
+            "MissingField",
+            field  => "event type",
+            detail => "Missing event type for $eventcode"
+          );
 
-	my @agents = ();
-	my $tools_config = $eventconfig->{'tools'};
-	foreach my $agent (@$tools_config) {
-	    $event->add_linking_agent(new PREMIS::LinkingAgent('tool',$self->get_tool_version($agent),'software'));
-	}
-	$premis->add_event($event);
+        my $event =
+          new PREMIS::Event( $eventid, 'UUID', $eventtype, $datetime, $detail );
+        $event->add_outcome($outcome) if defined $outcome;
+
+  # query namespace/packagetype for software tools to record for this event type
+        $event->add_linking_agent(
+            new PREMIS::LinkingAgent( $executor_type, $executor, 'Executor' ) );
+
+        my @agents       = ();
+        my $tools_config = $eventconfig->{'tools'};
+        foreach my $agent (@$tools_config) {
+            $event->add_linking_agent(
+                new PREMIS::LinkingAgent( 'tool', $self->get_tool_version($agent), 'software')
+            );
+        }
+        $premis->add_event($event);
 
     }
 
@@ -221,35 +265,41 @@ sub _add_premis_events {
 # need no modification for inclusion into HT METS
 
 sub _add_source_mets_events {
-    my $self = shift;
+    my $self   = shift;
     my $volume = $self->{volume};
     my $premis = shift;
 
-    my $xc = $volume->get_source_mets_xpc();
+    my $xc                = $volume->get_source_mets_xpc();
     my $src_premis_events = {};
-    foreach my $src_event ($xc->findnodes('//PREMIS:event')) {
-	# src event will be an XML node
+    foreach my $src_event ( $xc->findnodes('//PREMIS:event') ) {
+
+        # src event will be an XML node
         # do we want to keep this kind of event?
-	my $event_type = $xc->findvalue('./PREMIS:eventType',$src_event);
-	$src_premis_events->{$event_type} = [] if not defined $src_premis_events->{$event_type};
-	push(@{ $src_premis_events->{$event_type} }, $src_event);
+        my $event_type = $xc->findvalue( './PREMIS:eventType', $src_event );
+        $src_premis_events->{$event_type} = []
+          if not defined $src_premis_events->{$event_type};
+        push( @{ $src_premis_events->{$event_type} }, $src_event );
     }
 
-    foreach my $eventtype ( @{ $volume->get_nspkg()->get('source_premis_events_extract') } ) {
-	next unless defined $src_premis_events->{$eventtype};
-	foreach my $src_event ( @{ $src_premis_events->{$eventtype} } ) {
-	    my $eventid = $xc->findvalue("./PREMIS:eventIdentifier[PREMIS:eventIdentifierType='UUID']/PREMIS:eventIdentifierValue",$src_event);
-	    if (not defined $self->{included_events}{$eventid}) {
-		$premis->add_event($src_event);
-	    }
-	}
+    foreach my $eventtype (
+        @{ $volume->get_nspkg()->get('source_premis_events_extract') } )
+    {
+        next unless defined $src_premis_events->{$eventtype};
+        foreach my $src_event ( @{ $src_premis_events->{$eventtype} } ) {
+            my $eventid = $xc->findvalue( "./PREMIS:eventIdentifier[PREMIS:eventIdentifierType='UUID']/PREMIS:eventIdentifierValue",
+                $src_event
+            );
+            if ( not defined $self->{included_events}{$eventid} ) {
+                $premis->add_event($src_event);
+            }
+        }
     }
 }
 
 sub _add_premis {
-    my $self = shift;
+    my $self   = shift;
     my $volume = $self->{volume};
-    my $nspkg = $volume->get_nspkg();
+    my $nspkg  = $volume->get_nspkg();
 
     # map from UUID to event - events that have already been added
     $self->{included_events} = {};
@@ -258,33 +308,43 @@ sub _add_premis {
 
     my $old_events = $self->_extract_old_premis();
     if ($old_events) {
-	while(my ($eventid,$event) = each(%$old_events)) {
-	    $self->{included_events}{$eventid} = $event;
-	    $premis->add_event($event);
-	}
+        while ( my ( $eventid, $event ) = each(%$old_events) ) {
+            $self->{included_events}{$eventid} = $event;
+            $premis->add_event($event);
+        }
     }
 
     $self->_add_source_mets_events($premis);
 
     # create PREMIS object
-    my $premis_object = new PREMIS::Object('identifier',$volume->get_identifier());
+    my $premis_object =
+      new PREMIS::Object( 'identifier', $volume->get_identifier() );
     $premis_object->set_preservation_level("1");
-    $premis_object->add_significant_property('file count',$volume->get_file_count());
-    $premis_object->add_significant_property('page count',$volume->get_page_count());
+    $premis_object->add_significant_property( 'file count',
+        $volume->get_file_count() );
+    $premis_object->add_significant_property( 'page count',
+        $volume->get_page_count() );
     $premis->add_object($premis_object);
 
     # last chance to record, even though it's not done yet
     $volume->record_premis_event('ingestion');
 
-    $self->_add_premis_events($premis,$nspkg->get('premis_events'));
+    $self->_add_premis_events( $premis, $nspkg->get('premis_events') );
 
     my $digiprovMD =
       new METS::MetadataSection( 'digiprovMD', 'id' => 'premis1' );
     $digiprovMD->set_xml_node( $premis->to_node(), mdtype => 'PREMIS' );
-    $self->{'mets'}->add_amd_sec( 'AMD1', $digiprovMD);
+
+    push( @{ $self->{amd_mdsecs} }, $digiprovMD );
 
 }
 
+sub _add_amdsecs {
+    my $self = shift;
+    $self->{'mets'}
+      ->add_amd_sec( $self->_get_subsec_id("AMD"), @{ $self->{amd_mdsecs} } );
+
+}
 
 sub _get_subsec_id {
     my $self        = shift;
@@ -305,7 +365,7 @@ sub _add_zip_fg {
         id  => $self->_get_subsec_id("FG"),
         use => 'zip archive'
     );
-    my $working_dir = get_config('staging'=>'memory');
+    my $working_dir = get_config( 'staging' => 'memory' );
     $zip_filegroup->add_file( $volume->get_zip_path(), prefix => 'ZIP' );
     $mets->add_filegroup($zip_filegroup);
 }
@@ -324,7 +384,8 @@ sub _add_content_fgs {
             use => $filegroup->get_use()
         );
         $mets_filegroup->add_files( $filegroup->get_filenames(),
-            prefix => $filegroup->get_prefix() );
+            prefix => $filegroup->get_prefix(),
+            path => $volume->get_staging_directory() );
 
         $self->{filegroups}{$filegroup_name} = $mets_filegroup;
         $mets->add_filegroup($mets_filegroup);
@@ -332,12 +393,11 @@ sub _add_content_fgs {
 }
 
 sub _add_filesecs {
-    my $self   = shift;
+    my $self = shift;
 
     # first add zip
     $self->_add_zip_fg();
     $self->_add_content_fgs();
-
 
     # MIU: Extra stuff for MIU: archival XML, objid XML?
 
@@ -353,33 +413,46 @@ sub _add_struct_map {
     $struct_map->add_div($voldiv);
     my $order               = 1;
     my $file_groups_by_page = $volume->get_file_groups_by_page();
-    foreach my $seqnum (sort(keys(%$file_groups_by_page))) {
-	my $pagefiles = $file_groups_by_page->{$seqnum};
+    foreach my $seqnum ( sort( keys(%$file_groups_by_page) ) ) {
+        my $pagefiles   = $file_groups_by_page->{$seqnum};
         my $pagediv_ids = [];
         my $pagedata;
-	my @pagedata;
+        my @pagedata;
         while ( my ( $filegroup_name, $files ) = each(%$pagefiles) ) {
             foreach my $file (@$files) {
-                my $fileid = $self->{filegroups}{$filegroup_name}->get_file_id($file);
-		if(not defined $fileid) {
-		    $self->set_error("MissingField",field => "fileid", file => $file, filegroup => $filegroup_name, detail => "Can't find ID for file in file group");
-		    next;
-		}
+                my $fileid =
+                  $self->{filegroups}{$filegroup_name}->get_file_id($file);
+                if ( not defined $fileid ) {
+                    $self->set_error(
+                        "MissingField",
+                        field     => "fileid",
+                        file      => $file,
+                        filegroup => $filegroup_name,
+                        detail    => "Can't find ID for file in file group"
+                    );
+                    next;
+                }
 
                 # try to find page number & page tags for this page
-		my $thisfile_pagedata = $volume->get_page_data($fileid);
                 if ( not defined $pagedata ) {
-                    $pagedata = $volume->get_page_data($fileid);
-		    @pagedata = %$pagedata;
-                } else {
-		    my $other_pagedata = $volume->get_page_data($fileid);
-		    while(my ($key,$val) = each (%$pagedata)) {
-			my $val1 = $other_pagedata->{$key};
-			$self->set_error("NotEqualValues",actual => "other=$val ,$fileid=$val1",detail => "Mismatched page data for different files in pagefiles")
-			    unless (not defined $val and not defined $val1) or ($val eq $val1);
-		    }
+                    $pagedata = $volume->get_page_data($file);
+                    @pagedata = %$pagedata;
+                }
+                else {
+                    my $other_pagedata = $volume->get_page_data($file);
+                    while ( my ( $key, $val ) = each(%$pagedata) ) {
+                        my $val1 = $other_pagedata->{$key};
+                        $self->set_error(
+                            "NotEqualValues",
+                            actual => "other=$val ,$fileid=$val1",
+                            detail =>
+"Mismatched page data for different files in pagefiles"
+                          )
+                          unless ( not defined $val and not defined $val1 )
+                          or ( $val eq $val1 );
+                    }
 
-		}
+                }
 
                 push( @$pagediv_ids, $fileid );
             }
@@ -396,8 +469,8 @@ sub _add_struct_map {
 }
 
 sub _save_mets {
-    my $self   = shift;
-    my $mets   = $self->{mets};
+    my $self = shift;
+    my $mets = $self->{mets};
 
     my $mets_path = $self->{outfile};
 
@@ -414,8 +487,7 @@ sub _validate_mets {
     croak("File $mets_path does not exist. Cannot validate.")
       unless -e $mets_path;
 
-    my ( $mets_valid, $val_results ) =
-      $self->validate_xml( $mets_path );
+    my ( $mets_valid, $val_results ) = $self->validate_xml($mets_path);
     if ( !$mets_valid ) {
         $self->set_error(
             "BadFile",
@@ -430,7 +502,7 @@ sub _validate_mets {
 }
 
 sub validate_xml {
-    my $self = shift;
+    my $self   = shift;
     my $xerces = get_config('xerces');
 
     my $filename       = shift;
@@ -452,18 +524,17 @@ Given ss1970, use Time::localtime to generate a date with format: yyyy-mm-ddT13:
 =cut
 
 sub _get_createdate {
-    my $self = shift;
+    my $self   = shift;
     my $ss1970 = shift;
 
     my $localtime_obj = defined($ss1970) ? localtime($ss1970) : localtime();
 
-    my $ts = sprintf("%d-%02d-%02dT%02d:%02d:%02d",
-        (1900 + $localtime_obj->year()),
-        (1 + $localtime_obj->mon()),
-        $localtime_obj->mday(),
-        $localtime_obj->hour(),
-        $localtime_obj->min(),
-        $localtime_obj->sec());
+    my $ts = sprintf(
+        "%d-%02d-%02dT%02d:%02d:%02d",
+        ( 1900 + $localtime_obj->year() ), ( 1 + $localtime_obj->mon() ),
+        $localtime_obj->mday(), $localtime_obj->hour(),
+        $localtime_obj->min(),  $localtime_obj->sec()
+    );
 
     return $ts;
 }
@@ -478,17 +549,19 @@ Returns the git revision of the currently running script
 
 sub git_revision {
     my $self = shift;
-    my $path = dirname(abs_path(__FILE__)); # get path to this file, hope it's in a git repo
+    my $path =
+      dirname( abs_path(__FILE__) )
+      ;    # get path to this file, hope it's in a git repo
     my $scriptname = basename($0);
-    my $olddir = cwd;
-    chdir($path) or die("Can't change directory to $path: $!");
-    my $gitrev = `git rev-parse HEAD`;
+    my $gitrev = `cd $path; git rev-parse HEAD`;
     chomp $gitrev if defined $gitrev;
-    chdir $olddir or die("Can't change directory to $olddir: $!");
-    if (!$? and defined $gitrev and $gitrev =~ /^[0-9a-f]{40}/) {
+
+    if ( !$? and defined $gitrev and $gitrev =~ /^[0-9a-f]{40}/ ) {
         return "$scriptname git rev $gitrev";
-    } else {
-        $self->set_error('ToolVersionError',detail => "Can't get git revision for $0: git returned '$gitrev' with status $?");
+    }
+    else {
+        $self->set_error( 'ToolVersionError',
+            detail => "Can't get git revision for $0: git returned '$gitrev' with status $?");
         return "$scriptname";
     }
 
@@ -499,26 +572,28 @@ sub git_revision {
 Returns $module::VERSION; $module must have already been loaded.
 
 =cut
+
 sub perl_mod_version() {
-    my $self = shift;
-    my $module = shift;
+    my $self    = shift;
+    my $module  = shift;
     my $mod_req = $module;
     $mod_req =~ s/::/\//g;
     my $toreturn;
-    eval {
-	require "$mod_req.pm";
-    };
-    if($@) {
-	$self->set_error('ToolVersionError',detail => "Error loading $module: $@");
-	return "$module";
+    eval { require "$mod_req.pm"; };
+    if ($@) {
+        $self->set_error( 'ToolVersionError',
+            detail => "Error loading $module: $@" );
+        return "$module";
     }
     no strict 'refs';
     my $version = ${"${module}::VERSION"};
-    if(defined $version) {
-	return "$module $version";
-    } else {
-	$self->set_error('ToolVersionError',detail => "Can't find ${module}::VERSION");
-	return "$module";
+    if ( defined $version ) {
+        return "$module $version";
+    }
+    else {
+        $self->set_error( 'ToolVersionError',
+            detail => "Can't find ${module}::VERSION" );
+        return "$module";
     }
 }
 
@@ -528,29 +603,35 @@ Returns the version of a package installed in a local directory hierarchy,
 specified by the 'premis_tool_local' configuration directive
 
 =cut
-sub local_directory_version() {
-    my $self = shift;
-    my $package = shift;
-    my $tool_root = get_config("premis_tool_local");
-    if (not -l "$tool_root/$package") {
-	$self->set_error('ToolVersionError',detail => "$tool_root/$package not a symlink");
-	return $package;
-    } else {
-	my $package_target;
-	if(!($package_target = readlink("$tool_root/$package")))
-	{	
-	    $self->set_error('ToolVersionError',detail => "Error in readlink for $tool_root/$package: $!") if $!;
-	    return $package;
-	}
 
-	my ($package_version) = ($package_target  =~ /$package-([\w.]+)$/);
-	if($package_version) {
-	    return "$package $package_version";
-	} else {
-	    $self->set_error('ToolVersionError', detail => "Couldn't extract version from symlink $package_version for $package");
-	    return $package;
-	}
-	
+sub local_directory_version() {
+    my $self      = shift;
+    my $package   = shift;
+    my $tool_root = get_config("premis_tool_local");
+    if ( not -l "$tool_root/$package" ) {
+        $self->set_error( 'ToolVersionError',
+            detail => "$tool_root/$package not a symlink" );
+        return $package;
+    }
+    else {
+        my $package_target;
+        if ( !( $package_target = readlink("$tool_root/$package") ) ) {
+            $self->set_error( 'ToolVersionError',
+                detail => "Error in readlink for $tool_root/$package: $!" )
+              if $!;
+            return $package;
+        }
+
+        my ($package_version) = ( $package_target =~ /$package-([\w.]+)$/ );
+        if ($package_version) {
+            return "$package $package_version";
+        }
+        else {
+            $self->set_error( 'ToolVersionError',
+                detail => "Couldn't extract version from symlink $package_version for $package");
+            return $package;
+        }
+
     }
 
 }
@@ -562,17 +643,19 @@ Returns the version of a system-installed RPM package.
 =cut
 
 sub system_version() {
-    my $self = shift;
+    my $self    = shift;
     my $package = shift;
     my $version = `rpm -q $package`;
 
-
-    if($? or $version !~ /^$package[-.\w]+/) {
-	$self->set_error('ToolVersionError', detail => "RPM returned '$version' with status $? for package $package");
-	return $package;
-    } else {
-	chomp $version;
-	return $version;
+    if ( $? or $version !~ /^$package[-.\w]+/ ) {
+        $self->set_error( 'ToolVersionError',
+            detail =>
+              "RPM returned '$version' with status $? for package $package" );
+        return $package;
+    }
+    else {
+        chomp $version;
+        return $version;
     }
 }
 
@@ -584,33 +667,146 @@ Gets the version of a tool defined in the premis_tools section in the configurat
 
 sub get_tool_version {
 
-    my $self = shift;
+    my $self       = shift;
     my $package_id = shift;
-    my $to_eval = get_config('premis_tools',$package_id);
-    if(!$to_eval) {
-	$self->set_error('ToolVersionError',detail => "$package_id missing from premis_tools");
-	return $package_id;
+    my $to_eval    = get_config( 'premis_tools', $package_id );
+    if ( !$to_eval ) {
+        $self->set_error( 'ToolVersionError',
+            detail => "$package_id missing from premis_tools" );
+        return $package_id;
     }
 
     my $version = eval($to_eval);
-    if($@ or !$version) {
-	$self->set_error('ToolVersionError', detail => $@);
-	return $package_id;
-    } else {
-	return $version;
+    if ( $@ or !$version ) {
+        $self->set_error( 'ToolVersionError', detail => $@ );
+        return $package_id;
+    }
+    else {
+        return $version;
     }
 }
 
-sub clean_always{
+sub clean_always {
     my $self = shift;
+
     #$self->clean_ram_download();
     $self->clean_unpacked_object();
 }
 
 # do cleaning that is appropriate after failure
-sub clean_failure{
+sub clean_failure {
     my $self = shift;
     $self->clean_mets();
+}
+
+# fixes errors in MARC leader by changing fields to their default value if they
+# do not match the regular expression for the leader in the MARC schema
+sub _remediate_marc {
+    my $self = shift;
+    my $xc = shift;
+
+    my @leaders = $xc->findnodes("//marc:leader");
+    if(@leaders != 1) {
+        $self->set_error("BadField",field=>"marc:leader",detail=>"Zero or more than one leader found");
+        return;
+    }
+
+    my $leader = $leaders[0];
+    my $value = $leader->findvalue(".");
+
+    if ($value !~ /^
+        [\d ]{5} # 00-04: Record length
+        [\dA-Za-z ]{1} # 05: Record status
+        [\dA-Za-z]{1} # 06: Type of record
+        [\dA-Za-z ]{3} # 07: Bibliographic level
+                       # 08: Type of control
+                       # 09: Character
+        (2| )          # 10: Indicator count
+        (2| )          # 11: Subfield code count
+        [\d ]{5}       # 12: Base address of data
+        [\dA-Za-z ]{3} # 17: Encoding level
+                       # 18: Descriptive cataloging form
+                       # 19: Multipart resource record level
+        (4500|    )    # 20: Length of the length-of-field portion
+                       # 21: Length of the starting-character-position portion
+                       # 22: Length of the implementation-defined portion
+                       # 23: Undefined
+        $/x) {
+
+        # 00-04: Record length - default to empty
+        if(substr($value,0,5) !~ /^[\d ]{5}$/) {
+            substr($value,0,5) = '     ';
+        }
+
+        # 05: Record status
+        if(substr($value,5,1) !~ /^[\dA-Za-z ]$/) {
+            substr($value,5,1) = ' ';
+        }
+
+        # 06: Type of record
+        if(substr($value,6,1) !~ /^[\dA-Za-z]$/) {
+            warn("Invalid value found for record type, can't remediate");
+        }
+
+        # 07: Bibliographic level
+        if(substr($value,7,1) !~ /^[\dA-Za-z ]$/) {
+            substr($value,5,1) = ' ';
+        }
+
+        # 08: Type of control
+        if(substr($value,8,1) !~ /^[\dA-Za-z ]$/) {
+            substr($value,5,1) = ' ';
+        }
+
+        # 09: Character coding scheme
+        if(substr($value,9,1) ne 'a') {
+            warn("Non-Unicode MARC-XML found");
+        }
+
+        # 10: Indicator count
+        if(substr($value,10,1) !~ /^(2| )$/) {
+            substr($value,10,1) = ' ';
+        }
+
+        # 11: Subfield code count
+        if(substr($value,11,1) !~ /^(2| )$/) {
+            substr($value,11,1) = ' ';
+        }
+
+        # 12-16: Base address of data
+        if(substr($value,12,5) !~ /^[\d ]{5}$/) {
+            substr($value,12,5) = '     ';
+        }
+
+        # 17: Encoding level
+        if(substr($value,17,1) !~ /^[\dA-Za-z ]$/) {
+            substr($value,17,1) = 'u'; # unknown
+        }
+
+        # 18: Descriptive cataloging form
+        if(substr($value,18,1) !~ /^[\dA-Za-z ]$/) {
+            substr($value,18,1) = 'u'; # unknown
+        }
+
+        # 19: Multipart resource record level
+        if(substr($value,19,1) !~ /^[\dA-Za-z ]$/) {
+            substr($value,19,1) = ' '; 
+        }
+
+        # 20: Length of the length-of-field portion
+        # 21: Length of the start-character-position portion
+        # 22: Length of the implementatino-defined portion
+        # 23: Undefined
+        if(substr($value,20,4) !~ /^(4500|    )/) {
+            # default to unspecified
+            substr($value,20,4) = '    ';
+        }
+
+        $leader->removeChildNodes();
+        $leader->appendChild($leader->ownerDocument->createTextNode($value));
+    }
+
+
 }
 
 1;
