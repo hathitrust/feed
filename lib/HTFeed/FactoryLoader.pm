@@ -8,10 +8,7 @@ use Carp;
 # common base stuff for namespace & packagetype
 
 # hash of allowed config variables
-our %allowed_config;
-our @allowed_config;
 our %subclass_map;
-@allowed_config{@allowed_config} = undef;
 
 # Load all subclasses
 sub import {

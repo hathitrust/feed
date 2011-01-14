@@ -68,8 +68,8 @@ sub new {
             xmp => {
                 width               => "//tiff:ImageWidth",
                 length              => "//tiff:ImageLength",
-                bitsPerSample_grey  => "//tiff:BitsPerSample/rdf:Seq/rdf:li",
-                bitsPerSample_color => "//tiff:BitsPerSample/rdf:Seq/rdf:li",
+                bitsPerSample_grey  => "//tiff:BitsPerSample//*[not(*)] | //tiff:BitsPerSample[not(*)]",
+                bitsPerSample_color => "//tiff:BitsPerSample//*[not(*)] | //tiff:BitsPerSample[not(*)]",
                 compression         => "//tiff:Compression",
                 colorSpace          => "//tiff:PhotometricInterpretation",
                 orientation         => "//tiff:Orientation",
