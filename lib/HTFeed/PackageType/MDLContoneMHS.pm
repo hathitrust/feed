@@ -1,6 +1,7 @@
 package HTFeed::PackageType::MDLContoneMHS;
 use HTFeed::XPathValidator qw(:closures);
 use HTFeed::PackageType::MDLContone;
+use HTFeed::PackageType::MDLContoneComposite::METS;
 use base qw(HTFeed::PackageType::MDLContone);
 use strict;
 
@@ -13,8 +14,8 @@ our $config = {
     # Regular expression that distinguishes valid files in the file package
     # HTML OCR is valid for the package type but only expected/required for UC1
     valid_file_pattern => qr/^( 
-    \w{3}\d{5}\.(jp2|jpg) |
-    mdl\.\w+\.\w{3}\d{5}\w?\.(xml) |
+    [a-z0-9-]+.(jp2|jpg) |
+    mdl\.[a-z0-9.-]+.(xml) |
     $)/x,
 
 # Configuration for each filegroup.
@@ -37,7 +38,7 @@ our $config = {
         },
     },
 
-    source_mets_file => qr/^mdl\.\w+\.\w{3}\d{5}\w?\.xml$/,
+    source_mets_file => qr/^mdl\.[a-z0-9.-]+.xml$/,
 
     # The HTFeed::ModuleValidator subclass to use for validating
     # files with the given extensions
@@ -45,6 +46,17 @@ our $config = {
         'jp2' => 'HTFeed::ModuleValidator::JPEG2000_hul',
         'jpg' => 'HTFeed::ModuleValidator::JPEG_hul',
     },
+
+    # what stage to run given the current state
+    stage_map => {
+        ready      => 'HTFeed::PackageType::MDLContone::Unpack',
+        unpacked   => 'HTFeed::PackageType::MDLContone::VolumeValidator',
+        validated  => 'HTFeed::Stage::Pack',
+        packed     => 'HTFeed::PackageType::MDLContoneComposite::METS',
+        metsed     => 'HTFeed::Stage::Handle',
+        handled    => 'HTFeed::Stage::Collate',
+    },
+
 
     # Validation overrides
     validation => {
@@ -63,7 +75,6 @@ our $config = {
 
         'HTFeed::ModuleValidator::JPEG_hul' => {
             'resolution' => v_and(
-                v_in( 'mix', 'xRes', ['72','240'] ),
                 v_same( 'mix', 'xRes', 'mix', 'yRes'),
             ),
             'camera' => undef,

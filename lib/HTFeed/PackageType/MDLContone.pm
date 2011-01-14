@@ -103,6 +103,7 @@ our $config = {
     source_premis_events_extract => [
     'capture',
     'image compression',
+    'image header modification',
     'message digest calculation',
     'source mets creation'
     ],
