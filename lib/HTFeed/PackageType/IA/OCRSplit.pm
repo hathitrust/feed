@@ -78,6 +78,7 @@ sub run {
         my $outfile_txt = sprintf( "%s/%08d.txt", $staging_directory, $seqnum );
 
         open(my $out, ">", $outfile_txt ) or croak ( "Can't open $outfile_txt: $!");
+        binmode($out,":utf8");
 
         # If there was no OCR for this page, we'll just end up with a 0-byte file
         print $out join( " ", @objtext );
@@ -91,3 +92,6 @@ sub run {
     $self->_set_done();
 }
 
+sub stage_info{
+    return {success_state => 'ocr_extracted', failure_state => ''};
+}

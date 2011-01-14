@@ -35,7 +35,8 @@ sub run {
         my $doc = $parser->parse_file( "$objdir/$manifest" );
 
         opendir(my $dir, $objdir) or die("Can't opendir $objdir: $!");
-        my %dirfiles = map { $_ => 1 } readdir($dir);
+        # only get plain files
+        my %dirfiles = map { ($_ => 1) } grep { -f $_ } readdir($dir);
         closedir($dir);
 
         my $core_mismatch = 0;

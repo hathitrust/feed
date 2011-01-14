@@ -25,8 +25,8 @@ sub run {
 
     my $download_directory = $volume->get_download_directory();
     my $preingest_directory = $volume->get_preingest_directory();
+    my %expected_pages;
 
-    # parse scandata
     if(! -e "$download_directory/${ia_id}_scandata.xml") {
         $self->set_error("MissingFile",file => "${ia_id}_scandata.xml");
         return;
@@ -66,3 +66,6 @@ sub run {
 
 }
 
+sub stage_info{
+    return {success_state => 'delete_checked', failure_state => 'punted'};
+}

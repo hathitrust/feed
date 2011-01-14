@@ -60,14 +60,26 @@ sub get_page_data {
         my $pagedata = {};
         my $ia_pagedata = {};
 
-        my $xc = $self->get_source_mets_xpc();
+        my $xpc = $self->get_source_mets_xpc();
+        $xpc->registerNs('scribe','http://archive.org/scribe/xml');
 
-        foreach my $pagenode ($xc->findnodes('//METS:techMD/book/pageData/page')) {
+        # may appear with or without namespace..
+        foreach my $pagenode ($xpc->findnodes('//METS:techMD/METS:mdWrap/METS:xmlData/book/pageData/page'),
+                              $xpc->findnodes('//METS:techMD/METS:mdWrap/METS:xmlData/scribe:book/scribe:pageData/scribe:page')) {
             my $leafnum = $pagenode->getAttribute('leafNum');
             my $seqnum_padded = sprintf("%08d",$leafnum);
-            my $detected_pagenum = $xc->findvalue('./pageNumber',$pagenode);
-            my $hand_side = $xc->findvalue('./handSide',$pagenode);
-            my $page_type = $xc->findvalue('./pageType',$pagenode);
+            my $detected_pagenum = $xpc->findvalue('./pageNumber',$pagenode);
+            if(not defined $detected_pagenum or $detected_pagenum eq '') {
+                $detected_pagenum = $xpc->findvalue('./scribe:pageNumber',$pagenode);
+            }
+            my $hand_side = $xpc->findvalue('./handSide',$pagenode);
+            if(not defined $hand_side or $hand_side eq '') {
+                $hand_side = $xpc->findvalue('./scribe:handSide',$pagenode);
+            }
+            my $page_type = $xpc->findvalue('./pageType',$pagenode);
+            if(not defined $page_type or $page_type eq '') {
+                $page_type = $xpc->findvalue('./scribe:pageType',$pagenode);
+            }
 
             my $mapped_page_type = $pagetag_mapping->{$page_type};
             my @tags = ();

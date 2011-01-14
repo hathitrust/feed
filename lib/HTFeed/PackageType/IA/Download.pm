@@ -38,7 +38,7 @@ sub run{
 
     if(!$self->download(url => $url . "${ia_id}_scandata.xml", path => $pt_path, filename => "${ia_id}_scandata.xml", not_found_ok => 1)) {
         $self->download(url => $url . "scandata.zip", path => $pt_path, filename => "scandata.zip", not_found_ok => 0) or return;
-        unzip_file($self,"-d '$pt_path'","$pt_path/scandata.zip scandata.xml");
+        unzip_file($self,"$pt_path/scandata.zip",$pt_path,"scandata.xml");
         if(!-e "$pt_path/scandata.xml") {
             $self->set_error("MissingFile",file => 'scandata.zip/scandata.xml');
             return;
@@ -59,7 +59,7 @@ sub run{
         $outcome = PREMIS::Outcome->new('pass');
     }
 
-    $self->{volume}->record_premis_event("package inspection",outcome => $outcome);
+    $self->{volume}->record_premis_event("package_inspection",outcome => $outcome);
 
     $self->_set_done();
     return $self->succeeded();
