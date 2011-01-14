@@ -1,4 +1,5 @@
 #!/usr/bin/perl
+# tests objid validation
 
 use warnings;
 use strict;

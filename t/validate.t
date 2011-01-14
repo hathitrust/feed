@@ -1,4 +1,5 @@
 #!/usr/bin/perl
+# tests package validation
 
 use warnings;
 use strict;
