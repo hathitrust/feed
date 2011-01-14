@@ -16,19 +16,22 @@ sub stage_info{
 
 sub unzip_file {
     # extract - not using Archive::Zip because it doesn't handle ZIP64
-    return _extract_file(@_, q(yes 'n' | unzip -j -o -q '%s' -d '%s' 2>&1));
+    return _extract_file(q(yes 'n' | unzip -j -o -q '%s' -d '%s' %s 2>&1),@_);
 }
 
 sub untgz_file {
     # extract - not using Archive::Tar because it is very slow
-    return _extract_file(@_, q(tar --strip-components 1 -zx -f '%s' -C '%s' 2>&1));
+    return _extract_file(q(tar --strip-components 1 -zx -f '%s' -C '%s' %s 2>&1),@_);
 }
 
 sub _extract_file {
+    my $command = shift;
     my $requester = shift; # not necessarily self..
     my $infile = shift;
     my $outdir = shift;
-    my $command = shift;
+    my $otheroptions = shift;
+
+    $otheroptions = '' if not defined $otheroptions;
 
     $logger->trace("Extracting $infile with command $command");
 
@@ -42,7 +45,7 @@ sub _extract_file {
         $requester->set_error('MissingFile',file=>$infile);
     }
 
-    my $cmd = sprintf($command, $infile, $outdir); 
+    my $cmd = sprintf($command, $infile, $outdir, $otheroptions); 
     my $rstring = `$cmd`;
     my $rval = $?;
     if($rval or $rstring) {
