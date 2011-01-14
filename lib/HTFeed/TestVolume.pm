@@ -34,6 +34,11 @@ sub get_staging_directory {
     return $self->{dir};
 }
 
+# Don't record any premis events for a test volume.
+sub record_premis_event {
+    return;
+}
+
 1;
 
 __END__
