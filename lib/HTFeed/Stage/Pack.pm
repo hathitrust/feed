@@ -7,7 +7,6 @@ use base qw(HTFeed::Stage);
 use HTFeed::Config qw(get_config);
 use File::Basename qw(basename);
 use File::Path qw(remove_tree);
-use Cwd qw(getcwd);
 
 use Log::Log4perl qw(get_logger);
 my $logger = get_logger(__PACKAGE__);
@@ -22,11 +21,9 @@ sub run{
     my @files_to_zip = ();
 
     # Make a temporary staging directory
-    my $old_dir = getcwd();
     my $zip_stage = get_config('staging','zip');
     mkdir($zip_stage);
-    chdir($zip_stage) or die("Can't use $zip_stage directory");
-    mkdir("$pt_objid");
+    mkdir("$zip_stage/$pt_objid");
 
     # Add OCR files with compression
     my $uncompressed_extensions = join(":",@{ $volume->get_nspkg()->get('uncompressed_extensions') });
@@ -39,7 +36,7 @@ sub run{
 	    $self->set_error('MissingFile',file => "$path/$file");
 	}
 
-	if(!symlink("$path/$file","$pt_objid/$file"))
+	if(!symlink("$path/$file","$zip_stage/$pt_objid/$file"))
 	{
 	    $self->set_error('OperationFailed',operation=>'symlink',file => "$path/$file",description=>"Symlink to staging directory failed: $!");
 	}
@@ -47,7 +44,7 @@ sub run{
     }
 
     my $zip_path = $volume->get_zip_path();
-    my $zipret = system("zip -q -r -n $uncompressed_extensions $zip_path $pt_objid");
+    my $zipret = system("cd '$zip_stage'; zip -q -r -n $uncompressed_extensions '$zip_path' '$pt_objid'");
 
     if($zipret) {
 	    $self->set_error('OperationFailed',operation=>'zip',detail=>'Creating zip file',exitstatus=>$zipret,file=>$zip_path);
@@ -61,7 +58,6 @@ sub run{
 
     }
 
-    chdir($old_dir) or die("Can't chdir to $old_dir: $!");
 
 
     $self->_set_done();
