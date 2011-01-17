@@ -52,7 +52,7 @@ sub get_queued{
     
     my $dbh = get_dbh();
     ## TODO: order by priority
-    my $sth = $dbh->prepare(q(SELECT ns, pkg_type, objid, status, failure_count FROM queue WHERE node = ? AND status != 'punted' AND status !=  'collated' and status != 'held'));
+    my $sth = $dbh->prepare(q(SELECT pkg_type, ns, objid, status, failure_count FROM queue WHERE node = ? AND status != 'punted' AND status !=  'collated' and status != 'held'));
     $sth->execute(hostname);
     
     return $sth if ($sth->rows);
@@ -69,9 +69,9 @@ sub enqueue_volumes{
     $dbh = get_dbh();
     my $sth;
     if($ignore){
-        $sth = $dbh->prepare(q(INSERT IGNORE INTO `queue` (ns, pkg_type, objid) VALUES (?,?,?);));
+        $sth = $dbh->prepare(q(INSERT IGNORE INTO `queue` (pkg_type, ns, objid) VALUES (?,?,?);));
     }else {
-        $sth = $dbh->prepare(q(INSERT INTO `queue` (ns, pkg_type, objid) VALUES (?,?,?);));
+        $sth = $dbh->prepare(q(INSERT INTO `queue` (pkg_type, ns, objid) VALUES (?,?,?);));
     }
     
     my @results;
