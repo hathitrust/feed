@@ -51,41 +51,41 @@ if ($one_line) {
 else{
     # read infile
     open INFILE, '<', $in_file or die $!;
-}
 
-# handle -d (read infile in dot format)
-if ($dot_format) {
-    die 'must specify packagetype when using -d option' if(! $default_packagetype);
-    while (<INFILE>) {
-        # simplified, lines should match /(.*)\.(.*)/
-        $_ =~ /^([^\.\s]*)\.([^\s]*)$/;
-        my ($namespace,$objid) = ($1,$2);
-        unless( $namespace and $objid ){
-            die "Bad syntax near: $_";
+    # handle -d (read infile in dot format)
+    if ($dot_format) {
+        die 'must specify packagetype when using -d option' if(! $default_packagetype);
+        while (<INFILE>) {
+            # simplified, lines should match /(.*)\.(.*)/
+            $_ =~ /^([^\.\s]*)\.([^\s]*)$/;
+            my ($namespace,$objid) = ($1,$2);
+            unless( $namespace and $objid ){
+                die "Bad syntax near: $_";
+            }
+
+            push @volumes, HTFeed::Volume->new(packagetype => $default_packagetype, namespace => $namespace, objid => $objid);
+            print "found: $default_packagetype $namespace $objid\n" if ($verbose);
         }
-
-        push @volumes, HTFeed::Volume->new(packagetype => $default_packagetype, namespace => $namespace, objid => $objid);
-        print "found: $default_packagetype $namespace $objid\n" if ($verbose);
     }
-}
 
-# handle default case (read infile in standard format)
-if (! $dot_format) {
-    while (<INFILE>) {
-        my @words = split;
-        my $objid = pop @words;
-        my $namespace = (pop @words or $default_namespace);
-        my $packagetype = (pop @words or $default_packagetype);
-        unless( $packagetype and $namespace and $objid ){
-            die "Missing parameter near: $_";
+    # handle default case (read infile in standard format)
+    if (! $dot_format) {
+        while (<INFILE>) {
+            my @words = split;
+            my $objid = pop @words;
+            my $namespace = (pop @words or $default_namespace);
+            my $packagetype = (pop @words or $default_packagetype);
+            unless( $packagetype and $namespace and $objid ){
+                die "Missing parameter near: $_";
+            }
+
+            push @volumes, HTFeed::Volume->new(packagetype => $packagetype, namespace => $namespace, objid => $objid);
+            print "found: $packagetype $namespace $objid\n" if ($verbose);
         }
-
-        push @volumes, HTFeed::Volume->new(packagetype => $packagetype, namespace => $namespace, objid => $objid);
-        print "found: $packagetype $namespace $objid\n" if ($verbose);
     }
-}
 
-close INFILE;
+    close INFILE;
+}
 
 # add volumes to queue
 my $results;
@@ -103,7 +103,7 @@ if ($verbose or !$quiet){
         $verb = 'reset';
     }
     foreach my $volume (@volumes){
-        print $volume->get_namespace() . ' ' . $volume->get_packagetype() . ' ' . $volume->get_objid() . ': ';
+        print  $volume->get_packagetype() . ' ' . $volume->get_namespace() . ' ' . $volume->get_objid() . ': ';
         my $result = shift @{$results};
         # dbi returned true
         if ($result){
