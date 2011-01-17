@@ -1,4 +1,4 @@
-package HTFeed::Stage::Unpack::AbstractTest;
+package HTFeed::PackageType::IA::Download::Test;
 
 use warnings;
 use strict;
@@ -14,5 +14,3 @@ use Test::More;
 1;
 
 __END__
-
-# this is probably useless, let's delete it

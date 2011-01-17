@@ -33,7 +33,7 @@ sub new {
         #		mets_xml		=> undef,
     };
 
-    $self->{nspkg} = new HTFeed::Namespace($self->{namespace},$self->{packagetype});
+    $self->{nspkg} = HTFeed::Namespace->new($self->{namespace},$self->{packagetype});
 
     $self->{nspkg}->validate_barcode($self->{objid}) 
         or croak "Invalid barcode $self->{objid} provided for $self->{namespace}";

@@ -14,11 +14,13 @@ sub stage_info{
     return {success_state => 'unpacked', failure_state => 'ready'};
 }
 
+# unzip_file $self,$infile,$outdir,$otheroptions
 sub unzip_file {
     # extract - not using Archive::Zip because it doesn't handle ZIP64
     return _extract_file(q(yes 'n' | unzip -j -o -q '%s' -d '%s' %s 2>&1),@_);
 }
 
+# untgz_file $self,$infile,$outdir,$otheroptions
 sub untgz_file {
     # extract - not using Archive::Tar because it is very slow
     return _extract_file(q(tar --strip-components 1 -zx -f '%s' -C '%s' %s 2>&1),@_);
