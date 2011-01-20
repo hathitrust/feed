@@ -3,22 +3,19 @@ use HTFeed::PackageType;
 use base qw(HTFeed::PackageType);
 use strict;
 
-##TODO: commented out to not break compile
-#use HTFeed::PackageType::MPub::Fetch;
-use HTFeed::VolumeValidator;
-##TODO: commented out to not break compile
+#commented out to not break compile
 #use HTFeed::PackageType::MPub::METS;
+#use HTFeed::PackageType::MPub::Fetch;
+#TODO: additional HTFeed::PackageType::MPub modules ...?
+use HTFeed::VolumeValidator;
 use HTFeed::Stage::Pack;
 use HTFeed::Stage::Collate;
 use HTFeed::Stage::Handle;
 
-########
-## TODO: this was copied from Google.pm, lots of it is wrong
-########
-
 our $identifier = 'mpub';
 
 our $config = {
+
     volume_module => 'HTFeed::Volume',
     
     # Regular expression that distinguishes valid files in the file package
@@ -29,14 +26,7 @@ our $config = {
 		\d{8}.(html|jp2|tif|txt)
 		)/x,
 
-    # Configuration for each filegroup. 
-    # prefix: the prefix to use on file IDs in the METS for files in this filegruop
-    # use: the 'use' attribute on the file group in the METS
-    # file_pattern: a regular expression to determine if a file is in this filegroup
-    # required: set to 1 if a file from this filegroup is required for each page 
-    # content: set to 1 if file should be included in zip file
-    # jhove: set to 1 if output from JHOVE will be used in validation
-    # utf8: set to 1 if files should be verified to be valid UTF-8
+	# A set of regular expressions mapping files to the filegroups they belong in
     filegroups => {
 	image => {
 	    prefix => 'IMG',

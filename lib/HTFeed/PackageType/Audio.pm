@@ -40,6 +40,8 @@ our $config = {
 	}
     },
 
+	source_mets_file => qr/\w+.xml$/,
+
     # Allow gaps in numerical sequence of filenames?
     allow_sequence_gaps => 0,
 
@@ -67,7 +69,7 @@ our $config = {
         qw(validate_file_names
           validate_filegroups_nonempty
           validate_consistency
-	  validate_mets_consistency
+          validate_mets_consistency
           validate_checksums
           validate_utf8
           validate_metadata)

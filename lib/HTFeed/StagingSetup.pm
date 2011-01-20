@@ -25,7 +25,7 @@ sub _make_dirs{
 sub _get_dirs{
     # this is inefficient, but memoizing here would be brittle
     # in special cases (i.e. set_config has been used)
-    return [get_config('staging'=>'memory'),
+    return [get_config('staging'=>'ingest'),
             get_config('staging'=>'zip'),
             get_config('staging'=>'preingest'),
             get_config('staging'=>'disk'=>'memory'),

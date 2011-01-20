@@ -18,7 +18,7 @@ unless ($module and $objid and $namespace and $packagetype){
     exit 0;
 }
 
-set_config($dir,'staging'=>'memory') if (defined $dir);
+set_config($dir,'staging'=>'ingest') if (defined $dir);
 
 # run validation
 my $volume = HTFeed::Volume->new(objid => $objid,namespace => $namespace,packagetype => $packagetype);

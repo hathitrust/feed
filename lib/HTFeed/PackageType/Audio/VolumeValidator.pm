@@ -21,7 +21,7 @@ sub new {
 sub _validate_mets_consistency {
     my $self = shift;
     my $volume = $self->{volume};
-    $self->SUPER::_validate_mets_consistency();
+    #$self->SUPER::_validate_mets_consistency();
 
     # get top-level xpathcontext for METS
     my $xpc = $volume->get_source_mets_xpc();

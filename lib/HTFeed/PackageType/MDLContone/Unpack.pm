@@ -18,7 +18,7 @@ sub run{
     my $volume = $self->{volume};
     
     my $download_dir = $volume->get_download_directory();
-    my $stage_base = get_config('staging'=>'memory');
+    my $stage_base = get_config('staging'=>'ingest');
     
     my $objid = $volume->get_objid();
     

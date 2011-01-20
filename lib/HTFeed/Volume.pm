@@ -170,7 +170,7 @@ sub get_staging_directory {
     if(not defined $self->{staging_directory}) {
         my $objid = $self->get_objid();
         my $pt_objid = s2ppchars($objid);
-        my $stage_dir = sprintf("%s/%s", get_config('staging'=>'memory'), $pt_objid);
+        my $stage_dir = sprintf("%s/%s", get_config('staging'=>'ingest'), $pt_objid);
         if(!-e $stage_dir and $make_new_dirs) {
             mkdir($stage_dir) or croak("Can't mkdir $stage_dir: $!");
         }
@@ -729,7 +729,7 @@ Returns the path to the zip archive to construct for this object.
 
 sub get_zip_path {
     my $self = shift;
-    my $staging_path = get_config('staging'=>'memory');
+    my $staging_path = get_config('staging'=>'ingest');
     my $pt_objid = $self->get_pt_objid();
     my $zip_path = "$staging_path/$pt_objid.zip";
 
@@ -762,7 +762,7 @@ Returns the path to the METS file to construct for this object
 sub get_mets_path {
     my $self = shift;
 
-    my $staging_path = get_config('staging'=>'memory');
+    my $staging_path = get_config('staging'=>'ingest');
     my $pt_objid = $self->get_pt_objid();
     my $mets_path = "$staging_path/$pt_objid.mets.xml";
 
