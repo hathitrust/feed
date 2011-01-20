@@ -118,23 +118,33 @@ if ($verbose or !$quiet){
     }
 }
 __END__
-=Synopsis
+
+=head1 SYNOPSIS
+
 enqueue.pl [-v|-q] [-r|-R|-i] [-d] [namespace | namespace packagetype | -1 namespace packagetype objid] [infile]
 
--d dot format infile - all lines of infile are expected to be of the form namespace.objid. Not compatible with -1 option
--1 only one volume, read from command line and not infile
--r reset - resets volumes in list to ready
--i insert - volumes are added if they are not already in the queue, but no error is raised for duplicate volumes
--v verbose - verbose output for file parsing - overrides quiet
--q quiet - skip report
+    -d dot format infile - all lines of infile are expected to be of the form namespace.objid. Not compatible with -1 option
 
-volume_list contains rows like this:
-packagetype namespace objid
-namespace objid
-objid
-(styles my be mixed as long as defaults are provided on the command line)
+    -1 only one volume, read from command line and not infile
+
+    -r reset - resets volumes in list to ready
+
+    -i insert - volumes are added if they are not already in the queue, but no error is raised for duplicate volumes
+
+    -v verbose - verbose output for file parsing - overrides quiet
+
+    -q quiet - skip report
+
+    volume_list contains rows like this:
+
+    packagetype namespace objid
+    namespace objid
+    objid
+
+    (styles my be mixed as long as defaults are provided on the command line)
 
 or with -d like this:
 namespace.objid
+
 =cut
 
