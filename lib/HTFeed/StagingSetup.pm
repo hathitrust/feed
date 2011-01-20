@@ -28,7 +28,7 @@ sub _get_dirs{
     return [get_config('staging'=>'ingest'),
             get_config('staging'=>'zip'),
             get_config('staging'=>'preingest'),
-            get_config('staging'=>'disk'=>'memory'),
+            get_config('staging'=>'disk'=>'ingest'),
             get_config('staging'=>'disk'=>'zip'),
             get_config('staging'=>'disk'=>'preingest'),
     ];

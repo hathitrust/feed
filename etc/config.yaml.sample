@@ -18,11 +18,11 @@ l4p:
 
 staging:
   download: /htprep/download
-  memory: /ram/staging
+  ingest: /ram/staging
   zip: /ram/zip_staging
   preingest: /ram/preingest
   disk:
-    memory: /htprep/ingest
+    ingest: /htprep/ingest
     preingest: /htprep/preingest
     zip: /htprep/stage/zip
 
