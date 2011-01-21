@@ -175,7 +175,7 @@ sub clean_punt{
 #    my $download_to_disk = $volume->get_nspkg()->get('download_to_disk');
 #
 #    if(! $download_to_disk){
-#        my $path = get_config('staging'=>'memory');
+#        my $path = get_config('staging'=>'ingest');
 #        my $file = $volume->get_SIP_filename();
 #        my $path_name = "$path/$file";
 #
@@ -196,7 +196,7 @@ sub clean_unpacked_object {
 # unlink zip
 sub clean_zip {
     my $self     = shift;
-    my $dir      = get_config( 'staging' => 'memory' );
+    my $dir      = get_config( 'staging' => 'ingest' );
     my $zip_file = $self->{volume}->get_zip();
     my $zip_path = "$dir/$zip_file";
 

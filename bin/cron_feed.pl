@@ -50,7 +50,7 @@ eval {
   OUTER:
     while (HTFeed::DBTools::lock_volumes($volumes_in_process_limit) or HTFeed::DBTools::count_locks() ){
         while ( my $sth = HTFeed::DBTools::get_queued() ) {
-            while ( my ( $ns, $pkg_type, $objid, $status, $failure_count ) = $sth->fetchrow_array() ){
+            while ( my ( $pkg_type, $ns, $objid, $status, $failure_count ) = $sth->fetchrow_array() ){
                 @log_common = ( namespace => $ns, objid => $objid );
                 wait_kid() if $subprocesses >= $max_subprocesses;
 

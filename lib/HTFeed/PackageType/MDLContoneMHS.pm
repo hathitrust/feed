@@ -90,13 +90,14 @@ __END__
 
 =pod
 
-This is the package type configuration file for Google / GRIN.
+This is the package type configuration file for Minnesota Digital Library images
+from the Minnesota Historical Society.
 
 =head1 SYNOPSIS
 
 use HTFeed::PackageType;
 
-my $pkgtype = new HTFeed::PackageType('google');
+my $pkgtype = new HTFeed::PackageType('mdlcontone_mhs');
 
 =head1 AUTHOR
 

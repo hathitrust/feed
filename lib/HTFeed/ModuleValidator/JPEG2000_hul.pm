@@ -50,7 +50,7 @@ sub _set_validators {
         'resolution_unit' => v_eq( 'xmp', 'resUnit', '2' ),    # inches
 
         'resolution' => v_and(
-            v_in( 'xmp', 'xRes', [ '300/1', '400/1', '600/1' ] ),
+            v_in( 'xmp', 'xRes', [ '300/1', '400/1', '500/1', '600/1' ] ),
             v_same( 'xmp', 'xRes', 'xmp', 'yRes' )
         ),
 

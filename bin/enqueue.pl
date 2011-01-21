@@ -5,6 +5,7 @@ use strict;
 use HTFeed::DBTools;
 use HTFeed::Volume;
 use Getopt::Long qw(:config no_ignore_case);
+use Pod::Usage;
 
 my $one_line = 0; # -1
 my $dot_format = 0; # -d
@@ -13,6 +14,7 @@ my $force_reset = 0; # -R
 my $insert = 0; # -i
 my $verbose = 0; # -v
 my $quiet = 0; # -q
+my $help = 0; # -help,-?
 
 # read flags
 GetOptions(
@@ -23,7 +25,10 @@ GetOptions(
     'i' => \$insert,
     'v' => \$verbose,
     'q' => \$quiet,
-);
+    'help|?' => \$help,
+)  or pod2usage(2);
+
+pod2usage(1) if $help;
 
 # check options
 die '-1 and -d flags incompatible' if ($one_line and $dot_format);
@@ -79,7 +84,12 @@ else{
                 die "Missing parameter near: $_";
             }
 
-            push @volumes, HTFeed::Volume->new(packagetype => $packagetype, namespace => $namespace, objid => $objid);
+            eval {
+                push @volumes, HTFeed::Volume->new(packagetype => $packagetype, namespace => $namespace, objid => $objid);
+            };
+            if($@) {
+                warn($@);
+            }
             print "found: $packagetype $namespace $objid\n" if ($verbose);
         }
     }
@@ -118,23 +128,31 @@ if ($verbose or !$quiet){
     }
 }
 __END__
-=Synopsis
+
+=head1 NAME
+
+    enqueue.pl - add volumes to Feedr queue
+
+=head1 SYNOPSIS
+
 enqueue.pl [-v|-q] [-r|-R|-i] [-d] [namespace | namespace packagetype | -1 namespace packagetype objid] [infile]
 
--d dot format infile - all lines of infile are expected to be of the form namespace.objid. Not compatible with -1 option
--1 only one volume, read from command line and not infile
--r reset - resets volumes in list to ready
--i insert - volumes are added if they are not already in the queue, but no error is raised for duplicate volumes
--v verbose - verbose output for file parsing - overrides quiet
--q quiet - skip report
+    -d dot format infile - all lines of infile are expected to be of the form namespace.objid. Not compatible with -1 option
+    -1 only one volume, read from command line and not infile
+    -r reset - resets volumes in list to ready
+    -i insert - volumes are added if they are not already in the queue, but no error is raised for duplicate volumes
+    -v verbose - verbose output for file parsing - overrides quiet
+    -q quiet - skip report
 
-volume_list contains rows like this:
-packagetype namespace objid
-namespace objid
-objid
-(styles my be mixed as long as defaults are provided on the command line)
+    volume_list contains rows like this:
+        packagetype namespace objid
+        namespace objid
+        objid
 
-or with -d like this:
-namespace.objid
+    (styles my be mixed as long as defaults are provided on the command line)
+
+    or with -d like this:
+        namespace.objid
+
 =cut
 

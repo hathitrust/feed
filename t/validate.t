@@ -86,7 +86,7 @@ sub test_success{
         
     # validate undamaged package
     {
-        set_config($undamaged_pkg_path,'staging'=>'memory');
+        set_config($undamaged_pkg_path,'staging'=>'ingest');
         $volume = HTFeed::Volume->new(objid => $objid,namespace => $namespace,packagetype => $package_type);
         $vol_val = HTFeed::VolumeValidator->new(volume => $volume);
 

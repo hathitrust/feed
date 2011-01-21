@@ -33,14 +33,14 @@ sub run {
     }
     my $xc = $volume->get_scandata_xpc();
 
-    foreach my $page_node ( $xc->findnodes('//scribe:pageData/scribe:page') ) { 
+    foreach my $page_node ( $xc->findnodes('//scribe:pageData/scribe:page | //pageData/page') ) { 
         my $leafNum = $page_node->getAttribute("leafNum");
         if(not defined $leafNum or $leafNum eq '') {
             $logger->warn("Found page node with no leafNum");
             next;
         }
-        my $pageType           = $xc->findvalue('./scribe:pageType',$page_node); 
-        my $addToAccessFormats = $xc->findvalue('./scribe:addToAccessFormats',$page_node); 
+        my $pageType           = $xc->findvalue('./scribe:pageType | ./pageType',$page_node); 
+        my $addToAccessFormats = $xc->findvalue('./scribe:addToAccessFormats | ./addToAccessFormats',$page_node); 
 
         my $filename = sprintf( "${ia_id}_%04d.jp2", $leafNum );
 

@@ -365,7 +365,7 @@ sub _add_zip_fg {
         id  => $self->_get_subsec_id("FG"),
         use => 'zip archive'
     );
-    my $working_dir = get_config( 'staging' => 'memory' );
+    my $working_dir = get_config( 'staging' => 'ingest' );
     my $pt_objid = $volume->get_pt_objid();
     $zip_filegroup->add_file( "$pt_objid.zip", path => $working_dir, prefix => 'ZIP' );
     $mets->add_filegroup($zip_filegroup);
@@ -751,12 +751,12 @@ sub _remediate_marc {
 
         # 07: Bibliographic level
         if(substr($value,7,1) !~ /^[\dA-Za-z ]$/) {
-            substr($value,5,1) = ' ';
+            substr($value,7,1) = ' ';
         }
 
         # 08: Type of control
         if(substr($value,8,1) !~ /^[\dA-Za-z ]$/) {
-            substr($value,5,1) = ' ';
+            substr($value,8,1) = ' ';
         }
 
         # 09: Character coding scheme
