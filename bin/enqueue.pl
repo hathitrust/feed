@@ -8,7 +8,6 @@ use Getopt::Long qw(:config no_ignore_case);
 use Pod::Usage;
 
 my $one_line = 0; # -1
-my $dot_format = 0; # -d
 my $reset = 0; # -r
 my $force_reset = 0; # -R
 my $insert = 0; # -i
@@ -16,30 +15,36 @@ my $verbose = 0; # -v
 my $quiet = 0; # -q
 my $help = 0; # -help,-?
 
+my $dot_packagetype = undef; # -d
+my $default_packagetype = undef; # -p
+my $default_namespace = undef; # -n
+
 # read flags
 GetOptions(
     '1' => \$one_line,
-    'd' => \$dot_format,
     'r' => \$reset,
     'R' => \$force_reset,
     'i' => \$insert,
     'v' => \$verbose,
     'q' => \$quiet,
     'help|?' => \$help,
+
+    'd=s' => \$dot_packagetype,    
+    'p=s' => \$default_packagetype,
+    'n=s' => \$default_namespace,
 )  or pod2usage(2);
 
 pod2usage(1) if $help;
 
 # check options
-die '-1 and -d flags incompatible' if ($one_line and $dot_format);
-die '-r/-R incompatible with -i' if (($reset or $force_reset) and $insert);
+pod2usage(-msg => '-1 and -d flags incompatible', -exitval => 2) if ($one_line and $dot_packagetype);
+pod2usage(-msg => '-r/-R incompatible with -i', -exitval => 2) if (($reset or $force_reset) and $insert);
+pod2usage(-msg => '-p and -n exclude -d and -1', -exitval => 2) if (($default_packagetype or $default_namespace) and ($one_line or $dot_packagetype));
 
-my $in_file;
-$in_file = pop unless $one_line;
-my $default_packagetype = shift;
-my $default_namespace = shift;
-
-die 'must specify input file' unless ($in_file or $one_line);
+if ($one_line){
+    $default_packagetype = shift;
+    $default_namespace = shift;
+}
 
 my @volumes;
 
@@ -54,13 +59,9 @@ if ($one_line) {
     print "found: $default_packagetype $default_namespace $objid\n" if ($verbose);
 }
 else{
-    # read infile
-    open INFILE, '<', $in_file or die $!;
-
     # handle -d (read infile in dot format)
-    if ($dot_format) {
-        die 'must specify packagetype when using -d option' if(! $default_packagetype);
-        while (<INFILE>) {
+    if ($dot_packagetype) {
+        while (<>) {
             # simplified, lines should match /(.*)\.(.*)/
             $_ =~ /^([^\.\s]*)\.([^\s]*)$/;
             my ($namespace,$objid) = ($1,$2);
@@ -68,14 +69,15 @@ else{
                 die "Bad syntax near: $_";
             }
 
-            push @volumes, HTFeed::Volume->new(packagetype => $default_packagetype, namespace => $namespace, objid => $objid);
+            push @volumes, HTFeed::Volume->new(packagetype => $dot_packagetype, namespace => $namespace, objid => $objid);
             print "found: $default_packagetype $namespace $objid\n" if ($verbose);
         }
     }
 
     # handle default case (read infile in standard format)
-    if (! $dot_format) {
-        while (<INFILE>) {
+    if (! $dot_packagetype) {
+        while (<>) {
+            next if ($_ =~ /^\s*$/); # skip blank line
             my @words = split;
             my $objid = pop @words;
             my $namespace = (pop @words or $default_namespace);
@@ -93,8 +95,6 @@ else{
             print "found: $packagetype $namespace $objid\n" if ($verbose);
         }
     }
-
-    close INFILE;
 }
 
 # add volumes to queue
@@ -135,24 +135,38 @@ __END__
 
 =head1 SYNOPSIS
 
-enqueue.pl [-v|-q] [-r|-R|-i] [-d] [namespace | namespace packagetype | -1 namespace packagetype objid] [infile]
+enqueue.pl [-v|-q] [-r|-R|-i] [-p packagetype [-n namespace]] [infile]
 
-    -d dot format infile - all lines of infile are expected to be of the form namespace.objid. Not compatible with -1 option
+enqueue.pl [-v|-q] [-r|-R|-i] -d packagetype [infile]
+
+enqueue.pl [-v|-q] [-r|-R|-i] -1 packagetype namespace objid]
+
+    INOUT OPTIONS
+    -d dot format infile - follow with packagetype
+        all lines of infile are expected to be of the form namespace.objid.
+
     -1 only one volume, read from command line and not infile
-    -r reset - resets volumes in list to ready
+
+    -p,-n - specify packagetype, namespace respectivly.
+        incompatible with -d, -1
+    
+    GENERAL OPTIONS
+    -r reset - resets punted volumes in list to ready
+
+    -R reset force - resets all volumes in list to ready
+
     -i insert - volumes are added if they are not already in the queue, but no error is raised for duplicate volumes
+
     -v verbose - verbose output for file parsing - overrides quiet
+
     -q quiet - skip report
 
-    volume_list contains rows like this:
-        packagetype namespace objid
-        namespace objid
-        objid
-
-    (styles my be mixed as long as defaults are provided on the command line)
-
-    or with -d like this:
+    INFILE - input read fron last arg on command line or stdin
+    
+    standard infile contains rows like this:
+        [[packagetype] namespace] objid
+    
+    dot-style (-d) infile rows:
         namespace.objid
-
 =cut
 
