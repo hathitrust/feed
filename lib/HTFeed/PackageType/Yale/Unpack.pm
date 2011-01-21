@@ -17,10 +17,16 @@ sub run{
     my $objid = $volume->get_objid();
 
     my $file = sprintf('%s/%s.zip',$download_dir,$objid);
-    $self->unzip_file($file,$volume->get_preingest_directory());
+    # not getting preingest path directly -- zip file contains extra paths we don't want to junk
+    $self->unzip_file($file,get_config('staging' => 'preingest'));
 
     $self->_set_done();
     return $self->succeeded();
+}
+
+# override parent class method not to junk paths
+sub unzip_file {
+    return HTFeed::Stage::Unpack::_extract_file(q(yes 'n' | unzip -o -q '%s' -d '%s' %s 2>&1),@_);
 }
 
 
