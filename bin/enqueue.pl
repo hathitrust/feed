@@ -79,7 +79,12 @@ else{
                 die "Missing parameter near: $_";
             }
 
-            push @volumes, HTFeed::Volume->new(packagetype => $packagetype, namespace => $namespace, objid => $objid);
+            eval {
+                push @volumes, HTFeed::Volume->new(packagetype => $packagetype, namespace => $namespace, objid => $objid);
+            };
+            if($@) {
+                warn($@);
+            }
             print "found: $packagetype $namespace $objid\n" if ($verbose);
         }
     }
