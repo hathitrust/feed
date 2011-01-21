@@ -7,52 +7,52 @@ our $identifier = 'audio';
 
 our $config = {
     volume_module => 'HTFeed::Volume',
-    
+
     # Regular expression that distinguishes valid files in the file package
     # HTML OCR is valid for the package type but only expected/required for UC1
     valid_file_pattern => qr/^( 
-		checksum\.md5 |
-		\w+\.(xml) |
-		[ap]m\d{2,8}.(wav)
-		)/x,
+    checksum\.md5 |
+    \w+\.(xml) |
+    [ap]m\d{2,8}.(wav)
+    )/x,
 
     # A set of regular expressions mapping files to the filegroups they belong
     # in
     filegroups => {
-	archival => { 
-	    prefix => 'AM',
-	    use => 'archival',
-	    file_pattern => qr/am.*\.wav$/,
-	    required => 1,
-	    content => 1,
-	    jhove => 1,
-	    utf8 => 0
-	},
+        archival => { 
+            prefix => 'AM',
+            use => 'archival',
+            file_pattern => qr/am.*\.wav$/,
+            required => 1,
+            content => 1,
+            jhove => 1,
+            utf8 => 0
+        },
 
-	production => { 
-	    prefix => 'PM',
-	    use => 'production',
-	    file_pattern => qr/pm.*\.wav$/,
-	    required => 1,
-	    content => 1,
-	    jhove => 1,
-	    utf8 => 0
-	}
+        production => { 
+            prefix => 'PM',
+            use => 'production',
+            file_pattern => qr/pm.*\.wav$/,
+            required => 1,
+            content => 1,
+            jhove => 1,
+            utf8 => 0
+        }
     },
 
-	source_mets_file => qr/\w+.xml$/,
+    source_mets_file => qr/\w+.xml$/,
 
     # Allow gaps in numerical sequence of filenames?
     allow_sequence_gaps => 0,
 
     # The list of stages to run to successfully ingest a volume.
     stages_to_run => [qw(
-        HTFeed::PackageType::Audio::VolumeValidator
-        HTFeed::PackageType::Audio::METS
-        HTFeed::Handle
-        HTFeed::Zip
-        HTFeed::Collate
-	)],
+    HTFeed::PackageType::Audio::VolumeValidator
+    HTFeed::PackageType::Audio::METS
+    HTFeed::Handle
+    HTFeed::Zip
+    HTFeed::Collate
+    )],
 
 
     # The HTFeed::ModuleValidator subclass to use for validating
@@ -66,13 +66,13 @@ our $config = {
     },
 
     validation_run_stages => [
-        qw(validate_file_names
-          validate_filegroups_nonempty
-          validate_consistency
-          validate_mets_consistency
-          validate_checksums
-          validate_utf8
-          validate_metadata)
+    qw(validate_file_names
+    validate_filegroups_nonempty
+    validate_consistency
+    validate_mets_consistency
+    validate_checksums
+    validate_utf8
+    validate_metadata)
     ],
 
     # What PREMIS events to include (by internal PREMIS identifier, 
@@ -85,7 +85,7 @@ our $config = {
     # filename extensions not to compress in zip file
     uncompressed_extensions => [],
 
-    
+
 };
 
 __END__
