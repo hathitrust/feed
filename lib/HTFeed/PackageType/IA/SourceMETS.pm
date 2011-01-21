@@ -155,14 +155,9 @@ sub _add_capture_event {
     my $volume = $self->{volume};
     my $xpc = $volume->get_scandata_xpc();
 
-    my $eventdate = $xpc->findvalue("//scribe:scanLog/scribe:scanEvent[1]/scribe:endTimeStamp");
-    if(not defined $eventdate or $eventdate eq '') {
-        $eventdate = $xpc->findvalue("//scanLog/scanEvent[1]/endTimeStamp");
-    }
-    my $scribe = $xpc->findvalue("//scribe:scanLog/scribe:scanEvent[1]/scribe:scribe");
-    if(not defined $scribe or $scribe eq '') {
-        $scribe = $xpc->findvalue("//scanLog/scanEvent[1]/scribe");
-    }
+    my $eventdate = $xpc->findvalue("//scribe:scanLog/scribe:scanEvent[1]/scribe:endTimeStamp | //scanLog/scanEvent[1]/endTimeStamp");
+    my $scribe = $xpc->findvalue("//scribe:scanLog/scribe:scanEvent[1]/scribe:scribe | //scanLog/scanEvent[1]/scribe");
+
     if( $eventdate =~ /^(\d\d\d\d)(\d\d)(\d\d)(\d\d)(\d\d)(\d\d)$/ ) {
 
         my $capture_date
