@@ -751,12 +751,12 @@ sub _remediate_marc {
 
         # 07: Bibliographic level
         if(substr($value,7,1) !~ /^[\dA-Za-z ]$/) {
-            substr($value,5,1) = ' ';
+            substr($value,7,1) = ' ';
         }
 
         # 08: Type of control
         if(substr($value,8,1) !~ /^[\dA-Za-z ]$/) {
-            substr($value,5,1) = ' ';
+            substr($value,8,1) = ' ';
         }
 
         # 09: Character coding scheme

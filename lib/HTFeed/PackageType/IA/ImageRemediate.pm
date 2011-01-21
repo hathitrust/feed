@@ -37,11 +37,7 @@ sub run {
             $set_if_undefined_fields->{'XMP-tiff:DateTime'} = $capture_time;
         }
 
-        if ( my $resolution = $scandata_xpc->findvalue("//scribe:bookData/scribe:dpi") ) {
-            $set_if_undefined_fields->{'Resolution'} = $resolution;
-        }
-        # scandata may or may not have namespace attached..
-        if( my $resolution = $scandata_xpc->findvalue("//bookData/dpi")) {
+        if ( my $resolution = $scandata_xpc->findvalue("//scribe:bookData/scribe:dpi | //bookData/dpi") ) {
             $set_if_undefined_fields->{'Resolution'} = $resolution;
         }
 
@@ -73,18 +69,10 @@ sub get_capture_time {
     my $leafNum = int( $image_file =~ /_(\d{4}).jp2/ );
     # A couple places this might appear, and it might be with or without a namespace..
     my $gmtTimeStamp =
-    $xpc->findvalue(qq(//scribe:pageData/scribe:page[\@leafNum='$leafNum']/scribe:gmtTimeStamp));
-    if ( not defined $gmtTimeStamp or $gmtTimeStamp eq '') {
-
-        $gmtTimeStamp = $xpc->findvalue(qq(//pageData/page[\@leafNum='$leafNum']/gmtTimeStamp));
-    }
-
+    $xpc->findvalue(qq(//scribe:pageData/scribe:page[\@leafNum='$leafNum']/scribe:gmtTimeStamp | //pageData/page[\@leafNum='$leafNum']/gmtTimeStamp));
     # TODO: Start or end time stamp? Or do we want to get it from the file?
     if( not defined $gmtTimeStamp or $gmtTimeStamp eq '') {
-        $gmtTimeStamp = $xpc->findvalue('//scribe:scanLog/scribe:scanEvent/scribe:endTimeStamp');
-    }
-    if( not defined $gmtTimeStamp or $gmtTimeStamp eq '') {
-        $gmtTimeStamp = $xpc->findvalue('//scanLog/scanEvent/endTimeStamp');
+        $gmtTimeStamp = $xpc->findvalue('//scribe:scanLog/scribe:scanEvent/scribe:endTimeStamp | //scanLog/scanEvent/endTimeStamp');
     }
 
     # Format is YYYYMMDDHHmmss
