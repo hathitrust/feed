@@ -21,12 +21,9 @@ sub new {
 sub _validate_mets_consistency {
     my $self = shift;
     my $volume = $self->{volume};
-    #$self->SUPER::_validate_mets_consistency();
 
     # get top-level xpathcontext for METS
     my $xpc = $volume->get_source_mets_xpc();
-
-	my $sourceMD = $xpc->findnodes("//mets:sourceMD");
 
 	foreach my $techmd_node ($xpc->findnodes("//mets:techMD")) {
         my $techmd_id = $techmd_node->getAttribute("ID");
@@ -50,32 +47,49 @@ sub _validate_mets_consistency {
             $self->set_error("BadValue",field=>'aes:primaryIdentifier',expected=>'am,pm',actual=>$primaryIdentifier);
         }
 
-        # techMD section cross-checks    
-        # TODO: add checks hre
+        # techMD section cross-checks
+		#TODO: same checks, different xpaths --> shorten code here?
         my $audioDataEncoding = $xpc->findvalue("./mets:mdWrap/mets:xmlData/aes:audioObject/aes:audioDataEncoding",$techmd_node);
-        my $byteOrder = $xpc->findvalue("./mets:mdWrap/mets:xmlData/aes:audioObject/aes:byteOrder",$techmd_node);
-        my $numChannels = $xpc->findvalue("//mets:techMD/mets:mdWrap/mets:xmlData/aes:audioObject/aes:face/aes:region/aes:numChannels",$techmd_node);
-        my $format = $xpc->findvalue("//mets:techMD/mets:mdWrap/mets:xmlData/aes:audioObject/aes:format",$techmd_node);
-        my $analogDigitalFlag = $xpc->findvalue("//mets:techMD/mets:mdWrap/mets:xmlData/aes:audioObject/\@analogDigitalFlag",$techmd_node);
+		if (! $audioDataEncoding) {
+            $self->set_error("MissingField", field=>'audioDataEncoding');
+        }
+
+		my $byteOrder = $xpc->findvalue("./mets:mdWrap/mets:xmlData/aes:audioObject/aes:byteOrder",$techmd_node);
+			if(! $byteOrder) {
+			$self->set_error("MissingField", field=>'byteOrder');
+		}
+        	
+		my $numChannels = $xpc->findvalue("./mets:mdWrap/mets:xmlData/aes:audioObject/aes:face/aes:region/aes:numChannels",$techmd_node);
+		if(! $numChannels) {
+			$self->set_error("MissingField", field=>'numChannels');
+		}
+
+		my $format = $xpc->findvalue("./mets:mdWrap/mets:xmlData/aes:audioObject/aes:format",$techmd_node);
+		if(! $format) {
+			$self->set_error("MissingField", field=>'format');
+		}
+
+		my $analogDigitalFlag = $xpc->findvalue("./mets:mdWrap/mets:xmlData/aes:audioObject/\@analogDigitalFlag",$techmd_node);
+		if(! $analogDigitalFlag) {
+			$self->set_error("MissingField", field=>'analogDigitalFlag');
+		}
 	}
 
+	#sourceMD
     my $sourceUseType = $xpc->findvalue("//mets:sourceMD/mets:mdWrap/mets:xmlData/aes:audioObject/aes:use/\@useType");
-	if(! -e $sourceUseType) {
-		$self->set_error("MissingField",field=>'source useType');
-	} elsif($sourceUseType ne "ORIGINAL_MASTER") {
-    		$self->set_error("BadValue",field=>'source useType',actual=>$sourceUseType,expected=>"ORIGINAL_MASTER");
+	if($sourceUseType ne "ORIGINAL_MASTER") {
+    	$self->set_error("BadValue",field=>'source useType',actual=>$sourceUseType,expected=>"ORIGINAL_MASTER");
 	}
-    
-    my $sourceFormat = (); #sourceMD/aes:format # TODO: add query
-    my $analogDigitalFlag = $xpc->findvalue("//mets:sourceMD/aes:audioObject/\@DigitalFlag");
-    if ($sourceFormat eq "DAT" || $sourceFormat eq "CD") {
-        if ($analogDigitalFlag ne "PHYS_DIGITAL") {
-			$self->set_error("BadValue"); # TODO: fill in
+    		
+    my $sourceFormat = $xpc->findvalue("//mets:sourceMD/mets:mdWrap/mets:xmlData/aes:audioObject/aes:use/aes:format");
+	my $analogDigitalFlag = $xpc->findvalue("//mets:sourceMD/mets:mdWrap/mets:xmlData/aes:audioObject/\@analogDigitalFlag");
+	if ($sourceFormat eq "DAT" || $sourceFormat eq "CD") {
+ 		if ($analogDigitalFlag ne "PHYS_DIGITAL") {
+			$self->set_error("BadValue",field=>'analogDigitalFlag',expected=>'PHYS_DIGITAL',actual=>$analogDigitalFlag);
 		}
 	} elsif ($analogDigitalFlag ne "ANALOG") {
-		$self->set_error("BadValue"); # TODO: fill in
+		$self->set_error("BadValue",field=>'analogDigitalFlag',expected=>'ANALOG',actual=>$analogDigitalFlag);
 	}
-
     return;
 }
 

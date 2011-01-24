@@ -13,9 +13,11 @@ sub new{
 	# store all queries
 	my $self = {
 		contexts => {
-			waveMeta => ["jhove:properties/jhove:property[jhove:name='WAVEMetadata']/jhove:values", "repInfo"],
-			aes 	=> ["jhove:property[jhove:name='AESAudioMetadata']/jhove:values/jhove:value", "waveMeta"],
+			repInfo 	=> ["/jhove:jhove/jhove:repInfo", "root"],
+			waveMeta 	=> ["jhove:property[jhove:name='WAVEMetadata']/jhove:values/jhove:property/jhove:name", "repInfo"],
+			aes 		=> ["jhove:property[jhove:name='AESAudioMetadata']/jhove:values/jhove:value/aes:audioObject", "waveMeta"],
 		},
+		
 		queries => {
 			# top level
 			repInfo =>
@@ -31,31 +33,26 @@ sub new{
 			# waveMeta children
 			waveMeta =>
 			{
-				description		=> "jhove:property[jhove:name='Description']/jhove:values/jhove:value",
-				originator		=> "jhove:property[jhove:name='Originator']/jhove:values/jhove:value",
-				originationDate	=> "jhove:property[jhove:name='OriginationDate']/jhove:values/jhove:value",
-				codingHistory	=> "jhove:property[jhove:name='CodingHistory']/jhove:values/jhove:value",
+				description		=> "jhove:values/jhove:propery[jhove:name='Description']/jhove:values/jhove:value",
+				originator		=> "jhove:values/jhove:property[jhove:name='Originator']/jhove:values/jhove:value",
+				originationDate	=> "jhove:values/jhove:property[jhove:name='OriginationDate']/jhove:values/jhove:value",
+				codingHistory	=> "jhove:values/jhove:property[jhove:name='CodingHistory']/jhove:values/jhove:value",
 			},
 
 			# aes children
 			aes =>
 			{
-				analogDigitalFlag	=> "//aes:audioObject/\@ID",
-				format				=> "//aes:format",
-				audioDataEncoding	=> "//aes:audioDataEncoding",
-				useType				=> "//aesaudioObject/aes:use/\@useType",
-				primaryID			=> "//aes:primaryIdentifier",
-				numChannels			=> "//aes:numChannels",
-				bitDepth			=> "//aes:bitDepth",
-				sampleRate			=> "//aes:sampleRate",
-				byteOrder			=> "//aes:byteOrder",
-				sampleRate			=> "//aes:sampleRate",
+				analogDigitalFlag	=> "\@analogDigitalFlag",
+				format				=> "aes:format",
+				audioDataEncoding	=> "aes:audioDataEncoding",
+				useType				=> "aes:use/\@useType",
+				primaryID			=> "aes:primaryIdentifier",
+				numChannels			=> "aes:face/aes:region/aes:numChannels",
+				bitDepth			=> "aes:formatList/aes:formatRegion/aes:bitDepth",
+				sampleRate			=> "aes:formatList/aes:formatRegion/aes:sampleRate",
+				byteOrder			=> "aes:byteOrder",
 			},
-			# mets children
-			mets =>
-			{
-			
-			},
+
 		},
 
 	};

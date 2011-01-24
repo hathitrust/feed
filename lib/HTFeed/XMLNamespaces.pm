@@ -25,6 +25,7 @@ use constant {
     NS_TIFF   => 'http://ns.adobe.com/tiff/1.0/',
     NS_XLINK  => 'http://www.w3.org/1999/xlink',
     NS_XSI    => 'http://www.w3.org/2001/XMLSchema-instance',
+	NS_AES	  => 'http://www.aes.org/audioObject',
 };
 
 use constant {
@@ -39,7 +40,7 @@ use constant {
 
     The registered prefixes are:
 
-	dc, jhove, marc, mets, mix, mods, oai_dc, premis, xlink, xsi
+	dc, jhove, marc, mets, mix, mods, oai_dc, premis, xlink, xsi, aes
 
 =cut
 
@@ -58,6 +59,7 @@ sub register_namespaces {
     $xpc->registerNs( 'tiff',   NS_TIFF );
     $xpc->registerNs( 'xlink',  NS_XLINK );
     $xpc->registerNs( 'xsi',    NS_XSI );
+	$xpc->registerNs( 'aes', 	NS_AES );
 
     return;
 }

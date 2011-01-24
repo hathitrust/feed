@@ -11,7 +11,6 @@ our $config = {
     # Regular expression that distinguishes valid files in the file package
     # HTML OCR is valid for the package type but only expected/required for UC1
     valid_file_pattern => qr/^( 
-    checksum\.md5 |
     \w+\.(xml) |
     [ap]m\d{2,8}.(wav)
     )/x,
@@ -40,6 +39,7 @@ our $config = {
         }
     },
 
+	checksum_file    => 0,
     source_mets_file => qr/\w+.xml$/,
 
     # Allow gaps in numerical sequence of filenames?
@@ -58,7 +58,7 @@ our $config = {
     # The HTFeed::ModuleValidator subclass to use for validating
     # files with the given extensions
     module_validators => {
-        'wav'  => 'HTFeed::ModuleValidator::WAV_hul',
+        'wav'  => 'HTFeed::ModuleValidator::WAVE_hul',
     },
 
     # Validation overrides
@@ -70,15 +70,21 @@ our $config = {
     validate_filegroups_nonempty
     validate_consistency
     validate_mets_consistency
-    validate_checksums
     validate_utf8
     validate_metadata)
+#    qw(validate_file_names
+#    validate_filegroups_nonempty
+#    validate_consistency
+#    validate_mets_consistency
+#    validate_checksums
+#    validate_utf8
+#    validate_metadata)
     ],
 
     # What PREMIS events to include (by internal PREMIS identifier, 
     # configured in config.yaml)
     # TODO: determine Audio HT PREMIS events
-    # TODO: determine Audio PREMIS source METS events toe xtract
+    # TODO: determine Audio PREMIS source METS events to extract
     premis_events => [
     ],
 
