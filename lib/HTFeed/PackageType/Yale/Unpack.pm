@@ -9,6 +9,20 @@ use HTFeed::Config qw(get_config);
 use Log::Log4perl qw(get_logger);
 my $logger = get_logger(__PACKAGE__);
 
+# return estimated space needed on ramdisk
+sub ram_disk_size{
+    my $self = shift;
+    my $volume = $self->{volume};
+
+    my $download_dir = $volume->get_download_directory();
+    my $objid = $volume->get_objid();
+    my $file = sprintf('%s/%s.zip',$download_dir,$objid);
+
+    my $multiplier = 1.10;
+
+    return estimate_space($file, $multiplier);
+}
+
 sub run{
     my $self = shift;
     my $volume = $self->{volume};

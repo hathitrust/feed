@@ -11,6 +11,16 @@ use File::Path qw(remove_tree);
 use Log::Log4perl qw(get_logger);
 my $logger = get_logger(__PACKAGE__);
 
+# return estimated space needed on ramdisk
+sub ram_disk_size{
+    my $self = shift;
+    my $volume = $self->{volume};
+
+    my $dir = $volume->get_staging_directory();
+    
+    return dir_size($dir);
+}
+
 sub run{
     my $self = shift;
 

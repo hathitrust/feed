@@ -11,6 +11,7 @@ use File::Path qw(remove_tree);
 use Log::Log4perl qw(get_logger);
 use File::Find;
 use HTFeed::Config qw(get_config);
+use POSIX qw(ceil);
 
 use base qw(HTFeed::SuccessOrFailure);
 
@@ -40,6 +41,13 @@ sub new {
 # return space that we expect to use on the ramdisk
 sub ram_disk_size{
     return 0;
+}
+
+# estimate_space($file, $multiplier)
+sub estimate_space{
+    my $file, $multiplier = @_;
+    my $size = -s $file;
+    return ceil($size * $multiplier);
 }
 
 # return the size of a directory
