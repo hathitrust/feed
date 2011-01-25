@@ -48,7 +48,6 @@ sub _validate_mets_consistency {
         }
 
         # techMD section cross-checks
-		#TODO: same checks, different xpaths --> shorten code here?
         my $audioDataEncoding = $xpc->findvalue("./mets:mdWrap/mets:xmlData/aes:audioObject/aes:audioDataEncoding",$techmd_node);
 		if (! $audioDataEncoding) {
             $self->set_error("MissingField", field=>'audioDataEncoding');

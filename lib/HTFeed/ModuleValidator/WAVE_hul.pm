@@ -23,34 +23,33 @@ sub _set_required_querylib {
 sub _set_validators {
 	my $self = shift;
 	$self->{validators} = {
+		'format' 			=> v_eq( 'repInfo', 'format', 'WAVE' ),
+		'status' 			=> v_eq( 'repInfo', 'status', 'Well-Formed and valid' ),
+		'module' 			=> v_eq( 'repInfo', 'module', 'WAVE-hul' ),
+		'mime_type' 		=> v_eq( 'repInfo', 'mimeType', 'audio/x-wave' ),
+		'profile1' 			=> v_eq( 'repInfo', 'profile1', 'PCMWAVEFORMAT'),
+		'profile2'			=> v_in( 'repInfo', 'profile2', ['Broadcast Wave Version 1', 'Broadcast Wave Version 2'] ),
 		'codingHistory'		=> v_exists( 'waveMeta', 'codingHistory'),
 		'description'		=> v_exists( 'waveMeta', 'description'),
+		'originator' 		=> v_eq( 'waveMeta', 'originator', 'University of Michigan Library'),
+		'originationDate'	=> sub{
+			my $self = shift;
+			my $date = $self->_findone( "waveMeta", "originationDate" );
+			if ($date =~ m!^(19|20)\d\d[: /.](0[1-9]|1[012])[: /.](0[1-9]|[12][0-9]|3[01])!) {
+				$self->set_error(
+					"NotMatchedValue",
+					field => 'originationDate',
+					actual => $date
+				);
+			}
+		},
+		'sampleRate'		=> v_exists( 'aes', 'sampleRate'),
 		'audioDataEncoding'	=> v_exists( 'aes', 'audioDataEncoding'),
 		'byteOrder'			=> v_exists( 'aes', 'byteOrder'),
 		'numChannels'		=> v_exists( 'aes', 'numChannels'),
 		'analogDigitalFlag'	=> v_exists( 'aes', 'analogDigitalFlag'),
 		'bitDepth'			=> v_exists( 'aes', 'bitDepth'),
 		'useType'			=> v_exists( 'aes', 'useType'),
-		'format' 			=> v_eq( 'repInfo', 'format', 'WAVE' ),
-		'status' 			=> v_eq( 'repInfo', 'status', 'Well-Formed and valid' ),
-		'module' 			=> v_eq( 'repInfo', 'module', 'WAVE-hul' ),
-		'mime_type' 		=> v_eq( 'repInfo', 'mimeType', 'audio/x-wave' ),
-		'originator' 		=> v_eq( 'waveMeta', 'originator', 'University of Michigan Library'),
-		'sampleRate'		=> v_exists( 'aes', 'sampleRate'),
-		
-		#TODO: define v_or for profile1a/b --> XPathValidator
-		#also sample version does not contain values expected in spec
-		#'profile1'	=> v_or(
-			#	v_eq( 'repInfo', 'profile1', 'Broadcast Wave Version 1' ),
-			#	v_eq( 'repInfo', 'profile1', 'Broadcast Wave Version 2' ),
-		#),
-		#'profile2' 			=> v_eq( 'repInfo', 'profile2', 'PCM Wave Format'),
-		
-
-		#TODO set date check
-		#'originationDate'	=> v_exists( 'waveMeta', 'originationDate'),
-    		#regex to validate originationDate
-		#eg: ($date =~ m/^[0-9]{4}-(((0[13578]|(10|12))-(0[1-9]|[1-2][0-9]|3[0-1]))|(02-(0[1-9]|[1-2][0-9]))|((0[469]|11)-(0[1-9]|[1-2][0-9]|30)))$/)
 	}
 }
 
