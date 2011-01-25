@@ -1,0 +1,51 @@
+###### PREMIS configuration ######################################################
+#
+# A perl snippet returning the software name and version for each 'tool' code
+# in the PREMIS events below. $self is the HTFeed::METS stage generating the
+# PREMIS events.
+
+premis_tools:
+    GROOVE: $self->git_revision();
+    EXIFTOOL: $self->perl_mod_version('Image::ExifTool');
+    XERCES: $self->local_directory_version('xerces-c');
+    JHOVE: $self->local_directory_version('jhove');
+    DIGEST_MD5: $self->perl_mod_version('Digest::MD5');
+    GPG: $self->system_version('gnupg');
+    ZIP: $self->local_directory_version('zip');
+
+# Location of the symlinks for 'local directory version'
+premis_tool_local: /l/local
+
+# For each possible kind of PREMIS event, list the PREMIS eventType, the
+# eventDetail, the executor linkingAgent (should be UM or
+# VOLUME_ARTIST), and any tool linkingAgents. The tools must be drawn from
+# the list in the 'tools' configuration variable here.
+
+premis_events:
+
+  capture:
+    type: capture
+    detail: Initial capture of item
+    executor: VOLUME_ARTIST
+
+  ht_mets_creation:
+    type: mets creation
+    detail: Creation of HathiTrust METS file
+    executor: MiU
+    executor_type: MARC21 Code
+    tools:
+    - GROOVE
+
+  image_compression:
+    type: image compression
+    detail: Conversion of raw scans to compressed TIFF and JPEG2000
+    # executor is package-type specific
+    # tools is package-type specific
+
+  image_header_modification:
+    type: image header modification
+    detail: Modification of image headers to meet HathiTrust conventions
+    executor: MiU
+    executor_type: MARC21 Code
+    tools:
+    - GROOVE
