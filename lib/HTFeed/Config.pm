@@ -10,6 +10,7 @@ our @EXPORT_OK = qw(get_config set_config);
 
 
 my $config;
+my $premis_config;
 
 {
     # get config file
@@ -24,6 +25,11 @@ my $config;
     # load config file
     eval{
         $config = YAML::XS::LoadFile($config_file);
+        $premis_config = YAML::XS::LoadFile($config->{'premis_config'});
+        # copy premis config to main config
+        while(my ($key, $val) = each(%$premis_config)) {
+            $config->{$key} = $val;
+        }
     };
     if ($@){ die ("loading $config_file failed: $@"); }
 
