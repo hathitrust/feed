@@ -6,7 +6,10 @@ use strict;
 #commented out to not break compile
 #use HTFeed::PackageType::MPub::METS;
 #use HTFeed::PackageType::MPub::Fetch;
-#TODO: additional HTFeed::PackageType::MPub modules ...?
+#use HTFeed::PackageType::MPub::DOD;
+#use HTFeed::PackageType::MPub::Faculty;
+#use HTFeed::PackageType::MPub::Islamic;
+#use HTFeed::PackageType::MPub::UMP;
 use HTFeed::VolumeValidator;
 use HTFeed::Stage::Pack;
 use HTFeed::Stage::Collate;
@@ -104,13 +107,13 @@ __END__
 
 =pod
 
-This is the package type configuration file for Google / GRIN.
+This is the package type configuration file for MPub/DCU.
 
 =head1 SYNOPSIS
 
 use HTFeed::PackageType;
 
-my $pkgtype = new HTFeed::PackageType('google');
+my $pkgtype = new HTFeed::PackageType('mpub');
 
 =head1 AUTHOR
 
