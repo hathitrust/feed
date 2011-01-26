@@ -14,7 +14,7 @@ sub new{
 	my $self = {
 		contexts => {
 			repInfo 	=> ["/jhove:jhove/jhove:repInfo", "root"],
-			waveMeta 	=> ["jhove:property[jhove:name='WAVEMetadata']/jhove:values/jhove:property/jhove:name", "repInfo"],
+			waveMeta 	=> ["jhove:properties/jhove:property[jhove:name='WAVEMetadata']/jhove:values", "repInfo"],
 			aes 		=> ["jhove:property[jhove:name='AESAudioMetadata']/jhove:values/jhove:value/aes:audioObject", "waveMeta"],
 		},
 		
@@ -26,17 +26,17 @@ sub new{
 				status => "jhove:status",
 				module => "jhove:sigMatch/jhove:module",
 				mimeType => "jhove:mimeType",
-				profile1 => "jhove:profile[1]",
-				profile2 => "jhove:profile[2]",
+				profile1 => "jhove:profiles/jhove:profile[1]",
+				profile2 => "jhove:profiles/jhove:profile[2]",
 			},
 
 			# waveMeta children
 			waveMeta =>
 			{
-				description		=> "jhove:values/jhove:propery[jhove:name='Description']/jhove:values/jhove:value",
-				originator		=> "jhove:values/jhove:property[jhove:name='Originator']/jhove:values/jhove:value",
-				originationDate	=> "jhove:values/jhove:property[jhove:name='OriginationDate']/jhove:values/jhove:value",
-				codingHistory	=> "jhove:values/jhove:property[jhove:name='CodingHistory']/jhove:values/jhove:value",
+				description		=> "jhove:property/jhove:values/jhove:property[jhove:name='Description']",
+				originator		=> "jhove:property/jhove:values/jhove:property[jhove:name='Originator']/jhove:values/jhove:value",
+				originationDate	=> "jhove:property/jhove:values/jhove:property[jhove:name='OriginationDate']",
+				codingHistory	=> "jhove:property/jhove:values/jhove:property[jhove:name='CodingHistory']",
 			},
 
 			# aes children
