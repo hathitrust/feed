@@ -32,6 +32,29 @@ sub _validate_mets_consistency {
 			$self->set_error("MissingFile", field => 'file');
 		}
 
+		#checksums
+		my $checksumValue = $xpc->findvalue("./mets:mdWrap/mets:xmlData/aes:audioObject/aes:checksum/aes:checksumValue", $techmd_node);
+		if(! $checksumValue) {
+			$self->set_error("MissingField", field=>'checksumValue');
+		}
+		my $checksumKind = $xpc->findvalue("./mets:mdWrap/mets:xmlData/aes:audioObject/aes:checksum/aes:checksumKind", $techmd_node);
+		if(! $checksumKind) {
+			$self->set_error("MissingField", field=>'checksumKind');
+		}
+		if ($checksumKind ne "MD5") {
+			$self->set_error("BadValue", field => '$checksumKind', expected => 'MD5', actual => $checksumKind);
+		}
+		my $checksumCreateDate = $xpc->findvalue("./mets:mdWrap/mets:xmlData/aes:audioObject/aes:checksum/aes:checksumCreateDate", $techmd_node);
+		if(! $checksumCreateDate) {
+			$self->set_error("MissingField", field =>'checksumCreateDate');
+		}
+
+		#speedCoarse
+		my $speedCoarse = $xpc->findvalue("./mets:mdWrap/mets:xmlData/aes:audioObject/aes:formatList/aes:formatRegion/aes:speed/aes:speedCoarse[\@units='Inches per second']", $techmd_node);
+		if($speedCoarse = '')  {
+			$self->set_error("MissingField", field =>'speedCoarse');
+		}
+
 		#useType
 		my $primaryIdentifier = $xpc->findvalue("./mets:mdWrap/mets:xmlData/aes:audioObject/aes:primaryIdentifier[\@identifierType='FILE_NAME']",$techmd_node);
 		my $useType = $xpc->findvalue("./mets:mdWrap/mets:xmlData/aes:audioObject/aes:use/\@useType",$techmd_node);

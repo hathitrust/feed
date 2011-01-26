@@ -48,6 +48,7 @@ sub _set_validators {
 		'byteOrder'			=> v_exists( 'aes', 'byteOrder'),
 		'numChannels'		=> v_exists( 'aes', 'numChannels'),
 		'analogDigitalFlag'	=> v_exists( 'aes', 'analogDigitalFlag'),
+		'primaryID'			=> v_exists( 'aes', 'primaryID'),
 		'bitDepth'			=> v_exists( 'aes', 'bitDepth'),
 		'useType'			=> v_exists( 'aes', 'useType'),
 	}
