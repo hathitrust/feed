@@ -11,6 +11,8 @@ our @EXPORT_OK = qw(get_config set_config);
 
 my $config;
 my $premis_config;
+# build error message at startup in case $ENV{HTFEED_CONFIG} changes 
+my $bad_path_error_message = sprintf("%s Error: %%s is not data member in your config file (%s)", __PACKAGE__, $ENV{HTFEED_CONFIG});
 
 {
     # get config file
@@ -25,7 +27,7 @@ my $premis_config;
     # load config file
     eval{
         $config = YAML::XS::LoadFile($config_file);
-        $premis_config = YAML::XS::LoadFile($config->{'premis_config'});
+        $premis_config = YAML::XS::LoadFile(get_config('premis_config'));
         # copy premis config to main config
         while(my ($key, $val) = each(%$premis_config)) {
             $config->{$key} = $val;
@@ -37,8 +39,6 @@ my $premis_config;
 
 }
 
-# build error message at startup in case $ENV{HTFEED_CONFIG} changes 
-my $bad_path_error_message = sprintf("%s Error: %%s is not data member in your config file (%s)", __PACKAGE__, $ENV{HTFEED_CONFIG});
 
 =get_config
 get an entry out
