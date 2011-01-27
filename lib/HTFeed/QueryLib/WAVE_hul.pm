@@ -37,6 +37,7 @@ sub new{
 				originator		=> "jhove:property/jhove:values/jhove:property[jhove:name='Originator']/jhove:values/jhove:value",
 				originationDate	=> "jhove:property/jhove:values/jhove:property[jhove:name='OriginationDate']",
 				codingHistory	=> "jhove:property/jhove:values/jhove:property[jhove:name='CodingHistory']",
+				
 			},
 
 			# aes children

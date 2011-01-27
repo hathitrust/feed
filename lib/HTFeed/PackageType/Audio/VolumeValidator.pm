@@ -25,14 +25,17 @@ sub _validate_mets_consistency {
     # get top-level xpathcontext for METS
     my $xpc = $volume->get_source_mets_xpc();
 
-	foreach my $techmd_node ($xpc->findnodes("//mets:techMD")) {
+	my $source_analogDigitalFlag = $xpc->findvalue("//mets:sourceMD/mets:mdWrap/mets:xmlData/aes:audioObject/\@analogDigitalFlag");
+
+	#techMD tests
+	foreach my $techmd_node ($xpc->findnodes("//mets:techMD")){
+
         my $techmd_id = $techmd_node->getAttribute("ID");
 		my $file = $xpc->findvalue("//mets:file[\@ADMID='$techmd_id']/mets:FLocat/\@xlink:href");
 		if(! -e $volume->get_staging_directory() . "/" . $file) {
 			$self->set_error("MissingFile", field => 'file');
 		}
 
-		#checksums
 		my $checksumValue = $xpc->findvalue("./mets:mdWrap/mets:xmlData/aes:audioObject/aes:checksum/aes:checksumValue", $techmd_node);
 		if(! $checksumValue) {
 			$self->set_error("MissingField", field=>'checksumValue');
@@ -42,75 +45,52 @@ sub _validate_mets_consistency {
 			$self->set_error("MissingField", field=>'checksumKind');
 		}
 		if ($checksumKind ne "MD5") {
-			$self->set_error("BadValue", field => '$checksumKind', expected => 'MD5', actual => $checksumKind);
+			$self->set_error("BadValue", field => 'checksumKind', expected => 'MD5', actual => $checksumKind);
 		}
 		my $checksumCreateDate = $xpc->findvalue("./mets:mdWrap/mets:xmlData/aes:audioObject/aes:checksum/aes:checksumCreateDate", $techmd_node);
 		if(! $checksumCreateDate) {
 			$self->set_error("MissingField", field =>'checksumCreateDate');
 		}
 
-		#speedCoarse
-		my $speedCoarse = $xpc->findvalue("./mets:mdWrap/mets:xmlData/aes:audioObject/aes:formatList/aes:formatRegion/aes:speed/aes:speedCoarse[\@units='Inches per second']", $techmd_node);
-		if($speedCoarse = '')  {
-			$self->set_error("MissingField", field =>'speedCoarse');
-		}
-
-		#useType
-		my $primaryIdentifier = $xpc->findvalue("./mets:mdWrap/mets:xmlData/aes:audioObject/aes:primaryIdentifier[\@identifierType='FILE_NAME']",$techmd_node);
-		my $useType = $xpc->findvalue("./mets:mdWrap/mets:xmlData/aes:audioObject/aes:use/\@useType",$techmd_node);
-		if ($primaryIdentifier =~ /^am/) {
-			if ($useType ne "PRESERVATION_MASTER") {
-				$self->set_error("BadValue",field => 'aes:useType',expected => "PRESERVATION_MASTER",actual=>$useType);
+		my $tech_primaryID = $xpc->findvalue("./mets:mdWrap/mets:xmlData/aes:audioObject/aes:primaryIdentifier[\@identifierType='FILE_NAME']",$techmd_node);
+		my $tech_useType = $xpc->findvalue("./mets:mdWrap/mets:xmlData/aes:audioObject/aes:use/\@useType",$techmd_node);
+		if ($tech_primaryID =~ /^am/) {
+			if ($tech_useType ne "PRESERVATION_MASTER") {
+				$self->set_error("BadValue",field => 'aes:useType',expected => "PRESERVATION_MASTER",actual=>$tech_useType);
 			}
-		} elsif ($primaryIdentifier =~ /^pm/) {
-			if ($useType ne "PRODUCTION_MASTER") {
-				$self->set_error("BadValue",field => 'aes:useType',expected => "PRODUCTION_MASTER",actual=>$useType);
+		} elsif ($tech_primaryID =~ /^pm/) {
+			if ($tech_useType ne "PRODUCTION_MASTER") {
+				$self->set_error("BadValue",field => 'aes:useType',expected => "PRODUCTION_MASTER",actual=>$tech_useType);
 			}
 		} else {
-            $self->set_error("BadValue",field=>'aes:primaryIdentifier',expected=>'am,pm',actual=>$primaryIdentifier);
+            $self->set_error("BadValue",field=>'aes:primaryIdentifier',expected=>'am,pm',actual=>$tech_primaryID);
         }
 
-        # techMD section cross-checks
         my $audioDataEncoding = $xpc->findvalue("./mets:mdWrap/mets:xmlData/aes:audioObject/aes:audioDataEncoding",$techmd_node);
 		if (! $audioDataEncoding) {
             $self->set_error("MissingField", field=>'audioDataEncoding');
         }
-
-		my $byteOrder = $xpc->findvalue("./mets:mdWrap/mets:xmlData/aes:audioObject/aes:byteOrder",$techmd_node);
-			if(! $byteOrder) {
-			$self->set_error("MissingField", field=>'byteOrder');
-		}
         	
-		my $numChannels = $xpc->findvalue("./mets:mdWrap/mets:xmlData/aes:audioObject/aes:face/aes:region/aes:numChannels",$techmd_node);
-		if(! $numChannels) {
-			$self->set_error("MissingField", field=>'numChannels');
-		}
-
-		my $format = $xpc->findvalue("./mets:mdWrap/mets:xmlData/aes:audioObject/aes:format",$techmd_node);
-		if(! $format) {
-			$self->set_error("MissingField", field=>'format');
-		}
-
-		my $analogDigitalFlag = $xpc->findvalue("./mets:mdWrap/mets:xmlData/aes:audioObject/\@analogDigitalFlag",$techmd_node);
-		if(! $analogDigitalFlag) {
-			$self->set_error("MissingField", field=>'analogDigitalFlag');
-		}
 	}
 
-	#sourceMD
-    my $sourceUseType = $xpc->findvalue("//mets:sourceMD/mets:mdWrap/mets:xmlData/aes:audioObject/aes:use/\@useType");
-	if($sourceUseType ne "ORIGINAL_MASTER") {
-    	$self->set_error("BadValue",field=>'source useType',actual=>$sourceUseType,expected=>"ORIGINAL_MASTER");
+	#sourceMD tests
+    my $source_UseType = $xpc->findvalue("//mets:sourceMD/mets:mdWrap/mets:xmlData/aes:audioObject/aes:use/\@useType");
+	if($source_UseType ne "ORIGINAL_MASTER") {
+    	$self->set_error("BadValue",field=>'source useType',actual=>$source_UseType,expected=>"ORIGINAL_MASTER");
 	}
-    		
-    my $sourceFormat = $xpc->findvalue("//mets:sourceMD/mets:mdWrap/mets:xmlData/aes:audioObject/aes:use/aes:format");
-	my $analogDigitalFlag = $xpc->findvalue("//mets:sourceMD/mets:mdWrap/mets:xmlData/aes:audioObject/\@analogDigitalFlag");
-	if ($sourceFormat eq "DAT" || $sourceFormat eq "CD") {
- 		if ($analogDigitalFlag ne "PHYS_DIGITAL") {
-			$self->set_error("BadValue",field=>'analogDigitalFlag',expected=>'PHYS_DIGITAL',actual=>$analogDigitalFlag);
+
+	my $speedCoarse = $xpc->findvalue("//mets:sourceMD/mets:mdWrap/mets:xmlData/aes:audioObject/aes:formatList/aes:formatRegion/aes:speed/aes:speedCoarse");
+	if ($speedCoarse eq '')  {
+		$self->set_error("MissingField", field =>'speedCoarse');
+	}
+	
+    my $source_format = $xpc->findvalue("//mets:sourceMD/mets:mdWrap/mets:xmlData/aes:audioObject/aes:use/aes:format");
+	if ($source_format eq "DAT" || $source_format eq "CD") {
+ 		if ($source_analogDigitalFlag ne "PHYS_DIGITAL") {
+			$self->set_error("BadValue",field=>'analogDigitalFlag',expected=>'PHYS_DIGITAL',actual=>$source_analogDigitalFlag);
 		}
-	} elsif ($analogDigitalFlag ne "ANALOG") {
-		$self->set_error("BadValue",field=>'analogDigitalFlag',expected=>'ANALOG',actual=>$analogDigitalFlag);
+	} elsif ($source_analogDigitalFlag ne "ANALOG") {
+		$self->set_error("BadValue",field=>'analogDigitalFlag',expected=>'ANALOG',actual=>$source_analogDigitalFlag);
 	}
     return;
 }
