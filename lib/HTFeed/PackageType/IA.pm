@@ -92,14 +92,15 @@ our $config = {
         'mets_validation',
     ],
 
+    # What PREMIS event types  to extract from the source METS and include in the HT METS
     source_premis_events_extract => [
         'capture',
-        'package_inspection',
-        'file_rename',
-        'image_header_modification',
-        'ocr_normalize',
-        'page_md5_create',
-        'source_mets_creation',
+        'package inspection',
+        'file rename',
+        'image header modification',
+        'ocr split',
+        'message digest calculation',
+        'source mets creation',
     ],
 
     premis_events => [

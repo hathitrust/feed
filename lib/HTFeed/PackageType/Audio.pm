@@ -39,21 +39,20 @@ our $config = {
         }
     },
 
-	checksum_file    => 0,
+    checksum_file    => 0,
     source_mets_file => qr/\w+.xml$/,
 
     # Allow gaps in numerical sequence of filenames?
     allow_sequence_gaps => 0,
 
-    # The list of stages to run to successfully ingest a volume.
-    stages_to_run => [qw(
-    HTFeed::PackageType::Audio::VolumeValidator
-    HTFeed::PackageType::Audio::METS
-    HTFeed::Handle
-    HTFeed::Zip
-    HTFeed::Collate
-    )],
-
+    stage_map => {
+        ready             => 'HTFeed::PackageType::Audio::Unpack',
+        unpacked          => 'HTFeed::PackageType::Audio::VolumeValidator',
+        validated         => 'HTFeed::Stage::Pack',
+        packed            => 'HTFeed::PackageType::Audio::METS',
+        metsed            => 'HTFeed::Stage::Handle',
+        handled           => 'HTFeed::Stage::Collate',
+    },
 
     # The HTFeed::ModuleValidator subclass to use for validating
     # files with the given extensions
@@ -85,8 +84,22 @@ our $config = {
     # configured in config.yaml)
     # TODO: determine Audio HT PREMIS events
     # TODO: determine Audio PREMIS source METS events to extract
-    premis_events => [
+    source_premis_events_extract => [
+    'capture',
+    'manual quality review',
+    'source mets creation',
+    'message digest calculation',
     ],
+
+    premis_events => [
+    'page_md5_fixity',
+    'package_validation',
+    'zip_compression',
+    'zip_md5_create',
+    'ingestion',
+    ],
+
+    premis_overrides => {},
 
     # filename extensions not to compress in zip file
     uncompressed_extensions => [],

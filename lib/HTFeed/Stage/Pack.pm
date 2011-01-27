@@ -35,8 +35,11 @@ sub run{
     mkdir($zip_stage);
     mkdir("$zip_stage/$pt_objid");
 
-    # Add OCR files with compression
+    # don't compress jp2, tif, etc..
     my $uncompressed_extensions = join(":",@{ $volume->get_nspkg()->get('uncompressed_extensions') });
+    # add the necessary flag for zip if we have any uncompressed extensions
+    $uncompressed_extensions = "-n $uncompressed_extensions" if($uncompressed_extensions);
+
     my @files = @{ $volume->get_all_content_files() };
     my $source_mets = $volume->get_source_mets_file();
     push(@files, basename($volume->get_source_mets_file())) if $source_mets;
@@ -54,7 +57,7 @@ sub run{
     }
 
     my $zip_path = $volume->get_zip_path();
-    my $zipret = system("cd '$zip_stage'; zip -q -r -n $uncompressed_extensions '$zip_path' '$pt_objid'");
+    my $zipret = system("cd '$zip_stage'; zip -q -r $uncompressed_extensions '$zip_path' '$pt_objid'");
 
     if($zipret) {
 	    $self->set_error('OperationFailed',operation=>'zip',detail=>'Creating zip file',exitstatus=>$zipret,file=>$zip_path);
