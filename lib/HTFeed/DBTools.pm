@@ -51,7 +51,7 @@ sub get_queued{
     my $items = (shift or 1);
     
     my $dbh = get_dbh();
-    ## TODO: order by priority
+
     my $sth = $dbh->prepare(q(SELECT pkg_type, ns, objid, status, failure_count FROM queue WHERE node = ? AND status != 'punted' AND status !=  'collated' and status != 'held'));
     $sth->execute(hostname);
     
@@ -148,22 +148,6 @@ sub count_locks{
     return $sth->fetchrow;
 }
 
-# release_if_done($ns,$objid)
-sub release_if_done{
-    my ($ns,$objid) = @_;
-    
-    # clear lock if done/punted
-    my $sth = get_dbh()->prepare(q(UPDATE queue SET `node` = NULL WHERE node = ? AND (ns = ? AND objid = ?) AND (status = 'collated' OR status = 'punted');));
-    my $rows = $sth->execute(hostname,$ns,$objid);
-
-    if ($rows == 0){
-        $sth = get_dbh()->prepare(q(SELECT pkg_type, ns, objid, status, failure_count FROM queue WHERE node = ? AND (ns = ? AND objid = ?)));
-        $sth->execute(hostname,$ns,$objid);
-        return $sth->fetchrow_arrayref;
-    }
-    return;
-}
-
 # ingest_log_failure ($volume,$stage,$status)
 sub ingest_log_failure {
     my ($volume,$stage,$new_status) = @_;
@@ -187,7 +171,6 @@ sub ingest_log_success {
     my $sth = get_dbh()->prepare("INSERT INTO ingest_log (namespace,id,status,is_repeat) VALUES (?,?,'ingested',?)");
     $sth->execute($ns,$objid,$repeat);
 }
-
 
 1;
 

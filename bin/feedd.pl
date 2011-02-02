@@ -1,34 +1,56 @@
 use warnings;
 use strict;
 
+#use Data::Dumper;
+
+use DBI;
+
+use HTFeed::Version;
+use HTFeed::StagingSetup;
+
+use HTFeed::Config qw(get_config);
+use HTFeed::Volume;
+use HTFeed::Log { root_logger => 'INFO, dbi, screen' };
+use HTFeed::DBTools;
+use Log::Log4perl qw(get_logger);
+
+my $logger = get_logger();
+
+# make clean stage
+## TODO: flags
+HTFeed::StagingSetup::make_stage(1);
+
 my $process_id = $$;
 my $subprocesses = 0;
-my %locks = ();
-
-my $volumes_in_process_limit = 5;
+my @jobs = ();
+my %locks_by_key = ();
+my %locks_by_pid = ();
+my $clean = 1;
+my $failure_limit            = get_config('failure_limit');
+my $volumes_in_process_limit = get_config('volumes_in_process_limit');
 
 while(! exit_condition()){
     while (($subprocesses < $volumes_in_process_limit) and (my $job = get_next_job())){
         spawn($job);
     }
-    refresh_kid();
+    wait_kid() or sleep 30;
 }
-print "Terminating\n";
+print "Terminating...\n";
 while ($subprocesses){
+    ## this won't work (yet)
     refresh_kid();
 }
 
 # fork, lock job, increment $subprocess
 sub spawn{
-    my ($job) = @_;
+    my $job = shift;
     my $pid = fork();
     if ($pid){
         # parent
-        $subprocesses++;
-        $locks{$pid} = $job;
-        print "LOCK $job to $pid! $subprocesses in flight\n";
+        lock_job($pid, $job);
     }
     elsif ( defined $pid ) {
+        # child
         run_stage($job);
         exit(0);
     }
@@ -39,18 +61,14 @@ sub spawn{
 
 # wait, spawns refreshed job for kid's volume if possible
 # else decrement $subprocess and release lock
-sub refresh_kid{
+sub wait_kid{
     my $pid = wait();
     if ($pid > 0){
-        print "$pid done\n";
-        $subprocesses--;
-        if (my $job = HTFeed::DBTools::release_if_done($namespace,$objid)){
-            spawn($job); # get refreshed job without releasing lock
-        }
-        else{
-            delete $locks{$pid};
-        }
+        # remove old job from lock table
+        release_job($pid);
+        return $pid;
     }
+    return;
 }
 
 # determine if we are done
@@ -60,106 +78,130 @@ sub exit_condition{
 
 sub get_next_job{
     my $job;
-    while ($job = $queue_sth->fetchrow_arrayref()){
-        return $job if _lock_check($job);
+
+    if ($job = shift @jobs){
+        return $job;
     }
-    _fill_queue();
-    $queue_sth = HTFeed::DBTools::get_queued();
-    while ($job = $queue_sth->fetchrow_arrayref()){
-        return $job if _lock_check($job);
+
+    # @jobs is empty, fill it up from db
+    fill_queue();
+    if ($job = shift @jobs){
+        return $job;
     }
     return;
 }
 
-sub _fill_queue{
+sub fill_queue{
     my $needed_volumes = $volumes_in_process_limit - $subprocesses;
     if ($needed_volumes > 0){
         HTFeed::DBTools::lock_volumes($needed_volumes);
     }
-}
-
-sub _lock_check{
     
+    if (my $sth = HTFeed::DBTools::get_queued()){    
+        while(my $job = $sth->fetchrow_hashref()){
+            push (@jobs, $job) if (! is_locked($job));
+        }
+    }
 }
 
-# run_stage( $packagetype, $namespace, $objid, $status, $failure_count )
+sub is_locked{
+    my $job = shift;
+    return exists $locks_by_key{$job->{ns}}{$job->{objid}};
+}
+
+sub lock_job{
+    my ($pid,$job) = @_;
+    $locks_by_key{$job->{ns}}{$job->{objid}} = $job;
+    $locks_by_pid{$pid} = $job;
+    $subprocesses++;
+    print "LOCK $job->{ns}.$job->{objid} to $pid! $subprocesses in flight\n";
+}
+
+sub release_job{
+    my $pid = shift;
+    my $job = $locks_by_pid{$pid};
+    delete $locks_by_pid{$pid};
+    delete $locks_by_key{$job->{ns}}{$job->{objid}};
+    $subprocesses--;
+    print "RELEASE $job->{ns}.$job->{objid} from $pid! $subprocesses in flight\n";
+}
+
+# run_stage( $job )
 sub run_stage {
-    my ( $packagetype, $namespace, $objid, $status, $failure_count ) = @_;
+    my $job = shift;
 
     my $volume;
-    my $nspkg;
     my $stage;
 
     eval {
         $volume = HTFeed::Volume->new(
-            objid       => $objid,
-            namespace   => $namespace,
-            packagetype => $packagetype
+            objid       => $job->{objid},
+            namespace   => $job->{ns},
+            packagetype => $job->{pkg_type},
         );
-        $nspkg = $volume->get_nspkg();
-        my $stage_map   = $nspkg->get('stage_map');
-        my $stage_class = $stage_map->{$status};
+        my $stage_class = $volume->get_nspkg()->get('stage_map')->{$job->{status}};
 
         $stage = eval "$stage_class->new(volume => \$volume)";
 
-        $logger->info( "RunStage", @log_common, stage => ref($stage) );
+        $logger->info( "RunStage", objid => $job->{objid}, namespace => $job->{ns}, stage => ref($stage) );
         $stage->run();
     };
 
     my $err = $@;
     if ( $err and $err !~ /STAGE_ERROR/ ) {
-        $logger->error( "UnexpectedError", @log_common, stage => ref($stage), detail => $@ );
+        $logger->error( "UnexpectedError", objid => $job->{objid}, namespace => $job->{ns}, stage => ref($stage), detail => $@ );
     }
 
     if ($stage and $clean) {
         eval { $stage->clean(); };
         if ($@) {
-            $logger->error( "UnexpectedError", @log_common, stage  => ref($stage), detail => $@ );
+            $logger->error( "UnexpectedError", objid => $job->{objid}, namespace => $job->{ns}, stage  => ref($stage), detail => $@ );
         }
     }
 
     # update queue table with new status and failure_count
-    my $sth;
     if ( $stage and $stage->succeeded() ) {
-        $status = $stage->get_stage_info('success_state');
-        $logger->info( "StageSucceeded", @log_common, stage => ref($stage) );
-        $sth = HTFeed::DBTools::get_dbh()->prepare(
-            q(UPDATE `queue` SET `status` = ? WHERE `ns` = ? AND `pkg_type` = ? AND `objid` = ?;)
+        # success
+        my $status = $stage->get_stage_info('success_state');
+        $logger->info( "StageSucceeded", objid => $job->{objid}, namespace => $job->{ns}, stage => ref($stage) );
+        HTFeed::DBTools::get_dbh()->do(
+            sprintf(q(UPDATE `queue` SET `status` = '%s' WHERE `ns` = '%s' AND `objid` = '%s';), $status, $job->{ns}, $job->{objid})
         );
     }
     else {
         # failure
-        if ( $failure_count >= $failure_limit or not defined $stage) {
+        my $status;
+        if ( $job->{failure_count} >= $failure_limit or not defined $stage) {
             # punt if failure limit exceeded or stage construction failed
             $status = 'punted'; 
         } elsif($stage) {
             my $new_status = $stage->get_stage_info('failure_state');
             $status = $new_status if ($new_status);
         } 
+        ## TODO: else {unexpected error} ?
 
-        $logger->info( "StageFailed", @log_common, stage => ref($stage) );
+        $logger->info( "StageFailed", objid => $job->{objid}, namespace => $job->{ns}, stage => ref($stage) );
 
         if ( $status eq 'punted' ) {
-            $logger->info( "VolumePunted", @log_common );
+            $logger->info( "VolumePunted", objid => $job->{objid}, namespace => $job->{ns} );
             eval {
                 $volume->clean_all() if $volume and $clean;
             };
             if($@) {
-                $logger->error( "UnexpectedError", @log_common, detail => "Error cleaning volume: $@");
+                $logger->error( "UnexpectedError", objid => $job->{objid}, namespace => $job->{ns}, detail => "Error cleaning volume: $@");
             }
         }
-        $sth = HTFeed::DBTools::get_dbh()->prepare(
-            q(UPDATE `queue` SET `status` = ?, failure_count=failure_count+1 WHERE `ns` = ? AND `pkg_type` = ? AND `objid` = ?;)
+        HTFeed::DBTools::get_dbh()->do(
+            sprintf(q(UPDATE `queue` SET `status` = '%s', failure_count=failure_count+1 WHERE `ns` = '%s' AND `objid` = '%s';), $status, $job->{ns}, $job->{objid})
         );
+        ## This makes no sense re: line 170
+        $stage->clean_punt() if ($stage and $status eq 'punted');
     }
-    $sth->execute( $status, $namespace, $packagetype, $objid );
-    
-    $stage->clean_punt() if ($stage and $status eq 'punted');
 }
 
 END{
     # clean up on exit of original pid (i.e. don't clean on END of fork()ed pid) if $clean
-    if ($$ eq $pid and $clean){
+    if (($$ eq $process_id) and $clean){
         # delete everything in staging, except download
         HTFeed::StagingSetup::clear_stage();
         
