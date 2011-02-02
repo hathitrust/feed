@@ -11,7 +11,7 @@ use HTFeed::StagingSetup;
 use HTFeed::Config qw(get_config);
 use HTFeed::Volume;
 use HTFeed::Log { root_logger => 'INFO, dbi, screen' };
-use HTFeed::DBTools;
+use HTFeed::DBTools qw(get_queued lock_volumes update_queue);
 use Log::Log4perl qw(get_logger);
 
 my $logger = get_logger();
@@ -94,10 +94,10 @@ sub get_next_job{
 sub fill_queue{
     my $needed_volumes = $volumes_in_process_limit - $subprocesses;
     if ($needed_volumes > 0){
-        HTFeed::DBTools::lock_volumes($needed_volumes);
+        lock_volumes($needed_volumes);
     }
     
-    if (my $sth = HTFeed::DBTools::get_queued()){    
+    if (my $sth = get_queued()){    
         while(my $job = $sth->fetchrow_hashref()){
             push (@jobs, $job) if (! is_locked($job));
         }
@@ -164,9 +164,7 @@ sub run_stage {
         # success
         my $status = $stage->get_stage_info('success_state');
         $logger->info( "StageSucceeded", objid => $job->{objid}, namespace => $job->{ns}, stage => ref($stage) );
-        HTFeed::DBTools::get_dbh()->do(
-            sprintf(q(UPDATE `queue` SET `status` = '%s' WHERE `ns` = '%s' AND `objid` = '%s';), $status, $job->{ns}, $job->{objid})
-        );
+        update_queue($job->{ns}, $job->{objid}, $status);
     }
     else {
         # failure
@@ -191,9 +189,8 @@ sub run_stage {
                 $logger->error( "UnexpectedError", objid => $job->{objid}, namespace => $job->{ns}, detail => "Error cleaning volume: $@");
             }
         }
-        HTFeed::DBTools::get_dbh()->do(
-            sprintf(q(UPDATE `queue` SET `status` = '%s', failure_count=failure_count+1 WHERE `ns` = '%s' AND `objid` = '%s';), $status, $job->{ns}, $job->{objid})
-        );
+        update_queue($job->{ns}, $job->{objid}, $status, 1);
+
         ## This makes no sense re: line 170
         $stage->clean_punt() if ($stage and $status eq 'punted');
     }
