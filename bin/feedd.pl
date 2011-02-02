@@ -7,18 +7,13 @@ use DBI;
 
 use HTFeed::Version;
 use HTFeed::StagingSetup;
+use HTFeed::Run;
 
 use HTFeed::Config qw(get_config);
 use HTFeed::Volume;
 use HTFeed::Log { root_logger => 'INFO, dbi, screen' };
-use HTFeed::DBTools qw(get_queued lock_volumes update_queue);
-use Log::Log4perl qw(get_logger);
-
-my $logger = get_logger();
-
-# make clean stage
-## TODO: flags
-HTFeed::StagingSetup::make_stage(1);
+use HTFeed::DBTools qw(get_queued lock_volumes);
+#use Log::Log4perl qw(get_logger);
 
 my $process_id = $$;
 my $subprocesses = 0;
@@ -26,8 +21,9 @@ my @jobs = ();
 my %locks_by_key = ();
 my %locks_by_pid = ();
 my $clean = 1;
-my $failure_limit            = get_config('failure_limit');
 my $volumes_in_process_limit = get_config('volumes_in_process_limit');
+
+HTFeed::StagingSetup::make_stage($clean);
 
 while(! exit_condition()){
     while (($subprocesses < $volumes_in_process_limit) and (my $job = get_next_job())){
@@ -51,7 +47,7 @@ sub spawn{
     }
     elsif ( defined $pid ) {
         # child
-        run_stage($job);
+        run_job($job, $clean);
         exit(0);
     }
     else{
@@ -99,7 +95,7 @@ sub fill_queue{
     
     if (my $sth = get_queued()){    
         while(my $job = $sth->fetchrow_hashref()){
-            push (@jobs, $job) if (! is_locked($job));
+            push (@jobs, $job) if (! is_locked($job) and can_run_job($job));
         }
     }
 }
@@ -126,76 +122,6 @@ sub release_job{
     print "RELEASE $job->{ns}.$job->{objid} from $pid! $subprocesses in flight\n";
 }
 
-# run_stage( $job )
-sub run_stage {
-    my $job = shift;
-
-    my $volume;
-    my $stage;
-
-    eval {
-        $volume = HTFeed::Volume->new(
-            objid       => $job->{objid},
-            namespace   => $job->{ns},
-            packagetype => $job->{pkg_type},
-        );
-        my $stage_class = $volume->get_nspkg()->get('stage_map')->{$job->{status}};
-
-        $stage = eval "$stage_class->new(volume => \$volume)";
-
-        $logger->info( "RunStage", objid => $job->{objid}, namespace => $job->{ns}, stage => ref($stage) );
-        $stage->run();
-    };
-
-    my $err = $@;
-    if ( $err and $err !~ /STAGE_ERROR/ ) {
-        $logger->error( "UnexpectedError", objid => $job->{objid}, namespace => $job->{ns}, stage => ref($stage), detail => $@ );
-    }
-
-    if ($stage and $clean) {
-        eval { $stage->clean(); };
-        if ($@) {
-            $logger->error( "UnexpectedError", objid => $job->{objid}, namespace => $job->{ns}, stage  => ref($stage), detail => $@ );
-        }
-    }
-
-    # update queue table with new status and failure_count
-    if ( $stage and $stage->succeeded() ) {
-        # success
-        my $status = $stage->get_stage_info('success_state');
-        $logger->info( "StageSucceeded", objid => $job->{objid}, namespace => $job->{ns}, stage => ref($stage) );
-        update_queue($job->{ns}, $job->{objid}, $status);
-    }
-    else {
-        # failure
-        my $status;
-        if ( $job->{failure_count} >= $failure_limit or not defined $stage) {
-            # punt if failure limit exceeded or stage construction failed
-            $status = 'punted'; 
-        } elsif($stage) {
-            my $new_status = $stage->get_stage_info('failure_state');
-            $status = $new_status if ($new_status);
-        } 
-        ## TODO: else {unexpected error} ?
-
-        $logger->info( "StageFailed", objid => $job->{objid}, namespace => $job->{ns}, stage => ref($stage) );
-
-        if ( $status eq 'punted' ) {
-            $logger->info( "VolumePunted", objid => $job->{objid}, namespace => $job->{ns} );
-            eval {
-                $volume->clean_all() if $volume and $clean;
-            };
-            if($@) {
-                $logger->error( "UnexpectedError", objid => $job->{objid}, namespace => $job->{ns}, detail => "Error cleaning volume: $@");
-            }
-        }
-        update_queue($job->{ns}, $job->{objid}, $status, 1);
-
-        ## This makes no sense re: line 170
-        $stage->clean_punt() if ($stage and $status eq 'punted');
-    }
-}
-
 END{
     # clean up on exit of original pid (i.e. don't clean on END of fork()ed pid) if $clean
     if (($$ eq $process_id) and $clean){
@@ -204,8 +130,6 @@ END{
         
         # release all locks
         HTFeed::DBTools::reset_in_flight_locks();
-        HTFeed::DBTools::release_completed_locks();
-        HTFeed::DBTools::release_failed_locks();
     }
 }
 
