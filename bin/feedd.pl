@@ -15,6 +15,18 @@ use HTFeed::Log { root_logger => 'INFO, dbi, screen' };
 use HTFeed::DBTools qw(get_queued lock_volumes);
 #use Log::Log4perl qw(get_logger);
 
+# kill children on SIGINT
+$SIG{'INT'} =
+    sub {
+        kill 2, keys %locks_by_pid;
+        kill 2, $$;
+    };
+# reread config on SIGHUP
+#$SIG{'HUP'} =
+#    sub {
+#        ...
+#    };
+
 my $process_id = $$;
 my $subprocesses = 0;
 my @jobs = ();
