@@ -1,0 +1,169 @@
+###### PREMIS configuration ######################################################
+#
+#
+# A perl snippet returning the software name and version for each 'tool' code
+# in the PREMIS events below. $self is the HTFeed::METS stage generating the
+# PREMIS events.
+
+premis_tools:
+    GROOVE: $self->git_revision();
+    EXIFTOOL: $self->perl_mod_version('Image::ExifTool');
+    XERCES: $self->local_directory_version('xerces-c');
+    JHOVE: $self->local_directory_version('jhove');
+    DIGEST_MD5: $self->perl_mod_version('Digest::MD5');
+    GPG: $self->system_version('gnupg');
+    ZIP: $self->local_directory_version('zip');
+
+# Location of the symlinks for 'local directory version'
+premis_tool_local: /l/local
+
+# For each possible kind of PREMIS event, list the PREMIS eventType, the
+# eventDetail, the executor linkingAgent VOLUME_ARTIST), and any tool
+# linkingAgents. The tools must be drawn from the list in the 'tools'
+# configuration variable here.
+
+premis_events:
+
+  capture:
+    type: capture
+    detail: Initial capture of item
+    executor: VOLUME_ARTIST
+
+  file_rename:
+    type: file rename
+    detail: File renaming to HathiTrust conventions
+    executor: MiU
+    executor_type: MARC21 Code
+    tools:
+    - GROOVE
+
+  ht_mets_creation:
+    type: mets creation
+    detail: Creation of HathiTrust METS file
+    executor: MiU
+    executor_type: MARC21 Code
+    tools:
+    - GROOVE
+
+  image_compression:
+    type: image compression
+    detail: Conversion of raw scans to compressed TIFF and JPEG2000
+    # executor is package-type specific
+    # tools is package-type specific
+
+  image_header_modification:
+    type: image header modification
+    detail: Modification of image headers to meet HathiTrust conventions
+    executor: MiU
+    executor_type: MARC21 Code
+    tools:
+    - GROOVE
+    - EXIFTOOL
+
+  ingestion:
+    type: ingestion
+    detail: Ingestion of object package into repository
+    executor: MiU
+    executor_type: MARC21 Code
+    tools:
+    - GROOVE
+
+  mets_validation:
+    type: validation
+    detail: Validation of source METS file
+    executor: MiU
+    executor_type: MARC21 Code
+    tools:
+    - XERCES
+
+  ocr_normalize:
+    type: ocr split
+    # detail is package-type specific
+    executor: MiU
+    executor_type: MARC21 Code
+    tools:
+    - GROOVE
+
+  package_inspection:
+    type: package inspection
+    detail: Inspection of download package for missing files
+    executor: MiU
+    executor_type: MARC21 Code
+    tools:
+    - GROOVE
+
+  package_validation:
+    type: validation
+    detail: Validation of object components
+    executor: MiU
+    executor_type: MARC21 Code
+    tools:
+    - GROOVE
+    - JHOVE
+    - XERCES
+
+  page_feature_mapping:
+    type: page feature mapping
+    detail: Mapping of original page feature tags to HathiTrust tags
+    executor: MiU
+    executor_type: MARC21 Code
+    tools:
+    - GROOVE
+
+  page_md5_create:
+    type: message digest calculation
+    detail: Calculation of page-level MD5 checksums
+    executor: MiU
+    executor_type: MARC21 Code
+    tools:
+    - DIGEST_MD5
+
+  page_md5_fixity:
+    type: fixity check
+    detail: Validation of page-level MD5 checksums
+    executor: MiU
+    executor_type: MARC21 Code
+    tools:
+    - DIGEST_MD5
+
+  preingest:
+    type: transformation
+    detail: Transformation of files for ingest (mod1-modN in source METS)
+    executor: MiU
+    executor_type: MARC21 Code
+    tools:
+    - GROOVE
+    # list any other tools here??
+
+  source_md5_fixity:
+    type: fixity check
+    detail: Calculation of md5 hash values for downloaded files, comparison with pre-download md5 values
+    executor: MiU
+    executor_type: MARC21 Code
+    tools:
+    - DIGEST_MD5
+
+  source_mets_creation:
+    type: source mets creation
+    detail: Creation of source METS file
+    executor: MiU
+    executor_type: MARC21 Code
+    tools:
+    - GROOVE
+
+  zip_compression:
+    type: zip archive creation
+    detail: Compression of content files and source METS into zip archive
+    executor: MiU
+    executor_type: MARC21 Code
+    tools:
+    - ZIP
+
+  zip_md5_create:
+    type: zip file message digest calculation
+    detail: Calculation of md5 checksum for zip archive
+    executor: MiU
+    executor_type: MARC21 Code
+    tools:
+    - DIGEST_MD5
+

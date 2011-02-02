@@ -276,11 +276,11 @@ sub _add_source_mets_events {
 
     my $xc                = $volume->get_source_mets_xpc();
     my $src_premis_events = {};
-    foreach my $src_event ( $xc->findnodes('//PREMIS:event') ) {
+    foreach my $src_event ( $xc->findnodes('//premis:event') ) {
 
         # src event will be an XML node
         # do we want to keep this kind of event?
-        my $event_type = $xc->findvalue( './PREMIS:eventType', $src_event );
+        my $event_type = $xc->findvalue( './premis:eventType', $src_event );
         $src_premis_events->{$event_type} = []
           if not defined $src_premis_events->{$event_type};
         push( @{ $src_premis_events->{$event_type} }, $src_event );
@@ -291,7 +291,7 @@ sub _add_source_mets_events {
     {
         next unless defined $src_premis_events->{$eventtype};
         foreach my $src_event ( @{ $src_premis_events->{$eventtype} } ) {
-            my $eventid = $xc->findvalue( "./PREMIS:eventIdentifier[PREMIS:eventIdentifierType='UUID']/PREMIS:eventIdentifierValue",
+            my $eventid = $xc->findvalue( "./premis:eventIdentifier[premis:eventIdentifierType='UUID']/premis:eventIdentifierValue",
                 $src_event
             );
             if ( not defined $self->{included_events}{$eventid} ) {
@@ -327,8 +327,10 @@ sub _add_premis {
     $premis_object->set_preservation_level("1");
     $premis_object->add_significant_property( 'file count',
         $volume->get_file_count() );
-    $premis_object->add_significant_property( 'page count',
-        $volume->get_page_count() );
+    if ($volume->get_file_groups()->{image}) {
+        $premis_object->add_significant_property( 'page count',
+            $volume->get_page_count() );
+    }
     $premis->add_object($premis_object);
 
     # last chance to record, even though it's not done yet

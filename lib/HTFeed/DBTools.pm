@@ -148,6 +148,30 @@ sub count_locks{
     return $sth->fetchrow;
 }
 
+# ingest_log_failure ($volume,$stage,$status)
+sub ingest_log_failure {
+    my ($volume,$stage,$new_status) = @_;
+    my $ns = $volume->get_namespace();
+    my $objid = $volume->get_objid();
+    my $stagename = "Unknown error";
+    if(defined $stage and ref($stage)) {
+        $stagename = "Error in " . ref($stage)
+    }
+    my $fatal = ($new_status eq 'punted');
+    my $sth = get_dbh()->prepare("INSERT INTO ingest_log (namespace,id,status,is_fatal) VALUES (?,?,?,?)");
+    $sth->execute($ns,$objid,$stagename,$fatal);
+        
+}
+
+sub ingest_log_success {
+    my ($volume,$repeat) = @_;
+    my $ns = $volume->get_namespace();
+    my $objid = $volume->get_objid();
+
+    my $sth = get_dbh()->prepare("INSERT INTO ingest_log (namespace,id,status,is_repeat) VALUES (?,?,'ingested',?)");
+    $sth->execute($ns,$objid,$repeat);
+}
+
 1;
 
 __END__

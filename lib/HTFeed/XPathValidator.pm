@@ -318,7 +318,6 @@ sub v_between {
     return v_and(v_ge($ctx,$query,$lower), v_le($ctx,$query,$upper));
 }
 
-
 # actual must be string-equal to one in @$allowed
 sub v_in { 
     my ($ctx,$query,$allowed) = @_;

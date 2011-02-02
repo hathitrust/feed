@@ -8,6 +8,11 @@ use Getopt::Long qw(:config pass_through no_ignore_case);
 use HTFeed::Config qw(get_config);
 use HTFeed::PackageType;
 use HTFeed::Namespace;
+use Exporter;
+use base qw(Exporter);
+
+our @EXPORT_OK = qw(namespace_ids pkgtype_ids);
+
 
 sub import{
     my ($short, $long);
@@ -28,18 +33,41 @@ sub long_version{
     my @pt_keys = grep(m|^HTFeed/PackageType/\w+\.pm|, keys %INC);
 
     print "\n*** Loaded Namespaces ***\n";
-    print packageify( join ("\n", sort @ns_keys) );
+    print join("\n",map {packageify($_)} sort @ns_keys);
     print "\n*** Loaded PackageTypes ***\n";
-    print packageify( join ("\n", sort @pt_keys) );
+    print join("\n",map {packageify($_)} sort @pt_keys);
     print "\n";
 }
 
+sub namespace_ids {
+    my @ns_keys = grep(m|^HTFeed/Namespace/\w+\.pm|, keys %INC);
+    return map {file_identifier($_)} sort @ns_keys;
+
+}
+
+sub pkgtype_ids {
+    my @pt_keys = grep(m|^HTFeed/PackageType/\w+\.pm|, keys %INC);
+    return map {file_identifier($_)} sort @pt_keys;
+}
+
 sub packageify{
+    no strict 'refs';
     my $string = shift;
     $string =~ s/\//::/g;
     $string =~ s/\.pm//g;
-    return $string;
+    my $key = ${$string . "::identifier"};
+    return "$string - $key";
 }
+
+sub file_identifier {
+    no strict 'refs';
+    my $string = shift;
+    $string =~ s/\//::/g;
+    $string =~ s/\.pm//g;
+    my $key = ${$string . "::identifier"};
+    return "$key";
+}
+
 
 1;
 
