@@ -124,6 +124,7 @@ sub _add_premis {
     $self->{included_events} = {};
 
     my $premis = new PREMIS;
+    $self->{premis} = $premis;
 
     # last chance to record
     $volume->record_premis_event('source_mets_creation');
@@ -138,8 +139,8 @@ sub _add_premis {
 #    $premis_object->add_significant_property('page count',$volume->get_page_count());
     $premis->add_object($premis_object);
 
-    $self->_add_capture_event($premis);
-    $self->_add_premis_events($premis,$volume->get_nspkg()->get('source_premis_events'));
+    $self->_add_capture_event();
+    $self->_add_premis_events($volume->get_nspkg()->get('source_premis_events'));
 
     my $digiprovMD =
       new METS::MetadataSection( 'digiprovMD', 'id' => 'premis1' );
@@ -151,8 +152,8 @@ sub _add_premis {
 # TODO: factor out common stuff to SourceMETS.pm
 sub _add_capture_event {
     my $self = shift;
-    my $premis = shift;
     my $volume = $self->{volume};
+    my $premis = $self->{premis};
     my $xpc = $volume->get_scandata_xpc();
 
     my $eventdate = $xpc->findvalue("//scribe:scanLog/scribe:scanEvent[1]/scribe:endTimeStamp | //scanLog/scanEvent[1]/endTimeStamp");

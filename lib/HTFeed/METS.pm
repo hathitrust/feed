@@ -194,76 +194,73 @@ sub _extract_old_premis {
 
 sub _add_premis_events {
     my $self            = shift;
-    my $premis          = shift;
     my $events          = shift;
+    my $premis          = $self->{premis};
     my $volume          = $self->{volume};
     my $nspkg           = $volume->get_nspkg();
     my $included_events = $self->{included_events};
 
-    foreach my $eventcode ( @{$events} ) {
+    EVENTCODE: foreach my $eventcode ( @{$events} ) {
 
         # query database for: datetime, outcome
+        my $eventconfig = $nspkg->get_event_configuration($eventcode);
         my ( $eventid, $datetime, $outcome ) =
           $volume->get_event_info($eventcode);
-        $self->set_error(
-            "MissingField",
-            field  => "datetime",
-            detail => "Missing datetime for $eventcode"
-        ) if not defined $datetime;
-        $self->set_error(
-            "MissingField",
-            field  => "eventid",
-            detail => "Missing eventid for $eventcode"
-        ) if not defined $eventid;
-        my $eventconfig = $nspkg->get_event_configuration($eventcode);
+        $eventconfig->{eventid} = $eventid;
+        $eventconfig->{date} = $datetime;
+        if(defined $outcome) {
+            $eventconfig->{outcomes} = [$outcome];
+        }
 
         # already have event? if so, don't add it again
         next if defined $eventid and defined $included_events->{$eventid};
 
-        my $executor = $eventconfig->{'executor'}
-          or $self->set_error(
-            "MissingField",
-            field  => "executor",
-            detail => "Missing event executor for $eventcode"
-          );
-        my $executor_type = $eventconfig->{'executor_type'}
-          or $self->set_error(
-            "MissingField",
-            field  => "executor",
-            detail => "Missing event executor type for $eventcode"
-          );
-        my $detail = $eventconfig->{'detail'}
-          or $self->set_error(
-            "MissingField",
-            field  => "event detail",
-            detail => "Missing event detail for $eventcode"
-          );
-        my $eventtype = $eventconfig->{'type'}
-          or $self->set_error(
-            "MissingField",
-            field  => "event type",
-            detail => "Missing event type for $eventcode"
-          );
+        $self->add_premis_event($eventconfig);
 
-        my $event =
-          new PREMIS::Event( $eventid, 'UUID', $eventtype, $datetime, $detail );
-        $event->add_outcome($outcome) if defined $outcome;
-
-  # query namespace/packagetype for software tools to record for this event type
-        $event->add_linking_agent(
-            new PREMIS::LinkingAgent( $executor_type, $executor, 'Executor' ) );
-
-        my @agents       = ();
-        my $tools_config = $eventconfig->{'tools'};
-        foreach my $agent (@$tools_config) {
-            $event->add_linking_agent(
-                new PREMIS::LinkingAgent( 'tool', $self->get_tool_version($agent), 'software')
-            );
-        }
-        $premis->add_event($event);
 
     }
 
+}
+
+sub add_premis_event {
+    my $self = shift;
+    my $eventconfig = shift;
+    my $volume = $self->{volume};
+    my $premis = $self->{premis};
+
+    foreach my $field ('executor','executor_type','detail','type','date','eventid') {
+        if(not defined $eventconfig->{$field}) {
+            $self->set_error("MissingField",
+                field => $field,
+		actual => $eventconfig
+            );
+            return;
+        }
+    }
+
+    my $event = new PREMIS::Event( $eventconfig->{'eventid'}, 'UUID', 
+                                   $eventconfig->{'type'}, $eventconfig->{'date'},
+                                   $eventconfig->{'detail'});
+    foreach my $outcome (@{ $eventconfig->{'outcomes'} }) {
+        $event->add_outcome($outcome);
+    }
+
+# query namespace/packagetype for software tools to record for this event type
+    $event->add_linking_agent(
+        new PREMIS::LinkingAgent( $eventconfig->{'executor_type'}, 
+                                  $eventconfig->{'executor'}, 
+                                  'Executor' ) );
+
+    my @agents       = ();
+    my $tools_config = $eventconfig->{'tools'};
+    foreach my $agent (@$tools_config) {
+        $event->add_linking_agent(
+            new PREMIS::LinkingAgent( 'tool', $self->get_tool_version($agent), 'software')
+        );
+    }
+    $premis->add_event($event);
+
+    return;
 }
 
 # Baseline source METS extraction for cases where source METS PREMIS events
@@ -272,7 +269,7 @@ sub _add_premis_events {
 sub _add_source_mets_events {
     my $self   = shift;
     my $volume = $self->{volume};
-    my $premis = shift;
+    my $premis = $self->{premis};
 
     my $xc                = $volume->get_source_mets_xpc();
     my $src_premis_events = {};
@@ -310,6 +307,7 @@ sub _add_premis {
     $self->{included_events} = {};
 
     my $premis = new PREMIS;
+    $self->{premis} = $premis;
 
     my $old_events = $self->_extract_old_premis();
     if ($old_events) {
@@ -319,7 +317,7 @@ sub _add_premis {
         }
     }
 
-    $self->_add_source_mets_events($premis);
+    $self->_add_source_mets_events();
 
     # create PREMIS object
     my $premis_object =
@@ -336,7 +334,7 @@ sub _add_premis {
     # last chance to record, even though it's not done yet
     $volume->record_premis_event('ingestion');
 
-    $self->_add_premis_events( $premis, $nspkg->get('premis_events') );
+    $self->_add_premis_events( $nspkg->get('premis_events') );
 
     my $digiprovMD =
       new METS::MetadataSection( 'digiprovMD', 'id' => 'premis1' );

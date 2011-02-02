@@ -626,8 +626,10 @@ the PREMIS eventType (which is configured in the event definition)
 
 sub record_premis_event {
     my $self = shift;
-    my $eventtype = shift;
-    croak("Must provide an event type") unless $eventtype;
+    my $eventcode = shift;
+    my $eventconfig = $self->get_nspkg()->get_event_configuration($eventcode);
+    my $eventtype = $eventconfig->{'type'};
+    croak("Event code / type not found") unless $eventtype;
 
     my %params = @_;
 
