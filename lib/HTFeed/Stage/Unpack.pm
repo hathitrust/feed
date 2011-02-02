@@ -23,7 +23,7 @@ sub unzip_file {
 # untgz_file $self,$infile,$outdir,$otheroptions
 sub untgz_file {
     # extract - not using Archive::Tar because it is very slow
-    return _extract_file(q(tar --strip-components 1 -zx -f '%s' -C '%s' %s 2>&1),@_);
+    return _extract_file(q(tar -zx -f '%s' -C '%s' %s 2>&1),@_);
 }
 
 sub _extract_file {
