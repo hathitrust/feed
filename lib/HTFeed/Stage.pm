@@ -45,7 +45,7 @@ sub ram_disk_size{
 
 # estimate_space($file, $multiplier)
 sub estimate_space{
-    my $file, $multiplier = @_;
+    my ($file, $multiplier) = @_;
     my $size = -s $file;
     return ceil($size * $multiplier);
 }

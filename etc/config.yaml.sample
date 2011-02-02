@@ -26,6 +26,11 @@ staging:
     preingest: /htprep/preingest
     zip: /htprep/stage/zip
 
+daemon:
+  release_states:
+  - punted
+  - collated
+
 sample_directory: /htprep/qr
 repository:
   # The directory in which symbolic links will be created to each volume
