@@ -9,9 +9,9 @@ use HTFeed::Config qw(get_config);
 use HTFeed::Namespace;
 use HTFeed::DBTools qw(update_queue);
 
-our @EXPORT = qw(run_job can_run_job);
+use Filesys::Df;
 
-my $failure_limit = get_config('failure_limit');
+our @EXPORT = qw(run_job can_run_job);
 
 # can_run_job( $job )
 sub can_run_job {
@@ -36,6 +36,20 @@ sub run_job {
         my $stage_class = $volume->get_nspkg()->get('stage_map')->{$job->{status}};
 
         $stage = eval "$stage_class->new(volume => \$volume)";
+        
+#        # check if there is space on ramdisk
+#        my $required_size = $stage->ram_disk_size();
+#        
+#        if ($required_size){ # no need to check if $required_size == 0
+#            if ($required_size > get_config('ram_disk_max_job_size')){
+#                # there isn't space to do this in memory, do it on disk
+#                $stage->set_run_on_disk();
+#            }
+#            elsif( (df(get_config('ram_disk')){bfree} * get_config('ram_fill_limit')) < $ram_disk_size ){
+#                # there isn't space to do this at the moment, but there will be
+#
+#            }
+#        }
 
         get_logger()->info( 'RunStage', objid => $job->{objid}, namespace => $job->{ns}, stage => ref($stage) );
         $stage->run();
@@ -63,7 +77,7 @@ sub run_job {
     else {
         # failure
         my $status;
-        if ( $job->{failure_count} >= $failure_limit or not defined $stage) {
+        if ( $job->{failure_count} >= get_config('failure_limit') or not defined $stage) {
             # punt if failure limit exceeded or stage construction failed
             $status = 'punted'; 
         } elsif($stage) {

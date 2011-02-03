@@ -9,23 +9,11 @@ use HTFeed::Version;
 use HTFeed::StagingSetup;
 use HTFeed::Run;
 
-use HTFeed::Config qw(get_config);
+use HTFeed::Config;
 use HTFeed::Volume;
 use HTFeed::Log { root_logger => 'INFO, dbi, screen' };
 use HTFeed::DBTools qw(get_queued lock_volumes);
 #use Log::Log4perl qw(get_logger);
-
-# kill children on SIGINT
-$SIG{'INT'} =
-    sub {
-        kill 2, keys %locks_by_pid;
-        kill 2, $$;
-    };
-# reread config on SIGHUP
-#$SIG{'HUP'} =
-#    sub {
-#        ...
-#    };
 
 my $process_id = $$;
 my $subprocesses = 0;
@@ -34,6 +22,24 @@ my %locks_by_key = ();
 my %locks_by_pid = ();
 my $clean = 1;
 my $volumes_in_process_limit = get_config('volumes_in_process_limit');
+
+# kill children on SIGINT
+$SIG{'INT'} =
+    sub {
+        unless($$ eq $process_id){
+            # child dies
+            exit 0;
+        }
+        # parent kills kids
+        kill 2, keys %locks_by_pid;
+        exit 0;
+    };
+# reread config on SIGHUP
+## Don't use this until it is vetted! It is on a branch for a reason!
+$SIG{'HUP'} =
+    sub {
+        HTFeed::Config::init();
+    };
 
 HTFeed::StagingSetup::make_stage($clean);
 
@@ -45,7 +51,7 @@ while(! exit_condition()){
 }
 print "Terminating...\n";
 while ($subprocesses){
-    ## this won't work (yet)
+    ## this won't work (yet), (when) do we want to refresh vs reap?
     refresh_kid();
 }
 

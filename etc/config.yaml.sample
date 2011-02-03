@@ -28,10 +28,15 @@ staging:
     preingest: /htprep/preingest
     zip: /htprep/stage/zip
 
+ram_disk: /ram
+ram_fill_limit: 0.8
+ram_disk_max_job_size: 1073741824
+
 daemon:
   release_states:
   - punted
   - collated
+  - rights
 
 sample_directory: /htprep/qr
 repository:
