@@ -40,7 +40,6 @@ sub _validate_mets_consistency {
 			$self->set_error("MissingFile", field => 'file');
 		}
 
-		#TODO cleanup repetetive code below with helper function
 		#tests for existence of values
 		my $checksumValue = $xpc->findvalue("./mets:mdWrap/mets:xmlData/aes:audioObject/aes:checksum/aes:checksumValue", $techmd_node);
 		if(! $checksumValue) {
