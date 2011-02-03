@@ -52,7 +52,7 @@ sub new{
 				bitDepth			=> "aes:formatList/aes:formatRegion/aes:bitDepth",
 				sampleRate			=> "aes:formatList/aes:formatRegion/aes:sampleRate",
 				byteOrder			=> "aes:byteOrder",
-			},
+			}
 
 		},
 
