@@ -1,7 +1,8 @@
 use warnings;
 use strict;
 
-#use Data::Dumper;
+## here for debug
+use Data::Dumper;
 
 use DBI;
 
@@ -21,7 +22,6 @@ my @jobs = ();
 my %locks_by_key = ();
 my %locks_by_pid = ();
 my $clean = 1;
-my $volumes_in_process_limit = get_config('volumes_in_process_limit');
 
 # kill children on SIGINT
 $SIG{'INT'} =
@@ -44,10 +44,10 @@ $SIG{'HUP'} =
 HTFeed::StagingSetup::make_stage($clean);
 
 while(! exit_condition()){
-    while (($subprocesses < $volumes_in_process_limit) and (my $job = get_next_job())){
+    while (($subprocesses < get_config('volumes_in_process_limit')) and (my $job = get_next_job())){
         spawn($job);
     }
-    wait_kid() or sleep 30;
+    wait_kid() or sleep 15;
 }
 print "Terminating...\n";
 while ($subprocesses){
@@ -106,12 +106,12 @@ sub get_next_job{
 }
 
 sub fill_queue{
-    my $needed_volumes = $volumes_in_process_limit - $subprocesses;
+    my $needed_volumes = get_config('volumes_in_process_limit') - $subprocesses;
     if ($needed_volumes > 0){
         lock_volumes($needed_volumes);
     }
     
-    if (my $sth = get_queued()){    
+    if (my $sth = get_queued()){
         while(my $job = $sth->fetchrow_hashref()){
             push (@jobs, $job) if (! is_locked($job) and can_run_job($job));
         }

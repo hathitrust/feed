@@ -26,7 +26,7 @@ sub new {
     my $self = {
         volume => undef,
         @_,
-        run_on_disk => 0,
+        write_to_disk => 0,
         has_run => 0,
         failed  => 0,
     };
@@ -45,9 +45,9 @@ sub ram_disk_size{
 }
 
 # tell stage to run on disk
-sub set_run_on_disk{
+sub set_write_to_disk{
     my $self = shift;
-    $self->{run_on_disk} = 1;
+    $self->{write_to_disk} = 1;
 }
 
 # estimate_space($file, $multiplier)
