@@ -174,7 +174,7 @@ sub ingest_log_failure {
         $stagename = "Error in " . ref($stage)
     }
     my $fatal = ($new_status eq 'punted');
-    my $sth = get_dbh()->prepare("INSERT INTO ingest_log (namespace,id,status,is_fatal) VALUES (?,?,?,?)");
+    my $sth = get_dbh()->prepare("INSERT INTO ingest_log (namespace,id,status,fatal) VALUES (?,?,?,?)");
     $sth->execute($ns,$objid,$stagename,$fatal);
         
 }
@@ -184,7 +184,7 @@ sub ingest_log_success {
     my $ns = $volume->get_namespace();
     my $objid = $volume->get_objid();
 
-    my $sth = get_dbh()->prepare("INSERT INTO ingest_log (namespace,id,status,is_repeat) VALUES (?,?,'ingested',?)");
+    my $sth = get_dbh()->prepare("INSERT INTO ingest_log (namespace,id,status,isrepeat) VALUES (?,?,'ingested',?)");
     $sth->execute($ns,$objid,$repeat);
 }
 
