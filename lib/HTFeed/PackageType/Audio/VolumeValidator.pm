@@ -25,7 +25,11 @@ sub _validate_mets_consistency {
     # get top-level xpathcontext for METS
     my $xpc = $volume->get_source_mets_xpc();
 
+	#definitions for comparison tests
 	my $source_analogDigitalFlag = $xpc->findvalue("//mets:sourceMD/mets:mdWrap/mets:xmlData/aes:audioObject/\@analogDigitalFlag");
+    my $source_format = $xpc->findvalue("//mets:sourceMD/mets:mdWrap/mets:xmlData/aes:audioObject/aes:use/aes:format");
+	my $source_bitDepth = $xpc->findvalue("//mets:sourceMD/mets:mdWrap/mets:xmlData/aes:audioObject/aes:formatList/aes:formatRegion/aes:bitDepth");
+	my $source_sampleRate = $xpc->findvalue("//mets:sourceMD/mets:mdWrap/mets:xmlData/aes:audioObject/aes:formatList/aes:formatRegion/aes:sampleRate");
 
 	#techMD tests
 	foreach my $techmd_node ($xpc->findnodes("//mets:techMD")){
@@ -36,22 +40,38 @@ sub _validate_mets_consistency {
 			$self->set_error("MissingFile", field => 'file');
 		}
 
+		#tests for existence of values
 		my $checksumValue = $xpc->findvalue("./mets:mdWrap/mets:xmlData/aes:audioObject/aes:checksum/aes:checksumValue", $techmd_node);
 		if(! $checksumValue) {
 			$self->set_error("MissingField", field=>'checksumValue');
 		}
+
 		my $checksumKind = $xpc->findvalue("./mets:mdWrap/mets:xmlData/aes:audioObject/aes:checksum/aes:checksumKind", $techmd_node);
 		if(! $checksumKind) {
 			$self->set_error("MissingField", field=>'checksumKind');
 		}
-		if ($checksumKind ne "MD5") {
-			$self->set_error("BadValue", field => 'checksumKind', expected => 'MD5', actual => $checksumKind);
-		}
+
 		my $checksumCreateDate = $xpc->findvalue("./mets:mdWrap/mets:xmlData/aes:audioObject/aes:checksum/aes:checksumCreateDate", $techmd_node);
 		if(! $checksumCreateDate) {
 			$self->set_error("MissingField", field =>'checksumCreateDate');
 		}
 
+        my $audioDataEncoding = $xpc->findvalue("./mets:mdWrap/mets:xmlData/aes:audioObject/aes:audioDataEncoding",$techmd_node);
+		if (! $audioDataEncoding) {
+            $self->set_error("MissingField", field=>'audioDataEncoding');
+        }
+	
+		my $tech_bitDepth = $xpc->findvalue("./mets:mdWrap/mets:xmlData/aes:audioObject/aes:formatList/aes:formatRegion/aes:bitDepth",$techmd_node);
+		if (! $tech_bitDepth) {
+			$self->set_error("MissingField", field=>'bitDepth');
+		}
+
+		my $tech_sampleRate = $xpc->findvalue("./mets:mdWrap/mets:xmlData/aes:audioObject/aes:formatList/aes:formatRegion/aes:sampleRate",$techmd_node);
+		if (! $tech_sampleRate) {
+			$self->set_error("MissingField", field=>'sampleRate');
+		}
+
+		# test for useType & primaryID
 		my $tech_primaryID = $xpc->findvalue("./mets:mdWrap/mets:xmlData/aes:audioObject/aes:primaryIdentifier[\@identifierType='FILE_NAME']",$techmd_node);
 		my $tech_useType = $xpc->findvalue("./mets:mdWrap/mets:xmlData/aes:audioObject/aes:use/\@useType",$techmd_node);
 		if ($tech_primaryID =~ /^am/) {
@@ -66,10 +86,28 @@ sub _validate_mets_consistency {
             $self->set_error("BadValue",field=>'aes:primaryIdentifier',expected=>'am,pm',actual=>$tech_primaryID);
         }
 
-        my $audioDataEncoding = $xpc->findvalue("./mets:mdWrap/mets:xmlData/aes:audioObject/aes:audioDataEncoding",$techmd_node);
-		if (! $audioDataEncoding) {
-            $self->set_error("MissingField", field=>'audioDataEncoding');
-        }
+		#test for checksumKind
+		if ($checksumKind ne "MD5") {
+			$self->set_error("BadValue", field => 'checksumKind', expected => 'MD5', actual => $checksumKind);
+		}
+
+		#test for bitDepth & sampleRate
+		if ($source_format eq "DAT" || $source_format eq "CD") {
+			if ($tech_bitDepth ne $source_bitDepth) {
+				$self->set_error("BadValue",field=>'bitDepth',expected=>$source_bitDepth,actual=>$tech_bitDepth);
+			}
+			if ($tech_sampleRate ne $source_sampleRate) {
+				$self->set_error("BadValue",field=>'sampleRate',expected=>$source_sampleRate,actual=>$tech_sampleRate);
+			}
+		} else {
+			if ($tech_bitDepth ne "24") {
+				$self->set_error("BadValue",field=>'bitDepth',expected=>'24',actual=>$tech_bitDepth);
+			}
+			if ($tech_sampleRate ne "96000") {
+				$self->set_error("BadValue",field=>'sampleRate',expected=>'96000',actual=>$tech_sampleRate);
+			}
+		}
+		
         	
 	}
 
@@ -84,7 +122,6 @@ sub _validate_mets_consistency {
 		$self->set_error("MissingField", field =>'speedCoarse');
 	}
 	
-    my $source_format = $xpc->findvalue("//mets:sourceMD/mets:mdWrap/mets:xmlData/aes:audioObject/aes:use/aes:format");
 	if ($source_format eq "DAT" || $source_format eq "CD") {
  		if ($source_analogDigitalFlag ne "PHYS_DIGITAL") {
 			$self->set_error("BadValue",field=>'analogDigitalFlag',expected=>'PHYS_DIGITAL',actual=>$source_analogDigitalFlag);
@@ -92,6 +129,7 @@ sub _validate_mets_consistency {
 	} elsif ($source_analogDigitalFlag ne "ANALOG") {
 		$self->set_error("BadValue",field=>'analogDigitalFlag',expected=>'ANALOG',actual=>$source_analogDigitalFlag);
 	}
+
     return;
 }
 

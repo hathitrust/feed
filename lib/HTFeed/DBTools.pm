@@ -10,7 +10,9 @@ use DBD::mysql;
 
 use base qw(Exporter);
 
-our @EXPORT_OK = qw(get_dbh);
+our @EXPORT_OK = qw(get_dbh get_queued lock_volumes update_queue);
+
+my %release_states = map {$_ => 1} @{get_config('daemon'=>'release_states')};
 
 my $dbh = undef;
 my $pid = undef;
@@ -30,8 +32,6 @@ sub _init {
 
     return($dbh);
 }
-
-
 
 sub get_dbh {
 
@@ -170,6 +170,20 @@ sub ingest_log_success {
 
     my $sth = get_dbh()->prepare("INSERT INTO ingest_log (namespace,id,status,is_repeat) VALUES (?,?,'ingested',?)");
     $sth->execute($ns,$objid,$repeat);
+}
+
+# update_queue($ns, $objid, $new_status, [$fail])
+# $fail indicates to incriment failure_count
+# job will be released if $new_status is a release state
+sub update_queue {
+    my ($ns, $objid, $new_status, $fail) = @_;
+    
+    my $syntax = qq(UPDATE queue SET status = '$new_status');
+    $syntax .= q(, failure_count=failure_count+1) if ($fail);
+    $syntax .= q(, node = NULL) if (exists $release_states{$new_status});
+    $syntax .= qq( WHERE ns = '$ns' AND objid = '$objid';);
+    
+    get_dbh()->do($syntax);
 }
 
 1;
