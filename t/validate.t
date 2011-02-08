@@ -22,7 +22,6 @@ my $config_data = YAML::XS::LoadFile($config_file);
 my $setup_mode;
 GetOptions ( "s" => \$setup_mode );
 
-
 my $damaged_staging = $config_data->{package_directory}->{damaged};
 my $undamaged_staging = $config_data->{package_directory}->{undamaged};
 my $validation_logs_dir = $config_data->{package_directory}->{logs};
