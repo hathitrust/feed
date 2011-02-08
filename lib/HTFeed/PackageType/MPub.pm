@@ -4,16 +4,17 @@ use base qw(HTFeed::PackageType);
 use strict;
 
 #commented out to not break compile
-#use HTFeed::PackageType::MPub::METS;
 #use HTFeed::PackageType::MPub::Fetch;
-#use HTFeed::PackageType::MPub::DOD;
-#use HTFeed::PackageType::MPub::Faculty;
+#use HTFeed::PackageType::MPub::METS;
 #use HTFeed::PackageType::MPub::Islamic;
+#use HTFeed::PackageType::MPub::Notify;
 #use HTFeed::PackageType::MPub::UMP;
 use HTFeed::VolumeValidator;
 use HTFeed::Stage::Pack;
 use HTFeed::Stage::Collate;
 use HTFeed::Stage::Handle;
+
+#base case (for DigOnDemand & Faculty Reprints)
 
 our $identifier = 'mpub';
 
@@ -64,6 +65,7 @@ our $config = {
         HTFeed::Stage::Pack
         HTFeed::Stage::Collate
         HTFeed::Stage::Handle
+		HTFeed::PackageType::Notify;
 	)],
 
     # The file containing the checksums for each data file
