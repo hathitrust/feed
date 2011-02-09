@@ -155,30 +155,51 @@ sub get_all_directory_files {
 =item get_staging_directory
 
 Returns the staging directory for the volume's AIP
-makes directory if it does not exist
 
-=synopsis
-# set flag to true if you DON'T want to create the staging directory if it doesn't exist
-get_staging_directory($flag);
 =cut
 
 sub get_staging_directory {
     my $self = shift;
     
-    my $make_new_dirs = not shift;
-    
     if(not defined $self->{staging_directory}) {
         my $objid = $self->get_objid();
         my $pt_objid = s2ppchars($objid);
         my $stage_dir = sprintf("%s/%s", get_config('staging'=>'ingest'), $pt_objid);
-        if(!-e $stage_dir and $make_new_dirs) {
-            mkdir($stage_dir) or croak("Can't mkdir $stage_dir: $!");
-        }
         $self->{staging_directory} = $stage_dir;
     }
 
     return $self->{staging_directory};
+}
 
+=item mk_staging_dir
+
+makes staging directory, if $flag, creates it on disk rather than ram and symlinks to ram
+returns staging directory
+
+=synopsis
+mk_staging_dir($flag)
+=cut
+
+sub mk_staging_dir{
+    my $self = shift;
+    my $stage_on_disk = shift;
+    
+    my $objid = $self->get_objid();
+    my $pt_objid = s2ppchars($objid);
+    my $stage_dir = sprintf("%s/%s", get_config('staging'=>'ingest'), $pt_objid);
+    my $disk_stage_dir = sprintf("%s/%s", get_config('staging'=>'disk'=>'ingest'), $pt_objid);
+    
+    if($stage_on_disk){
+        mkdir($disk_stage_dir) or croak("Can't mkdir $disk_stage_dir: $!");
+        symlink($disk_stage_dir,$stage_dir) or croak("Can't symlink $disk_stage_dir,$stage_dir: $!");
+    }
+    else{
+        mkdir($stage_dir) or croak("Can't mkdir $stage_dir: $!");
+    }
+
+    $self->{staging_directory} = $stage_dir;
+
+    return $self->{staging_directory};
 }
 
 
@@ -797,8 +818,8 @@ sub get_zip {
 
 sub clean_all {
     my $self = shift;
-    warn("Removing " . $self->get_staging_directory(no_new => 1));
-    remove_tree $self->get_staging_directory(no_new => 1);
+    warn("Removing " . $self->get_staging_directory());
+    remove_tree $self->get_staging_directory();
     unlink($self->get_mets_path());
     warn("Removing " . $self->get_mets_path());
     unlink($self->get_zip_path());

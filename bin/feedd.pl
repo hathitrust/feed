@@ -34,6 +34,7 @@ $SIG{'INT'} =
         kill 2, keys %locks_by_pid;
         exit 0;
     };
+
 # reread config on SIGHUP
 ## Don't use this until it is vetted! It is on a branch for a reason!
 $SIG{'HUP'} =

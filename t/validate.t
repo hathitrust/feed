@@ -35,6 +35,10 @@ while( my ($package_type,$namespaces) = each %{ $package_types } ){
             # get environment
             my ($objid,$fail_error_count) = @{$object};
             
+            # make sure setup mode has been run if !$setup_mode
+            die ("Missing error count or invalid input file, try $0 -s to run setup mode")
+                if (!$setup_mode and !$fail_error_count);
+            
             my $nspkg_path = "$package_type/$namespace";
             my $validation_dump = "$validation_logs_dir/$nspkg_path/$objid" . '.log';
             
@@ -108,7 +112,7 @@ sub test_failure{
         
     # validate damaged package
     {
-        set_config($damaged_pkg_path,'staging'=>'download');
+        set_config($damaged_pkg_path,'staging'=>'ingest');
         $volume = HTFeed::Volume->new(objid => $objid,namespace => $namespace,packagetype => $package_type);
         $vol_val = HTFeed::VolumeValidator->new(volume => $volume);
 
@@ -138,7 +142,7 @@ sub setup_failure{
         
     # validate damaged package
     {
-        set_config($damaged_pkg_path,'staging'=>'download');
+        set_config($damaged_pkg_path,'staging'=>'ingest');
         $volume = HTFeed::Volume->new(objid => $objid,namespace => $namespace,packagetype => $package_type);
         $vol_val = HTFeed::VolumeValidator->new(volume => $volume);
 

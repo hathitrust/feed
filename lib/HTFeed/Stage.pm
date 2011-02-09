@@ -85,6 +85,13 @@ sub get_stage_info {
     return $self->stage_info();
 }
 
+# return a decision to stage on disk or not
+sub stage_on_disk{
+    my $self = shift;
+    return 1 if (get_config('ram_disk_max_job_size') < $self->ram_disk_size());
+    return;
+}
+
 # abstract
 # sub run{}
 

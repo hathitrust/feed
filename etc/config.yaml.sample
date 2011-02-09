@@ -26,7 +26,6 @@ staging:
   disk:
     ingest: /htprep/ingest
     preingest: /htprep/preingest
-    zip: /htprep/stage/zip
 
 ram_disk: /ram
 ram_fill_limit: 0.8

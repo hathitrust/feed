@@ -29,7 +29,6 @@ sub _get_dirs{
             get_config('staging'=>'zip'),
             get_config('staging'=>'preingest'),
             get_config('staging'=>'disk'=>'ingest'),
-            get_config('staging'=>'disk'=>'zip'),
             get_config('staging'=>'disk'=>'preingest'),
     ];
 }
