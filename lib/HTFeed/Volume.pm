@@ -17,6 +17,9 @@ use File::Path qw(remove_tree);
 
 our $logger = get_logger(__PACKAGE__);
 
+# The namespace UUID for HathiTrust
+use constant HT_UUID => '09A5DAD6-3484-11E0-9D45-077BD5215A96';
+
 sub new {
     my $package = shift;
 
@@ -440,6 +443,7 @@ sub get_marc_xml {
 =item get_repository_symlink
 
 Returns the path to the repository symlink for the object.
+(or the directory if the repository does not use symlinks)
 
 =cut
 
@@ -476,7 +480,7 @@ sub get_repository_mets_path {
 
     my $repos_symlink = $self->get_repository_symlink();
 
-    return unless (-l $repos_symlink);
+    return unless (-l $repos_symlink or -d $repos_symlink);
 
     my $mets_in_repository_file = sprintf("%s/%s.mets.xml",
         $repos_symlink,
@@ -498,7 +502,7 @@ sub get_repository_zip_path {
 
     my $repos_symlink = $self->get_repository_symlink();
 
-    return unless (-l $repos_symlink);
+    return unless (-l $repos_symlink or -d $repos_symlink);
 
     my $zip_in_repository_file = sprintf("%s/%s.zip",
         $repos_symlink,
@@ -659,8 +663,9 @@ sub make_premis_uuid {
     my $self = shift;
     my $eventtype = shift;
     my $date = shift;
-    my $tohash = join("-",$self->get_objid(),$eventtype,$date);
-    my $uuid = $self->{uuidgen}->create_from_name_str($self->{namespace},$tohash);
+    my $tohash = join("-",$self->get_namespace(),$self->get_objid(),$eventtype,$date);
+    my $uuid = $self->{uuidgen}->create_from_name_str(HT_UUID,$tohash);
+    print STDERR "Generated uuid for " . HT_UUID . " '$tohash' = $uuid\n";
     return $uuid;
 }
 

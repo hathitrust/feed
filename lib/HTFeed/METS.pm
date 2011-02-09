@@ -154,12 +154,14 @@ sub _extract_old_premis {
         if ($mets_in_rep_valid) {
             my $xc = $volume->get_repos_mets_xpc();
 
-            foreach my $event ( $xc->findnodes('//PREMIS:event') ) {
+            foreach my $event ( $xc->findnodes('//premis:event') ) {
 
-                my $eventType = $xc->findvalue( "./PREMIS:eventType", $event );
+                my $eventType = $xc->findvalue( "./premis:eventType", $event );
                 my $eventId = $xc->findvalue(
-                    "./PREMIS:eventIdentifier/PREMIS:eventIdentifierValue",
+                    "./premis:eventIdentifier/premis:eventIdentifierValue",
                     $event );
+
+                # TODO: upgrade to UUID if eventIdentifierType is not UUID
 
                 $self->set_error(
                     "MissingField",
@@ -198,7 +200,6 @@ sub _add_premis_events {
     my $premis          = $self->{premis};
     my $volume          = $self->{volume};
     my $nspkg           = $volume->get_nspkg();
-    my $included_events = $self->{included_events};
 
     EVENTCODE: foreach my $eventcode ( @{$events} ) {
 
@@ -213,7 +214,6 @@ sub _add_premis_events {
         }
 
         # already have event? if so, don't add it again
-        next if defined $eventid and defined $included_events->{$eventid};
 
         $self->add_premis_event($eventconfig);
 
@@ -227,6 +227,7 @@ sub add_premis_event {
     my $eventconfig = shift;
     my $volume = $self->{volume};
     my $premis = $self->{premis};
+    my $included_events = $self->{included_events};
 
     foreach my $field ('executor','executor_type','detail','type','date','eventid') {
         if(not defined $eventconfig->{$field}) {
@@ -237,6 +238,12 @@ sub add_premis_event {
             return;
         }
     }
+    
+    # make sure we haven't already added this event
+    my $eventid = $eventconfig->{'eventid'};
+    if (defined $included_events->{$eventid}) {
+        return;
+    } 
 
     my $event = new PREMIS::Event( $eventconfig->{'eventid'}, 'UUID', 
                                    $eventconfig->{'type'}, $eventconfig->{'date'},
@@ -258,6 +265,7 @@ sub add_premis_event {
             new PREMIS::LinkingAgent( 'tool', $self->get_tool_version($agent), 'software')
         );
     }
+    $included_events->{$eventid} = $event;
     $premis->add_event($event);
 
     return;
@@ -292,6 +300,7 @@ sub _add_source_mets_events {
                 $src_event
             );
             if ( not defined $self->{included_events}{$eventid} ) {
+                $self->{included_events}{$eventid} = $src_event;
                 $premis->add_event($src_event);
             }
         }
