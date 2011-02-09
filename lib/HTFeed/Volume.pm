@@ -665,7 +665,6 @@ sub make_premis_uuid {
     my $date = shift;
     my $tohash = join("-",$self->get_namespace(),$self->get_objid(),$eventtype,$date);
     my $uuid = $self->{uuidgen}->create_from_name_str(HT_UUID,$tohash);
-    print STDERR "Generated uuid for " . HT_UUID . " '$tohash' = $uuid\n";
     return $uuid;
 }
 
