@@ -33,8 +33,7 @@ while( my ($package_type,$namespaces) = each %{ $package_types } ){
         foreach my $object ( @{ $objects } ){
             # get environment
             my ($objid,$fail_error_count) = @{$object};
-            
-            my $nspkg_path = "$package_type/$namespace";
+ 			my $nspkg_path = "$package_type/$namespace";
             my $validation_dump = "$validation_logs_dir/$nspkg_path/$objid" . '.log';
             
             my @args = (
@@ -107,13 +106,13 @@ sub test_failure{
         
     # validate damaged package
     {
-        set_config($damaged_pkg_path,'staging'=>'download');
+        set_config($damaged_pkg_path,'staging'=>'ingest');
         $volume = HTFeed::Volume->new(objid => $objid,namespace => $namespace,packagetype => $package_type);
         $vol_val = HTFeed::VolumeValidator->new(volume => $volume);
 
         $vol_val->run();
     }
-    
+
     # test number of errors
     is($vol_val->failed(),$fail_error_count,"error count for damaged package validation for $package_type $namespace $objid");
     
@@ -137,13 +136,13 @@ sub setup_failure{
         
     # validate damaged package
     {
-        set_config($damaged_pkg_path,'staging'=>'download');
+        set_config($damaged_pkg_path,'staging'=>'ingest');
         $volume = HTFeed::Volume->new(objid => $objid,namespace => $namespace,packagetype => $package_type);
         $vol_val = HTFeed::VolumeValidator->new(volume => $volume);
 
         $vol_val->run();
     }
-    
+   	 
     # test that we failed
     ok($vol_val->failed(),"damaged package validation for $package_type $namespace $objid");
     
@@ -165,3 +164,4 @@ sub get_temp{
     
     return ($logfile_handle, $logfile_name);
 }
+
