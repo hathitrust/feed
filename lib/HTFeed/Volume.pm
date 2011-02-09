@@ -823,6 +823,20 @@ sub get_preingest_directory {
     return;
 }
 
+=item get_download_location
+
+Returns the file or path (if the SIP consists of multiple files) to download
+the volume to. This file or path will be removed when the volume is successfully
+ingested.
+
+=cut 
+sub get_download_location {
+    my $self = shift;
+    my $staging_dir = $self->get_download_directory();
+    return "$staging_dir/" . $self->get_SIP_filename();
+    return;
+}
+
 1;
 
 

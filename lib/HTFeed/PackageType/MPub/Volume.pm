@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-package HTFeed::PackageType::Audio::Volume;
+package HTFeed::PackageType::MPub::Volume;
 
 use warnings;
 use strict;

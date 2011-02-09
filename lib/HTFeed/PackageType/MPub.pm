@@ -20,7 +20,7 @@ our $identifier = 'mpub';
 
 our $config = {
 
-    volume_module => 'HTFeed::Volume',
+    volume_module => 'HTFeed::PackageType::MPub::Volume',
     
     # Regular expression that distinguishes valid files in the file package
     # HTML OCR is valid for the package type but only expected/required for UC1

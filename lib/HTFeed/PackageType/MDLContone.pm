@@ -126,6 +126,9 @@ our $config = {
     # filename extensions not to compress in zip file
     uncompressed_extensions => ['jp2'],
 
+    SIP_filename_pattern => '%s.tar.gz',
+
+
 
 };
 
