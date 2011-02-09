@@ -6,6 +6,7 @@ use base qw(HTFeed::METS);
 use strict;
 use warnings;
 use File::Path qw(remove_tree);
+use HTFeed::XMLNamespaces qw(register_namespaces :namespaces);
 
 sub new {
     my $class  = shift;
@@ -41,11 +42,39 @@ sub _add_dmdsecs {
     my $metadata_dir = "$preingest_dir/METADATA";
 
     # TODO: remediate MARC
-    $self->_add_dmd_sec(
+    my $marc_mdsec = $self->_add_dmd_sec(
         $self->_get_subsec_id("DMD"), 'MARC',
         'Yale MARC record',
         "$metadata_dir/${objid}_MRC.xml"
     );
+
+    # get & remediate the marc data
+    my $marc_node = ($marc_mdsec->{mdref}->getElementsByTagNameNS(NS_MARC,'record'))[0];
+    my $marc_xc = new XML::LibXML::XPathContext($marc_node);
+    register_namespaces($marc_xc);
+    $self->_remediate_marc($marc_xc);
+    foreach my $datafield ($marc_xc->findnodes('//marc:record/marc:datafield')) {
+        # ind1/ind2 use nbsp instead of regular space
+        # @i1 => @ind1
+        # @i2 => @ind2
+        my $attrs_to_move = {
+            'i1' => 'ind1',
+            'i2' => 'ind2',
+        };
+        while (my ($old,$new) = each (%$attrs_to_move)) {
+            if($datafield->hasAttribute($old)) {
+
+                my $attrval = $datafield->getAttribute($old);
+                # default to empty if value is invalid
+                if($attrval !~ /^[\da-z ]{1}$/) {
+                    $attrval = " ";
+                }
+                $datafield->removeAttribute($old);
+                $datafield->setAttribute($new,$attrval);
+            }
+        }
+    }
+
     $self->_add_dmd_sec(
         $self->_get_subsec_id("DMD"), 'MODS',
         'MODS metadata',
@@ -86,6 +115,7 @@ sub _add_premis {
     $self->{included_events} = {};
 
     my $premis = new PREMIS;
+    $self->{premis} = $premis;
 
     # last chance to record
     $volume->record_premis_event('source_mets_creation');
@@ -100,8 +130,8 @@ sub _add_premis {
 #    $premis_object->add_significant_property('page count',$volume->get_page_count());
     $premis->add_object($premis_object);
 
-    $self->_add_capture_event($premis);
-    $self->_add_premis_events($premis,$volume->get_nspkg()->get('source_premis_events'));
+    $self->_add_capture_event();
+    $self->_add_premis_events($volume->get_nspkg()->get('source_premis_events'));
 
     my $digiprovMD =
       new METS::MetadataSection( 'digiprovMD', 'id' => 'premis1' );
@@ -112,7 +142,7 @@ sub _add_premis {
 
 sub _add_capture_event {
     my $self = shift;
-    my $premis = shift;
+    my $premis = $self->{premis};
     my $volume = $self->{volume};
     # Add the custom capture event, extracting info from the Yale METS
     my $eventcode = 'capture';
@@ -272,6 +302,7 @@ sub _add_dmd_sec {
 
     my $mdsec = $self->_metadata_section( "dmdSec", @_ );
     $self->{mets}->add_dmd_sec($mdsec) if defined $mdsec;
+    return $mdsec;
 }
 
 =item _metadata_section($sectype,$id,$type,$desc,$path)

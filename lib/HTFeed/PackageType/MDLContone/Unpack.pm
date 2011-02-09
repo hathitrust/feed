@@ -23,7 +23,7 @@ sub run{
     my $objid = $volume->get_objid();
     
     my $file = sprintf("%s/$objid.tar.gz",$download_dir,$objid);
-    $self->untgz_file($file,$volume->get_staging_directory()) or return;
+    $self->untgz_file($file,$volume->get_staging_directory(),"--strip-components 1") or return;
     
     $self->_set_done();
     return $self->succeeded();

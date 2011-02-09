@@ -7,6 +7,5 @@ use base qw(HTFeed::FactoryLoader::AbstractTest);
 use Test::More;
 use HTFeed::PackageType;
 
-
 1;
 __END__

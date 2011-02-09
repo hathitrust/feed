@@ -21,6 +21,7 @@ use constant {
     NS_MODS   => 'http://www.loc.gov/mods/v3',
     NS_OAI_DC => 'http://www.openarchives.org/OAI/2.0/oai_dc/',
     NS_PREMIS => 'info:lc/xmlns/premis-v2',
+    NS_PREMIS1 => 'http://www.loc.gov/standards/premis',
     NS_RDF    => 'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
     NS_TIFF   => 'http://ns.adobe.com/tiff/1.0/',
     NS_XLINK  => 'http://www.w3.org/1999/xlink',
@@ -55,6 +56,7 @@ sub register_namespaces {
     $xpc->registerNs( 'mods',   NS_MODS );
     $xpc->registerNs( 'oai_dc', NS_OAI_DC );
     $xpc->registerNs( 'premis', NS_PREMIS );
+    $xpc->registerNs( 'premis1', NS_PREMIS1 );
     $xpc->registerNs( 'rdf',    NS_RDF );
     $xpc->registerNs( 'tiff',   NS_TIFF );
     $xpc->registerNs( 'xlink',  NS_XLINK );

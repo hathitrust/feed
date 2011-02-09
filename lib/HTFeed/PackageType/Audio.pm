@@ -71,6 +71,7 @@ our $config = {
     validate_mets_consistency
     validate_utf8
     validate_metadata)
+#XXX these are temporarily commented out to speed testing XXX#
 #    qw(validate_file_names
 #    validate_filegroups_nonempty
 #    validate_consistency

@@ -10,7 +10,9 @@ use DBD::mysql;
 
 use base qw(Exporter);
 
-our @EXPORT_OK = qw(get_dbh);
+our @EXPORT_OK = qw(get_dbh get_queued lock_volumes update_queue);
+
+my %release_states = map {$_ => 1} @{get_config('daemon'=>'release_states')};
 
 my $dbh = undef;
 my $pid = undef;
@@ -31,8 +33,6 @@ sub _init {
     return($dbh);
 }
 
-
-
 sub get_dbh {
 
     # Reconnect to server if necessary
@@ -51,7 +51,7 @@ sub get_queued{
     my $items = (shift or 1);
     
     my $dbh = get_dbh();
-    ## TODO: order by priority
+
     my $sth = $dbh->prepare(q(SELECT pkg_type, ns, objid, status, failure_count FROM queue WHERE node = ? AND status != 'punted' AND status !=  'collated' and status != 'held'));
     $sth->execute(hostname);
     
@@ -148,22 +148,6 @@ sub count_locks{
     return $sth->fetchrow;
 }
 
-# release_if_done($ns,$objid)
-sub release_if_done{
-    my ($ns,$objid) = @_;
-    
-    # clear lock if done/punted
-    my $sth = get_dbh()->prepare(q(UPDATE queue SET `node` = NULL WHERE node = ? AND (ns = ? AND objid = ?) AND (status = 'collated' OR status = 'punted');));
-    my $rows = $sth->execute(hostname,$ns,$objid);
-
-    if ($rows == 0){
-        $sth = get_dbh()->prepare(q(SELECT pkg_type, ns, objid, status, failure_count FROM queue WHERE node = ? AND (ns = ? AND objid = ?)));
-        $sth->execute(hostname,$ns,$objid);
-        return $sth->fetchrow_arrayref;
-    }
-    return;
-}
-
 # ingest_log_failure ($volume,$stage,$status)
 sub ingest_log_failure {
     my ($volume,$stage,$new_status) = @_;
@@ -188,6 +172,19 @@ sub ingest_log_success {
     $sth->execute($ns,$objid,$repeat);
 }
 
+# update_queue($ns, $objid, $new_status, [$fail])
+# $fail indicates to incriment failure_count
+# job will be released if $new_status is a release state
+sub update_queue {
+    my ($ns, $objid, $new_status, $fail) = @_;
+    
+    my $syntax = qq(UPDATE queue SET status = '$new_status');
+    $syntax .= q(, failure_count=failure_count+1) if ($fail);
+    $syntax .= q(, node = NULL) if (exists $release_states{$new_status});
+    $syntax .= qq( WHERE ns = '$ns' AND objid = '$objid';);
+    
+    get_dbh()->do($syntax);
+}
 
 1;
 
