@@ -6,7 +6,8 @@ use strict;
 use base qw(HTFeed::Test::Class);
 use HTFeed::Test::Support qw(get_fake_stage);
 use Test::More;
-use File::Temp ();
+use File::Temp qw(mkdtemp);
+use File::Path qw(remove_tree);
 use Digest::MD5;
 
 use HTFeed::Stage::Download;
@@ -18,7 +19,7 @@ sub download : Test(1){
     my $filename = 'livesandspeeches00howeiala_files.xml';
     my $md5_expected = 'a03326afd33df0eae199aec57e3bf5c4';
     
-    my $temp_dir = File::Temp->newdir();
+    my $temp_dir = mkdtemp("/tmp/feed_test_XXXXX");
     
     HTFeed::Stage::Download::download(get_fake_stage(), url => $url, path => $temp_dir, filename => $filename);
 
@@ -29,6 +30,7 @@ sub download : Test(1){
     my $md5_found = $digest->hexdigest();
     
     is ($md5_expected, $md5_found);
+    remove_tree($temp_dir);
 }
 
 1;
