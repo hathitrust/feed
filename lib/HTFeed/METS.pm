@@ -268,7 +268,7 @@ sub add_premis_event {
     $included_events->{$eventid} = $event;
     $premis->add_event($event);
 
-    return;
+    return $event;
 }
 
 # Baseline source METS extraction for cases where source METS PREMIS events
