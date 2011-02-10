@@ -8,6 +8,9 @@ use HTFeed::Config qw(get_config);
 use List::MoreUtils qw(uniq);
 use File::Path qw(remove_tree);
 use Carp qw(croak);
+use Log::Log4Perl qw(get_logger);
+
+my $logger = get_logger(__PACKAGE__);
 
 =item get_page_data(file)
 
@@ -194,7 +197,7 @@ sub _extract_page_tags {
                 if defined $type_tag;
             }
             else {
-                warn( "Missing type on div" . $struct_div->toString() );
+                $logger->warn( "Missing type on div" . $struct_div->toString() );
             }
 
             $self->_map_label_page_tag( $struct_div, $pagetags );
@@ -271,10 +274,10 @@ sub _check_is_page {
     my $struct_div = shift;
     if ( $struct_div->hasAttribute('TYPE') ) {
         my $type = $struct_div->getAttribute('TYPE');
-        warn("Unexpected type $type") unless $type eq 'page';
+        $logger->warn("Unexpected type $type") unless $type eq 'page';
     }
     else {
-        warn('Missing TYPE attribute on div');
+        $logger->warn('Missing TYPE attribute on div');
     }
 }
 
@@ -285,9 +288,9 @@ sub _extract_page_number {
 
     if ( $struct_div->hasAttribute($attribute) ) {
         my $pagenum = $struct_div->getAttribute($attribute);
-        warn( "missing attribute $attribute on div " . $struct_div->toString() )
+        $logger->warn( "missing attribute $attribute on div " . $struct_div->toString() )
         if not defined $pagenum;
-        warn("Unexpected page number $pagenum")
+        $logger->warn("Unexpected page number $pagenum")
         unless $pagenum =~ /^\d+$/
             or $pagenum =~ /^[ivxlcdm]+$/;
         $self->{in_body} = 1 if $pagenum =~ /^\d+$/;
@@ -304,7 +307,7 @@ sub _set_pagenumber {
     my $newnumber      = shift;
     my $pagenumber_map = shift;
     if ( defined $newnumber ) {
-        warn("Inconsistent page numbering for $filename")
+        $logger->warn("Inconsistent page numbering for $filename")
         if (  $pagenumber_map->{$filename}
                 and $pagenumber_map->{$filename} ne $newnumber );
 
@@ -438,6 +441,6 @@ sub get_capture_time {
 sub clean_all {
     my $self = shift;
     $self->SUPER::clean_all();
-    warn("Removing " . $self->get_preingest_directory());
+    $logger->warn("Removing " . $self->get_preingest_directory());
     remove_tree $self->get_preingest_directory();
 }

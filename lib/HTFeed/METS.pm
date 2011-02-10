@@ -760,7 +760,7 @@ sub _remediate_marc {
 
         # 06: Type of record
         if(substr($value,6,1) !~ /^[\dA-Za-z]$/) {
-            warn("Invalid value found for record type, can't remediate");
+            $logger->warn("Invalid value found for record type, can't remediate");
         }
 
         # 07: Bibliographic level
@@ -775,7 +775,7 @@ sub _remediate_marc {
 
         # 09: Character coding scheme
         if(substr($value,9,1) ne 'a') {
-            warn("Non-Unicode MARC-XML found");
+            $logger->warn("Non-Unicode MARC-XML found");
         }
 
         # 10: Indicator count

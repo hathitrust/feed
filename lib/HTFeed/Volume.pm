@@ -420,7 +420,7 @@ sub get_marc_xml {
         q(//mets:dmdSec/mets:mdWrap[@MDTYPE="MARC"]/mets:xmlData));
 
     if ( $mdsec_nodes->size() ) {
-        warn("Multiple MARC mdsecs found") if ( $mdsec_nodes->size() > 1 );
+        $logger->warn("Multiple MARC mdsecs found") if ( $mdsec_nodes->size() > 1 );
         my $node = $mdsec_nodes->get_node(0)->firstChild();
         # ignore any whitespace, etc.
         while($node->nodeType() != XML_ELEMENT_NODE) {
@@ -803,12 +803,12 @@ sub get_zip {
 
 sub clean_all {
     my $self = shift;
-    warn("Removing " . $self->get_staging_directory(no_new => 1));
+    $logger->warn("Removing " . $self->get_staging_directory(no_new => 1));
     remove_tree $self->get_staging_directory(no_new => 1);
     unlink($self->get_mets_path());
-    warn("Removing " . $self->get_mets_path());
+    $logger->warn("Removing " . $self->get_mets_path());
     unlink($self->get_zip_path());
-    warn("Removing " . $self->get_zip_path());
+    $logger->warn("Removing " . $self->get_zip_path());
 }
 
 

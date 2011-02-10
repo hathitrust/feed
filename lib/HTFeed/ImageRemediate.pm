@@ -3,6 +3,9 @@ package HTFeed::ImageRemediate;
 use strict;
 use warnings;
 use HTFeed::Config qw(get_config);
+use Log::Log4perl qw(get_logger);
+
+my $logger = get_logger(__PACKAGE__);
 
 =item get_exiftool_fields($file)
 
@@ -124,14 +127,14 @@ sub remediate_image($$;$$) {
     if ( !$force_headers->{'Resolution'} ) {
         my $xres = $oldFields->{'Jpeg2000:CaptureXResolution'};
         my $yres = $oldFields->{'Jpeg2000:CaptureYResolution'};
-        warn("Non-square pixels??! XRes $xres YRes $yres")
+        $logger->warn("Non-square pixels??! XRes $xres YRes $yres")
           if ( ( $xres or $yres ) and $xres != $yres );
 
         if ($xres) {
             my $xresunit = $oldFields->{'Jpeg2000:CaptureXResolutionUnit'};
             my $yresunit = $oldFields->{'Jpeg2000:CaptureXResolutionUnit'};
 
-            warn("Resolution unit awry")
+            $logger->warn("Resolution unit awry")
               if ( not $xresunit or not $yresunit or $xresunit ne $yresunit );
 
             $xresunit eq 'um'

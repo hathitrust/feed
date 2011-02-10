@@ -59,7 +59,7 @@ eval {
                     if ($pid) {
                         # parent process
                         $subprocesses++;
-                        warn("Spawned child process $pid, $subprocesses now running\n");
+                        $logger->warn("Spawned child process $pid, $subprocesses now running\n");
                     }
                     elsif ( defined $pid ) {
                         # child process
@@ -106,11 +106,11 @@ if ($@) {
 sub wait_kid {
     my $pid = wait();
     if ( $pid > 0 ) {
-        warn("Child process $pid finished, $subprocesses now running\n");
+        $logger->warn("Child process $pid finished, $subprocesses now running\n");
         $subprocesses--;
     }
     else {
-        warn("Child processes went away...");
+        $logger->warn("Child processes went away...");
         $subprocesses = 0;
     }
     return 1;
