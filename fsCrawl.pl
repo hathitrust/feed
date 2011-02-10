@@ -11,7 +11,7 @@ use HTFeed::Volume;
 use POSIX qw(strftime);
 
 
-my $insert="replace into fs_log (namespace, id, zip_size, zip_date, mets_size, mets_date, lastchecked, zipcheck_ok) values(?,?,?,?,?,?,CURRENT_TIMESTAMP,NULl);";
+my $insert="replace into fs_log (namespace, id, zip_size, zip_date, mets_size, mets_date, lastchecked, zipcheck_ok) values(?,?,?,?,?,?,CURRENT_TIMESTAMP,NULL);";
 my $update="update fs_log set zipcheck_ok = ? where namespace = ? and id = ?";
 my $status_ins = "insert into fs_log_status (namespace, id, path, status, detail) values (?,?,?,?,?)";
 
@@ -19,7 +19,8 @@ my $status_ins = "insert into fs_log_status (namespace, id, path, status, detail
 my $base= shift @ARGV or die("Missing base directory..");
 my $filesProcessed = 0;
 my $prevpath;
-open(RUN, "find $base/obj/ -follow -type f|") or die ("Can't open pipe to find: $!");
+my $do_md5 = 0;
+open(RUN, "find $base -follow -type f|") or die ("Can't open pipe to find: $!");
 
 while(my $line = <RUN>) {
 
@@ -63,7 +64,7 @@ while(my $line = <RUN>) {
         my $link_target = readlink $link_path or set_status($namespace,$objid,$path,"CANT_LSTAT", "$link_path $!");
 
         if($link_target ne $path) {
-            set_status($namespace,$objid,$path,"SYMLINK_INVALID",$path,$link_target);
+            set_status($namespace,$objid,$path,"SYMLINK_INVALID",$link_target);
         }
 
         #insert
@@ -145,6 +146,7 @@ sub zipcheck {
     # use google as a 'default' namespace for now
     my $volume = new HTFeed::Volume(packagetype => "google",namespace => $namespace,objid => $objid);
     my $mets = $volume->get_repos_mets_xpc();
+    my $rval = undef;
 
     # Extract the checksum for the zip file that looks kind of like this:
     #  <METS:fileGrp ID="FG1" USE="zip archive">
@@ -153,22 +155,138 @@ sub zipcheck {
     #     </METS:file>
     #  </METS:fileGrp>
 
-    my $zipname = $volume->get_zip();
-    my $mets_zipsum = $mets->findvalue("//mets:file[mets:FLocat/\@xlink:href='$zipname']/\@CHECKSUM");
+    if($do_md5) {
+        my $zipname = $volume->get_zip();
+        my $mets_zipsum = $mets->findvalue("//mets:file[mets:FLocat/\@xlink:href='$zipname']/\@CHECKSUM");
 
-    if(not defined $mets_zipsum or length($mets_zipsum) ne 32) {
-        set_status($namespace,$objid,$volume->get_repository_mets_path(),"MISSING_METS_CHECKSUM",undef);
-        return;
-    } else {
-        my $realsum = HTFeed::VolumeValidator::md5sum($volume->get_repository_zip_path());
-        if($mets_zipsum eq $realsum) {
-            print "$zipname OK\n";
-            return 1;
+        if(not defined $mets_zipsum or length($mets_zipsum) ne 32) {
+            set_status($namespace,$objid,$volume->get_repository_mets_path(),"MISSING_METS_CHECKSUM",undef);
         } else {
-            set_status($namespace,$objid,$volume->get_repository_zip_path(),"BAD_CHECKSUM","expected=$mets_zipsum actual=$realsum");
-            return;
+            my $realsum = HTFeed::VolumeValidator::md5sum($volume->get_repository_zip_path());
+            if($mets_zipsum eq $realsum) {
+                print "$zipname OK\n";
+                $rval= 1;
+            } else {
+                set_status($namespace,$objid,$volume->get_repository_zip_path(),"BAD_CHECKSUM","expected=$mets_zipsum actual=$realsum");
+            }
         }
     }
+
+    # extract other stuff from repo METS
+    { # File types & count
+        my %filetypes;
+        foreach my $file ($mets->findnodes('//mets:file/mets:FLocat/@xlink:href')) {
+            my ($extension) = ($file->value =~ /\.(\w+)$/);
+            $filetypes{$extension}++;
+        }
+        while(my ($ext,$count) = each(%filetypes)) {
+            print "$namespace $objid FILETYPE $ext $count\n";
+        }
+    }
+
+    { # PREMIS & premis ID version
+        my $premisversion = "none";
+        if($mets->findnodes('//mets:mdWrap[@MDTYPE="PREMIS"]')) {
+            $premisversion = "unknown";
+        }
+        if($mets->findnodes('//mets:mdWrap//premis:premis')) {
+            $premisversion = "premis2";
+        }
+        if($mets->findnodes('//mets:mdWrap//premis1:object')) {
+            $premisversion = "premis1";
+        }
+
+        print "$namespace $objid PREMIS_VERSION $premisversion\n";
+    }
+
+    { # PREMIS event ID types
+
+        my %event_id_types = ();
+        foreach my $eventtype ($mets->findnodes('//premis:eventIdentifierType | //premis1:eventIdentifierType')) {
+            $event_id_types{$mets->findvalue('.',$eventtype)}++;
+        }
+        foreach my $event_id_type (keys(%event_id_types)) {
+            print "$namespace $objid PREMIS_EVENT_TYPE $event_id_type $event_id_types{$event_id_type}\n";
+        }
+    }
+
+    { # PREMIS agent types
+        my %agent_id_types = ();
+        foreach my $agenttype ($mets->findnodes('//premis:linkingAgentIdentifierType | //premis1:linkingAgentIdentifierType')) {
+            $agent_id_types{$mets->findvalue('.',$agenttype)}++;
+        }
+        foreach my $agent_id_type (keys(%agent_id_types)) {
+            print "$namespace $objid PREMIS_AGENT_TYPE $agent_id_type $agent_id_types{$agent_id_type}\n";
+        }
+
+    }
+
+    { # Capturing agent
+        foreach my $event ($mets->findnodes('//premis:event[premis:eventType="capture"] | //premis1:event[premis1:eventType="capture"]')) {
+            my $executor = $mets->findvalue('./premis:linkingAgentIdentifier[premis:linkingAgentRole="Executor"]/premis:linkingAgentIdentifierValue |' .
+                './premis1:linkingAgentIdentifier/premis1:linkingAgentIdentifierValue',$event);
+            my $date = $mets->findvalue('./premis:eventDateTime | ./premis1:eventDateTime',$event);
+            print "$namespace $objid CAPTURE '$executor', $date\n";
+        }
+    }
+    { # Processing agent
+        foreach my $event ($mets->findnodes('//premis:event[premis:eventType="message digest calculation"] | //premis1:event[premis1:eventType="message digest calculation"]')) {
+            my $executor = $mets->findvalue('./premis:linkingAgentIdentifier[premis:linkingAgentRole="Executor"]/premis:linkingAgentIdentifierValue |' .
+                './premis1:linkingAgentIdentifier/premis1:linkingAgentIdentifierValue',$event);
+            my $date = $mets->findvalue('./premis:eventDateTime | ./premis1:eventDateTime',$event);
+            print "$namespace $objid MD5SUM '$executor', $date\n";
+        }
+    }
+
+    { # Ingest date
+        foreach my $event ($mets->findnodes('//premis:event[premis:eventType="ingestion"] | //premis1:event[premis1:eventType="ingestion"]')) {
+            my $date = $mets->findvalue('./premis:eventDateTime | ./premis1:eventDateTime',$event);
+            print "$namespace $objid INGEST $date\n";
+        }
+    }
+
+
+    { # MARC present
+        my $marc_present = $mets->findvalue('count(//marc:record | //record)');
+        print "$namespace $objid MARC $marc_present\n";
+    }
+
+    { # METS valid
+        my ($mets_valid, $error) = HTFeed::METS::validate_xml($volume,$volume->get_repository_mets_path());
+        my $msg = "$namespace $objid METS_VALID $mets_valid";
+        if(!$mets_valid) {
+            $error =~ s/\n/ /mg;
+            $msg .= " " . $error;
+        }
+
+        print "$msg\n";
+    }
+
+    { # has notes
+        my $has_notes = $mets->findvalue('count(//mets:mdref[@LABEL="production notes"])');
+        print "$namespace $objid HAS_NOTES $has_notes\n";
+    }
+
+    { # has pagedata
+        my $has_pagedata = $mets->findvalue('count(//mets:mdref[@LABEL="page metadata"])');
+        print "$namespace $objid HAS_PAGEDATA $has_pagedata\n";
+    }
+
+    { # has PDF
+        my $has_pdf = $mets->findvalue('count(//mets:mdref[@OTHERMDTYPE="pdf"])');
+        print "$namespace $objid HAS_PDF $has_pdf\n";
+    }
+
+
+    { # Page tagging
+        my $has_pagetags = $mets->findvalue('count(//mets:div[@TYPE="page"]/@LABEL[string() != ""])');
+        print "$namespace $objid PAGETAGS $has_pagetags\n";
+        my $pages = $mets->findvalue('count(//mets:div[@TYPE="page"])');
+        print "$namespace $objid PAGES $pages\n";
+    }
+
+
+    return $rval;
 }
 
 sub set_status {
