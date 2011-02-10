@@ -155,20 +155,16 @@ sub get_all_directory_files {
 =item get_staging_directory
 
 Returns the staging directory for the volume's AIP
+returns path to staging directory on disk if $flag
 
 =cut
 
 sub get_staging_directory {
     my $self = shift;
+    my $flag = shift;
     
-    if(not defined $self->{staging_directory}) {
-        my $objid = $self->get_objid();
-        my $pt_objid = s2ppchars($objid);
-        my $stage_dir = sprintf("%s/%s", get_config('staging'=>'ingest'), $pt_objid);
-        $self->{staging_directory} = $stage_dir;
-    }
-
-    return $self->{staging_directory};
+    return get_config('staging'=>'disk'=>'ingest') . q(/) . s2ppchars($self->get_objid())) if $flag;
+    return get_config('staging'=>'ingest') . q(/) . s2ppchars($self->get_objid()));
 }
 
 =item mk_staging_dir
@@ -182,14 +178,12 @@ mk_staging_dir($flag)
 
 sub mk_staging_dir{
     my $self = shift;
-    my $stage_on_disk = shift;
+    my $flag = shift;
     
-    my $objid = $self->get_objid();
-    my $pt_objid = s2ppchars($objid);
-    my $stage_dir = sprintf("%s/%s", get_config('staging'=>'ingest'), $pt_objid);
-    my $disk_stage_dir = sprintf("%s/%s", get_config('staging'=>'disk'=>'ingest'), $pt_objid);
+    my $stage_dir = $self->get_staging_directory();
     
-    if($stage_on_disk){
+    if($flag){
+        my $disk_stage_dir = $self->get_staging_directory(1);
         mkdir($disk_stage_dir) or croak("Can't mkdir $disk_stage_dir: $!");
         symlink($disk_stage_dir,$stage_dir) or croak("Can't symlink $disk_stage_dir,$stage_dir: $!");
     }
@@ -197,9 +191,7 @@ sub mk_staging_dir{
         mkdir($stage_dir) or croak("Can't mkdir $stage_dir: $!");
     }
 
-    $self->{staging_directory} = $stage_dir;
-
-    return $self->{staging_directory};
+    return $stage_dir;
 }
 
 
@@ -832,11 +824,43 @@ sub clean_all {
 Returns the directory where the raw submitted object is staged. 
 Returns undef by default; package type subclasses must define.
 
+should use get_config('staging'=>'preingest') as a base dir
+or use get_config('staging'=>'disk'=>'preingest') if $flag
+
 =cut
 
 sub get_preingest_directory {
     return;
 }
+
+=item mk_preingest_directory
+
+makes preingest directory, if $flag, creates it on disk rather than ram and symlinks to ram.
+returns preingest directory (or the link if $flag)
+
+=synopsis
+mk_preingest_directory($flag)
+=cut
+
+sub mk_preingest_directory{
+    my $self = shift;
+    my $flag = shift;
+    
+    my $stage_dir = $self->get_preingest_directory();
+    
+    if($flag){
+        my $disk_stage_dir = $self->get_preingest_directory(1);
+        mkdir($disk_stage_dir) or croak("Can't mkdir $disk_stage_dir: $!");
+        symlink($disk_stage_dir,$stage_dir) or croak("Can't symlink $disk_stage_dir,$stage_dir: $!");
+    }
+    else{
+        mkdir($stage_dir) or croak("Can't mkdir $stage_dir: $!");
+    }
+
+    return $stage_dir;
+}
+
+
 
 1;
 
