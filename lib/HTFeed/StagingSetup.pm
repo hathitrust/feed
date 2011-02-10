@@ -21,10 +21,8 @@ sub _make_dirs{
     }
 }
 
-# list staging dirs
+# list all staging dirs
 sub _get_dirs{
-    # this is inefficient, but memoizing here would be brittle
-    # in special cases (i.e. set_config has been used)
     return [get_config('staging'=>'ingest'),
             get_config('staging'=>'zip'),
             get_config('staging'=>'preingest'),

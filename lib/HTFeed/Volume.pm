@@ -163,11 +163,11 @@ sub get_staging_directory {
     my $self = shift;
     my $flag = shift;
     
-    return get_config('staging'=>'disk'=>'ingest') . q(/) . s2ppchars($self->get_objid())) if $flag;
-    return get_config('staging'=>'ingest') . q(/) . s2ppchars($self->get_objid()));
+    return get_config('staging'=>'disk'=>'ingest') . q(/) . s2ppchars($self->get_objid()) if $flag;
+    return get_config('staging'=>'ingest') . q(/) . s2ppchars($self->get_objid());
 }
 
-=item mk_staging_dir
+=item mk_staging_directory
 
 makes staging directory, if $flag, creates it on disk rather than ram and symlinks to ram
 returns staging directory
@@ -176,7 +176,7 @@ returns staging directory
 mk_staging_dir($flag)
 =cut
 
-sub mk_staging_dir{
+sub mk_staging_directory{
     my $self = shift;
     my $flag = shift;
     

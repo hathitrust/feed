@@ -36,6 +36,7 @@ daemon:
   - punted
   - collated
   - rights
+  stop_file: /htapps/babel/feed/etc/STOP_FEED
 
 sample_directory: /htprep/qr
 repository:

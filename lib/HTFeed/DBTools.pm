@@ -18,9 +18,6 @@ my $dbh = undef;
 my $pid = undef;
 
 sub _init {
-
-    my $self = shift;
-
     my $dsn = get_config('database','datasource');
     my $user = get_config('database','username');
     my $passwd = get_config('database','password');

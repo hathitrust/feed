@@ -20,7 +20,7 @@ sub ram_disk_size{
 
     my $multiplier = 1.10;
 
-    return estimate_space($file, $multiplier);
+    return HTFeed::Stage::estimate_space($file, $multiplier);
 }
 
 sub run{

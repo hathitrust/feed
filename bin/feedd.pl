@@ -21,6 +21,7 @@ my $subprocesses = 0;
 my @jobs = ();
 my %locks_by_key = ();
 my %locks_by_pid = ();
+## TODO: set this somewhere else
 my $clean = 1;
 
 # kill children on SIGINT
@@ -36,10 +37,23 @@ $SIG{'INT'} =
     };
 
 # reread config on SIGHUP
-## Don't use this until it is vetted! It is on a branch for a reason!
+# 
+# Caveats: This won't affect the L4P settings.
+#
 $SIG{'HUP'} =
     sub {
+        while ($subprocesses){
+            wait_kid();
+        }
+        # delete everything in staging, except download
+        HTFeed::StagingSetup::clear_stage();
+        # release all locks
+        HTFeed::DBTools::reset_in_flight_locks();
+        %locks_by_key = ();
+        %locks_by_pid = ();
+
         HTFeed::Config::init();
+        HTFeed::DBTools::_init();
     };
 
 HTFeed::StagingSetup::make_stage($clean);
@@ -50,10 +64,9 @@ while(! exit_condition()){
     }
     wait_kid() or sleep 15;
 }
-print "Terminating...\n";
+print "Finishing work on locked volumes...\n";
 while ($subprocesses){
-    ## this won't work (yet), (when) do we want to refresh vs reap?
-    refresh_kid();
+    wait_kid();
 }
 
 # fork, lock job, increment $subprocess
@@ -88,7 +101,7 @@ sub wait_kid{
 
 # determine if we are done
 sub exit_condition{
-    return;
+    return (-e get_config('daemon'=>'stop_file'));
 }
 
 sub get_next_job{
