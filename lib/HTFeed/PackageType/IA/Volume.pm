@@ -119,6 +119,12 @@ sub get_scandata_xpc {
     return $self->{scandata_xpc};
 }
 
+sub get_download_location {
+    my $self = shift;
+    # IA has multiple files in SIP
+    return $self->get_download_directory();
+}
+
 1;
 
 __END__

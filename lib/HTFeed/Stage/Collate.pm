@@ -5,7 +5,7 @@ use strict;
 
 use base qw(HTFeed::Stage);
 use HTFeed::Config qw(get_config);
-use File::Path qw(make_path);
+use File::Path qw(make_path remove_tree);
 use File::Copy;
 use File::Pairtree;
 
@@ -89,6 +89,12 @@ sub clean_always{
     my $self = shift;
     $self->clean_mets();
     $self->clean_zip();
+}
+
+sub clean_success {
+    my $self = shift;
+    my $toclean = $self->{volume}->get_download_location();
+    remove_tree($toclean) if defined $toclean;
 }
 
 1;

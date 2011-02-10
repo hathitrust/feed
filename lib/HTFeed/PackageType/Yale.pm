@@ -160,6 +160,8 @@ our $config = {
     # File extensions not to compress
     uncompressed_extensions => ['jp2'],
 
+    SIP_filename_pattern => '%s.zip',
+
 };
 
 __END__

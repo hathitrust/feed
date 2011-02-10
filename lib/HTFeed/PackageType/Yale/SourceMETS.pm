@@ -1,12 +1,11 @@
 #!/usr/bin/perl
 
 package HTFeed::PackageType::Yale::SourceMETS;
-use HTFeed::METS;
-use base qw(HTFeed::METS);
 use strict;
 use warnings;
-use File::Path qw(remove_tree);
-use HTFeed::XMLNamespaces qw(register_namespaces :namespaces);
+use HTFeed::SourceMETS;
+use base qw(HTFeed::SourceMETS);
+use HTFeed::XMLNamespaces qw(:namespaces :schemas register_namespaces);
 
 sub new {
     my $class  = shift;
@@ -14,23 +13,15 @@ sub new {
     my $self = $class->SUPER::new(
 	@_,
 
-	#		files			=> [],
-	#		dir			=> undef,
-	#		mets_name		=> undef,
-	#		mets_xml		=> undef,
     );
     my $volume = $self->{volume};
     my $stage_path = $volume->get_staging_directory();
     my $objid = $volume->get_objid();
-    my $mets_path = "$stage_path/Yale_" . $objid . ".xml";
-    $self->{outfile} = $mets_path;
+    $self->{outfile} = "$stage_path/Yale_" . $objid . ".xml";
 
     return $self;
 }
 
-sub stage_info{
-    return {success_state => 'src_metsed', failure_state => ''};
-}
 
 sub _add_dmdsecs {
     my $self   = shift;
@@ -106,39 +97,6 @@ sub _add_techmds {
 
 }
 
-sub _add_premis {
-    my $self = shift;
-    my $volume = $self->{volume};
-
-    # map from UUID to event - events that have already been added
-    # for source METS this will be empty
-    $self->{included_events} = {};
-
-    my $premis = new PREMIS;
-    $self->{premis} = $premis;
-
-    # last chance to record
-    $volume->record_premis_event('source_mets_creation');
-    $volume->record_premis_event('page_md5_create');
-    $volume->record_premis_event('mets_validation');
-
-    # create PREMIS object
-    my $premis_object = new PREMIS::Object('identifier',$volume->get_identifier());
-    # FIXME: not used in source METS??
-#    $premis_object->set_preservation_level("1");
-#    $premis_object->add_significant_property('file count',$volume->get_file_count());
-#    $premis_object->add_significant_property('page count',$volume->get_page_count());
-    $premis->add_object($premis_object);
-
-    $self->_add_capture_event();
-    $self->_add_premis_events($volume->get_nspkg()->get('source_premis_events'));
-
-    my $digiprovMD =
-      new METS::MetadataSection( 'digiprovMD', 'id' => 'premis1' );
-    $digiprovMD->set_xml_node( $premis->to_node(), mdtype => 'PREMIS' );
-
-    push( @{ $self->{amd_mdsecs} }, $digiprovMD);
-}
 
 sub _add_capture_event {
     my $self = shift;
@@ -147,18 +105,12 @@ sub _add_capture_event {
     # Add the custom capture event, extracting info from the Yale METS
     my $eventcode = 'capture';
     my $eventconfig = $volume->get_nspkg()->get_event_configuration($eventcode);
-    my $detail = $eventconfig->{'detail'} 
-	or $self->set_error("MissingField",field => "event detail", detail => "Missing event detail for $eventcode");
-    my $eventtype = $eventconfig->{'type'}
-	or $self->set_error("MissingField",field => "event type", detail => "Missing event type for $eventcode");
-    my $capture_date = $volume->get_capture_time()
-	or $self->set_error("MissingField",field => "event datetime",detail => "Missing event tiem for $eventcode");
+    $eventconfig->{'executor'} = 'Kirtas';
+    $eventconfig->{'executor_type'} = 'HathiTrust AgentID';
+    $eventconfig->{'date'} = $volume->get_capture_time();
+    $eventconfig->{'eventid'} = $volume->make_premis_uuid($eventconfig->{'type'},$eventconfig->{'date'});
+    my $event = $self->add_premis_event($eventconfig);
 
-    my $eventid = $volume->make_premis_uuid($eventtype,$capture_date);
-    my $event = new PREMIS::Event($eventid, 'UUID', $eventtype, $capture_date, $detail);
-
-    # Hardcoded agent ID for capture for Yale..
-    $event->add_linking_agent(new PREMIS::LinkingAgent("HathiTrust AgentID","Kirtas",'Executor'));
     # get the first processingSoftwareName and Version, if it exists -- the JPG
     # MIX data won't have it but the JP2 will.
     my $mets_xc = $volume->get_yale_mets_xpc();
@@ -171,7 +123,6 @@ sub _add_capture_event {
         );
     }
 
-    $premis->add_event($event);
 
 }
 
@@ -349,38 +300,5 @@ sub _metadata_section {
     return undef;
 }
 
-# Override base class: just add content FGs
-sub _add_filesecs {
-    my $self   = shift;
-
-    $self->_add_content_fgs();
-
-}
-
-sub clean_always {
-    # do nothing
-}
-
-sub clean_success {
-    # clean volume preingest directory
-    my $self = shift;
-    my $dir = $self->{volume}->get_preingest_directory();
-    
-    return remove_tree $dir;
-}
-
-# do cleaning that is appropriate after failure
-sub clean_failure{
-    # remove partially constructed source METS file, if any
-    my $self = shift;
-    my $mets   = $self->{mets};
-    my $volume = $self->{volume};
-
-    my $stage_path = $volume->get_staging_directory();
-    my $objid = $volume->get_objid();
-    my $mets_path = "$stage_path/Yale_" . $objid . ".xml";
-
-    unlink($mets_path);
-}
 
 1;
