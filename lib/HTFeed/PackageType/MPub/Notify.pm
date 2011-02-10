@@ -1,0 +1,11 @@
+#!/usr/bin/perl
+
+package HTFeed::PackageType::MPub::Notify;
+
+use HTFeed::PackageType;
+use base qw(HTFeed::PackageType);
+use strict;
+use warnings;
+
+#notifications on successful ingest
+#for local MPub flavors
