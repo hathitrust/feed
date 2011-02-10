@@ -19,25 +19,26 @@ my $barcode_log = sprintf(get_config("rights","barcode_deposit_template"),$date)
 # first generate ingest log, broken out by namespace
 my $dbh = HTFeed::DBTools::get_dbh();
 
-my $namespaces = $dbh->selectall_arrayref("select distinct namespace from ingest_log where date(update_stamp) = ?");
+my $namespaces = $dbh->selectall_arrayref("select distinct namespace from ingest_log where date(update_stamp) = '$date'");
 
 foreach my $namespace_row (@$namespaces) {
     my $namespace = shift @$namespace_row;
     my $ingest_log = sprintf(get_config("ingest_report"),$namespace,$date);
     open(my $fh,">",$ingest_log) or die("Can't open $ingest_log: $!");
     my $sth = $dbh->prepare("select namespace,id,update_stamp,status,isrepeat,fatal from ingest_log where date(update_stamp) = ? and namespace = ?");
-    $sth->execute($date);
+    $sth->execute($date,$namespace);
     while(my $row = $sth->fetchrow_arrayref()) {
-        my $namespace = shift(@$row);
-        my $objid = shift(@$row);
-        print $fh "$namespace.$objid," . join(",",@$row), "\n";
+        my @rowvals = map { defined $_ ? $_ : " " } @$row;
+        my $namespace = shift @rowvals;
+        my $objid = shift @rowvals;
+        print $fh "$namespace.$objid," . join(",",@rowvals), "\n";
     }
     close($fh);
 }
 
 # then generate barcodes awaiting rights
 
-open(my $fh,">",$barcode_log) or die("can't open $barcode_log: $!");
+open(my $fh,">>",$barcode_log) or die("can't open $barcode_log: $!");
 $dbh->begin_work();
 
 my $sth = $dbh->prepare("select ns,objid from queue where status = 'collated' and date(update_stamp) <= ?");
