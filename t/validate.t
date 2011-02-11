@@ -33,7 +33,13 @@ while( my ($package_type,$namespaces) = each %{ $package_types } ){
         foreach my $object ( @{ $objects } ){
             # get environment
             my ($objid,$fail_error_count) = @{$object};
- 			my $nspkg_path = "$package_type/$namespace";
+            
+            # make sure setup mode has been run if !$setup_mode
+            die ("Missing error count or invalid input file, try $0 -s to run setup mode")
+                if (!$setup_mode and !$fail_error_count);
+            
+            my $nspkg_path = "$package_type/$namespace";
+
             my $validation_dump = "$validation_logs_dir/$nspkg_path/$objid" . '.log';
             
             my @args = (
