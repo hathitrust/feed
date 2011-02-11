@@ -2,10 +2,12 @@
 
 package HTFeed::PackageType::MPub::Notify;
 
-use HTFeed::PackageType;
-use base qw(HTFeed::PackageType);
 use strict;
 use warnings;
+use base qw(HTFeed::PackageType);
+use HTFeed::PackageType;
+use HTFeed::Config qw(get_config);
+use Log::Log4Perl qw(get_logger);
+my $logger = get_logger(__PACKAGE__();
 
-#notifications on successful ingest
-#for local MPub flavors
+

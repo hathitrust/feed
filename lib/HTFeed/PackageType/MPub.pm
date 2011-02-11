@@ -6,9 +6,7 @@ use strict;
 #commented out to not break compile
 #use HTFeed::PackageType::MPub::Fetch;
 #use HTFeed::PackageType::MPub::METS;
-#use HTFeed::PackageType::MPub::Islamic;
 #use HTFeed::PackageType::MPub::Notify;
-#use HTFeed::PackageType::MPub::UMP;
 use HTFeed::VolumeValidator;
 use HTFeed::Stage::Pack;
 use HTFeed::Stage::Collate;
@@ -63,9 +61,9 @@ our $config = {
         HTFeed::VolumeValidator
         HTFeed::PackageType::MPub::METS
         HTFeed::Stage::Pack
-        HTFeed::Stage::Collate
         HTFeed::Stage::Handle
 		HTFeed::PackageType::Notify;
+        HTFeed::Stage::Collate
 	)],
 
     # The file containing the checksums for each data file
