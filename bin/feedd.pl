@@ -24,7 +24,7 @@ my %locks_by_pid = ();
 ## TODO: set this somewhere else
 my $clean = 1;
 
-# kill children on SIGINT
+# kill children on SIGINT, SIGTERM
 $SIG{'INT'} =
     sub {
         unless($$ eq $process_id){
@@ -35,6 +35,7 @@ $SIG{'INT'} =
         kill 2, keys %locks_by_pid;
         exit 0;
     };
+$SIG{'TERM'} = $SIG{'INT'};
 
 # reread config on SIGHUP
 # 
