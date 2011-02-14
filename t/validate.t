@@ -11,7 +11,7 @@ use HTFeed::Config qw(set_config);
 use Getopt::Long;
 use FindBin;
 use HTFeed::Volume;
-use HTFeed::Log {root_logger => 'INFO, file'};
+use HTFeed::Log {root_logger => 'TRACE, file'};
 
 use Test::More;
 
@@ -112,6 +112,7 @@ sub test_failure{
         
     # validate damaged package
     {
+		set_config(0,'stop_on_error');
         set_config($damaged_pkg_path,'staging'=>'ingest');
         $volume = HTFeed::Volume->new(objid => $objid,namespace => $namespace,packagetype => $package_type);
         $vol_val = HTFeed::VolumeValidator->new(volume => $volume);
@@ -142,6 +143,7 @@ sub setup_failure{
         
     # validate damaged package
     {
+		set_config(0,'stop_on_error');
         set_config($damaged_pkg_path,'staging'=>'ingest');
         $volume = HTFeed::Volume->new(objid => $objid,namespace => $namespace,packagetype => $package_type);
         $vol_val = HTFeed::VolumeValidator->new(volume => $volume);
