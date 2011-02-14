@@ -6,4 +6,5 @@ use FindBin;
 use Test::Harness;
 
 chdir $FindBin::Bin;
-runtests qw{ objid.t validate.t classtests.t db.t };
+
+runtests qw{ db.t objid.t classtests.t validate.t };

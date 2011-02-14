@@ -111,14 +111,14 @@ sub test_failure{
     my ($logfile_handle, $logfile_name) = get_temp();
         
     # validate damaged package
-    {
+	eval{
 		set_config(0,'stop_on_error');
-        set_config($damaged_pkg_path,'staging'=>'ingest');
-        $volume = HTFeed::Volume->new(objid => $objid,namespace => $namespace,packagetype => $package_type);
-        $vol_val = HTFeed::VolumeValidator->new(volume => $volume);
+    	set_config($damaged_pkg_path,'staging'=>'ingest');
 
-        $vol_val->run();
-    }
+    	$volume = HTFeed::Volume->new(objid => $objid,namespace => $namespace,packagetype => $package_type);
+   		$vol_val = HTFeed::VolumeValidator->new(volume => $volume);
+    	$vol_val->run();
+	};
 
     # test number of errors
     is($vol_val->failed(),$fail_error_count,"error count for damaged package validation for $package_type $namespace $objid");
@@ -142,14 +142,14 @@ sub setup_failure{
     my ($logfile_handle, $logfile_name) = get_temp();
         
     # validate damaged package
-    {
+    eval{
 		set_config(0,'stop_on_error');
         set_config($damaged_pkg_path,'staging'=>'ingest');
         $volume = HTFeed::Volume->new(objid => $objid,namespace => $namespace,packagetype => $package_type);
         $vol_val = HTFeed::VolumeValidator->new(volume => $volume);
 
         $vol_val->run();
-    }
+    };
    	 
     # test that we failed
     ok($vol_val->failed(),"damaged package validation for $package_type $namespace $objid");

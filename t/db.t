@@ -6,20 +6,38 @@ use HTFeed::DBTools qw(get_dbh);
 use Test::DatabaseRow;
 use Test::More;
 
+my @row;
+
 #connect to DB
 my $dbh = HTFeed::DBTools::get_dbh();
 local $Test::DatabaseRow::dbh = $dbh;
 
-my $row = "39015000531544";
-my $ns = "mdp";
-my $table = "blacklist";
+#test that tables exist
+my $table;
+my @tables=("queue", "ingest_log");
+my $test = 0;
+my $row_count = 0;
 
-row_ok(
-	table	=> $table,
-		where	=> [id => $row,
-					namespace => $ns,],
-	label	=> "$ns $row exists in table $table"
-);
+for $table(@tables) {
+	my $sth = $dbh->prepare("show tables");
+	my $execute = $sth->execute;
+	while (@row = $sth->fetchrow_array) {
+		for my $row(@row) {
+			if($row eq $table) {
+				$row_count++;
+			}
+		}
+	}
+	if ($row_count == 1) {
+		$test = $table;
+	}
+	is($test,$table,"table $table exists");
+	$row_count--;
+}
+
+#test that colums exist
+
+#test sql
 
 done_testing();
 
