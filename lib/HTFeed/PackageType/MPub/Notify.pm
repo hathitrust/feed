@@ -9,5 +9,3 @@ use HTFeed::PackageType;
 use HTFeed::Config qw(get_config);
 use Log::Log4Perl qw(get_logger);
 my $logger = get_logger(__PACKAGE__();
-
-

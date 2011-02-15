@@ -10,3 +10,7 @@ sub get_download_location {
     # don't try to remove anything on clean
     return undef;
 }
+
+1;
+
+__END__
