@@ -6,6 +6,7 @@ use strict;
 #use HTFeed::VolumeValidator;
 use HTFeed::Log {root_logger => 'INFO, screen'};
 use Test::More tests => 11;
+use HTFeed::Config qw(set_config);
 
 # check for legacy environment vars
 unless (defined $ENV{GROOVE_WORKING_DIRECTORY} and defined $ENV{GROOVE_CONFIG}){
@@ -19,6 +20,8 @@ BEGIN {
     use_ok('HTFeed::METS');
     use_ok('HTFeed::Config');
 }
+
+set_config(0,'stop_on_error');
 
 my $mets = new HTFeed::METS(
     volume => new HTFeed::Volume(

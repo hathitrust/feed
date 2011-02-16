@@ -18,9 +18,6 @@ my $dbh = undef;
 my $pid = undef;
 
 sub _init {
-
-    my $self = shift;
-
     my $dsn = get_config('database','datasource');
     my $user = get_config('database','username');
     my $passwd = get_config('database','password');
@@ -52,7 +49,7 @@ sub get_queued{
     
     my $dbh = get_dbh();
 
-    my $sth = $dbh->prepare(q(SELECT pkg_type, ns, objid, status, failure_count FROM queue WHERE node = ? AND status != 'punted' AND status !=  'collated' and status != 'held'));
+    my $sth = $dbh->prepare(q(SELECT pkg_type, ns, objid, status, failure_count FROM queue WHERE node = ?;));
     $sth->execute(hostname);
     
     return $sth if ($sth->rows);
@@ -119,6 +116,7 @@ sub lock_volumes{
     return $sth->rows;
 }
 
+## TODO: better behavior here, possibly reset to downloaded in some cases, possibly keep lock but reset status
 # reset_in_flight_locks()
 # releases locks on in flight volumes for this node and resets status to ready
 sub reset_in_flight_locks{
@@ -126,20 +124,7 @@ sub reset_in_flight_locks{
     return $sth->execute(hostname);
 }
 
-# release_completed_locks()
-# releases locks on in completed volumes for this node
-sub release_completed_locks{
-    my $sth = get_dbh()->prepare(q(UPDATE queue SET `node` = NULL WHERE node = ? AND status = 'collated';));
-    return $sth->execute(hostname);
-}
-
-# release_failed_locks()
-# releases locks on in failed volumes for this node
-sub release_failed_locks{
-    my $sth = get_dbh()->prepare(q(UPDATE queue SET `node` = NULL WHERE node = ? AND status = 'punted'));
-    return $sth->execute(hostname);
-}
-
+## TODO: delete this if we don't need it
 # count_locks()
 # returns the number of volumes locked to this node
 sub count_locks{
@@ -160,7 +145,6 @@ sub ingest_log_failure {
     my $fatal = ($new_status eq 'punted');
     my $sth = get_dbh()->prepare("INSERT INTO ingest_log (namespace,id,status,fatal) VALUES (?,?,?,?)");
     $sth->execute($ns,$objid,$stagename,$fatal);
-        
 }
 
 sub ingest_log_success {

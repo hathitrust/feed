@@ -26,7 +26,7 @@ sub run{
 
     my $volume = $self->{volume};
     my $pt_objid = $volume->get_pt_objid();
-    my $path = $volume->get_staging_directory();
+    my $stage = $volume->get_staging_directory();
 
     my @files_to_zip = ();
 
@@ -45,29 +45,28 @@ sub run{
     push(@files, basename($volume->get_source_mets_file())) if $source_mets;
 
     foreach my $file (@files) {
-	if(! -e "$path/$file") {
-	    $self->set_error('MissingFile',file => "$path/$file");
-	}
+        if(! -e "$stage/$file") {
+            $self->set_error('MissingFile',file => "$stage/$file");
+        }
 
-	if(!symlink("$path/$file","$zip_stage/$pt_objid/$file"))
-	{
-	    $self->set_error('OperationFailed',operation=>'symlink',file => "$path/$file",description=>"Symlink to staging directory failed: $!");
-	}
-
+        if(!symlink("$stage/$file","$zip_stage/$pt_objid/$file"))
+        {
+            $self->set_error('OperationFailed',operation=>'symlink',file => "$stage/$file",description=>"Symlink to staging directory failed: $!");
+        }
     }
 
     my $zip_path = $volume->get_zip_path();
     my $zipret = system("cd '$zip_stage'; zip -q -r $uncompressed_extensions '$zip_path' '$pt_objid'");
 
     if($zipret) {
-	    $self->set_error('OperationFailed',operation=>'zip',detail=>'Creating zip file',exitstatus=>$zipret,file=>$zip_path);
+        $self->set_error('OperationFailed',operation=>'zip',detail=>'Creating zip file',exitstatus=>$zipret,file=>$zip_path);
     } else {
 
         $zipret = system("unzip -q -t $zip_path");
 
         if($zipret) {
             $self->set_error('OperationFailed',operation=>'unzip',exitstatus=>$zipret,file=>$zip_path,detail=>'Verifying zip file');
-	    }
+        }
 
     }
 

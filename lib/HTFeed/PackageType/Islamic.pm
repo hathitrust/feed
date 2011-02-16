@@ -1,9 +1,9 @@
-package HTFeed::PackageType::MPub::UMP;
+package HTFeed::PackageType::Islamic;
 
 use strict;
 use warnings;
 use base qw(HTFeed::PackageType);
-use HTFeed::PackageType;
+use HTFeed::PackageType::MPub;
 use HTFeed::VolumeValidator;
 use HTFeed::Stage::Collate;
 use HTFeed::Stage::Pack;
@@ -11,27 +11,26 @@ use HTFeed::Stage::Handle;
 
 #base case (for DigOnDemand & Faculty Reprints)
 
-our $identifier = 'ump';
+our $identifier = 'islamic';
 
 our $config = {
 
     volume_module => 'HTFeed::Volume',
     
     # Regular expression that distinguishes valid files in the file package
-    # Same as MPub, plus PDF
-		 valid_file_pattern => qr/^( 
-        checksum\.md5 |
-        \w+\.(xml) |
-		\w+\.(pdf) |
-        \d{8}.(html|jp2|tif|txt)
-        )/x,
+    # JP2 only, no OCR
+    valid_file_pattern => qr/^( 
+		checksum\.md5 |
+		\w+\.(xml) |
+		\d{8}.(jp2)
+		)/x,
 
 	# A set of regular expressions mapping files to the filegroups they belong in
     filegroups => {
 		image => {
 	    	prefix => 'IMG',
 	    	use => 'image',
-	    	file_pattern => qr/\d{8}\.(jp2 |tif)$/,
+	    	file_pattern => qr/\d{8}\.(jp2)$/,
 	    	required => 1,
 	    	content => 1,
 	    	jhove => 1,
@@ -50,6 +49,7 @@ our $config = {
         HTFeed::Stage::Pack
         HTFeed::Stage::Collate
         HTFeed::Stage::Handle
+		HTFeed::PackageType::Mpub::Notify
 	)],
 
     # The file containing the checksums for each data file
@@ -60,7 +60,6 @@ our $config = {
     # files with the given extensions
     module_validators => {
         'jp2'  => 'HTFeed::ModuleValidator::JPEG2000_hul',
-        'tif'  => 'HTFeed::ModuleValidator::TIFF_hul',
     },
 
     # Validation overrides
@@ -85,7 +84,7 @@ our $config = {
     },
 
     # filename extensions not to compress in zip file
-    uncompressed_extensions => ['tif','jp2'],
+    uncompressed_extensions => ['jp2'],
     
 };
 
@@ -93,13 +92,13 @@ __END__
 
 =pod
 
-This is the package type configuration file for MPub (UM Press).
+This is the package type configuration file for MPub (Islamic MSS).
 
 =head1 SYNOPSIS
 
 use HTFeed::PackageType;
 
-my $pkgtype = new HTFeed::PackageType('ump');
+my $pkgtype = new HTFeed::PackageType('islamic');
 
 =head1 AUTHOR
 

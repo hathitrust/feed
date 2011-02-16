@@ -11,7 +11,7 @@ use HTFeed::Config qw(set_config);
 use Getopt::Long;
 use FindBin;
 use HTFeed::Volume;
-use HTFeed::Log {root_logger => 'INFO, file'};
+use HTFeed::Log {root_logger => 'TRACE, file'};
 
 use Test::More;
 
@@ -33,7 +33,13 @@ while( my ($package_type,$namespaces) = each %{ $package_types } ){
         foreach my $object ( @{ $objects } ){
             # get environment
             my ($objid,$fail_error_count) = @{$object};
- 			my $nspkg_path = "$package_type/$namespace";
+            
+            # make sure setup mode has been run if !$setup_mode
+            die ("Missing error count or invalid input file, try $0 -s to run setup mode")
+                if (!$setup_mode and !$fail_error_count);
+            
+            my $nspkg_path = "$package_type/$namespace";
+
             my $validation_dump = "$validation_logs_dir/$nspkg_path/$objid" . '.log';
             
             my @args = (
@@ -105,13 +111,14 @@ sub test_failure{
     my ($logfile_handle, $logfile_name) = get_temp();
         
     # validate damaged package
-    {
-        set_config($damaged_pkg_path,'staging'=>'ingest');
-        $volume = HTFeed::Volume->new(objid => $objid,namespace => $namespace,packagetype => $package_type);
-        $vol_val = HTFeed::VolumeValidator->new(volume => $volume);
+	eval{
+		set_config(0,'stop_on_error');
+    	set_config($damaged_pkg_path,'staging'=>'ingest');
 
-        $vol_val->run();
-    }
+    	$volume = HTFeed::Volume->new(objid => $objid,namespace => $namespace,packagetype => $package_type);
+   		$vol_val = HTFeed::VolumeValidator->new(volume => $volume);
+    	$vol_val->run();
+	};
 
     # test number of errors
     is($vol_val->failed(),$fail_error_count,"error count for damaged package validation for $package_type $namespace $objid");
@@ -135,13 +142,14 @@ sub setup_failure{
     my ($logfile_handle, $logfile_name) = get_temp();
         
     # validate damaged package
-    {
+    eval{
+		set_config(0,'stop_on_error');
         set_config($damaged_pkg_path,'staging'=>'ingest');
         $volume = HTFeed::Volume->new(objid => $objid,namespace => $namespace,packagetype => $package_type);
         $vol_val = HTFeed::VolumeValidator->new(volume => $volume);
 
         $vol_val->run();
-    }
+    };
    	 
     # test that we failed
     ok($vol_val->failed(),"damaged package validation for $package_type $namespace $objid");

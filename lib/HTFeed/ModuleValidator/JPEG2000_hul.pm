@@ -5,6 +5,7 @@ use strict;
 
 use HTFeed::ModuleValidator;
 use HTFeed::XPathValidator qw(:closures);
+use Scalar::Util qw(weaken);
 use base qw(HTFeed::ModuleValidator);
 
 require HTFeed::QueryLib::JPEG2000_hul;
@@ -22,6 +23,8 @@ sub _set_required_querylib {
 
 sub _set_validators {
     my $self = shift;
+    # prevent leaking $self since the closure has an implicit reference to self..
+    weaken($self);
     $self->{validators} = {
         'format' => v_eq( 'repInfo', 'format', 'JPEG 2000' ),
 
