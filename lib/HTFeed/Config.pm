@@ -6,15 +6,17 @@ use YAML::XS;
 use Carp;
 
 use base qw(Exporter);
-our @EXPORT_OK = qw(get_config set_config);
-
+our @EXPORT = qw(get_config);
+our @EXPORT_OK = qw(set_config);
 
 my $config;
-my $premis_config;
+
 # build error message at startup in case $ENV{HTFEED_CONFIG} changes 
 my $bad_path_error_message = sprintf("%s Error: %%s is not data member in your config file (%s)", __PACKAGE__, $ENV{HTFEED_CONFIG});
 
-{
+init();
+
+sub init{
     # get config file
     my $config_file;
     if (defined $ENV{HTFEED_CONFIG}){
@@ -27,7 +29,7 @@ my $bad_path_error_message = sprintf("%s Error: %%s is not data member in your c
     # load config file
     eval{
         $config = YAML::XS::LoadFile($config_file);
-        $premis_config = YAML::XS::LoadFile(get_config('premis_config'));
+        my $premis_config = YAML::XS::LoadFile(get_config('premis_config'));
         # copy premis config to main config
         while(my ($key, $val) = each(%$premis_config)) {
             $config->{$key} = $val;
@@ -35,10 +37,9 @@ my $bad_path_error_message = sprintf("%s Error: %%s is not data member in your c
     };
     if ($@){ die ("loading $config_file failed: $@"); }
 
-    # TODO: check file validity, can't do this until we establish what the file will look like
-
+    ## TODO: check file validity, can't do this until we establish what the file will look like
+    ## TODO: test script to dig out all the config vars and check against config file
 }
-
 
 =get_config
 get an entry out

@@ -158,30 +158,43 @@ sub get_all_directory_files {
 =item get_staging_directory
 
 Returns the staging directory for the volume's AIP
-makes directory if it does not exist
+returns path to staging directory on disk if $flag
 
-=synopsis
-# set flag to true if you DON'T want to create the staging directory if it doesn't exist
-get_staging_directory($flag);
 =cut
 
 sub get_staging_directory {
     my $self = shift;
+    my $flag = shift;
     
-    my $make_new_dirs = not shift;
+    return get_config('staging'=>'disk'=>'ingest') . q(/) . s2ppchars($self->get_objid()) if $flag;
+    return get_config('staging'=>'ingest') . q(/) . s2ppchars($self->get_objid());
+}
+
+=item mk_staging_directory
+
+makes staging directory, if $flag, creates it on disk rather than ram and symlinks to ram
+returns staging directory
+
+=synopsis
+mk_staging_dir($flag)
+=cut
+
+sub mk_staging_directory{
+    my $self = shift;
+    my $flag = shift;
     
-    if(not defined $self->{staging_directory}) {
-        my $objid = $self->get_objid();
-        my $pt_objid = s2ppchars($objid);
-        my $stage_dir = sprintf("%s/%s", get_config('staging'=>'ingest'), $pt_objid);
-        if(!-e $stage_dir and $make_new_dirs) {
-            mkdir($stage_dir) or croak("Can't mkdir $stage_dir: $!");
-        }
-        $self->{staging_directory} = $stage_dir;
+    my $stage_dir = $self->get_staging_directory();
+    
+    if($flag){
+        my $disk_stage_dir = $self->get_staging_directory(1);
+        mkdir($disk_stage_dir) or croak("Can't mkdir $disk_stage_dir: $!");
+        symlink($disk_stage_dir,$stage_dir) or croak("Can't symlink $disk_stage_dir,$stage_dir: $!");
+    }
+    else{
+        mkdir($stage_dir) or croak("Can't mkdir $stage_dir: $!");
     }
 
-    return $self->{staging_directory};
-
+    return $stage_dir;
 }
 
 
@@ -803,8 +816,13 @@ sub get_zip {
 
 sub clean_all {
     my $self = shift;
+<<<<<<< HEAD
     $logger->warn("Removing " . $self->get_staging_directory(no_new => 1));
     remove_tree $self->get_staging_directory(no_new => 1);
+=======
+    warn("Removing " . $self->get_staging_directory());
+    remove_tree $self->get_staging_directory();
+>>>>>>> d7fbc5f962e5074d327cc87b19c89f5aa37448de
     unlink($self->get_mets_path());
     $logger->warn("Removing " . $self->get_mets_path());
     unlink($self->get_zip_path());
@@ -816,6 +834,9 @@ sub clean_all {
 
 Returns the directory where the raw submitted object is staged. 
 Returns undef by default; package type subclasses must define.
+
+should use get_config('staging'=>'preingest') as a base dir
+or use get_config('staging'=>'disk'=>'preingest') if $flag
 
 =cut
 
@@ -836,6 +857,35 @@ sub get_download_location {
     return "$staging_dir/" . $self->get_SIP_filename();
     return;
 }
+
+
+=item mk_preingest_directory
+
+makes preingest directory, if $flag, creates it on disk rather than ram and symlinks to ram.
+returns preingest directory (or the link if $flag)
+
+=synopsis
+mk_preingest_directory($flag)
+=cut
+
+sub mk_preingest_directory{
+    my $self = shift;
+    my $flag = shift;
+    
+    my $stage_dir = $self->get_preingest_directory();
+    
+    if($flag){
+        my $disk_stage_dir = $self->get_preingest_directory(1);
+        mkdir($disk_stage_dir) or croak("Can't mkdir $disk_stage_dir: $!");
+        symlink($disk_stage_dir,$stage_dir) or croak("Can't symlink $disk_stage_dir,$stage_dir: $!");
+    }
+    else{
+        mkdir($stage_dir) or croak("Can't mkdir $stage_dir: $!");
+    }
+
+    return $stage_dir;
+}
+
 
 1;
 

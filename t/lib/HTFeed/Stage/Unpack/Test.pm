@@ -44,7 +44,7 @@ sub untgz_file : Test(1){
     unlink "$temp_dir/$filename";
     
     my $md5_found = md5_dir($temp_dir);
-    
+   
     is ($md5_expected, $md5_found);
 
     remove_tree($temp_dir);

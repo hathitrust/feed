@@ -323,8 +323,10 @@ Returns the directory where the raw submitted object is staged
 
 sub get_preingest_directory {
     my $self = shift;
+    my $flag = shift;
 
     my $objid = $self->get_objid();
+    return sprintf("%s/%s", get_config('staging'=>'disk'=>'preingest'), $objid) if $flag;
     return sprintf("%s/%s", get_config('staging'=>'preingest'), $objid);
 }
 
