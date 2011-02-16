@@ -32,6 +32,7 @@ sub run{
 
     my $file = sprintf('%s/%s.zip',$download_dir,$objid);
     # not getting preingest path directly -- zip file contains extra paths we don't want to junk
+	#XXX update get_config('staging')?
     $self->unzip_file($file,get_config('staging' => 'preingest'));
 
     $self->_set_done();

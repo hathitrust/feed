@@ -18,6 +18,7 @@ sub run{
     my $volume = $self->{volume};
     
     my $download_dir = $volume->get_download_directory();
+	#XXX update get_config('staging')?
     my $stage_base = get_config('staging'=>'ingest');
     
     my $objid = $volume->get_objid();

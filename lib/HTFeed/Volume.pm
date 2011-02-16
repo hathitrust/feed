@@ -165,7 +165,7 @@ returns path to staging directory on disk if $flag
 sub get_staging_directory {
     my $self = shift;
     my $flag = shift;
-    
+    #XXX correct use of get_config('staging')?
     return get_config('staging'=>'disk'=>'ingest') . q(/) . s2ppchars($self->get_objid()) if $flag;
     return get_config('staging'=>'ingest') . q(/) . s2ppchars($self->get_objid());
 }
@@ -204,6 +204,7 @@ Returns the directory the volume's SIP should be downloaded to
 
 =cut
 
+#XXX correct use of get_config('staging')?
 sub get_download_directory {
     return get_config('staging'=>'download');
 }
@@ -748,6 +749,7 @@ Returns the path to the zip archive to construct for this object.
 
 sub get_zip_path {
     my $self = shift;
+	#XXX correct use of get_config('staging')?
     my $staging_path = get_config('staging'=>'ingest');
     my $pt_objid = $self->get_pt_objid();
     my $zip_path = "$staging_path/$pt_objid.zip";

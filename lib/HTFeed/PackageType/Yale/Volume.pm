@@ -325,6 +325,7 @@ sub get_preingest_directory {
     my $self = shift;
     my $flag = shift;
 
+	#XXX update get_config('staging')?
     my $objid = $self->get_objid();
     return sprintf("%s/%s", get_config('staging'=>'disk'=>'preingest'), $objid) if $flag;
     return sprintf("%s/%s", get_config('staging'=>'preingest'), $objid);

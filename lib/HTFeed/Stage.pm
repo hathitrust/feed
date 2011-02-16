@@ -220,6 +220,7 @@ sub clean_unpacked_object {
 # unlink zip
 sub clean_zip {
     my $self     = shift;
+	#XXX update get_config('staging')?
     my $dir      = get_config( 'staging' => 'ingest' );
     my $zip_file = $self->{volume}->get_zip();
     my $zip_path = "$dir/$zip_file";

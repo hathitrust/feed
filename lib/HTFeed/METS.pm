@@ -379,6 +379,7 @@ sub _add_zip_fg {
         id  => $self->_get_subsec_id("FG"),
         use => 'zip archive'
     );
+	#XXX update get_config('staging')? 
     my $working_dir = get_config( 'staging' => 'ingest' );
     my $pt_objid = $volume->get_pt_objid();
     $zip_filegroup->add_file( "$pt_objid.zip", path => $working_dir, prefix => 'ZIP' );
@@ -648,7 +649,6 @@ sub local_directory_version() {
         }
 
     }
-
 }
 
 =item system_version($package)
