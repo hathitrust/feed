@@ -22,7 +22,8 @@ sub run{
     my $stage_base = get_config('staging'=>'ingest');
     
     my $objid = $volume->get_objid();
-    
+   
+	#XXX BAD FILENAME (use pt_objid) 
     my $file = sprintf("%s/$objid.tar.gz",$download_dir,$objid);
     $self->untgz_file($file,$volume->get_staging_directory(),"--strip-components 1") or return;
     

@@ -16,6 +16,7 @@ sub ram_disk_size{
 
     my $download_dir = $volume->get_download_directory();
     my $objid = $volume->get_objid();
+	#XXX BAD FILENAME (use pt_objid)
     my $file = sprintf('%s/%s.zip',$download_dir,$objid);
 
     my $multiplier = 1.10;
@@ -30,6 +31,7 @@ sub run{
     my $download_dir = $volume->get_download_directory();
     my $objid = $volume->get_objid();
 
+	#XXX BAD FILENAME (use pt_objid)
     my $file = sprintf('%s/%s.zip',$download_dir,$objid);
     # not getting preingest path directly -- zip file contains extra paths we don't want to junk
 	#XXX update get_config('staging')?
