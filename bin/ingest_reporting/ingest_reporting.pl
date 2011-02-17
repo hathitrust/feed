@@ -25,6 +25,8 @@ my %namespace_tags = (
 );
 
 
+#XXX change database references: 'barcode' -> 'id'
+
 my @queries = (
     # # bib records failed in loading - from systems
     # Item records with digital objects - from hathifiles
