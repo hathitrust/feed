@@ -41,6 +41,7 @@ foreach my $namespace_row (@$namespaces) {
 open(my $fh,">>",$barcode_log) or die("can't open $barcode_log: $!");
 $dbh->begin_work();
 
+#XXX use namespace in place of 'ns'
 my $sth = $dbh->prepare("select ns,objid from queue where status = 'collated' and date(update_stamp) <= ?");
 my $usth = $dbh->prepare("update queue set status = 'rights' where ns = ? and objid = ?");
 $sth->execute($date);

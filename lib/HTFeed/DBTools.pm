@@ -49,6 +49,7 @@ sub get_queued{
     
     my $dbh = get_dbh();
 
+	#XXX use namespace in place of 'ns'
     my $sth = $dbh->prepare(q(SELECT pkg_type, ns, objid, status, failure_count FROM queue WHERE node = ?;));
     $sth->execute(hostname);
     
@@ -66,6 +67,7 @@ sub enqueue_volumes{
     $dbh = get_dbh();
     my $sth;
     if($ignore){
+		#XXX use namespace in place of 'ns'
         $sth = $dbh->prepare(q(INSERT IGNORE INTO `queue` (pkg_type, ns, objid) VALUES (?,?,?);));
     }else {
         $sth = $dbh->prepare(q(INSERT INTO `queue` (pkg_type, ns, objid) VALUES (?,?,?);));
@@ -162,6 +164,7 @@ sub ingest_log_success {
 sub update_queue {
     my ($ns, $objid, $new_status, $fail) = @_;
     
+	#XXX use namespace in place of 'ns'
     my $syntax = qq(UPDATE queue SET status = '$new_status');
     $syntax .= q(, failure_count=failure_count+1) if ($fail);
     $syntax .= q(, node = NULL) if (exists $release_states{$new_status});
