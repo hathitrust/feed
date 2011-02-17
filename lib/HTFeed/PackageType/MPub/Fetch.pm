@@ -8,16 +8,17 @@ use base qw(HTFeed::PackageType);
 use HTFeed::PackageType;
 use HTFeed::Config qw(get_config);
 use Log::Log4Perl qw(get_logger);
-my $logger = get_logger(__PACKAGE__();
+my $logger = get_logger(__PACKAGE__);
 
 sub run {
 	my $self = shift;
 	my $volume = $self->{volume};
 	my $objid = $volume->get_objid();
-	my $filename = $volume->get_SIP>filename(); #special filename for ump?
+	my $filename = $volume->get_SIP_filename(); #special filename for ump?
+	#XXX get type
+	#my $type = ;
 
-	#XXX get type; get volume from 'forHT' (ie /mpub_dcu/<type>/forHT)
-	my $source = ;
+	my $source = "/htprep/mpub_dcu/" . $type . "/forHT"; 
 	my $staging_dir = $volume->get_download_directory();
 
 	if(! -e $staging_dir) {

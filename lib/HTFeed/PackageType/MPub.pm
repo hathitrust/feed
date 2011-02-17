@@ -1,4 +1,5 @@
 package HTFeed::PackageType::MPub;
+
 use HTFeed::PackageType;
 use base qw(HTFeed::PackageType);
 use strict;
@@ -12,7 +13,7 @@ use HTFeed::Stage::Pack;
 use HTFeed::Stage::Collate;
 use HTFeed::Stage::Handle;
 
-#base case (for DigOnDemand & Faculty Reprints)
+#base case MPub/ Locally ingested material
 
 our $identifier = 'mpub';
 

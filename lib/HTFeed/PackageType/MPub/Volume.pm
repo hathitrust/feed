@@ -11,6 +11,10 @@ sub get_download_location {
     return undef;
 }
 
+sub checksums {
+	#verify checksums
+}
+
 1;
 
 __END__
