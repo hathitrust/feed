@@ -14,9 +14,8 @@ sub run {
 	my $self = shift;
 	my $volume = $self->{volume};
 	my $objid = $volume->get_objid();
-	my $filename = $volume->get_SIP_filename(); #special filename for ump?
-	#XXX get type
-	#my $type = ;
+	my $filename = $volume->get_SIP_filename();
+	my $type = shift; #get correct flavor
 
 	my $source = "/htprep/mpub_dcu/" . $type . "/forHT"; 
 	my $staging_dir = $volume->get_download_directory();

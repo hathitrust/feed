@@ -9,8 +9,6 @@ use HTFeed::Stage::Collate;
 use HTFeed::Stage::Pack;
 use HTFeed::Stage::Handle;
 
-#base case (for DigOnDemand & Faculty Reprints)
-
 our $identifier = 'islamic';
 
 our $config = {

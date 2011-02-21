@@ -13,7 +13,7 @@ use HTFeed::Stage::Pack;
 use HTFeed::Stage::Collate;
 use HTFeed::Stage::Handle;
 
-#base case MPub/ Locally ingested material
+#base case for UM Press and Faculty Reprints
 
 our $identifier = 'mpub';
 
@@ -22,7 +22,6 @@ our $config = {
     volume_module => 'HTFeed::PackageType::MPub::Volume',
     
     # Regular expression that distinguishes valid files in the file package
-    # HTML OCR is valid for the package type but only expected/required for UC1
     valid_file_pattern => qr/^( 
 		checksum\.md5 |
 		\w+\.(xml) |
@@ -108,7 +107,7 @@ __END__
 
 =pod
 
-This is the package type configuration file for MPub/DCU.
+This is the package type configuration file for UM Press & Faculty Reprints.
 
 =head1 SYNOPSIS
 

@@ -4,12 +4,14 @@ package HTFeed::PackageType::MPub::Notify;
 
 use strict;
 use warnings;
-use base qw(HTFeed::PackageType);
+se base qw(HTFeed::PackageType);
 use HTFeed::PackageType;
 use HTFeed::Config qw(get_config);
 use HTFeed::Email;
 use Log::Log4Perl qw(get_logger);
 my $logger = get_logger(__PACKAGE__();
+
+
 
 =head1 DESCRIPTION
 
@@ -33,3 +35,5 @@ if($email->send(\@to_addresses, $subject, $body)) {
 # who am i?
 # type-specific sub
 # on success finish return to collate
+# don't clean up volumes
+# instead, on success, move completed files to /htprep/mpub_dcu/$type/ingested
