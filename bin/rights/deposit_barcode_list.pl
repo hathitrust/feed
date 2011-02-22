@@ -70,13 +70,11 @@ my $dbh = get_dbh();
 # 24 hours + 2 for last sync to run (needed if active volume was the last sync to run)
 $dbh->begin_work();
 my $sth = $dbh->prepare(
-#XXX use namespace in place of 'ns'
-"SELECT ns,objid FROM queue WHERE status = 'collated' FOR UPDATE"
+q(SELECT namespace,id FROM queue WHERE status = 'collated' FOR UPDATE)
 # "SELECT ns,objid FROM queue WHERE status = 'collated' AND TIMEDIFF(CURRENT_TIMESTAMP,update_stamp) > '26:00:00' FOR UPDATE"
 );
 my $upd_sth = $dbh->prepare(
-#XXX use namespace in place of 'ns'
-"UPDATE queue SET status = 'barcode_deposited' WHERE ns = ? and objid = ?"
+q(UPDATE queue SET status = 'barcode_deposited' WHERE namespace = ? and id = ?)
 );
 $sth->execute();
 my $rows = $sth->rows();
