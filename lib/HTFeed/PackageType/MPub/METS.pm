@@ -2,7 +2,13 @@
 
 package HTFeed::PackageType::MPub::METS;
 
-use HTFeed::PackageType;
-use base qw(HTFeed::PackageType);
 use strict;
 use warnings;
+
+sub mets {
+
+}
+
+1;
+
+__END__

@@ -4,10 +4,9 @@ use HTFeed::PackageType;
 use base qw(HTFeed::PackageType);
 use strict;
 
-#commented out to not break compile
-#use HTFeed::PackageType::MPub::Fetch;
-#use HTFeed::PackageType::MPub::METS;
-#use HTFeed::PackageType::MPub::Notify;
+use HTFeed::PackageType::MPub::Fetch;
+use HTFeed::PackageType::MPub::METS;
+use HTFeed::PackageType::MPub::Notify;
 use HTFeed::VolumeValidator;
 use HTFeed::Stage::Pack;
 use HTFeed::Stage::Collate;
@@ -28,18 +27,26 @@ our $config = {
 		\d{8}.(html|jp2|tif|txt)
 		)/x,
 
+	validation_run_stages => [
+    qw(validate_file_names          
+    validate_filegroups_nonempty 
+    validate_consistency         
+    validate_checksums           
+    validate_utf8                
+    validate_metadata)
+    ],
+
 	# A set of regular expressions mapping files to the filegroups they belong in
     filegroups => {
-	image => {
-	    prefix => 'IMG',
-	    use => 'image',
-	    file_pattern => qr/\d{8}\.(jp2|tif)$/,
-	    required => 1,
-	    content => 1,
-	    jhove => 1,
-	    utf8 => 0
-	},
-
+		image => {
+	   		prefix => 'IMG',
+	   		use => 'image',
+	   		file_pattern => qr/\d{8}\.(jp2|tif)$/,
+	   		required => 1,
+	   		content => 1,
+	   		jhove => 1,
+	   		utf8 => 0
+		},
         ocr => {
             prefix => 'OCR',
             use => 'ocr',
@@ -52,23 +59,28 @@ our $config = {
 
     },
 
-    # Allow gaps in numerical sequence of filenames?
-    allow_sequence_gaps => 0,
-
-    # The list of stages to run to successfully ingest a volume.
-    stages_to_run => [qw(
-        HTFeed::PackageType::MPub::Fetch
-        HTFeed::VolumeValidator
-        HTFeed::PackageType::MPub::METS
-        HTFeed::Stage::Pack
-        HTFeed::Stage::Handle
-		HTFeed::PackageType::Notify;
-        HTFeed::Stage::Collate
-	)],
-
     # The file containing the checksums for each data file
     checksum_file => qr/^checksum.md5$/,
 
+    # Allow gaps in numerical sequence of filenames?
+    allow_sequence_gaps => 0,
+
+    # What stage to run given the current state.
+    stages_map => {
+        ready		=> 'HTFeed::PackageType::MPub::Fetch',
+        fetched		=> 'HTFeed::VolumeValidator',
+		validated	=> 'HTFeed::Stage::Pack',
+        packed		=> 'HTFeed::PackageType::MPub::METS',
+        metsed		=> 'HTFeed::Stage::Handle',
+		handled		=> 'HTFeed::PackageType::Notify',
+        notified	=> 'HTFeed::Stage::Collate',
+	},
+
+	# Filegroups that contain files that will be validated by JHOVE
+	metadata_filegroups	=> [qw(image)],
+
+	# Filegroups that contain files that should be validated to use UTF-8
+	utf8_filegroups		=> [qw(ocr)].
 
     # The HTFeed::ModuleValidator subclass to use for validating
     # files with the given extensions
@@ -93,10 +105,6 @@ our $config = {
 #	'ht_mets_creation',
 	'ingestion',
     ],
-
-    # Overrides for the basic PREMIS event configuration
-    premis_overrides => {
-    },
 
     # filename extensions not to compress in zip file
     uncompressed_extensions => ['tif','jp2'],
