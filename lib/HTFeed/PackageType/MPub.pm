@@ -1,40 +1,27 @@
 package HTFeed::PackageType::MPub;
-
 use HTFeed::PackageType;
+use HTFeed::PackageType::MPub::Fetch;
+use HTFeed::VolumeValidator;
+use HTFeed::Stage::Handle;
+use HTFeed::Stage::Pack;
+use HTFeed::Stage::Collate;
 use base qw(HTFeed::PackageType);
 use strict;
 
-use HTFeed::PackageType::MPub::Fetch;
-use HTFeed::PackageType::MPub::METS;
-use HTFeed::PackageType::MPub::Notify;
-use HTFeed::VolumeValidator;
-use HTFeed::Stage::Pack;
-use HTFeed::Stage::Collate;
-use HTFeed::Stage::Handle;
-
-#base case for UM Press and Faculty Reprints
+#base case for MPub materials (DigOnDemand & Faculty Reprints)
 
 our $identifier = 'mpub';
 
 our $config = {
-
-    volume_module => 'HTFeed::PackageType::MPub::Volume',
+    volume_module => 'HTFeed::Volume',
     
     # Regular expression that distinguishes valid files in the file package
     valid_file_pattern => qr/^( 
 		checksum\.md5 |
+		pageview\.dat |
 		\w+\.(xml) |
 		\d{8}.(html|jp2|tif|txt)
 		)/x,
-
-	validation_run_stages => [
-    qw(validate_file_names          
-    validate_filegroups_nonempty 
-    validate_consistency         
-    validate_checksums           
-    validate_utf8                
-    validate_metadata)
-    ],
 
 	# A set of regular expressions mapping files to the filegroups they belong in
     filegroups => {
@@ -56,7 +43,6 @@ our $config = {
             jhove => 0,
             utf8 => 1
         },
-
     },
 
     # The file containing the checksums for each data file
@@ -65,15 +51,22 @@ our $config = {
     # Allow gaps in numerical sequence of filenames?
     allow_sequence_gaps => 0,
 
+	validation_run_stages => [
+    qw(validate_file_names          
+    validate_filegroups_nonempty 
+    validate_consistency         
+    validate_checksums           
+    validate_utf8                
+    validate_metadata)
+    ],
+
     # What stage to run given the current state.
-    stages_map => {
+    stage_map => {
         ready		=> 'HTFeed::PackageType::MPub::Fetch',
         fetched		=> 'HTFeed::VolumeValidator',
 		validated	=> 'HTFeed::Stage::Pack',
-        packed		=> 'HTFeed::PackageType::MPub::METS',
-        metsed		=> 'HTFeed::Stage::Handle',
-		handled		=> 'HTFeed::PackageType::Notify',
-        notified	=> 'HTFeed::Stage::Collate',
+        packed		=> 'HTFeed::Stage::Handle',
+        handled		=> 'HTFeed::Stage::Collate',
 	},
 
 	# Filegroups that contain files that will be validated by JHOVE
@@ -115,7 +108,8 @@ __END__
 
 =pod
 
-This is the package type configuration file for UM Press & Faculty Reprints.
+This is the package type configuration file for base case MPub materials
+Specifically DigOnDemand and Faculty Reprints
 
 =head1 SYNOPSIS
 
