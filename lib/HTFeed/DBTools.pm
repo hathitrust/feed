@@ -49,7 +49,7 @@ sub get_queued{
     
     my $dbh = get_dbh();
 
-    my $sth = $dbh->prepare(q(SELECT pkg_type, ns, objid, status, failure_count FROM queue WHERE node = ?;));
+    my $sth = $dbh->prepare(q(SELECT pkg_type, namespace, id, status, failure_count FROM queue WHERE node = ?;));
     $sth->execute(hostname);
     
     return $sth if ($sth->rows);
@@ -66,9 +66,9 @@ sub enqueue_volumes{
     $dbh = get_dbh();
     my $sth;
     if($ignore){
-        $sth = $dbh->prepare(q(INSERT IGNORE INTO `queue` (pkg_type, ns, objid) VALUES (?,?,?);));
+        $sth = $dbh->prepare(q(INSERT IGNORE INTO `queue` (pkg_type, namespace, id) VALUES (?,?,?);));
     }else {
-        $sth = $dbh->prepare(q(INSERT INTO `queue` (pkg_type, ns, objid) VALUES (?,?,?);));
+        $sth = $dbh->prepare(q(INSERT INTO `queue` (pkg_type, namespace, id) VALUES (?,?,?);));
     }
     
     my @results;
@@ -165,7 +165,7 @@ sub update_queue {
     my $syntax = qq(UPDATE queue SET status = '$new_status');
     $syntax .= q(, failure_count=failure_count+1) if ($fail);
     $syntax .= q(, node = NULL) if (exists $release_states{$new_status});
-    $syntax .= qq( WHERE ns = '$ns' AND objid = '$objid';);
+    $syntax .= qq( WHERE namespace = '$ns' AND id = '$objid';);
     
     get_dbh()->do($syntax);
 }
