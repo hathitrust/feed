@@ -165,9 +165,9 @@ returns path to staging directory on disk if $flag
 sub get_staging_directory {
     my $self = shift;
     my $flag = shift;
-    #XXX correct use of get_config('staging')?
-    return get_config('staging'=>'disk'=>'ingest') . q(/) . s2ppchars($self->get_objid()) if $flag;
-    return get_config('staging'=>'ingest') . q(/) . s2ppchars($self->get_objid());
+    my $pt_objid = $self->get_pt_objid();
+    return get_config('staging'=>'disk'=>'ingest') . q(/) . $pt_objid if $flag;
+    return get_config('staging'=>'ingest') . q(/) . $pt_objid;
 }
 
 =item mk_staging_directory
@@ -204,7 +204,6 @@ Returns the directory the volume's SIP should be downloaded to
 
 =cut
 
-#XXX correct use of get_config('staging')?
 sub get_download_directory {
     return get_config('staging'=>'download');
 }
@@ -745,14 +744,22 @@ sub _get_current_date {
 
 Returns the path to the zip archive to construct for this object.
 
+If called in an array context, returns an array containing 
+the staging path and the name of the zip file. If called in a
+scalar context, returns the path to the zip file.
+
 =cut
 
 sub get_zip_path {
     my $self = shift;
-	#XXX correct use of get_config('staging')?
     my $staging_path = get_config('staging'=>'ingest');
     my $pt_objid = $self->get_pt_objid();
-    my $zip_path = "$staging_path/$pt_objid.zip";
+
+    if(wantarray) {
+        return ($staging_path,"$pt_objid.zip");
+    } else {
+        return "$staging_path/$pt_objid.zip";
+    }
 
 }
 
@@ -803,28 +810,10 @@ sub get_SIP_filename {
     return sprintf($pattern,$objid);
 }
 
-=item get_zip
-
-Returns the filename of the zip archive of the volume
-
-=cut
-
-sub get_zip {
-    my $self = shift;
-    return $self->get_pt_objid() . ".zip";
-
-}
-
-
 sub clean_all {
     my $self = shift;
-<<<<<<< HEAD
-    $logger->warn("Removing " . $self->get_staging_directory(no_new => 1));
-    remove_tree $self->get_staging_directory(no_new => 1);
-=======
-    warn("Removing " . $self->get_staging_directory());
+    $logger->warn("Removing " . $self->get_staging_directory());
     remove_tree $self->get_staging_directory();
->>>>>>> d7fbc5f962e5074d327cc87b19c89f5aa37448de
     unlink($self->get_mets_path());
     $logger->warn("Removing " . $self->get_mets_path());
     unlink($self->get_zip_path());

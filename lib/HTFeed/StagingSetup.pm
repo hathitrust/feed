@@ -21,7 +21,6 @@ sub _make_dirs{
     }
 }
 
-#XXX correct use of get_config('staging')?
 # list all staging dirs
 sub _get_dirs{
     return [get_config('staging'=>'ingest'),

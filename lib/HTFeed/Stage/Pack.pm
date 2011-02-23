@@ -31,7 +31,6 @@ sub run{
     my @files_to_zip = ();
 
     # Make a temporary staging directory
-	#XXX update get_config('staging')?
     my $zip_stage = get_config('staging','zip');
     mkdir($zip_stage);
     mkdir("$zip_stage/$pt_objid");
@@ -85,7 +84,6 @@ sub stage_info{
 sub clean_always{
     my $self = shift;
     my $pt_objid = $self->{volume}->get_pt_objid();
-	#XXX update get_config('staging')?
     my $zip_stage = get_config('staging','zip');
     
     remove_tree "$zip_stage/$pt_objid";

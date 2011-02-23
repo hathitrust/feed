@@ -192,23 +192,6 @@ sub clean_punt{
     return;
 }
 
-# unlink download from ram staging
-#sub clean_ram_download{
-#    my $self = shift;
-#    my $volume = $self->{volume};
-#    my $download_to_disk = $volume->get_nspkg()->get('download_to_disk');
-#
-#    if(! $download_to_disk){
-#        my $path = get_config('staging'=>'ingest');
-#        my $file = $volume->get_SIP_filename();
-#        my $path_name = "$path/$file";
-#
-#        return unlink $path_name;
-#    }
-#
-#    return 1;
-#}
-
 # unlink unpacked object
 sub clean_unpacked_object {
     my $self = shift;
@@ -220,20 +203,14 @@ sub clean_unpacked_object {
 # unlink zip
 sub clean_zip {
     my $self     = shift;
-	#XXX update get_config('staging')?
-    my $dir      = get_config( 'staging' => 'ingest' );
-    my $zip_file = $self->{volume}->get_zip();
-    my $zip_path = "$dir/$zip_file";
-
-    return unlink $zip_path;
+    return unlink $self->{volume}->get_zip_path();
 }
 
 # unlink mets file
 sub clean_mets {
     my $self = shift;
-    my $mets = $self->{volume}->get_mets_path();
+    return unlink $self->{volume}->get_mets_path();
 
-    return unlink $mets;
 }
 
 # unlink preingest directory tree

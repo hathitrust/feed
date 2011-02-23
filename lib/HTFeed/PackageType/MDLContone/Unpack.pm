@@ -17,15 +17,9 @@ sub run{
     my $self = shift;
     my $volume = $self->{volume};
     
-    my $download_dir = $volume->get_download_directory();
-	#XXX update get_config('staging')?
-    my $stage_base = get_config('staging'=>'ingest');
-    
-    my $objid = $volume->get_objid();
    
-	#XXX BAD FILENAME (use pt_objid) 
-    my $file = sprintf("%s/$objid.tar.gz",$download_dir,$objid);
-    $self->untgz_file($file,$volume->get_staging_directory(),"--strip-components 1") or return;
+    $self->untgz_file($volume->get_download_location(),
+        $volume->get_staging_directory(),"--strip-components 1") or return;
     
     $self->_set_done();
     return $self->succeeded();

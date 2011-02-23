@@ -379,10 +379,8 @@ sub _add_zip_fg {
         id  => $self->_get_subsec_id("FG"),
         use => 'zip archive'
     );
-	#XXX update get_config('staging')? 
-    my $working_dir = get_config( 'staging' => 'ingest' );
-    my $pt_objid = $volume->get_pt_objid();
-    $zip_filegroup->add_file( "$pt_objid.zip", path => $working_dir, prefix => 'ZIP' );
+    my ($zip_path,$zip_name) = $volume->get_zip_path();
+    $zip_filegroup->add_file( $zip_name, path => $zip_path, prefix => 'ZIP' );
     $mets->add_filegroup($zip_filegroup);
 }
 
