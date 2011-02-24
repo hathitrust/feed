@@ -129,6 +129,10 @@ sub test_failure{
     }
     else{
         fail("error log match for damaged package validation for $package_type $namespace $objid");
+        copy($logfile_name,"failure-$namespace-$objid-$$");
+        open(my $diff_fh,">diffs-$namespace-$objid-$$");
+        print $diff_fh $diffs;
+        close($diff_fh);
     }
 }
 
