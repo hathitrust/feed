@@ -1,4 +1,4 @@
-package HTFeed::PackageType::MPub::MPubUMP;
+package HTFeed::PackageType::MPubUMP;
 use HTFeed::PackageType::MPub;
 use base qw(HTFeed::PackageType::MPub);
 use strict;

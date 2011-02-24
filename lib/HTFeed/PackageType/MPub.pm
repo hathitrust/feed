@@ -73,7 +73,7 @@ our $config = {
 	metadata_filegroups	=> [qw(image)],
 
 	# Filegroups that contain files that should be validated to use UTF-8
-	utf8_filegroups		=> [qw(ocr)].
+	utf8_filegroups		=> [qw(ocr)],
 
     # The HTFeed::ModuleValidator subclass to use for validating
     # files with the given extensions
