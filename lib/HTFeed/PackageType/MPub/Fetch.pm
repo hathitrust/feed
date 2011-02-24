@@ -2,6 +2,7 @@ package HTFeed::PackageType::MPub::Fetch;
 
 use strict;
 use warnings;
+use base qw(HTFeed::Stage);
 use HTFeed::Config qw(get_config);
 
 sub run {
