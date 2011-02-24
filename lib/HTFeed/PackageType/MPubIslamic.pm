@@ -1,4 +1,4 @@
-package HTFeed::PackageType::MPub::MPubIslamic;
+package HTFeed::PackageType::MPubIslamic;
 use HTFeed::PackageType::MPub;
 use base qw(HTFeed::PackageType::MPub);
 use strict;
@@ -6,7 +6,6 @@ use strict;
 our $identifier = 'mpub_islamic';
 
 our $config = {
-	%{$HTFeed::PackageType::MPub::config};
     volume_module => 'HTFeed::Volume',
     
     # Regular expression that distinguishes valid files in the file package

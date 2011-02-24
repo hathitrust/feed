@@ -8,7 +8,7 @@ use HTFeed::Config qw(get_config);
 use List::MoreUtils qw(uniq);
 use File::Path qw(remove_tree);
 use Carp qw(croak);
-use Log::Log4Perl qw(get_logger);
+use Log::Log4perl qw(get_logger);
 
 my $logger = get_logger(__PACKAGE__);
 

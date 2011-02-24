@@ -1,4 +1,4 @@
-package HTFeed::PackageType::MPub::MPubUMP;
+package HTFeed::PackageType::MPubUMP;
 use HTFeed::PackageType::MPub;
 use base qw(HTFeed::PackageType::MPub);
 use strict;
@@ -6,7 +6,6 @@ use strict;
 our $identifier = 'mpub_ump';
 
 our $config = {
-	%{$HTFeed::PackageType::MPub::config},
     volume_module => 'HTFeed::Volume',
     
     # Regular expression that distinguishes valid files in the file package
