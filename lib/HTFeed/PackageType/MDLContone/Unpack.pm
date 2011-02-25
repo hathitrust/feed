@@ -19,7 +19,7 @@ sub run{
     
    
     $self->untgz_file($volume->get_download_location(),
-        $volume->get_staging_directory(),"--strip-components 1") or return;
+         $volume->mk_staging_directory($self->stage_on_disk()),"--strip-components 1") or return;
     
     $self->_set_done();
     return $self->succeeded();
