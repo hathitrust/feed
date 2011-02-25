@@ -2,49 +2,72 @@
 
 use strict;
 use warnings;
-use DBI;
-use FindBin;
-use HTFeed::Config qw(get_config);
 use HTFeed::DBTools qw(get_dbh);
 use Test::DatabaseRow;
-use HTFeed::Log {root_logger => 'INFO, screen'};
 use Test::More;
-
-# get test config
-my $config_file = "$FindBin::Bin/etc/objid.yaml";
-my $config_data = YAML::XS::LoadFile($config_file);
-
-#test for module
-BEGIN {
-    use_ok('HTFeed::DBTools');
-}
-
-require_ok('HTFeed::DBTools');
 
 #connect to DB
 my $dbh = HTFeed::DBTools::get_dbh();
-
 local $Test::DatabaseRow::dbh = $dbh;
+ok($dbh->ping, "database connection");
 
+#XXX store tables, columns in external file/ get from schema?
+#TODO test cases for failures so that test fails but unit test does not fail
+ 
+#test that tables exist
+my $table;
+my @tables=("queue", "ingest_log");
+my @row;
+my $match = "no match";
 
-#XXX Sample Tests XXX#
+for $table(@tables) {
+	my $sth = $dbh->prepare("show tables");
+	my $execute = $sth->execute;
+	while (@row = $sth->fetchrow_array) {
+		for my $row(@row) {
+			if($row eq $table) {
+				$match = $table;
+			}
+		}
+	}
+	cmp_ok($match, 'eq', $table, "table $table exists");
+	$match = "null";
+}
 
-	#Sample row test A
-	row_ok(
-		sql		=> "select * from blacklist where id = '39015000531544'",
-		tests	=> [namespace => "mdp"],
-		label	=> "volume 39015000531544 has namespace mdp"
-	);
-	
-	#Sample row test B
-	row_ok(
-		table	=> "blacklist",
-		where	=> [id => 39015000531544],
-		tests	=> [namespace => "mdp"],
-		label	=> "volume 39015000531544 has namespace mdp"
-	);
+#test columns
+my $label;
+$table = "queue";
+my @cols = qw(pkg_type namespace id status update_stamp date_added node failure_count);
+for my $col(@cols) {
+	# grab aliases to a DB handle and a table name
+	my $sth = $dbh->prepare("SELECT * FROM $table WHERE 1=0;");
+	$sth->execute;
+	my @labels = @{$sth->{NAME}};
+	$sth->finish;
 
-#XXX End Sample XXX#
+	for $label(@labels) {
+		if($label eq $col) {
+			$match = $col;
+		}
+	}
+	cmp_ok($match, 'eq', $col, "column $col exists");
+}
+
+#test sql
+my $execute;
+eval{
+	my $sth = $dbh->prepare("SELECT pkg_type, namespace, id, status, failure_count FROM queue WHERE node = ?");
+	$execute = $sth->execute;
+};
+ok($execute, "correct syntax");
+
+#test specific calls
+#XXX sample
+row_ok(
+	table	=>	"queue",
+	where	=>	["status"	=> "success"],
+	label	=>	"db call valid",
+);
 
 done_testing();
 

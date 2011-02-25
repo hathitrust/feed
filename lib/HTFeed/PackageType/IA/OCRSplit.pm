@@ -20,7 +20,7 @@ sub run {
     my $ia_id = $volume->get_ia_id();
     my $download_directory = $volume->get_download_directory();
     my $preingest_directory = $volume->get_preingest_directory();
-    my $staging_directory = $volume->get_staging_directory();
+    my $staging_directory = $volume->mk_staging_directory($self->stage_on_disk());
 
     my $xml = "${ia_id}_djvu.xml";
 

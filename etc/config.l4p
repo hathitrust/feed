@@ -6,8 +6,8 @@ log4perl.appender.dbi.datasource        = sub {return HTFeed::Config::get_config
 log4perl.appender.dbi.username          = sub {return HTFeed::Config::get_config('database' => 'username');}
 log4perl.appender.dbi.password          = sub {return HTFeed::Config::get_config('database' => 'password');}
 log4perl.appender.dbi.sql =         \
-            insert into ht_errors   \
-            (timestamp,level,message,namespace,objid,file,field,actual,expected,detail,operation,stage)\
+            insert into log   \
+            (timestamp,level,message,namespace,id,file,field,actual,expected,detail,operation,stage)\
             values (?,?,?,?,?,?,?,?,?,?,?,?)
 log4perl.appender.dbi.params.1 = %d
 log4perl.appender.dbi.params.2 = %p
@@ -18,7 +18,7 @@ log4perl.appender.dbi.warp_message      = HTFeed::Log::Warp::toDBArray
 # appender screen
 log4perl.appender.screen                = Log::Log4perl::Appender::ScreenColoredLevels
 log4perl.appender.screen.stderr         = 0
-log4perl.appender.screen.layout         = HTFeed::Log::Layout::PrettyPrint
+log4perl.appender.screen.layout         = HTFeed::Log::Layout::PrettyPrintPID
 log4perl.appender.screen.color.TRACE    = green
 log4perl.appender.screen.color.DEBUG    = blue
 log4perl.appender.screen.color.INFO     = black

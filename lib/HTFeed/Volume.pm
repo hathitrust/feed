@@ -158,30 +158,43 @@ sub get_all_directory_files {
 =item get_staging_directory
 
 Returns the staging directory for the volume's AIP
-makes directory if it does not exist
+returns path to staging directory on disk if $flag
 
-=synopsis
-# set flag to true if you DON'T want to create the staging directory if it doesn't exist
-get_staging_directory($flag);
 =cut
 
 sub get_staging_directory {
     my $self = shift;
+    my $flag = shift;
+    my $pt_objid = $self->get_pt_objid();
+    return get_config('staging'=>'disk'=>'ingest') . q(/) . $pt_objid if $flag;
+    return get_config('staging'=>'ingest') . q(/) . $pt_objid;
+}
+
+=item mk_staging_directory
+
+makes staging directory, if $flag, creates it on disk rather than ram and symlinks to ram
+returns staging directory
+
+=synopsis
+mk_staging_dir($flag)
+=cut
+
+sub mk_staging_directory{
+    my $self = shift;
+    my $flag = shift;
     
-    my $make_new_dirs = not shift;
+    my $stage_dir = $self->get_staging_directory();
     
-    if(not defined $self->{staging_directory}) {
-        my $objid = $self->get_objid();
-        my $pt_objid = s2ppchars($objid);
-        my $stage_dir = sprintf("%s/%s", get_config('staging'=>'ingest'), $pt_objid);
-        if(!-e $stage_dir and $make_new_dirs) {
-            mkdir($stage_dir) or croak("Can't mkdir $stage_dir: $!");
-        }
-        $self->{staging_directory} = $stage_dir;
+    if($flag){
+        my $disk_stage_dir = $self->get_staging_directory(1);
+        mkdir($disk_stage_dir) or croak("Can't mkdir $disk_stage_dir: $!");
+        symlink($disk_stage_dir,$stage_dir) or croak("Can't symlink $disk_stage_dir,$stage_dir: $!");
+    }
+    else{
+        mkdir($stage_dir) or croak("Can't mkdir $stage_dir: $!");
     }
 
-    return $self->{staging_directory};
-
+    return $stage_dir;
 }
 
 
@@ -420,7 +433,7 @@ sub get_marc_xml {
         q(//mets:dmdSec/mets:mdWrap[@MDTYPE="MARC"]/mets:xmlData));
 
     if ( $mdsec_nodes->size() ) {
-        warn("Multiple MARC mdsecs found") if ( $mdsec_nodes->size() > 1 );
+        $logger->warn("Multiple MARC mdsecs found") if ( $mdsec_nodes->size() > 1 );
         my $node = $mdsec_nodes->get_node(0)->firstChild();
         # ignore any whitespace, etc.
         while($node->nodeType() != XML_ELEMENT_NODE) {
@@ -644,10 +657,10 @@ sub record_premis_event {
 
     my $uuid = $self->make_premis_uuid($eventtype,$date); 
 
-    my $set_premis_sth = $dbh->prepare("REPLACE INTO premis_events_new (namespace, barcode, eventid, eventtype_id, outcome, date) VALUES
+    my $set_premis_sth = $dbh->prepare("REPLACE INTO premis_events (namespace, id, eventid, eventtype_id, outcome, date) VALUES
         (?, ?, ?, ?, ?, ?)");
 
-    $set_premis_sth->execute($self->get_namespace(),$self->get_objid(),$uuid,$eventtype,$outcome_xml,$date);
+    $set_premis_sth->execute($self->get_namespace(),$self->get_objid(),$uuid,$eventcode,$outcome_xml,$date);
 
 }
 
@@ -680,7 +693,7 @@ sub get_event_info {
 
     my $dbh = HTFeed::DBTools::get_dbh();
 
-    my $event_sql = "SELECT eventid,date,outcome FROM premis_events_new where namespace = ? and barcode = ? and eventtype_id = ?";
+    my $event_sql = "SELECT eventid,date,outcome FROM premis_events where namespace = ? and id = ? and eventtype_id = ?";
 
     my $event_sth = $dbh->prepare($event_sql);
     my @params = ($self->get_namespace(),$self->get_objid(),$eventtype);
@@ -731,13 +744,22 @@ sub _get_current_date {
 
 Returns the path to the zip archive to construct for this object.
 
+If called in an array context, returns an array containing 
+the staging path and the name of the zip file. If called in a
+scalar context, returns the path to the zip file.
+
 =cut
 
 sub get_zip_path {
     my $self = shift;
     my $staging_path = get_config('staging'=>'ingest');
     my $pt_objid = $self->get_pt_objid();
-    my $zip_path = "$staging_path/$pt_objid.zip";
+
+    if(wantarray) {
+        return ($staging_path,"$pt_objid.zip");
+    } else {
+        return "$staging_path/$pt_objid.zip";
+    }
 
 }
 
@@ -788,27 +810,14 @@ sub get_SIP_filename {
     return sprintf($pattern,$objid);
 }
 
-=item get_zip
-
-Returns the filename of the zip archive of the volume
-
-=cut
-
-sub get_zip {
-    my $self = shift;
-    return $self->get_pt_objid() . ".zip";
-
-}
-
-
 sub clean_all {
     my $self = shift;
-    warn("Removing " . $self->get_staging_directory(no_new => 1));
-    remove_tree $self->get_staging_directory(no_new => 1);
+    $logger->warn("Removing " . $self->get_staging_directory());
+    remove_tree $self->get_staging_directory();
     unlink($self->get_mets_path());
-    warn("Removing " . $self->get_mets_path());
+    $logger->warn("Removing " . $self->get_mets_path());
     unlink($self->get_zip_path());
-    warn("Removing " . $self->get_zip_path());
+    $logger->warn("Removing " . $self->get_zip_path());
 }
 
 
@@ -816,6 +825,9 @@ sub clean_all {
 
 Returns the directory where the raw submitted object is staged. 
 Returns undef by default; package type subclasses must define.
+
+should use get_config('staging'=>'preingest') as a base dir
+or use get_config('staging'=>'disk'=>'preingest') if $flag
 
 =cut
 
@@ -836,6 +848,35 @@ sub get_download_location {
     return "$staging_dir/" . $self->get_SIP_filename();
     return;
 }
+
+
+=item mk_preingest_directory
+
+makes preingest directory, if $flag, creates it on disk rather than ram and symlinks to ram.
+returns preingest directory (or the link if $flag)
+
+=synopsis
+mk_preingest_directory($flag)
+=cut
+
+sub mk_preingest_directory{
+    my $self = shift;
+    my $flag = shift;
+    
+    my $stage_dir = $self->get_preingest_directory();
+    
+    if($flag){
+        my $disk_stage_dir = $self->get_preingest_directory(1);
+        mkdir($disk_stage_dir) or croak("Can't mkdir $disk_stage_dir: $!");
+        symlink($disk_stage_dir,$stage_dir) or croak("Can't symlink $disk_stage_dir,$stage_dir: $!");
+    }
+    else{
+        mkdir($stage_dir) or croak("Can't mkdir $stage_dir: $!");
+    }
+
+    return $stage_dir;
+}
+
 
 1;
 

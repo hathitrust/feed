@@ -51,4 +51,5 @@ if($@) {
 
 sub usage {
     print "usage: test_stage.pl [--verbose --clean] stage_module packagetype namespace objid [staging dir]\n";
+    exit(1);
 }

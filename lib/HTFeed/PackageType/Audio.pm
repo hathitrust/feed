@@ -1,7 +1,9 @@
 package HTFeed::PackageType::Audio;
-use HTFeed::PackageType;
-use base qw(HTFeed::PackageType);
+
 use strict;
+use warnings;
+use base qw(HTFeed::PackageType);
+use HTFeed::PackageType::Audio::Volume;
 
 our $identifier = 'audio';
 
@@ -11,33 +13,54 @@ our $config = {
     # Regular expression that distinguishes valid files in the file package
     # HTML OCR is valid for the package type but only expected/required for UC1
     valid_file_pattern => qr/^( 
-    \w+\.(xml) |
-    [ap]m\d{2,8}.(wav)
+	\w+\.(mets.xml) |
+    [ap]m\d{2,8}.(wav) |
+	\w+\.(jp2) |
+	checksum\.md5 |
+	notes\.txt
     )/x,
 
     # A set of regular expressions mapping files to the filegroups they belong
     # in
     filegroups => {
-        archival => { 
-            prefix => 'AM',
-            use => 'archival',
-            file_pattern => qr/am.*\.wav$/,
-            required => 1,
-            content => 1,
-            jhove => 1,
-            utf8 => 0
-        },
-
-        production => { 
-            prefix => 'PM',
-            use => 'production',
-            file_pattern => qr/pm.*\.wav$/,
-            required => 1,
-            content => 1,
-            jhove => 1,
-            utf8 => 0
-        }
+        	archival => { 
+        	    prefix => 'AM',
+        	    use => 'preservation',
+        	    file_pattern => qr/am.*\.wav$/,
+        	    required => 1,
+        	    content => 1,
+        	    jhove => 1,
+        	    utf8 => 0
+			},
+        	production => { 
+        	    prefix => 'PM',
+        	    use => 'production',
+        	    file_pattern => qr/pm.*\.wav$/,
+        	    required => 1,
+        	    content => 1,
+        	    jhove => 1,
+        	    utf8 => 0
+        	},
+		#XXX jp2s don't have numeric sequence; breaks validation
+		#image => {
+		#	prefix => 'box' || 'acc',
+		#	use => 'image',
+		#	file_pattern => qr/\w+\.(jp2)$/,
+		#	required => 0,
+		#	content => 1,
+		#	jhove => 1,
+		#	utf8 => 0
+		#},
     },
+
+	validation_run_stages => [
+	qw(validate_file_names
+	validate_filegroups_nonempty
+	validate_consistency
+	validate_mets_consistency
+	validate_mets_checksums
+	validate_metadata)
+	],
 
     checksum_file    => 0,
     source_mets_file => qr/\w+.xml$/,
@@ -54,32 +77,21 @@ our $config = {
         handled           => 'HTFeed::Stage::Collate',
     },
 
+	# The list of filegroups that contain files that will be validated
+    # by JHOVE
+    metadata_filegroups => [qw(image)],
+
     # The HTFeed::ModuleValidator subclass to use for validating
     # files with the given extensions
     module_validators => {
-        'wav'  => 'HTFeed::ModuleValidator::WAVE_hul',
+        'wav' => 'HTFeed::ModuleValidator::WAVE_hul',
+		'jp2' => 'HTFeed::ModuleValidator::JPEG2000_hul',
     },
 
     # Validation overrides
     validation => {
     },
 
-    validation_run_stages => [
-    qw(validate_file_names
-    validate_filegroups_nonempty
-    validate_consistency
-    validate_mets_consistency
-    validate_utf8
-    validate_metadata)
-#XXX these are temporarily commented out to speed testing XXX#
-#    qw(validate_file_names
-#    validate_filegroups_nonempty
-#    validate_consistency
-#    validate_mets_consistency
-#    validate_checksums
-#    validate_utf8
-#    validate_metadata)
-    ],
 
     # What PREMIS events to include (by internal PREMIS identifier, 
     # configured in config.yaml)

@@ -18,9 +18,6 @@ my $dbh = undef;
 my $pid = undef;
 
 sub _init {
-
-    my $self = shift;
-
     my $dsn = get_config('database','datasource');
     my $user = get_config('database','username');
     my $passwd = get_config('database','password');
@@ -52,7 +49,7 @@ sub get_queued{
     
     my $dbh = get_dbh();
 
-    my $sth = $dbh->prepare(q(SELECT pkg_type, ns, objid, status, failure_count FROM queue WHERE node = ? AND status != 'punted' AND status !=  'collated' and status != 'held'));
+    my $sth = $dbh->prepare(q(SELECT pkg_type, namespace, id, status, failure_count FROM queue WHERE node = ?;));
     $sth->execute(hostname);
     
     return $sth if ($sth->rows);
@@ -69,9 +66,9 @@ sub enqueue_volumes{
     $dbh = get_dbh();
     my $sth;
     if($ignore){
-        $sth = $dbh->prepare(q(INSERT IGNORE INTO `queue` (pkg_type, ns, objid) VALUES (?,?,?);));
+        $sth = $dbh->prepare(q(INSERT IGNORE INTO queue (pkg_type, namespace, id) VALUES (?,?,?);));
     }else {
-        $sth = $dbh->prepare(q(INSERT INTO `queue` (pkg_type, ns, objid) VALUES (?,?,?);));
+        $sth = $dbh->prepare(q(INSERT INTO queue (pkg_type, namespace, id) VALUES (?,?,?);));
     }
     
     my @results;
@@ -93,10 +90,10 @@ sub reset_volumes{
     $dbh = get_dbh();
     my $sth;
     if($force){
-        $sth = $dbh->prepare(q(UPDATE queue SET `node` = NULL, `status` = 'ready', failure_count = 0 WHERE ns = ? and objid = ?;));
+        $sth = $dbh->prepare(q(UPDATE queue SET node = NULL, status = 'ready', failure_count = 0 WHERE namespace = ? and id = ?;));
     }
     else{
-        $sth = $dbh->prepare(q(UPDATE queue SET `node` = NULL, `status` = 'ready', failure_count = 0 WHERE status = 'punted' and ns = ? and objid = ?;));
+        $sth = $dbh->prepare(q(UPDATE queue SET node = NULL, status = 'ready', failure_count = 0 WHERE status = 'punted' and namespace = ? and id = ?;));
     }
     
     my @results;
@@ -119,27 +116,15 @@ sub lock_volumes{
     return $sth->rows;
 }
 
+## TODO: better behavior here, possibly reset to downloaded in some cases, possibly keep lock but reset status
 # reset_in_flight_locks()
 # releases locks on in flight volumes for this node and resets status to ready
 sub reset_in_flight_locks{
-    my $sth = get_dbh()->prepare(q(UPDATE queue SET `node` = NULL, `status` = 'ready' WHERE node = ? AND status != 'punted' AND status != 'collated';));
+    my $sth = get_dbh()->prepare(q(UPDATE queue SET node = NULL, status = 'ready' WHERE node = ? AND status != 'punted' AND status != 'collated';));
     return $sth->execute(hostname);
 }
 
-# release_completed_locks()
-# releases locks on in completed volumes for this node
-sub release_completed_locks{
-    my $sth = get_dbh()->prepare(q(UPDATE queue SET `node` = NULL WHERE node = ? AND status = 'collated';));
-    return $sth->execute(hostname);
-}
-
-# release_failed_locks()
-# releases locks on in failed volumes for this node
-sub release_failed_locks{
-    my $sth = get_dbh()->prepare(q(UPDATE queue SET `node` = NULL WHERE node = ? AND status = 'punted'));
-    return $sth->execute(hostname);
-}
-
+## TODO: delete this if we don't need it
 # count_locks()
 # returns the number of volumes locked to this node
 sub count_locks{
@@ -160,7 +145,6 @@ sub ingest_log_failure {
     my $fatal = ($new_status eq 'punted');
     my $sth = get_dbh()->prepare("INSERT INTO ingest_log (namespace,id,status,fatal) VALUES (?,?,?,?)");
     $sth->execute($ns,$objid,$stagename,$fatal);
-        
 }
 
 sub ingest_log_success {
@@ -181,7 +165,7 @@ sub update_queue {
     my $syntax = qq(UPDATE queue SET status = '$new_status');
     $syntax .= q(, failure_count=failure_count+1) if ($fail);
     $syntax .= q(, node = NULL) if (exists $release_states{$new_status});
-    $syntax .= qq( WHERE ns = '$ns' AND objid = '$objid';);
+    $syntax .= qq( WHERE namespace = '$ns' AND id = '$objid';);
     
     get_dbh()->do($syntax);
 }

@@ -14,25 +14,17 @@ sub ram_disk_size{
     my $self = shift;
     my $volume = $self->{volume};
 
-    my $download_dir = $volume->get_download_directory();
-    my $objid = $volume->get_objid();
-    my $file = sprintf('%s/%s.zip',$download_dir,$objid);
-
     my $multiplier = 1.10;
 
-    return estimate_space($file, $multiplier);
+    return estimate_space($volume->get_download_location(), $multiplier);
 }
 
 sub run{
     my $self = shift;
     my $volume = $self->{volume};
 
-    my $download_dir = $volume->get_download_directory();
-    my $objid = $volume->get_objid();
-
-    my $file = sprintf('%s/%s.zip',$download_dir,$objid);
-    # not getting preingest path directly -- zip file contains extra paths we don't want to junk
-    $self->unzip_file($file,get_config('staging' => 'preingest'));
+    # not getting preingest path from volume -- zip file contains extra paths we don't want to junk
+    $self->unzip_file($volume->get_download_location(),get_config('staging' => 'preingest'));
 
     $self->_set_done();
     return $self->succeeded();

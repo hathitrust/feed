@@ -19,8 +19,8 @@ sub new {
     );
     my $volume = $self->{volume};
     my $stage_path = $volume->get_staging_directory();
-    my $objid = $volume->get_objid();
-    $self->{outfile} = "$stage_path/IA_" . $objid . ".xml";
+    my $pt_objid = $volume->get_pt_objid();
+    $self->{outfile} = "$stage_path/IA_" . $pt_objid . ".xml";
 
     return $self;
 }

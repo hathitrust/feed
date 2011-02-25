@@ -1,44 +1,80 @@
 use warnings;
 use strict;
 
-#use Data::Dumper;
+## here for debug
+use Data::Dumper;
 
 use DBI;
 
 use HTFeed::Version;
 use HTFeed::StagingSetup;
+use HTFeed::Run;
 
-use HTFeed::Config qw(get_config);
+use HTFeed::Config;
 use HTFeed::Volume;
 use HTFeed::Log { root_logger => 'INFO, dbi, screen' };
-use HTFeed::DBTools qw(get_queued lock_volumes update_queue);
-use Log::Log4perl qw(get_logger);
+use HTFeed::DBTools qw(get_queued lock_volumes);
+#use Log::Log4perl qw(get_logger);
 
-my $logger = get_logger();
-
-# make clean stage
-## TODO: flags
-HTFeed::StagingSetup::make_stage(1);
+print("feedd running, waiting for something to ingest\n");
 
 my $process_id = $$;
 my $subprocesses = 0;
 my @jobs = ();
 my %locks_by_key = ();
 my %locks_by_pid = ();
+## TODO: set this somewhere else
 my $clean = 1;
-my $failure_limit            = get_config('failure_limit');
-my $volumes_in_process_limit = get_config('volumes_in_process_limit');
+
+# kill children on SIGINT, SIGTERM
+$SIG{'INT'} =
+    sub {
+        warn("Process $$ received SIGINT/SIGTERM, cleaning up...\n");
+        unless($$ eq $process_id){
+            # child dies
+            exit 0;
+        }
+        # parent kills kids
+        kill 2, keys %locks_by_pid;
+        exit 0;
+    };
+$SIG{'TERM'} = $SIG{'INT'};
+
+# reread config on SIGHUP
+# 
+# Caveats: This won't affect the L4P settings.
+#
+$SIG{'HUP'} =
+    sub {
+        warn("Process $$ received SIGHUP, reloading configuration\n");
+        while ($subprocesses){
+            warn("Waiting for subprocess to exit\n");
+            wait_kid();
+        }
+        # delete everything in staging, except download
+        HTFeed::StagingSetup::clear_stage();
+        # release all locks
+        HTFeed::DBTools::reset_in_flight_locks();
+        %locks_by_key = ();
+        %locks_by_pid = ();
+
+        HTFeed::Config::init();
+        HTFeed::DBTools::_init();
+    };
+
+HTFeed::StagingSetup::make_stage($clean);
 
 while(! exit_condition()){
-    while (($subprocesses < $volumes_in_process_limit) and (my $job = get_next_job())){
+    while (($subprocesses < get_config('volumes_in_process_limit')) and (my $job = get_next_job())){
         spawn($job);
     }
-    wait_kid() or sleep 30;
+    wait_kid() or do {
+        sleep 15;
+    }
 }
-print "Terminating...\n";
+print "Finishing work on locked volumes...\n";
 while ($subprocesses){
-    ## this won't work (yet)
-    refresh_kid();
+    wait_kid();
 }
 
 # fork, lock job, increment $subprocess
@@ -51,7 +87,7 @@ sub spawn{
     }
     elsif ( defined $pid ) {
         # child
-        run_stage($job);
+        run_job($job, $clean);
         exit(0);
     }
     else{
@@ -73,7 +109,7 @@ sub wait_kid{
 
 # determine if we are done
 sub exit_condition{
-    return;
+    return (-e get_config('daemon'=>'stop_file'));
 }
 
 sub get_next_job{
@@ -92,108 +128,38 @@ sub get_next_job{
 }
 
 sub fill_queue{
-    my $needed_volumes = $volumes_in_process_limit - $subprocesses;
+    my $needed_volumes = get_config('volumes_in_process_limit') - $subprocesses;
     if ($needed_volumes > 0){
         lock_volumes($needed_volumes);
     }
     
-    if (my $sth = get_queued()){    
+    if (my $sth = get_queued()){
         while(my $job = $sth->fetchrow_hashref()){
-            push (@jobs, $job) if (! is_locked($job));
+            push (@jobs, $job) if (! is_locked($job) and can_run_job($job));
         }
     }
 }
 
 sub is_locked{
     my $job = shift;
-    return exists $locks_by_key{$job->{ns}}{$job->{objid}};
+    return exists $locks_by_key{$job->{namespace}}{$job->{id}};
 }
 
 sub lock_job{
     my ($pid,$job) = @_;
-    $locks_by_key{$job->{ns}}{$job->{objid}} = $job;
+    $locks_by_key{$job->{namespace}}{$job->{id}} = $job;
     $locks_by_pid{$pid} = $job;
     $subprocesses++;
-    print "LOCK $job->{ns}.$job->{objid} to $pid! $subprocesses in flight\n";
+    print "LOCK $job->{namespace}.$job->{id} to $pid! $subprocesses in flight\n";
 }
 
 sub release_job{
     my $pid = shift;
     my $job = $locks_by_pid{$pid};
     delete $locks_by_pid{$pid};
-    delete $locks_by_key{$job->{ns}}{$job->{objid}};
+    delete $locks_by_key{$job->{namespace}}{$job->{id}};
     $subprocesses--;
-    print "RELEASE $job->{ns}.$job->{objid} from $pid! $subprocesses in flight\n";
-}
-
-# run_stage( $job )
-sub run_stage {
-    my $job = shift;
-
-    my $volume;
-    my $stage;
-
-    eval {
-        $volume = HTFeed::Volume->new(
-            objid       => $job->{objid},
-            namespace   => $job->{ns},
-            packagetype => $job->{pkg_type},
-        );
-        my $stage_class = $volume->get_nspkg()->get('stage_map')->{$job->{status}};
-
-        $stage = eval "$stage_class->new(volume => \$volume)";
-
-        $logger->info( "RunStage", objid => $job->{objid}, namespace => $job->{ns}, stage => ref($stage) );
-        $stage->run();
-    };
-
-    my $err = $@;
-    if ( $err and $err !~ /STAGE_ERROR/ ) {
-        $logger->error( "UnexpectedError", objid => $job->{objid}, namespace => $job->{ns}, stage => ref($stage), detail => $@ );
-    }
-
-    if ($stage and $clean) {
-        eval { $stage->clean(); };
-        if ($@) {
-            $logger->error( "UnexpectedError", objid => $job->{objid}, namespace => $job->{ns}, stage  => ref($stage), detail => $@ );
-        }
-    }
-
-    # update queue table with new status and failure_count
-    if ( $stage and $stage->succeeded() ) {
-        # success
-        my $status = $stage->get_stage_info('success_state');
-        $logger->info( "StageSucceeded", objid => $job->{objid}, namespace => $job->{ns}, stage => ref($stage) );
-        update_queue($job->{ns}, $job->{objid}, $status);
-    }
-    else {
-        # failure
-        my $status;
-        if ( $job->{failure_count} >= $failure_limit or not defined $stage) {
-            # punt if failure limit exceeded or stage construction failed
-            $status = 'punted'; 
-        } elsif($stage) {
-            my $new_status = $stage->get_stage_info('failure_state');
-            $status = $new_status if ($new_status);
-        } 
-        ## TODO: else {unexpected error} ?
-
-        $logger->info( "StageFailed", objid => $job->{objid}, namespace => $job->{ns}, stage => ref($stage) );
-
-        if ( $status eq 'punted' ) {
-            $logger->info( "VolumePunted", objid => $job->{objid}, namespace => $job->{ns} );
-            eval {
-                $volume->clean_all() if $volume and $clean;
-            };
-            if($@) {
-                $logger->error( "UnexpectedError", objid => $job->{objid}, namespace => $job->{ns}, detail => "Error cleaning volume: $@");
-            }
-        }
-        update_queue($job->{ns}, $job->{objid}, $status, 1);
-
-        ## This makes no sense re: line 170
-        $stage->clean_punt() if ($stage and $status eq 'punted');
-    }
+    print "RELEASE $job->{namespace}.$job->{id} from $pid! $subprocesses in flight\n";
 }
 
 END{
@@ -204,8 +170,6 @@ END{
         
         # release all locks
         HTFeed::DBTools::reset_in_flight_locks();
-        HTFeed::DBTools::release_completed_locks();
-        HTFeed::DBTools::release_failed_locks();
     }
 }
 

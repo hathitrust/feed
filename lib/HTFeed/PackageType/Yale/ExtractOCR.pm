@@ -19,7 +19,7 @@ sub run {
     my $alto_parser = new HTFeed::PackageType::Yale::AltoParse();
     my $mets_xc = $volume->get_yale_mets_xpc();
     my $objid = $volume->get_objid();
-    my $stage_path = $volume->get_staging_directory();
+    my $stage_path = $volume->mk_staging_directory($self->stage_on_disk());
     $logger->trace("Extracting OCR..");
     foreach my $alto_xml_node (
 	$mets_xc->findnodes(

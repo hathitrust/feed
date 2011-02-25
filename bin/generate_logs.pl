@@ -41,8 +41,8 @@ foreach my $namespace_row (@$namespaces) {
 open(my $fh,">>",$barcode_log) or die("can't open $barcode_log: $!");
 $dbh->begin_work();
 
-my $sth = $dbh->prepare("select ns,objid from queue where status = 'collated' and date(update_stamp) <= ?");
-my $usth = $dbh->prepare("update queue set status = 'rights' where ns = ? and objid = ?");
+my $sth = $dbh->prepare("select namespace,id from queue where status = 'collated' and date(update_stamp) <= ?");
+my $usth = $dbh->prepare("update queue set status = 'rights' where namespace = ? and id = ?");
 $sth->execute($date);
 while(my $row = $sth->fetchrow_arrayref()) {
     print $fh join(".",@$row), "\n";

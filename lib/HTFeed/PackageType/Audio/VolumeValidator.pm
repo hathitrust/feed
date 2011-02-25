@@ -4,6 +4,13 @@ package HTFeed::PackageType::Audio::VolumeValidator;
 
 use strict;
 use base qw(HTFeed::VolumeValidator);
+use List::MoreUtils qw(uniq);
+use Digest::MD5;
+use HTFeed::Config qw(get_config);
+use Log::Log4perl qw(get_logger);
+use HTFeed::PackageType::Audio::Volume;
+
+my $logger = get_logger(__PACKAGE__);
 
 =item _validate_mets_consistency
 
@@ -15,6 +22,7 @@ sub new {
     my $class = shift;
     my $self = $class->SUPER::new(@_);
 	$self->{stages}{validate_mets_consistency} = \&_validate_mets_consistency;
+	$self->{stages}{validate_mets_checksums} = \&_validate_mets_checksums;
 	return $self;
 }
 
@@ -103,8 +111,8 @@ sub _validate_mets_consistency {
 			if ($tech_bitDepth ne "24") {
 				$self->set_error("BadValue",field=>'bitDepth',expected=>'24',actual=>$tech_bitDepth);
 			}
-			if ($tech_sampleRate ne "96000") {
-				$self->set_error("BadValue",field=>'sampleRate',expected=>'96000',actual=>$tech_sampleRate);
+			unless ($tech_sampleRate == 96000) {
+				$self->set_error("BadValue",field=>'sampleRate',expected=>96000,actual=>$tech_sampleRate);
 			}
 		}
 		
@@ -131,6 +139,63 @@ sub _validate_mets_consistency {
 	}
 
     return;
+}
+
+
+=item _validate_mets_checksums
+
+validate checksums for wave files only
+based on checksum value in mets file
+
+=cut
+
+sub _validate_mets_checksums {
+
+	my $self = shift;
+	my $volume = $self->{volume};
+	my $source_mets_file = $volume->get_source_mets_file();
+	my $path = $volume->get_staging_directory();
+	my $files = $volume->get_audio_files();
+
+	#check wave files only
+	#my $filegroups = $volume->get_file_groups();
+	#while ( my ( $filegroup_name, $filegroup ) = each ( %{$filegroups} ) ) {
+		
+		#next unless ($filegroup_name eq "archival" || $filegroup_name eq "preservation");
+		#$logger->debug("validating audio checksums");
+
+		#TODO define @tovalidate as all audio files --> this syntax is wrong
+		my @tovalidate = $files;
+
+		my @bad_files = ();
+		foreach my $file (@tovalidate) {
+		$logger->debug("$file");
+			#test -- > need to define $expected from value in mets file
+			my $expected = 7;
+			
+			if ( ( my $actual = md5sum($file) ) ne $expected ) {
+				$self->set_error(
+					"BadChecksum",
+					field		=> 'checksum',
+					file		=> $file,
+					expected	=> $expected,
+					actual		=> $actual
+				);
+				push( @bad_files, "$file" );
+			}
+		}
+		my $outcome;
+		if (@bad_files) {
+			$outcome = PREMIS::Outcome->new('warning');
+			$outcome->add_file_list_detail( "files failed checksum validation",
+				"failed", \@bad_files );
+		}
+		else {
+			$outcome = PREMIS::Outcome->new('pass');
+		}
+		$volume->record_premis_event( 'page_md5_fixity', outcome => $outcome );
+	
+	return;
 }
 
 1;

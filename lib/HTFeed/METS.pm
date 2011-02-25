@@ -379,9 +379,8 @@ sub _add_zip_fg {
         id  => $self->_get_subsec_id("FG"),
         use => 'zip archive'
     );
-    my $working_dir = get_config( 'staging' => 'ingest' );
-    my $pt_objid = $volume->get_pt_objid();
-    $zip_filegroup->add_file( "$pt_objid.zip", path => $working_dir, prefix => 'ZIP' );
+    my ($zip_path,$zip_name) = $volume->get_zip_path();
+    $zip_filegroup->add_file( $zip_name, path => $zip_path, prefix => 'ZIP' );
     $mets->add_filegroup($zip_filegroup);
 }
 
@@ -648,7 +647,6 @@ sub local_directory_version() {
         }
 
     }
-
 }
 
 =item system_version($package)
@@ -760,7 +758,7 @@ sub _remediate_marc {
 
         # 06: Type of record
         if(substr($value,6,1) !~ /^[\dA-Za-z]$/) {
-            warn("Invalid value found for record type, can't remediate");
+            $logger->warn("Invalid value found for record type, can't remediate");
         }
 
         # 07: Bibliographic level
@@ -775,7 +773,7 @@ sub _remediate_marc {
 
         # 09: Character coding scheme
         if(substr($value,9,1) ne 'a') {
-            warn("Non-Unicode MARC-XML found");
+            $logger->warn("Non-Unicode MARC-XML found");
         }
 
         # 10: Indicator count

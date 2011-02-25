@@ -20,14 +20,20 @@ sub unzip_file : Test(1){
 
     my $temp_dir = mkdtemp("/tmp/feed_test_XXXXX");
 
+    eval {
     HTFeed::Stage::Download::download(get_fake_stage(), url => $url, path => $temp_dir, filename => $filename);
     HTFeed::Stage::Unpack::unzip_file(get_fake_stage(), "$temp_dir/$filename", $temp_dir );
-    unlink "$temp_dir/$filename";
     
     my $md5_found = md5_dir($temp_dir);
     
     is ($md5_expected, $md5_found);
+};
+
+    # catch exception, clean up & rethrow
+    my $err = $@;
+    unlink "$temp_dir/$filename";
     remove_tree($temp_dir);
+    if($err) { die ($err); }
 }
 
 sub untgz_file : Test(1){
@@ -39,15 +45,22 @@ sub untgz_file : Test(1){
 
     my $temp_dir = mkdtemp("/tmp/feed_test_XXXXX");
 
-    HTFeed::Stage::Download::download(get_fake_stage(), url => $url, path => $temp_dir, filename => $filename);
-    HTFeed::Stage::Unpack::untgz_file(get_fake_stage(), "$temp_dir/$filename", $temp_dir );
-    unlink "$temp_dir/$filename";
-    
-    my $md5_found = md5_dir($temp_dir);
-    
-    is ($md5_expected, $md5_found);
+    eval {
+        HTFeed::Stage::Download::download(get_fake_stage(), url => $url, path => $temp_dir, filename => $filename);
+        HTFeed::Stage::Unpack::untgz_file(get_fake_stage(), "$temp_dir/$filename", $temp_dir );
+        unlink "$temp_dir/$filename";
+        
+        my $md5_found = md5_dir($temp_dir);
+       
+        is ($md5_expected, $md5_found);
+    };
+
+    # catch exception, clean up & rethrow
+    my $err = $@;
 
     remove_tree($temp_dir);
+
+    if($err) { die ($err); }
 }
 
 1;

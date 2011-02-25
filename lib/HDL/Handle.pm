@@ -58,8 +58,8 @@ sub to_SQL{
     
     my $timestamp = time;
     
-    my $sql = 'INSERT INTO `handles` '
-      .'(`handle`,`idx`,`type`,`data`,`ttl_type`,`ttl`,`timestamp`,`refs`,`admin_read`,`admin_write`,`pub_read`,`pub_write`) '
+    my $sql = 'INSERT INTO handles '
+      .'(handle,idx,type,data,ttl_type,ttl,timestamp,refs,admin_read,admin_write,pub_read,pub_write) '
       .'VALUES ';
      
     my @rows;
@@ -67,7 +67,7 @@ sub to_SQL{
         push @rows, $entries->{$key}->to_SQL_row($name,$key,$timestamp);
     }
     
-    $sql .= join(q{,}, @rows) . q{ ON DUPLICATE KEY UPDATE `data`=VALUES(data), `timestamp`=VALUES(timestamp);};
+    $sql .= join(q{,}, @rows) . q{ ON DUPLICATE KEY UPDATE data=VALUES(data), timestamp=VALUES(timestamp);};
     
     return $sql;
 }
