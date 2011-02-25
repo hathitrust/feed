@@ -41,7 +41,7 @@ sub get_page_data {
 
 my $type_map = {
     'app'          => 'APPENDIX',
-    'backmatter'   => 'CHAPTER_START',
+#    'backmatter'   => 'CHAPTER_START',
     'bibl'         => 'REFERENCES',
     'chapter'      => 'CHAPTER_START',
     'contents'     => 'TABLE_OF_CONTENTS',
@@ -50,7 +50,7 @@ my $type_map = {
     'cover'        => '??_COVER',
     'diagram'      => 'IMAGE_ON_PAGE',
 # Either PREFACE or CHAPTER_START depending on position in book - see below
-    'frontmatter'  => '??_PREFACE',
+#    'frontmatter'  => '??_PREFACE',
     'ill'          => 'IMAGE_ON_PAGE',
     'illustration' => 'IMAGE_ON_PAGE',
     'index'        => 'INDEX',
@@ -79,7 +79,7 @@ my $label_map = {
     qr/^Fold.*$/i           => 'FOLDOUT',
     qr/^Foreward.*$/i       => 'PREFACE',
     qr/^Front Cover.*$/i    => 'FRONT_COVER',
-    qr/^Front Matter.*$/i   => '??_PREFACE',
+#    qr/^Front Matter.*$/i   => '??_PREFACE',
     qr/\bIndex\b/i          => 'INDEX',
     qr/^Introduct.*/i       => '??_PREFACE',
     qr/^List of.*Plates.*/i => 'LIST_OF_ILLUSTRATIONS',
