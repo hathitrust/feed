@@ -6,7 +6,6 @@ use strict;
 our $identifier = 'mpub_ump';
 
 our $config = {
-	%{$HTFeed::PackageType::MPub::config},
     volume_module => 'HTFeed::Volume',
     
     # Regular expression that distinguishes valid files in the file package
