@@ -16,7 +16,7 @@ our @EXPORT = qw(run_job can_run_job);
 # can_run_job( $job )
 sub can_run_job {
     my $job = shift;
-    return ( exists HTFeed::Namespace->new($job->{ns},$job->{pkg_type})->get('stage_map')->{$job->{status}} );
+    return ( exists HTFeed::Namespace->new($job->{namespace},$job->{pkg_type})->get('stage_map')->{$job->{status}} );
 }
 
 # run_job( $job, $clean )
@@ -29,8 +29,8 @@ sub run_job {
 
     eval {
         $volume = HTFeed::Volume->new(
-            objid       => $job->{objid},
-            namespace   => $job->{ns},
+            objid       => $job->{id},
+            namespace   => $job->{namespace},
             packagetype => $job->{pkg_type},
         );
         my $stage_class = $volume->get_nspkg()->get('stage_map')->{$job->{status}};
@@ -51,19 +51,19 @@ sub run_job {
 #            }
 #        }
 
-        get_logger()->info( 'RunStage', objid => $job->{objid}, namespace => $job->{ns}, stage => ref($stage) );
+        get_logger()->info( 'RunStage', objid => $job->{id}, namespace => $job->{namespace}, stage => ref($stage) );
         $stage->run();
     };
 
     my $err = $@;
     if ( $err and $err !~ /STAGE_ERROR/ ) {
-        get_logger()->error( 'UnexpectedError', objid => $job->{objid}, namespace => $job->{ns}, stage => ref($stage), detail => $@ );
+        get_logger()->error( 'UnexpectedError', objid => $job->{id}, namespace => $job->{namespace}, stage => ref($stage), detail => $@ );
     }
 
     if ($stage and $clean) {
         eval { $stage->clean(); };
         if ($@) {
-            get_logger()->error( 'UnexpectedError', objid => $job->{objid}, namespace => $job->{ns}, stage  => ref($stage), detail => $@ );
+            get_logger()->error( 'UnexpectedError', objid => $job->{id}, namespace => $job->{namespace}, stage  => ref($stage), detail => $@ );
         }
     }
 
@@ -71,8 +71,8 @@ sub run_job {
     if ( $stage and $stage->succeeded() ) {
         # success
         my $status = $stage->get_stage_info('success_state');
-        get_logger()->info( 'StageSucceeded', objid => $job->{objid}, namespace => $job->{ns}, stage => ref($stage) );
-        update_queue($job->{ns}, $job->{objid}, $status);
+        get_logger()->info( 'StageSucceeded', objid => $job->{id}, namespace => $job->{namespace}, stage => ref($stage) );
+        update_queue($job->{namespace}, $job->{id}, $status);
     }
     else {
         # failure
@@ -86,18 +86,18 @@ sub run_job {
         } 
         ## TODO: else {unexpected error} ?
 
-        get_logger()->info( 'StageFailed', objid => $job->{objid}, namespace => $job->{ns}, stage => ref($stage) );
+        get_logger()->info( 'StageFailed', objid => $job->{id}, namespace => $job->{namespace}, stage => ref($stage) );
 
         if ( $status eq 'punted' ) {
-            get_logger()->info( 'VolumePunted', objid => $job->{objid}, namespace => $job->{ns} );
+            get_logger()->info( 'VolumePunted', objid => $job->{id}, namespace => $job->{namespace} );
             eval {
                 $volume->clean_all() if $volume and $clean;
             };
             if($@) {
-                get_logger()->error( 'UnexpectedError', objid => $job->{objid}, namespace => $job->{ns}, detail => "Error cleaning volume: $@");
+                get_logger()->error( 'UnexpectedError', objid => $job->{id}, namespace => $job->{namespace}, detail => "Error cleaning volume: $@");
             }
         }
-        update_queue($job->{ns}, $job->{objid}, $status, 1);
+        update_queue($job->{namespace}, $job->{id}, $status, 1);
 
         ## This makes no sense re: line 170
         $stage->clean_punt() if ($stage and $status eq 'punted');

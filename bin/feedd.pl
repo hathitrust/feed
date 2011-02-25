@@ -135,24 +135,24 @@ sub fill_queue{
 
 sub is_locked{
     my $job = shift;
-    return exists $locks_by_key{$job->{ns}}{$job->{objid}};
+    return exists $locks_by_key{$job->{namespace}}{$job->{id}};
 }
 
 sub lock_job{
     my ($pid,$job) = @_;
-    $locks_by_key{$job->{ns}}{$job->{objid}} = $job;
+    $locks_by_key{$job->{namespace}}{$job->{id}} = $job;
     $locks_by_pid{$pid} = $job;
     $subprocesses++;
-    print "LOCK $job->{ns}.$job->{objid} to $pid! $subprocesses in flight\n";
+    print "LOCK $job->{namespace}.$job->{id} to $pid! $subprocesses in flight\n";
 }
 
 sub release_job{
     my $pid = shift;
     my $job = $locks_by_pid{$pid};
     delete $locks_by_pid{$pid};
-    delete $locks_by_key{$job->{ns}}{$job->{objid}};
+    delete $locks_by_key{$job->{namespace}}{$job->{id}};
     $subprocesses--;
-    print "RELEASE $job->{ns}.$job->{objid} from $pid! $subprocesses in flight\n";
+    print "RELEASE $job->{namespace}.$job->{id} from $pid! $subprocesses in flight\n";
 }
 
 END{

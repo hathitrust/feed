@@ -66,9 +66,9 @@ sub enqueue_volumes{
     $dbh = get_dbh();
     my $sth;
     if($ignore){
-        $sth = $dbh->prepare(q(INSERT IGNORE INTO `queue` (pkg_type, namespace, id) VALUES (?,?,?);));
+        $sth = $dbh->prepare(q(INSERT IGNORE INTO queue (pkg_type, namespace, id) VALUES (?,?,?);));
     }else {
-        $sth = $dbh->prepare(q(INSERT INTO `queue` (pkg_type, namespace, id) VALUES (?,?,?);));
+        $sth = $dbh->prepare(q(INSERT INTO queue (pkg_type, namespace, id) VALUES (?,?,?);));
     }
     
     my @results;
@@ -90,10 +90,10 @@ sub reset_volumes{
     $dbh = get_dbh();
     my $sth;
     if($force){
-        $sth = $dbh->prepare(q(UPDATE queue SET `node` = NULL, `status` = 'ready', failure_count = 0 WHERE ns = ? and objid = ?;));
+        $sth = $dbh->prepare(q(UPDATE queue SET node = NULL, status = 'ready', failure_count = 0 WHERE namespace = ? and id = ?;));
     }
     else{
-        $sth = $dbh->prepare(q(UPDATE queue SET `node` = NULL, `status` = 'ready', failure_count = 0 WHERE status = 'punted' and ns = ? and objid = ?;));
+        $sth = $dbh->prepare(q(UPDATE queue SET node = NULL, status = 'ready', failure_count = 0 WHERE status = 'punted' and namespace = ? and id = ?;));
     }
     
     my @results;
@@ -120,7 +120,7 @@ sub lock_volumes{
 # reset_in_flight_locks()
 # releases locks on in flight volumes for this node and resets status to ready
 sub reset_in_flight_locks{
-    my $sth = get_dbh()->prepare(q(UPDATE queue SET `node` = NULL, `status` = 'ready' WHERE node = ? AND status != 'punted' AND status != 'collated';));
+    my $sth = get_dbh()->prepare(q(UPDATE queue SET node = NULL, status = 'ready' WHERE node = ? AND status != 'punted' AND status != 'collated';));
     return $sth->execute(hostname);
 }
 
