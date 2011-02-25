@@ -111,6 +111,7 @@ while(my $line = <RUN>) {
             set_status($namespace,$objid,$path,"CANT_ZIPCHECK",$@);
         }
 
+
         # validate barcodes for namespace consistency
         # my $capName = uc($namespace);
         # call validator? --> "/htapps/ezbrooks.babel/git/feed/lib/HTFeed/Namespace/$capName.pm"
@@ -286,6 +287,7 @@ sub zipcheck {
     }
 
 
+    extract_source_mets($volume);
     return $rval;
 }
 
@@ -299,6 +301,59 @@ sub execute_stmt {
     my $dbh = get_dbh();
     my $sth = $dbh->prepare($stmt);
     $sth->execute(@_);
+}
+
+sub extract_source_mets {
+    my $volume = shift;
+    my $namespace = $volume->get_namespace();
+    my $objid = $volume->get_objid();
+    my $zipfile = $volume->get_repository_zip_path();
+    my $pt_objid = $volume->get_pt_objid();
+    my @srcmets = ();
+    open(my $zipinfo,"unzip -l '$zipfile'|");
+    while(<$zipinfo>) {
+        chomp;
+        my @zipfields = split /\s+/;
+        if($zipfields[4] and $zipfields[4] =~ /^$pt_objid\/\w+_$pt_objid.xml/i) {
+            push(@srcmets,$zipfields[4]);
+        }
+    }
+    if(!@srcmets) {
+        set_status($namespace,$objid,$zipfile,"NO_SOURCE_METS",undef);
+    } elsif(@srcmets != 1) {
+        set_status($namespace,$objid,$zipfile,"MULTIPLE_SOURCE_METS_CANDIDATES",undef);
+    } else {
+        # source METS found
+        system("cd /ram; unzip -j '$zipfile' '$srcmets[0]'");
+        my ($smets_name) = ($srcmets[0] =~ /\/([^\/]+)$/);
+        my $tmp_smets_loc = "/ram/$smets_name";
+
+        eval {
+            my %mdsecs = ();
+            my $xpc = $volume->_parse_xpc($tmp_smets_loc);
+            foreach my $mdsec ( $xpc->findnodes('//mets:mdWrap') ) {
+                my @mdbits = ();
+                foreach my $attr (qw(LABEL MDTYPE OTHERMDTYPE)) {
+                    my $attrval = $mdsec->getAttribute($attr);
+                    if($attrval and $attrval ne '') {
+                        push(@mdbits,"$attr=$attrval");
+                    }
+                }
+                $mdsecs{join('; ',@mdbits)} = 1;
+            }
+            foreach my $mdsec ( sort(keys(%mdsecs)) ) {
+                print "$namespace $objid SRC_METS_MDSEC $mdsec\n";
+            }
+
+        };
+        if($@) {
+            set_status($namespace,$objid,$srcmets[0],"BAD_SOURCE_METS",$@);
+        }
+
+        unlink($tmp_smets_loc);
+         
+
+    }
 }
 
 get_dbh()->disconnect();
