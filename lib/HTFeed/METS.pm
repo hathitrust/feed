@@ -718,7 +718,7 @@ sub _remediate_marc {
     my $self = shift;
     my $xc = shift;
 
-    my @leaders = $xc->findnodes("//marc:leader");
+    my @leaders = $xc->findnodes(".//marc:leader");
     if(@leaders != 1) {
         $self->set_error("BadField",field=>"marc:leader",detail=>"Zero or more than one leader found");
         return;

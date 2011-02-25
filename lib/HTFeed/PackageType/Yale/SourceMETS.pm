@@ -40,11 +40,11 @@ sub _add_dmdsecs {
     );
 
     # get & remediate the marc data
-    my $marc_node = ($marc_mdsec->{mdref}->getElementsByTagNameNS(NS_MARC,'record'))[0];
+    my $marc_node = ($marc_mdsec->{mdwrap}->getElementsByTagNameNS(NS_MARC,'record'))[0];
     my $marc_xc = new XML::LibXML::XPathContext($marc_node);
     register_namespaces($marc_xc);
     $self->_remediate_marc($marc_xc);
-    foreach my $datafield ($marc_xc->findnodes('//marc:record/marc:datafield')) {
+    foreach my $datafield ($marc_xc->findnodes('.//marc:record/marc:datafield')) {
         # ind1/ind2 use nbsp instead of regular space
         # @i1 => @ind1
         # @i2 => @ind2
