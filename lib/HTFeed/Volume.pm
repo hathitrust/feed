@@ -363,16 +363,18 @@ sub get_nspkg{
     return $self->{nspkg};
 }
 
-=item get_stages
+=item get_stages($start_state)
 
-Returns array ref containing a list of stage this Volume needs for a full ingest process
+Returns array ref containing a list of stage this Volume needs for a full ingest process,
+starting from the given start state, or 'ready' if none is specified.
 
 =cut
 
 sub get_stages{
     my $self = shift;
     my $stage_map = $self->get_nspkg()->get('stage_map');
-    my $stage_name = 'ready';
+    my $stage_name = shift;
+    $stage_name = 'ready' if not defined $stage_name;
     my $stages = [];
     my $stage_class;
 
@@ -876,7 +878,6 @@ sub mk_preingest_directory{
 
     return $stage_dir;
 }
-
 
 1;
 
