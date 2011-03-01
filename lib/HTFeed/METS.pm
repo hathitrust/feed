@@ -156,25 +156,42 @@ sub _extract_old_premis {
 
             foreach my $event ( $xc->findnodes('//premis:event') ) {
 
-                my $eventType = $xc->findvalue( "./premis:eventType", $event );
-                my $eventId = $xc->findvalue(
-                    "./premis:eventIdentifier/premis:eventIdentifierValue",
-                    $event );
+                my $eventinfo = { 
+                    eventtype => $xc->findvalue( "./premis:eventType", $event ) ,
+                    eventid => $xc->findvalue( "./premis:eventIdentifier/premis:eventIdentifierValue", $event ),
+                    eventidtype => $xc->findvalue(" ./premis:eventIdentifier/premis:eventIdentifierType", $event),
+                    date => $xc->findvalue( "./premis:eventDateTime", $event ),
+                };
 
-                # TODO: upgrade to UUID if eventIdentifierType is not UUID
+                foreach my $field (qw(eventtype eventid date)) {
+                    $self->set_error(
+                        "MissingField",
+                        field => "$field",
+                        node  => $event->toString()
+                    ) unless defined $eventinfo->{$field} and $eventinfo->{$field};
+                }
 
-                $self->set_error(
-                    "MissingField",
-                    field => "eventType",
-                    node  => $event->toString()
-                ) unless defined $eventType and $eventType;
-                $self->set_error(
-                    "MissingField",
-                    field => "eventIdentifierValue",
-                    node  => $event->toString()
-                ) unless defined $eventId and $eventId;
+                my $uuid = $volume->make_premis_uuid($eventinfo->{eventtype},$eventinfo->{date});
+                my $update_eventid = 0;
+                if($eventinfo->{eventidtype} ne 'UUID') {
+                    $logger->info("Updating old event ID type $eventinfo->{eventidtype} to UUID for $eventinfo->{eventtype}/$eventinfo->{date}");
+                    $update_eventid = 1;
+                } elsif($eventinfo->{eventid} ne $uuid) {
+                    $logger->warn("Warning: calculated UUID for $eventinfo->{eventtype} on $eventinfo->{date} did not match saved UUID; updating.");
+                    $update_eventid = 1;
+                }
 
-                $old_events->{$eventId} = $event;
+                if($update_eventid) {
+                    my $eventidval_node = ($xc->findnodes("./premis:eventIdentifier/premis:eventIdentifierValue",$event))[0];
+                    $eventidval_node->removeChildNodes();
+                    $eventidval_node->appendText($uuid);
+                    my $eventidtype_node = ($xc->findnodes("./premis:eventIdentifier/premis:eventIdentifierType",$event))[0];
+                    $eventidtype_node->removeChildNodes();
+                    $eventidtype_node->appendText('UUID');
+
+                }
+
+                $old_events->{$uuid} = $event;
             }
 
             return $old_events;
@@ -816,7 +833,7 @@ sub _remediate_marc {
         }
 
         $leader->removeChildNodes();
-        $leader->appendChild($leader->ownerDocument->createTextNode($value));
+        $leader->appendText($value);
     }
 
 

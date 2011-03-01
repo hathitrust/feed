@@ -44,11 +44,14 @@ sub _add_dmdsecs {
     my $marc_xc = new XML::LibXML::XPathContext($marc_node);
     register_namespaces($marc_xc);
     $self->_remediate_marc($marc_xc);
-    foreach my $datafield ($marc_xc->findnodes('.//marc:record/marc:datafield')) {
+    foreach my $datafield ($marc_xc->findnodes('./marc:datafield')) {
         # ind1/ind2 use nbsp instead of regular space
         # @i1 => @ind1
         # @i2 => @ind2
         my $attrs_to_move = {
+            # clean ind1, ind2; move i{1,2} -> ind{1,2}
+            'ind1' => 'ind1',
+            'ind2' => 'ind2',
             'i1' => 'ind1',
             'i2' => 'ind2',
         };
