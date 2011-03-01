@@ -51,7 +51,7 @@ sub run{
 
         if(!symlink("$stage/$file","$zip_stage/$pt_objid/$file"))
         {
-            $self->set_error('OperationFailed',operation=>'symlink',file => "$stage/$file",description=>"Symlink to staging directory failed: $!");
+            $self->set_error('OperationFailed',operation=>'symlink',file => "$stage/$file",detail=>"Symlink to staging directory failed: $!");
         }
     }
 
