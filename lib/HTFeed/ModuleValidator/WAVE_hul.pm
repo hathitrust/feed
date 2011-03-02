@@ -28,7 +28,7 @@ sub _set_validators {
 		'module' 			=> v_eq( 'repInfo', 'module', 'WAVE-hul' ),
 		'mime_type' 		=> v_eq( 'repInfo', 'mimeType', 'audio/x-wave' ),
 		'profile1' 			=> v_eq( 'repInfo', 'profile1', 'PCMWAVEFORMAT'),
-		'profile2'			=> v_in( 'repInfo', 'profile2', ['Broadcast Wave Version 1', 'Broadcast Wave Version 2'] ),
+		'profile2'			=> v_in( 'repInfo', 'profile2', ['Broadcast Wave Version 0', 'Broadcast Wave Version 1'] ),
 		'codingHistory'		=> v_exists( 'waveMeta', 'codingHistory'),
 		'description'		=> v_exists( 'waveMeta', 'description'),
 		'originator' 		=> v_eq( 'waveMeta', 'originator', 'University of Michigan'),

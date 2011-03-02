@@ -4,11 +4,12 @@ package HTFeed::PackageType::Audio::VolumeValidator;
 
 use strict;
 use base qw(HTFeed::VolumeValidator);
+use HTFeed::PackageType::Audio::Volume;
 use List::MoreUtils qw(uniq);
+use Carp;
 use Digest::MD5;
 use HTFeed::Config qw(get_config);
 use Log::Log4perl qw(get_logger);
-use HTFeed::PackageType::Audio::Volume;
 
 my $logger = get_logger(__PACKAGE__);
 
@@ -22,7 +23,8 @@ sub new {
     my $class = shift;
     my $self = $class->SUPER::new(@_);
 	$self->{stages}{validate_mets_consistency} = \&_validate_mets_consistency;
-	$self->{stages}{validate_mets_checksums} = \&_validate_mets_checksums;
+	$self->{stages}{validate_wave_checksums} = \&_validate_wave_checksums;
+	$self->{stages}{validate_jp2} = \&_validate_jp2;
 	return $self;
 }
 
@@ -149,53 +151,89 @@ based on checksum value in mets file
 
 =cut
 
-sub _validate_mets_checksums {
+sub _validate_wave_checksums {
 
 	my $self = shift;
 	my $volume = $self->{volume};
-	my $source_mets_file = $volume->get_source_mets_file();
 	my $path = $volume->get_staging_directory();
-	my $files = $volume->get_audio_files();
+	my $checksums = $volume->get_checksums();
 
-	#check wave files only
-	#my $filegroups = $volume->get_file_groups();
-	#while ( my ( $filegroup_name, $filegroup ) = each ( %{$filegroups} ) ) {
-		
-		#next unless ($filegroup_name eq "archival" || $filegroup_name eq "preservation");
-		#$logger->debug("validating audio checksums");
+	my @tovalidate = uniq(
+		sort( (
+			@{ $volume->get_jhove_files() },
+			keys( %{ $volume->get_checksums() } )
+		) )
+	);
 
-		#TODO define @tovalidate as all audio files --> this syntax is wrong
-		my @tovalidate = $files;
+	my @bad_files = ();
 
-		my @bad_files = ();
-		foreach my $file (@tovalidate) {
-		$logger->debug("$file");
-			#test -- > need to define $expected from value in mets file
-			my $expected = 7;
-			
-			if ( ( my $actual = md5sum($file) ) ne $expected ) {
-				$self->set_error(
-					"BadChecksum",
-					field		=> 'checksum',
-					file		=> $file,
-					expected	=> $expected,
-					actual		=> $actual
-				);
-				push( @bad_files, "$file" );
-			}
+	foreach my $file (@tovalidate) {
+		next unless ($file =~ /[ap]m\d{2,8}.(wav)/);
+		my $expected = $checksums->{$file};
+		my $actual =md5sum("$path/$file");
+
+		if ($actual ne $expected ) {
+			$self->set_error(
+				"BadChecksum",
+				field => 'checksum',
+				file => $file,
+				expected => $expected,
+				actual => $actual
+			);
+			push( @bad_files, "$file" );
 		}
-		my $outcome;
-		if (@bad_files) {
-			$outcome = PREMIS::Outcome->new('warning');
-			$outcome->add_file_list_detail( "files failed checksum validation",
-				"failed", \@bad_files );
-		}
-		else {
-			$outcome = PREMIS::Outcome->new('pass');
-		}
-		$volume->record_premis_event( 'page_md5_fixity', outcome => $outcome );
-	
+	}
+
+	my $outcome;
+	if (@bad_files) {
+		$outcome = PREMIS::Outcome->new('warning');
+		$outcome->add_file_list_detail( "files failed checksum validation",
+			"failed", \@bad_files );
+	}
+	else {
+		$outcome = PREMIS::Outcome->new('pass');
+	}
+	$volume->record_premis_event( 'page_md5_fixity', outcome => $outcome );
+
 	return;
+
+}
+
+sub md5sum {
+	my $file = shift;
+
+	my $ctx = Digest::MD5->new();
+	my $fh;
+	open( $fh, "<", $file ) or croak("Can't open $file: $!");
+	$ctx->addfile($fh);
+	close($fh);
+	return $ctx->hexdigest();
+}
+
+sub _validate_jp2 {
+
+    my $self = shift;
+	my $path = shift;
+    my $volume = $self->{volume};
+
+    my @tovalidate = uniq(
+        sort( (
+            @{ $volume->get_jhove_files() },
+            keys( %{ $volume->get_checksums() } )
+        ) )
+    );
+
+    foreach my $file (@tovalidate) {
+		next unless ($file =~ /\w+\.(jp2)/);
+		my $dir = $volume->get_staging_directory();
+    	my $files_for_cmd = join( ' ', map { "$dir/$_" } $file );
+    	my $jhove_path = get_config('jhove');
+    	my $jhove_conf = get_config('jhoveconf');
+    	my $jhove_cmd = "$jhove_path -h XML -c $jhove_conf " . $files_for_cmd;
+
+		#extract jhove; check for status: Well-Formed and valid
+		#and format: JPEG 2000
+	}
 }
 
 1;

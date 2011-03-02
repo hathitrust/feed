@@ -15,8 +15,6 @@ use HTFeed::ModuleValidator::WAVE_hul;
 use HTFeed::XMLNamespaces qw(register_namespaces);
 use HTFeed::Config qw(get_config);
 
-#use HTFeed::ModuleValidator::WAVE_hul;
-
 # use HTFeed::QueryLib;
 
 =info

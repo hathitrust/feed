@@ -40,26 +40,28 @@ our $config = {
         	    content => 1,
         	    jhove => 1,
         	    utf8 => 0
-        	},
-		#XXX jp2s don't have numeric sequence; breaks validation
-		#image => {
-		#	prefix => 'box' || 'acc',
-		#	use => 'image',
-		#	file_pattern => qr/\w+\.(jp2)$/,
-		#	required => 0,
-		#	content => 1,
-		#	jhove => 1,
-		#	utf8 => 0
-		#},
+			},
+
+			#image => {
+				#prefix => 'box' || 'acc',
+				#use => 'image',
+				#file_pattern => qr/\w+\.(jp2)$/,
+				#required => 0,
+				#content => 1,
+				#jhove => 1,
+				#utf8 => 0
+			#},
+
     },
 
 	validation_run_stages => [
 	qw(validate_file_names
 	validate_filegroups_nonempty
 	validate_consistency
+	validate_metadata
 	validate_mets_consistency
-	validate_mets_checksums
-	validate_metadata)
+	validate_wave_checksums
+	validate_jp2)
 	],
 
     checksum_file    => 0,
