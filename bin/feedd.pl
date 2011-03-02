@@ -13,7 +13,7 @@ use HTFeed::Run;
 use HTFeed::Config;
 use HTFeed::Volume;
 use HTFeed::Log { root_logger => 'INFO, dbi, screen' };
-use HTFeed::DBTools qw(get_queued lock_volumes);
+use HTFeed::DBTools qw(get_queued lock_volumes count_locks);
 #use Log::Log4perl qw(get_logger);
 
 my $process_id = $$;
@@ -121,7 +121,7 @@ sub get_next_job{
 }
 
 sub fill_queue{
-    my $needed_volumes = get_config('volumes_in_process_limit') - $subprocesses;
+    my $needed_volumes = get_config('volumes_in_process_limit') - count_locks();
     if ($needed_volumes > 0){
         lock_volumes($needed_volumes);
     }

@@ -10,7 +10,7 @@ use DBD::mysql;
 
 use base qw(Exporter);
 
-our @EXPORT_OK = qw(get_dbh get_queued lock_volumes update_queue);
+our @EXPORT_OK = qw(get_dbh get_queued lock_volumes update_queue count_locks);
 
 my %release_states = map {$_ => 1} @{get_config('daemon'=>'release_states')};
 
@@ -124,11 +124,10 @@ sub reset_in_flight_locks{
     return $sth->execute(hostname);
 }
 
-## TODO: delete this if we don't need it
 # count_locks()
 # returns the number of volumes locked to this node
 sub count_locks{
-    my $sth = get_dbh()->prepare(q(SELECT COUNT(*) FROM queue WHERE node = ? AND status != 'punted' AND status != 'collated';));
+    my $sth = get_dbh()->prepare(q(SELECT COUNT(*) FROM queue WHERE node = ?;));
     $sth->execute(hostname);
     return $sth->fetchrow;
 }
