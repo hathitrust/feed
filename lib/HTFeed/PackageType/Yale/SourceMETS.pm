@@ -16,8 +16,8 @@ sub new {
     );
     my $volume = $self->{volume};
     my $stage_path = $volume->get_staging_directory();
-    my $objid = $volume->get_objid();
-    $self->{outfile} = "$stage_path/Yale_" . $objid . ".xml";
+    my $pt_objid = $volume->get_pt_objid();
+    $self->{outfile} = "$stage_path/Yale_" . $pt_objid . ".xml";
 
     return $self;
 }
@@ -40,15 +40,18 @@ sub _add_dmdsecs {
     );
 
     # get & remediate the marc data
-    my $marc_node = ($marc_mdsec->{mdref}->getElementsByTagNameNS(NS_MARC,'record'))[0];
+    my $marc_node = ($marc_mdsec->{mdwrap}->getElementsByTagNameNS(NS_MARC,'record'))[0];
     my $marc_xc = new XML::LibXML::XPathContext($marc_node);
     register_namespaces($marc_xc);
     $self->_remediate_marc($marc_xc);
-    foreach my $datafield ($marc_xc->findnodes('//marc:record/marc:datafield')) {
+    foreach my $datafield ($marc_xc->findnodes('./marc:datafield')) {
         # ind1/ind2 use nbsp instead of regular space
         # @i1 => @ind1
         # @i2 => @ind2
         my $attrs_to_move = {
+            # clean ind1, ind2; move i{1,2} -> ind{1,2}
+            'ind1' => 'ind1',
+            'ind2' => 'ind2',
             'i1' => 'ind1',
             'i2' => 'ind2',
         };

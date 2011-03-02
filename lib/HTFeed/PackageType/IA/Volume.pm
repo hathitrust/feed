@@ -103,7 +103,6 @@ sub get_preingest_directory {
     my $flag = shift;
 
     my $arkid = $self->get_objid();
-    
     return sprintf("%s/%s", get_config('staging'=>'disk'=>'preingest'), s2ppchars($arkid)) if $flag;
     return sprintf("%s/%s", get_config('staging'=>'preingest'), s2ppchars($arkid));
 }

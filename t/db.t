@@ -37,7 +37,7 @@ for $table(@tables) {
 #test columns
 my $label;
 $table = "queue";
-my @cols = ("pkg_type", "objid", "status", "failure_count");
+my @cols = qw(pkg_type namespace id status update_stamp date_added node failure_count);
 for my $col(@cols) {
 	# grab aliases to a DB handle and a table name
 	my $sth = $dbh->prepare("SELECT * FROM $table WHERE 1=0;");
@@ -56,7 +56,7 @@ for my $col(@cols) {
 #test sql
 my $execute;
 eval{
-	my $sth = $dbh->prepare("SELECT pkg_type, namespace, objid, status, failure_count FROM queue WHERE node = ?");
+	my $sth = $dbh->prepare("SELECT pkg_type, namespace, id, status, failure_count FROM queue WHERE node = ?");
 	$execute = $sth->execute;
 };
 ok($execute, "correct syntax");

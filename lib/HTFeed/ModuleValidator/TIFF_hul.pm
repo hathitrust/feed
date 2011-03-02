@@ -88,7 +88,7 @@ sub _set_validators {
                 my $mix_datetime = $self->_findone( "mix", "dateTime" );
 
                 # xmp has timezone, mix doesn't..
-                if ( $xmp_datetime !~ /^\Q$mix_datetime\E(\+\d{2}:\d{2})?/ ) {
+                if ( not defined $xmp_datetime or $xmp_datetime !~ /^\Q$mix_datetime\E(\+\d{2}:\d{2})?/ ) {
                     $self->set_error(
                         "NotMatchedValue",
                         field  => 'dateTime',

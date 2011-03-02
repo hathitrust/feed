@@ -38,11 +38,9 @@ sub run{
         # make dir or error and return
         else{
             # make object path
-            make_path($pairtree_object_path)
-                or $self->set_error('OperationFailed', operation => 'mkdir', detail => "Could not create dir $pairtree_object_path") and return;
+            make_path($pairtree_object_path);
             # make link path
-            make_path($pairtree_link_parent)
-                or $self->set_error('OperationFailed', operation => 'mkdir', detail => "Could not create dir $pairtree_link_path") and return;
+            make_path($pairtree_link_parent);
             # make link
             symlink ($pairtree_object_path, $pairtree_link_path)
                 or $self->set_error('OperationFailed', operation => 'mkdir', detail => "Could not create dir $pairtree_link_path") and return;

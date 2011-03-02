@@ -16,6 +16,8 @@ use HTFeed::Log { root_logger => 'INFO, dbi, screen' };
 use HTFeed::DBTools qw(get_queued lock_volumes count_locks);
 #use Log::Log4perl qw(get_logger);
 
+print("feedd running, waiting for something to ingest\n");
+
 my $process_id = $$;
 my $subprocesses = 0;
 my @jobs = ();
@@ -27,6 +29,7 @@ my $clean = 1;
 # kill children on SIGINT, SIGTERM
 $SIG{'INT'} =
     sub {
+        warn("Process $$ received SIGINT/SIGTERM, cleaning up...\n");
         unless($$ eq $process_id){
             # child dies
             exit 0;
@@ -43,7 +46,9 @@ $SIG{'TERM'} = $SIG{'INT'};
 #
 $SIG{'HUP'} =
     sub {
+        warn("Process $$ received SIGHUP, reloading configuration\n");
         while ($subprocesses){
+            warn("Waiting for subprocess to exit\n");
             wait_kid();
         }
         # delete everything in staging, except download
@@ -63,7 +68,9 @@ while(! exit_condition()){
     while (($subprocesses < get_config('volumes_in_process_limit')) and (my $job = get_next_job())){
         spawn($job);
     }
-    wait_kid() or sleep 15;
+    wait_kid() or do {
+        sleep 15;
+    }
 }
 print "Finishing work on locked volumes...\n";
 while ($subprocesses){
@@ -135,24 +142,24 @@ sub fill_queue{
 
 sub is_locked{
     my $job = shift;
-    return exists $locks_by_key{$job->{ns}}{$job->{objid}};
+    return exists $locks_by_key{$job->{namespace}}{$job->{id}};
 }
 
 sub lock_job{
     my ($pid,$job) = @_;
-    $locks_by_key{$job->{ns}}{$job->{objid}} = $job;
+    $locks_by_key{$job->{namespace}}{$job->{id}} = $job;
     $locks_by_pid{$pid} = $job;
     $subprocesses++;
-    print "LOCK $job->{ns}.$job->{objid} to $pid! $subprocesses in flight\n";
+    print "LOCK $job->{namespace}.$job->{id} to $pid! $subprocesses in flight\n";
 }
 
 sub release_job{
     my $pid = shift;
     my $job = $locks_by_pid{$pid};
     delete $locks_by_pid{$pid};
-    delete $locks_by_key{$job->{ns}}{$job->{objid}};
+    delete $locks_by_key{$job->{namespace}}{$job->{id}};
     $subprocesses--;
-    print "RELEASE $job->{ns}.$job->{objid} from $pid! $subprocesses in flight\n";
+    print "RELEASE $job->{namespace}.$job->{id} from $pid! $subprocesses in flight\n";
 }
 
 END{

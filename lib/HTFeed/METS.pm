@@ -156,25 +156,42 @@ sub _extract_old_premis {
 
             foreach my $event ( $xc->findnodes('//premis:event') ) {
 
-                my $eventType = $xc->findvalue( "./premis:eventType", $event );
-                my $eventId = $xc->findvalue(
-                    "./premis:eventIdentifier/premis:eventIdentifierValue",
-                    $event );
+                my $eventinfo = { 
+                    eventtype => $xc->findvalue( "./premis:eventType", $event ) ,
+                    eventid => $xc->findvalue( "./premis:eventIdentifier/premis:eventIdentifierValue", $event ),
+                    eventidtype => $xc->findvalue(" ./premis:eventIdentifier/premis:eventIdentifierType", $event),
+                    date => $xc->findvalue( "./premis:eventDateTime", $event ),
+                };
 
-                # TODO: upgrade to UUID if eventIdentifierType is not UUID
+                foreach my $field (qw(eventtype eventid date)) {
+                    $self->set_error(
+                        "MissingField",
+                        field => "$field",
+                        node  => $event->toString()
+                    ) unless defined $eventinfo->{$field} and $eventinfo->{$field};
+                }
 
-                $self->set_error(
-                    "MissingField",
-                    field => "eventType",
-                    node  => $event->toString()
-                ) unless defined $eventType and $eventType;
-                $self->set_error(
-                    "MissingField",
-                    field => "eventIdentifierValue",
-                    node  => $event->toString()
-                ) unless defined $eventId and $eventId;
+                my $uuid = $volume->make_premis_uuid($eventinfo->{eventtype},$eventinfo->{date});
+                my $update_eventid = 0;
+                if($eventinfo->{eventidtype} ne 'UUID') {
+                    $logger->info("Updating old event ID type $eventinfo->{eventidtype} to UUID for $eventinfo->{eventtype}/$eventinfo->{date}");
+                    $update_eventid = 1;
+                } elsif($eventinfo->{eventid} ne $uuid) {
+                    $logger->warn("Warning: calculated UUID for $eventinfo->{eventtype} on $eventinfo->{date} did not match saved UUID; updating.");
+                    $update_eventid = 1;
+                }
 
-                $old_events->{$eventId} = $event;
+                if($update_eventid) {
+                    my $eventidval_node = ($xc->findnodes("./premis:eventIdentifier/premis:eventIdentifierValue",$event))[0];
+                    $eventidval_node->removeChildNodes();
+                    $eventidval_node->appendText($uuid);
+                    my $eventidtype_node = ($xc->findnodes("./premis:eventIdentifier/premis:eventIdentifierType",$event))[0];
+                    $eventidtype_node->removeChildNodes();
+                    $eventidtype_node->appendText('UUID');
+
+                }
+
+                $old_events->{$uuid} = $event;
             }
 
             return $old_events;
@@ -379,9 +396,8 @@ sub _add_zip_fg {
         id  => $self->_get_subsec_id("FG"),
         use => 'zip archive'
     );
-    my $working_dir = get_config( 'staging' => 'ingest' );
-    my $pt_objid = $volume->get_pt_objid();
-    $zip_filegroup->add_file( "$pt_objid.zip", path => $working_dir, prefix => 'ZIP' );
+    my ($zip_path,$zip_name) = $volume->get_zip_path();
+    $zip_filegroup->add_file( $zip_name, path => $zip_path, prefix => 'ZIP' );
     $mets->add_filegroup($zip_filegroup);
 }
 
@@ -648,7 +664,6 @@ sub local_directory_version() {
         }
 
     }
-
 }
 
 =item system_version($package)
@@ -720,7 +735,7 @@ sub _remediate_marc {
     my $self = shift;
     my $xc = shift;
 
-    my @leaders = $xc->findnodes("//marc:leader");
+    my @leaders = $xc->findnodes(".//marc:leader");
     if(@leaders != 1) {
         $self->set_error("BadField",field=>"marc:leader",detail=>"Zero or more than one leader found");
         return;
@@ -760,7 +775,7 @@ sub _remediate_marc {
 
         # 06: Type of record
         if(substr($value,6,1) !~ /^[\dA-Za-z]$/) {
-            warn("Invalid value found for record type, can't remediate");
+            $logger->warn("Invalid value found for record type, can't remediate");
         }
 
         # 07: Bibliographic level
@@ -775,7 +790,7 @@ sub _remediate_marc {
 
         # 09: Character coding scheme
         if(substr($value,9,1) ne 'a') {
-            warn("Non-Unicode MARC-XML found");
+            $logger->warn("Non-Unicode MARC-XML found");
         }
 
         # 10: Indicator count
@@ -818,7 +833,7 @@ sub _remediate_marc {
         }
 
         $leader->removeChildNodes();
-        $leader->appendChild($leader->ownerDocument->createTextNode($value));
+        $leader->appendText($value);
     }
 
 

@@ -1,6 +1,6 @@
 -- MySQL dump 10.11
 --
--- Host: mysql-sdr    Database: mdp_tracking_ezbrooks
+-- Host: mysql-htdev    Database: mdp_tracking
 -- ------------------------------------------------------
 -- Server version	5.0.77-log
 
@@ -22,59 +22,10 @@
 SET @saved_cs_client     = @@character_set_client;
 SET character_set_client = utf8;
 CREATE TABLE `blacklist` (
-  `id` varchar(15) NOT NULL,
-  `namespace` varchar(5) NOT NULL,
-  PRIMARY KEY  (`id`,`namespace`)
+  `namespace` varchar(8) NOT NULL,
+  `id` varchar(32) NOT NULL,
+  PRIMARY KEY  (`namespace`,`id`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
-SET character_set_client = @saved_cs_client;
-
---
--- Table structure for table `book_queue`
---
-
-SET @saved_cs_client     = @@character_set_client;
-SET character_set_client = utf8;
-CREATE TABLE `book_queue` (
-  `namespace` varchar(5) NOT NULL default '',
-  `id` varchar(25) NOT NULL,
-  `statusid` tinyint(4) NOT NULL default '0',
-  `scandate` datetime default NULL,
-  `processeddate` datetime default NULL,
-  `node` varchar(50) default NULL,
-  PRIMARY KEY  (`id`),
-  KEY `statusid` (`statusid`)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
-SET character_set_client = @saved_cs_client;
-
---
--- Table structure for table `error_status`
---
-
-SET @saved_cs_client     = @@character_set_client;
-SET character_set_client = utf8;
-CREATE TABLE `error_status` (
-  `errorid` tinyint(4) NOT NULL auto_increment,
-  `error_name` varchar(20) NOT NULL default '',
-  PRIMARY KEY  (`errorid`)
-) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=latin1;
-SET character_set_client = @saved_cs_client;
-
---
--- Table structure for table `errors`
---
-
-SET @saved_cs_client     = @@character_set_client;
-SET character_set_client = utf8;
-CREATE TABLE `errors` (
-  `namespace` varchar(5) NOT NULL default '',
-  `id` varchar(25) NOT NULL,
-  `errorid` tinyint(4) NOT NULL default '0',
-  `error_count` tinyint(4) NOT NULL default '1',
-  `description` text,
-  PRIMARY KEY  (`namespace`,`id`,`errorid`),
-  KEY `errorid` (`errorid`),
-  CONSTRAINT `errors_ibfk_2` FOREIGN KEY (`errorid`) REFERENCES `error_status` (`errorid`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 SET character_set_client = @saved_cs_client;
 
 --
@@ -84,11 +35,15 @@ SET character_set_client = @saved_cs_client;
 SET @saved_cs_client     = @@character_set_client;
 SET character_set_client = utf8;
 CREATE TABLE `fs_log` (
-  `namespace` varchar(10) default NULL,
-  `id` varchar(30) default NULL,
-  `type` varchar(10) default NULL,
-  `size` varchar(30) default NULL,
-  `date` datetime default NULL
+  `namespace` varchar(8) NOT NULL,
+  `id` varchar(32) NOT NULL,
+  `zip_size` bigint(20) default NULL,
+  `zip_date` datetime default NULL,
+  `mets_size` bigint(20) default NULL,
+  `mets_date` datetime default NULL,
+  `lastchecked` timestamp NOT NULL default CURRENT_TIMESTAMP,
+  `zipcheck_ok` tinyint(1) default NULL,
+  PRIMARY KEY  (`namespace`,`id`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 SET character_set_client = @saved_cs_client;
 
@@ -99,8 +54,8 @@ SET character_set_client = @saved_cs_client;
 SET @saved_cs_client     = @@character_set_client;
 SET character_set_client = utf8;
 CREATE TABLE `grin` (
-  `namespace` varchar(10) NOT NULL,
-  `id` varchar(30) NOT NULL,
+  `namespace` varchar(8) NOT NULL,
+  `id` varchar(32) NOT NULL,
   `checkin_date` varchar(25) default NULL,
   `state` varchar(30) default NULL,
   `viewability` varchar(15) default NULL,
@@ -125,50 +80,6 @@ CREATE TABLE `grin` (
 SET character_set_client = @saved_cs_client;
 
 --
--- Table structure for table `groove_stats`
---
-
-SET @saved_cs_client     = @@character_set_client;
-SET character_set_client = utf8;
-CREATE TABLE `groove_stats` (
-  `rundate` date NOT NULL,
-  `stage` varchar(20) NOT NULL,
-  `node` varchar(50) NOT NULL,
-  `totalcount` int(11) NOT NULL default '1',
-  `totaltime` int(11) NOT NULL,
-  `totalsize` int(11) NOT NULL,
-  PRIMARY KEY  (`rundate`,`stage`,`node`),
-  KEY `stage` (`stage`),
-  CONSTRAINT `groove_stats_ibfk_1` FOREIGN KEY (`stage`) REFERENCES `stages` (`stage`)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
-SET character_set_client = @saved_cs_client;
-
---
--- Table structure for table `ht_files`
---
-
-SET @saved_cs_client     = @@character_set_client;
-SET character_set_client = utf8;
-CREATE TABLE `ht_files` (
-  `namespace` varchar(8) default NULL,
-  `id` varchar(32) default NULL,
-  `access` varchar(10) default NULL,
-  `rights` varchar(10) default NULL,
-  `um_record` varchar(30) default NULL,
-  `enumeration` varchar(10) default NULL,
-  `source` varchar(10) default NULL,
-  `src_inst` varchar(30) default NULL,
-  `oclc` varchar(30) default NULL,
-  `isbn` varchar(30) default NULL,
-  `lccn` varchar(100) default NULL,
-  `title` varchar(100) default NULL,
-  `imprint` varchar(100) default NULL,
-  `rights_code` varchar(10) default NULL,
-  `updated` date default NULL
-) ENGINE=MyISAM DEFAULT CHARSET=latin1;
-SET character_set_client = @saved_cs_client;
-
---
 -- Table structure for table `ia_arkid`
 --
 
@@ -176,25 +87,53 @@ SET @saved_cs_client     = @@character_set_client;
 SET character_set_client = utf8;
 CREATE TABLE `ia_arkid` (
   `ia_id` varchar(255) NOT NULL default '',
-  `namespace` varchar(32) default NULL,
-  `arkid` char(20) default NULL,
+  `namespace` varchar(8) default NULL,
+  `arkid` char(32) default NULL,
   PRIMARY KEY  (`ia_id`),
   KEY `arkid` (`arkid`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 SET character_set_client = @saved_cs_client;
 
 --
--- Table structure for table `namespace`
+-- Table structure for table `ingest_log`
 --
 
 SET @saved_cs_client     = @@character_set_client;
 SET character_set_client = utf8;
-CREATE TABLE `namespace` (
-  `school` varchar(30) default NULL,
-  `ht_namespace` varchar(10) default NULL,
-  `grin_id` varchar(10) default NULL
+CREATE TABLE `ingest_log` (
+  `namespace` varchar(8) default NULL,
+  `id` varchar(32) default NULL,
+  `update_stamp` timestamp NOT NULL default CURRENT_TIMESTAMP,
+  `status` varchar(64) default NULL,
+  `isrepeat` tinyint(1) default NULL,
+  `fatal` tinyint(1) default NULL,
+  KEY `ingest_log_ns_date_idx` (`namespace`,`update_stamp`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 SET character_set_client = @saved_cs_client;
+
+--
+-- Table structure for table `log`
+--
+
+SET @saved_cs_client     = @@character_set_client;
+SET character_set_client = utf8;
+CREATE TABLE `log` (
+  `level` varchar(5) NOT NULL,
+  `timestamp` datetime NOT NULL,
+  `namespace` varchar(8) default NULL,
+  `id` varchar(32) default NULL,
+  `operation` varchar(32) default NULL,
+  `message` varchar(40) NOT NULL,
+  `file` tinytext,
+  `field` tinytext,
+  `actual` tinytext,
+  `expected` tinytext,
+  `detail` tinytext,
+  `stage` tinytext,
+  KEY `log_obj_idx` (`namespace`,`id`)
+) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+SET character_set_client = @saved_cs_client;
+
 
 --
 -- Table structure for table `nonreturned`
@@ -203,8 +142,8 @@ SET character_set_client = @saved_cs_client;
 SET @saved_cs_client     = @@character_set_client;
 SET character_set_client = utf8;
 CREATE TABLE `nonreturned` (
-  `namespace` varchar(5) NOT NULL default '',
-  `id` varchar(25) NOT NULL default '',
+  `namespace` varchar(8) NOT NULL default '',
+  `id` varchar(32) NOT NULL default '',
   PRIMARY KEY  (`namespace`,`id`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 SET character_set_client = @saved_cs_client;
@@ -216,64 +155,31 @@ SET character_set_client = @saved_cs_client;
 SET @saved_cs_client     = @@character_set_client;
 SET character_set_client = utf8;
 CREATE TABLE `premis_events` (
-  `namespace` varchar(5) NOT NULL default '',
+  `namespace` varchar(8) NOT NULL default '',
   `id` varchar(32) default NULL,
   `eventtype_id` varchar(64) NOT NULL default '',
   `date` timestamp NOT NULL default '0000-00-00 00:00:00',
   `outcome` text,
-  `eventid` char(36) default NULL
+  `eventid` char(36) default NULL,
+  PRIMARY KEY (`namespace`,`id`,`eventtype_id`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 SET character_set_client = @saved_cs_client;
 
 --
--- Table structure for table `stage_locks`
+-- Table structure for table `queue`
 --
 
 SET @saved_cs_client     = @@character_set_client;
 SET character_set_client = utf8;
-CREATE TABLE `stage_locks` (
-  `pid` int(11) NOT NULL default '0',
-  `stage` varchar(20) NOT NULL default '',
-  `node` varchar(50) NOT NULL default '',
-  `namespace` varchar(5) default NULL,
-  PRIMARY KEY  (`pid`,`stage`,`node`),
-  KEY `stage` (`stage`)
+CREATE TABLE `queue` (
+  `pkg_type` varchar(32) default NULL,
+  `namespace` varchar(8) NOT NULL,
+  `id` varchar(32) NOT NULL default '',
+  `status` varchar(20) NOT NULL default 'ready',
+  `update_stamp` timestamp NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,
+  `date_added` timestamp NOT NULL default '0000-00-00 00:00:00',
+  `node` varchar(255) default NULL,
+  `failure_count` int(11) NOT NULL default '0',
+  PRIMARY KEY  (`namespace`,`id`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 SET character_set_client = @saved_cs_client;
-
---
--- Table structure for table `stages`
---
-
-SET @saved_cs_client     = @@character_set_client;
-SET character_set_client = utf8;
-CREATE TABLE `stages` (
-  `stage` varchar(20) NOT NULL default '',
-  PRIMARY KEY  (`stage`)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
-SET character_set_client = @saved_cs_client;
-
---
--- Table structure for table `status`
---
-
-SET @saved_cs_client     = @@character_set_client;
-SET character_set_client = utf8;
-CREATE TABLE `status` (
-  `statusid` tinyint(4) NOT NULL auto_increment,
-  `status_name` varchar(15) NOT NULL default '',
-  `status_description` varchar(50) NOT NULL default '',
-  PRIMARY KEY  (`statusid`)
-) ENGINE=InnoDB AUTO_INCREMENT=18 DEFAULT CHARSET=latin1;
-SET character_set_client = @saved_cs_client;
-/*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
-
-/*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
-/*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
-/*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;
-/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
-/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
-/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
-/*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
-
--- Dump completed on 2011-01-21 22:12:52

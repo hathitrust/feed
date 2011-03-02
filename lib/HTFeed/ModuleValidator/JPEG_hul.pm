@@ -56,21 +56,22 @@ sub _set_validators {
         ),
 
         'xmp_resolution' => sub {
-                # mix lists as just '600', XMP lists as '600/1'
-                my $xres = $self->_findone( "xmp", "xRes" );
-                if ( $xres =~ /^(\d+)\/1$/ ) {
-                    $self->_validateone( "mix", "xRes", $1 );
-                }
-                else {
-                    $self->set_error(
-                        "BadValue",
-                        field  => "xmp_xRes",
-                        actual => "$xres",
-                        detail => "Should be in format NNN/1"
-                    );
-                }
+            my $self = shift;
+            # mix lists as just '600', XMP lists as '600/1'
+            my $xres = $self->_findone( "xmp", "xRes" );
+            if ( $xres =~ /^(\d+)\/1$/ ) {
+                $self->_validateone( "mix", "xRes", $1 );
+            }
+            else {
+                $self->set_error(
+                    "BadValue",
+                    field  => "xmp_xRes",
+                    actual => "$xres",
+                    detail => "Should be in format NNN/1"
+                );
+            }
 
-                $self->_require_same( "xmp", "xRes", "xmp", "yRes" );
+            $self->_require_same( "xmp", "xRes", "xmp", "yRes" );
         },
 
 
@@ -79,9 +80,7 @@ sub _set_validators {
 
         'bits_per_sample' => v_and(
             v_eq( 'mix', 'bitsPerSample', '8,8,8' ),
-            sub {
-              $self->_findvalue( "xmp", "bitsPerSample" ) eq '888'
-            }
+            v_eq( 'xmp', 'bitsPerSample', '888')
         ),
 
         'samples_per_pixel' => v_and(

@@ -1,22 +1,16 @@
-#!/usr/bin/perl
-
 package HTFeed::PackageType::MPub::Fetch;
 
 use strict;
 use warnings;
-use base qw(HTFeed::PackageType);
-use HTFeed::PackageType;
+use base qw(HTFeed::Stage);
 use HTFeed::Config qw(get_config);
-use Log::Log4Perl qw(get_logger);
-my $logger = get_logger(__PACKAGE__);
 
 sub run {
 	my $self = shift;
 	my $volume = $self->{volume};
+
 	my $objid = $volume->get_objid();
-	my $filename = $volume->get_SIP_filename(); #special filename for ump?
-	#XXX get type
-	#my $type = ;
+	my $type = $volume->get_nspkg();
 
 	my $source = "/htprep/mpub_dcu/" . $type . "/forHT"; 
 	my $staging_dir = $volume->get_download_directory();
@@ -25,8 +19,7 @@ sub run {
 		mkdir $staging_dir or die("Can't mkdir $staging_dir: $!");
 	}
 
-	#alter method to fetch from dir, rather than download from URL?
-	$self->download(url => $source, path => $staging_dir, filename => $filename,);
+	#TODO copy files to staging directory
 
 	$self->_set_done();
 	return $self->succeeded();

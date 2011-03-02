@@ -24,7 +24,6 @@ sub _set_required_querylib {
 sub _set_validators {
     my $self = shift;
     # prevent leaking $self since the closure has an implicit reference to self..
-    weaken($self);
     $self->{validators} = {
         'format' => v_eq( 'repInfo', 'format', 'JPEG 2000' ),
 
@@ -63,6 +62,7 @@ sub _set_validators {
           v_between( 'codingStyleDefault', 'decompositionLevels', '5', '32' ),
 
         'colorspace' => sub {
+            my $self = shift;
 
             # check colorspace
             my $xmp_colorSpace = $self->_findone( "xmp", "colorSpace" );
@@ -113,6 +113,8 @@ sub _set_validators {
               );
         },
         'dimensions' => sub {
+            my $self = shift;
+
             my $x1 = $self->_findone( "mix", "width" );
             my $y1 = $self->_findone( "mix", "length" );
             my $x2 = $self->_findone( "xmp", "width" );
@@ -133,6 +135,7 @@ sub _set_validators {
               );
         },
         'extract_info' => sub {
+            my $self = shift;
 
             # check for presence, record values
             $self->_setdatetime( $self->_findone( "xmp", "dateTime" ) );
