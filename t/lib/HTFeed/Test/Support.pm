@@ -12,6 +12,10 @@ use Digest::MD5;
 use FindBin;
 use File::Find;
 
+use HTFeed::Config qw(set_config);
+set_config('/htapps/ezbrooks.babel/break_GRIN/staging/download','staging'=>'download');
+set_config('/htapps/ezbrooks.babel/break_GRIN/staging/ingest','staging'=>'ingest');
+
 ## TODO: use a flag to determine if/when test_classes are loaded
 my @test_classes;
 {
@@ -43,7 +47,7 @@ my @test_classes;
 ## TODO: add options for ns, packagetype
 ## TODO: get pt, ns, objid from a config file
 sub get_test_volume{
-    return HTFeed::Volume->new(objid => '39015066056998',namespace => 'mdp',packagetype => 'google');
+    return HTFeed::Volume->new(objid => '35112102255959',namespace => 'mdp',packagetype => 'google');
 }
 
 sub get_fake_stage{

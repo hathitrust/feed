@@ -27,22 +27,6 @@ sub to_string {
     return $self->{data};
 }
 
-# this is just for testing so we can bypass the override constructors
-sub new2{
-    my $class = shift;
-    my $self =
-        {
-            type => undef,
-            data => undef,
-            permissions => [1,1,1,0],
-            ttl_type => 0,
-            ttl => 86400,
-            @_,
-        };
-    bless $self, $class;
-    return $self;
-}
-
 # returns SQL syntax for one row
 # this is useless by its self, it is meant to be wrapped my HDL::Handle
 # $entry->to_SQL_row($handle_name,$index,$timestamp)

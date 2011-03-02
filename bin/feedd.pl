@@ -13,8 +13,8 @@ use HTFeed::Run;
 use HTFeed::Config;
 use HTFeed::Volume;
 use HTFeed::Log { root_logger => 'INFO, dbi, screen' };
-use HTFeed::DBTools qw(get_queued lock_volumes);
-#use Log::Log4perl qw(get_logger);
+use HTFeed::DBTools qw(get_queued lock_volumes count_locks);
+use Log::Log4perl qw(get_logger);
 
 print("feedd running, waiting for something to ingest\n");
 
@@ -128,15 +128,22 @@ sub get_next_job{
 }
 
 sub fill_queue{
-    my $needed_volumes = get_config('volumes_in_process_limit') - $subprocesses;
-    if ($needed_volumes > 0){
-        lock_volumes($needed_volumes);
-    }
-    
-    if (my $sth = get_queued()){
-        while(my $job = $sth->fetchrow_hashref()){
-            push (@jobs, $job) if (! is_locked($job) and can_run_job($job));
+    # db ops were crashing, this will catch them
+    # the internal queue will be starved until fill_queue runs again after the next wait()
+    eval{
+        my $needed_volumes = get_config('volumes_in_process_limit') - count_locks();
+        if ($needed_volumes > 0){
+            lock_volumes($needed_volumes);
         }
+    
+        if (my $sth = get_queued()){
+            while(my $job = $sth->fetchrow_hashref()){
+                push (@jobs, $job) if (! is_locked($job) and can_run_job($job));
+            }
+        }
+    };
+    if($@){
+        get_logger()->warn("daemon db operation failed: $@");
     }
 }
 
