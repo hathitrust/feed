@@ -225,15 +225,30 @@ sub _validate_jp2 {
 
     foreach my $file (@tovalidate) {
 		next unless ($file =~ /\w+\.(jp2)/);
+
 		my $dir = $volume->get_staging_directory();
     	my $files_for_cmd = join( ' ', map { "$dir/$_" } $file );
     	my $jhove_path = get_config('jhove');
     	my $jhove_conf = get_config('jhoveconf');
-    	my $jhove_cmd = "$jhove_path -h XML -c $jhove_conf " . $files_for_cmd;
+    	my $jhove_cmd = "$jhove_path -h XML -c $jhove_conf -m JPEG2000-hul " . $files_for_cmd;
 
-		#extract jhove; check for status: Well-Formed and valid
-		#and format: JPEG 2000
+		my @result_lines = split("\n", `$jhove_cmd`);
+
+		foreach my $line (@result_lines) {
+			next unless ($line =~/status/);
+			my $expected = "Well-Formed and valid";
+			if($line !~ /$expected/i) {
+				$self->set_error(
+					"BadFile",
+                	file => $file,
+                	expected => $expected,
+                	actual => $line
+            );
+
+			} else {
+				return;
+			}
+		}
 	}
 }
-
 1;
