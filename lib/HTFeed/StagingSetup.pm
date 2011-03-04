@@ -10,6 +10,7 @@ use HTFeed::Config qw(get_config);
 # delete all staging dirs
 sub _wipe_dirs{
     foreach my $dir (@{$_[0]}){
+        warn("Wiping " . $dir . " in HTFeed::StagingSetup\n");
         remove_tree $dir;
     }
 }
@@ -17,6 +18,7 @@ sub _wipe_dirs{
 # create all staging dirs
 sub _make_dirs{
     foreach my $dir (@{$_[0]}){
+        warn("Making " . $dir . " in HTFeed::StagingSetup\n");
         make_path $dir;
     }
 }

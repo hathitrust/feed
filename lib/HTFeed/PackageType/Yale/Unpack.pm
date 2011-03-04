@@ -14,9 +14,9 @@ sub ram_disk_size{
     my $self = shift;
     my $volume = $self->{volume};
 
-    my $multiplier = 1.10;
+    my $multiplier = 2.10;
 
-    return estimate_space($volume->get_download_location(), $multiplier);
+    return HTFeed::Stage::estimate_space($volume->get_download_location(), $multiplier);
 }
 
 sub run{
@@ -24,6 +24,8 @@ sub run{
     my $volume = $self->{volume};
 
     # not getting preingest path from volume -- zip file contains extra paths we don't want to junk
+    # create preingest directory or symlink ram -> disk if needed
+    $volume->mk_preingest_directory($self->stage_on_disk());
     $self->unzip_file($volume->get_download_location(),get_config('staging' => 'preingest'));
 
     $self->_set_done();

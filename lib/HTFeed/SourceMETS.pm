@@ -64,7 +64,7 @@ sub _add_premis {
 
 
 sub stage_info{
-    return {success_state => 'src_metsed', failure_state => ''};
+    return {success_state => 'src_metsed', failure_state => 'punted'};
 }
 
 
@@ -85,6 +85,7 @@ sub clean_success {
     my $self = shift;
     my $dir = $self->{volume}->get_preingest_directory();
     
+    $logger->warn("Removing " . $dir);
     return remove_tree $dir;
 }
 

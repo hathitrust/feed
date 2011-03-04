@@ -82,7 +82,7 @@ sub run_job {
             $status = 'punted'; 
         } elsif($stage) {
             my $new_status = $stage->get_stage_info('failure_state');
-            $status = $new_status if ($new_status);
+            $status = $new_status if ($new_status and $new_status ne '');
         } 
         ## TODO: else {unexpected error} ?
 

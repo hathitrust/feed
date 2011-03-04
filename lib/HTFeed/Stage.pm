@@ -15,6 +15,7 @@ use POSIX qw(ceil);
 
 use base qw(HTFeed::SuccessOrFailure);
 
+
 sub new {
     my $class = shift;
 
@@ -197,6 +198,7 @@ sub clean_unpacked_object {
     my $self = shift;
     my $dir  = $self->{volume}->get_staging_directory();
 
+    $self->get_logger()->warn("Removing " . $dir);
     return remove_tree $dir;
 }
 
@@ -219,6 +221,8 @@ sub clean_preingest {
     my $dir = $self->{volume}->get_preingest_directory;
     
     if($dir){
+        my $logger = get_logger( ref($self) );
+        $logger->warn("Removing " . $dir);
         return remove_tree $dir;
     }
     return;

@@ -26,7 +26,7 @@ sub run {
     my $mismatch_ok_files = [ "${ia_id}_meta.xml" ];
 
     if(!-e "$objdir/$manifest") {
-        $logger->warning("FileMissing","${ia_id}_files.xml");
+        $logger->warn("FileMissing","${ia_id}_files.xml");
         my $outcome = new PREMIS::Outcome('warning');
         $outcome->add_detail_note("Manifest ${ia_id}_files.xml not found, fixity check could not be performed");
         $volume->record_premis_event("source_md5_fixity",outcome => $outcome);
@@ -118,7 +118,7 @@ sub _check_md5sum($$) {
         );
 
         if($mismatch_nonfatal) {
-            $logger->warning(@error_params);
+            $logger->warn(@error_params);
         } else {
             $self->set_error(@error_params);
         }

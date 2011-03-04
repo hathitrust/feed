@@ -108,11 +108,22 @@ sub reset_volumes{
 # returns number of volumes locked
 sub lock_volumes{
     my $item_count = shift;
+#    warn("Locking $item_count volumes to " . hostname . "\n"); 
     return 0 unless ($item_count > 0);
     
     ## TODO: order by priority
     my $sth = get_dbh()->prepare(q(UPDATE queue SET node = ? WHERE node IS NULL AND status = 'ready' LIMIT ?;));
     $sth->execute(hostname,$item_count);
+
+#    $sth = get_dbh()->prepare(q(SELECT pkg_type, namespace, id FROM queue WHERE node = ?));
+#    $sth->execute(hostname);
+#    my $count = 0;
+#    while(my $row = $sth->fetchrow_arrayref()) {
+#        warn "Locked to " . hostname . ": " . join(" ",@$row), "\n";
+#        $count++;
+#    }
+#    warn "Total locked to " . hostname . ": $count \n";
+
     return $sth->rows;
 }
 

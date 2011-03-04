@@ -18,7 +18,7 @@ sub ram_disk_size{
     my $ia_id = $volume->get_ia_id();
     my $file = sprintf('%s/%s_jp2.zip',$download_dir,$ia_id);
 
-    my $multiplier = 1.10;
+    my $multiplier = 2.10;
 
     return HTFeed::Stage::estimate_space($file, $multiplier);
 }
@@ -34,6 +34,8 @@ sub run{
 
 
     my $file = sprintf('%s/%s_jp2.zip',$download_dir,$ia_id);
+    # create preingest directory or symlink ram -> disk if needed
+    $volume->mk_preingest_directory($self->stage_on_disk());
     $self->unzip_file($file,$preingest_dir);
 
     $self->_set_done();

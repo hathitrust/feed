@@ -15,6 +15,7 @@ use HTFeed::Volume;
 use HTFeed::Log { root_logger => 'INFO, dbi, screen' };
 use HTFeed::DBTools qw(get_queued lock_volumes count_locks);
 use Log::Log4perl qw(get_logger);
+use Filesys::Df;
 
 print("feedd running, waiting for something to ingest\n");
 
@@ -64,7 +65,13 @@ $SIG{'HUP'} =
 
 HTFeed::StagingSetup::make_stage($clean);
 
+my $i = 0;
 while(! exit_condition()){
+    my $bfree = df(get_config('ram_disk'))->{bfree} ;
+#    warn("Iteration $i: RAM disk has $bfree blocks free\n");$i++;
+    if( $bfree < 200*1024){
+        die("RAM disk has only $bfree blocks free\n");
+    }
     while (($subprocesses < get_config('volumes_in_process_limit')) and (my $job = get_next_job())){
         spawn($job);
     }
