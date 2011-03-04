@@ -888,6 +888,7 @@ and there is no longer a need to retain the PREMIS events in the database.
 
 sub clear_premis_events {
     my $self = shift;
+	my $volume = $self->{volume};
 
     my $ns = $volume->get_namespace();
     my $objid = $self->get_objid();
