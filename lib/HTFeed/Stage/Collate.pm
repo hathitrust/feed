@@ -5,6 +5,7 @@ use strict;
 
 use base qw(HTFeed::Stage);
 use HTFeed::Config qw(get_config);
+use HTFeed::DBTools;
 use File::Path qw(make_path remove_tree);
 use File::Copy;
 use File::Pairtree;
@@ -92,6 +93,7 @@ sub clean_always{
 sub clean_success {
     my $self = shift;
     my $toclean = $self->{volume}->get_download_location();
+    $self->{volume}->clean_premis_events();
     remove_tree($toclean) if defined $toclean;
 }
 

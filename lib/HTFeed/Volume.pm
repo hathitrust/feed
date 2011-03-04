@@ -879,6 +879,23 @@ sub mk_preingest_directory{
     return $stage_dir;
 }
 
+=item clear_premis_events
+
+Deletes the PREMIS events for this volume. Typically used when the volume has been collated
+and there is no longer a need to retain the PREMIS events in the database.
+
+=cut
+
+sub clear_premis_events {
+    my $self = shift;
+
+    my $ns = $volume->get_namespace();
+    my $objid = $self->get_objid();
+    my $sth = HTFeed::DBTools::get_dbh()->prepare("DELETE FROM premis_events WHERE namespace = ? and id = ?");
+    $sth->execute($ns,$objid);
+
+}
+
 1;
 
 
