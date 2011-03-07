@@ -63,7 +63,10 @@ $SIG{'HUP'} =
         HTFeed::DBTools::_init();
     };
 
-HTFeed::StagingSetup::make_stage($clean);
+# exit right away if stop file is set
+if( ! exit_condition() ) {
+    HTFeed::StagingSetup::make_stage($clean);
+}
 
 my $i = 0;
 while(! exit_condition()){
@@ -79,11 +82,10 @@ while(! exit_condition()){
         sleep 15;
     }
 }
-print "Finishing work on locked volumes...\n";
+print "Stop file found; finishing work on locked volumes...\n";
 while ($subprocesses){
     wait_kid();
 }
-
 # fork, lock job, increment $subprocess
 sub spawn{
     my $job = shift;
@@ -116,7 +118,7 @@ sub wait_kid{
 
 # determine if we are done
 sub exit_condition{
-    return (-e get_config('daemon'=>'stop_file'));
+    my $condition = -e get_config('daemon'=>'stop_file');
 }
 
 sub get_next_job{
@@ -185,6 +187,9 @@ END{
         # release all locks
         HTFeed::DBTools::reset_in_flight_locks();
     }
+    print "Waiting 30 seconds (so we don't respawn too fast out of inittab)\n";
+    sleep 30;
+
 }
 
 1;
