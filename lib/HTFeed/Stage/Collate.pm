@@ -93,7 +93,7 @@ sub clean_always{
 sub clean_success {
     my $self = shift;
     my $toclean = $self->{volume}->get_download_location();
-    $self->{volume}->clean_premis_events();
+    $self->{volume}->clear_premis_events();
     remove_tree($toclean) if defined $toclean;
 }
 
