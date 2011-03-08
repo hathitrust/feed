@@ -11,9 +11,10 @@ use HTFeed::Volume;
 use POSIX qw(strftime);
 
 
-my $insert="replace into fs_log (namespace, id, zip_size, zip_date, mets_size, mets_date, lastchecked, zipcheck_ok) values(?,?,?,?,?,?,CURRENT_TIMESTAMP,NULL);";
+my $insert="replace into fs_log (namespace, id, zip_size, zip_date, mets_size, mets_date, lastchecked, zipcheck_ok) values(?,?,?,?,?,?,CURRENT_TIMESTAMP,NULL)";
 my $update="update fs_log set zipcheck_ok = ? where namespace = ? and id = ?";
-my $status_ins = "insert into fs_log_status (namespace, id, path, status, detail) values (?,?,?,?,?)";
+my $fs_mets_data="insert into fs_log_mets_data (namespace, id, `key`, value, value2, date) values (?,?,?,?,?,CURRENT_TIMESTAMP)";
+my $mets_ins = "insert into fs_log_status (namespace, id, path, status, detail) values (?,?,?,?,?)";
 
 ### set /sdr1 to /sdrX for test & parallelization
 my $base= shift @ARGV or die("Missing base directory..");
@@ -144,6 +145,7 @@ while(my $line = <RUN>) {
 sub zipcheck {
     my ($namespace,$objid) = @_;
 
+
     # use google as a 'default' namespace for now
     my $volume = new HTFeed::Volume(packagetype => "google",namespace => $namespace,objid => $objid);
     my $mets = $volume->get_repos_mets_xpc();
@@ -181,7 +183,7 @@ sub zipcheck {
             $filetypes{$extension}++;
         }
         while(my ($ext,$count) = each(%filetypes)) {
-            print "$namespace $objid FILETYPE $ext $count\n";
+            mets_ins($namespace,$objid,"FILETYPE",$ext,$count);
         }
     }
 
@@ -197,7 +199,7 @@ sub zipcheck {
             $premisversion = "premis1";
         }
 
-        print "$namespace $objid PREMIS_VERSION $premisversion\n";
+        mets_ins($namespace,$objid,"PREMIS_VERSION",$premisversion);
     }
 
     { # PREMIS event ID types
@@ -207,7 +209,7 @@ sub zipcheck {
             $event_id_types{$mets->findvalue('.',$eventtype)}++;
         }
         foreach my $event_id_type (keys(%event_id_types)) {
-            print "$namespace $objid PREMIS_EVENT_TYPE $event_id_type $event_id_types{$event_id_type}\n";
+            mets_ins($namespace,$objid,"PREMIS_EVENT_TYPE",$event_id_type,$event_id_types{$event_id_type});
         }
     }
 
@@ -217,7 +219,7 @@ sub zipcheck {
             $agent_id_types{$mets->findvalue('.',$agenttype)}++;
         }
         foreach my $agent_id_type (keys(%agent_id_types)) {
-            print "$namespace $objid PREMIS_AGENT_TYPE $agent_id_type $agent_id_types{$agent_id_type}\n";
+            mets_ins($namespace,$objid,"PREMIS_AGENT_TYPE",$agent_id_type,$agent_id_types{$agent_id_type});
         }
 
     }
@@ -227,7 +229,7 @@ sub zipcheck {
             my $executor = $mets->findvalue('./premis:linkingAgentIdentifier[premis:linkingAgentRole="Executor"]/premis:linkingAgentIdentifierValue |' .
                 './premis1:linkingAgentIdentifier/premis1:linkingAgentIdentifierValue',$event);
             my $date = $mets->findvalue('./premis:eventDateTime | ./premis1:eventDateTime',$event);
-            print "$namespace $objid CAPTURE '$executor', $date\n";
+            mets_ins($namespace,$objid,"CAPTURE",$executor,$date);
         }
     }
     { # Processing agent
@@ -235,55 +237,53 @@ sub zipcheck {
             my $executor = $mets->findvalue('./premis:linkingAgentIdentifier[premis:linkingAgentRole="Executor"]/premis:linkingAgentIdentifierValue |' .
                 './premis1:linkingAgentIdentifier/premis1:linkingAgentIdentifierValue',$event);
             my $date = $mets->findvalue('./premis:eventDateTime | ./premis1:eventDateTime',$event);
-            print "$namespace $objid MD5SUM '$executor', $date\n";
+            mets_ins($namespace,$objid,"MD5SUM",$executor,$date);
         }
     }
 
     { # Ingest date
         foreach my $event ($mets->findnodes('//premis:event[premis:eventType="ingestion"] | //premis1:event[premis1:eventType="ingestion"]')) {
             my $date = $mets->findvalue('./premis:eventDateTime | ./premis1:eventDateTime',$event);
-            print "$namespace $objid INGEST $date\n";
+            mets_ins($namespace,$objid,"INGEST",$date);
         }
     }
 
 
     { # MARC present
         my $marc_present = $mets->findvalue('count(//marc:record | //record)');
-        print "$namespace $objid MARC $marc_present\n";
+        mets_ins($namespace,$objid,"MARC",$marc_present);
     }
 
     { # METS valid
         my ($mets_valid, $error) = HTFeed::METS::validate_xml($volume,$volume->get_repository_mets_path());
-        my $msg = "$namespace $objid METS_VALID $mets_valid";
         if(!$mets_valid) {
             $error =~ s/\n/ /mg;
-            $msg .= " " . $error;
         }
 
-        print "$msg\n";
+        mets_ins($namespace,$objid,"METS_VALID",$mets_valid,$error);
     }
 
     { # has notes
         my $has_notes = $mets->findvalue('count(//mets:mdref[@LABEL="production notes"])');
-        print "$namespace $objid HAS_NOTES $has_notes\n";
+        mets_ins($namespace,$objid,"HAS_NOTES",$has_notes);
     }
 
     { # has pagedata
         my $has_pagedata = $mets->findvalue('count(//mets:mdref[@LABEL="page metadata"])');
-        print "$namespace $objid HAS_PAGEDATA $has_pagedata\n";
+        mets_ins($namespace,$objid,"HAS_PAGEDATA",$has_pagedata);
     }
 
     { # has PDF
         my $has_pdf = $mets->findvalue('count(//mets:mdref[@OTHERMDTYPE="pdf"])');
-        print "$namespace $objid HAS_PDF $has_pdf\n";
+        mets_ins($namespace,$objid,"HAS_PDF",$has_pdf);
     }
 
 
     { # Page tagging
         my $has_pagetags = $mets->findvalue('count(//mets:div[@TYPE="page"]/@LABEL[string() != ""])');
-        print "$namespace $objid PAGETAGS $has_pagetags\n";
+        mets_ins($namespace,$objid,"PAGETAGS",$has_pagetags);
         my $pages = $mets->findvalue('count(//mets:div[@TYPE="page"])');
-        print "$namespace $objid PAGES $pages\n";
+        mets_ins($namespace,$objid,"PAGES",$pages);
     }
 
 
@@ -293,7 +293,7 @@ sub zipcheck {
 
 sub set_status {
     warn(join(" ",@_), "\n");
-    execute_stmt($status_ins,@_);
+    execute_stmt($mets_ins,@_);
 }
 
 sub execute_stmt {
@@ -310,6 +310,7 @@ sub extract_source_mets {
     my $zipfile = $volume->get_repository_zip_path();
     my $pt_objid = $volume->get_pt_objid();
     my @srcmets = ();
+
     open(my $zipinfo,"unzip -l '$zipfile'|");
     while(<$zipinfo>) {
         chomp;
@@ -324,13 +325,14 @@ sub extract_source_mets {
         set_status($namespace,$objid,$zipfile,"MULTIPLE_SOURCE_METS_CANDIDATES",undef);
     } else {
         # source METS found
-        system("cd /ram; unzip -j '$zipfile' '$srcmets[0]'");
+        system("cd /tmp; unzip -j '$zipfile' '$srcmets[0]'");
         my ($smets_name) = ($srcmets[0] =~ /\/([^\/]+)$/);
-        my $tmp_smets_loc = "/ram/$smets_name";
+        my $tmp_smets_loc = "/tmp/$smets_name";
 
         eval {
             my %mdsecs = ();
             my $xpc = $volume->_parse_xpc($tmp_smets_loc);
+            $xpc->registerNs('gbs',"http://books.google.com/gbs");
             foreach my $mdsec ( $xpc->findnodes('//mets:mdWrap') ) {
                 my @mdbits = ();
                 foreach my $attr (qw(LABEL MDTYPE OTHERMDTYPE)) {
@@ -342,7 +344,13 @@ sub extract_source_mets {
                 $mdsecs{join('; ',@mdbits)} = 1;
             }
             foreach my $mdsec ( sort(keys(%mdsecs)) ) {
-                print "$namespace $objid SRC_METS_MDSEC $mdsec\n";
+                mets_ins($namespace,$objid,"SRC_METS_MDSEC",$mdsec);
+            }
+
+            # Try to get Google reading order
+            foreach my $tag (qw(gbs:pageOrder gbs:pageSequence gbs:coverTag)) {
+                my $val = $xpc->findvalue("//$tag");
+                mets_ins($namespace,$objid,"GBS_READING",$tag,$val);
             }
 
         };
@@ -354,6 +362,18 @@ sub extract_source_mets {
          
 
     }
+}
+
+sub mets_ins {
+    my $namespace = shift;
+    my $objid = shift;
+    my $key = shift;
+    my $val1 = shift;
+    my $val2 = shift;
+    $val1 = '' if not defined $val1;
+    $val2 = '' if not defined $val2;
+    print join("\t",$namespace,$objid,$key,$val1,$val2), "\n";
+    #execute_stmt($fs_mets_data,$namespace,$objid,$key,$val1,$val2);
 }
 
 get_dbh()->disconnect();
