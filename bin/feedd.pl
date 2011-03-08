@@ -184,9 +184,9 @@ END{
         
         # release all locks
         HTFeed::DBTools::reset_in_flight_locks();
+        print "Waiting 30 seconds (so we don't respawn too fast out of inittab)\n";
+        sleep 30;
     }
-    print "Waiting 30 seconds (so we don't respawn too fast out of inittab)\n";
-    sleep 30;
 
 }
 
