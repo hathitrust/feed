@@ -13,6 +13,7 @@ use Cwd qw(cwd abs_path);
 use HTFeed::Config qw(get_config);
 use Date::Manip;
 use File::Basename qw(basename dirname);
+use FindBin;
 
 use base qw(HTFeed::Stage);
 
@@ -580,20 +581,16 @@ Returns the git revision of the currently running script
 
 sub git_revision {
     my $self = shift;
-    my $path =
-      dirname( abs_path(__FILE__) )
-      ;    # get path to this file, hope it's in a git repo
-    my $scriptname = basename($0);
-    my $gitrev = `cd $path; git rev-parse HEAD`;
+    my $gitrev = `cd $FindBin::RealBin; git rev-parse HEAD`;
     chomp $gitrev if defined $gitrev;
 
     if ( !$? and defined $gitrev and $gitrev =~ /^[0-9a-f]{40}/ ) {
-        return "$scriptname git rev $gitrev";
+        return "$FindBin::Script git rev $gitrev";
     }
     else {
         $self->set_error( 'ToolVersionError',
-            detail => "Can't get git revision for $0: git returned '$gitrev' with status $?");
-        return "$scriptname";
+            detail => "Can't get git revision for $FindBin::Script: git returned '$gitrev' with status $?");
+        return "$FindBin::Script";
     }
 
 }
