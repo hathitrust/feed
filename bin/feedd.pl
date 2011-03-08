@@ -1,10 +1,8 @@
 use warnings;
 use strict;
 
-## here for debug
-use Data::Dumper;
-
-use DBI;
+use FindBin;
+use lib "$FindBin::Bin/../lib";
 
 use HTFeed::Version;
 use HTFeed::StagingSetup;

@@ -4,6 +4,8 @@
 validate_images.pl validates all jhove-validatable files in a directory
 =cut
 
+use FindBin;
+use lib "$FindBin::Bin/../lib";
 use strict;
 use warnings;
 use HTFeed::TestVolume;

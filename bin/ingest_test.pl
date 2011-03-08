@@ -3,6 +3,8 @@
 use warnings;
 use strict;
 
+use FindBin;
+use lib "$FindBin::Bin/../lib";
 use HTFeed::Volume;
 use HTFeed::Log {root_logger => 'TRACE, screen'};
 use Getopt::Long;
