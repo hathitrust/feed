@@ -205,7 +205,9 @@ sub clean_unpacked_object {
 # unlink zip
 sub clean_zip {
     my $self     = shift;
-    return unlink $self->{volume}->get_zip_path();
+    # make sure get_zip_path is called in scalar context..
+    my $zip = $self->{volume}->get_zip_path();
+    return unlink $zip;
 }
 
 # unlink mets file
