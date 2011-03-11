@@ -6,16 +6,19 @@ use strict;
 use FindBin;
 use lib "$FindBin::Bin/../lib";
 use HTFeed::Volume;
-use HTFeed::Log {root_logger => 'TRACE, screen'};
+use HTFeed::Log {root_logger => 'INFO, screen'};
 use Getopt::Long;
 use HTFeed::StagingSetup;
 
 # autoflush STDOUT
 $| = 1;
 
-my ($ignore_errors, $no_delete);
+my $ignore_errors = 0;
+my $clean = 1;
 
-GetOptions ( "i" => \$ignore_errors, "n" => \$no_delete);
+GetOptions ( 
+    "ignore_errors!" => \$ignore_errors, 
+    "clean!" => \$clean) or usage();
 
 # read args
 my $packagetype = shift;
@@ -23,8 +26,10 @@ my $namespace = shift;
 my $objid = shift;
 my $startstate  = shift;
 
-unless ($objid and $namespace and $packagetype){
-    print "usage: [-i] [-n] ingest_test.pl packagetype namespace objid [ state ]\n";
+usage() unless ($objid and $namespace and $packagetype);
+
+sub usage {
+    print "usage: ingest_test.pl [ -i | --ignore_errors ] [ --no-clean ] packagetype namespace objid [ state ]\n";
     exit 0;
 }
 
@@ -44,6 +49,7 @@ foreach my $stage_name (@$stagelist) {
     $errors += run_stage($stage);
     if ($errors and !$ignore_errors){
         print "Ingest terminated due to failure\n";
+        if($clean) { $stage->clean_punt(); }
         last;
     }
 }
@@ -59,6 +65,10 @@ sub run_stage{
     }
     else{
         print "failure\n";
+    }
+
+    if($clean) {
+        $stage->clean();
     }
     
     return $stage->failed();
