@@ -13,8 +13,8 @@ use FindBin;
 use File::Find;
 
 use HTFeed::Config qw(set_config);
-set_config('/htapps/ezbrooks.babel/break_GRIN/staging/download','staging'=>'download');
-set_config('/htapps/ezbrooks.babel/break_GRIN/staging/ingest','staging'=>'ingest');
+set_config('/htapps/test.babel/feed/t/staging/download','staging'=>'download');
+set_config('/htapps/test.babel/feed/t/staging/ingest','staging'=>'ingest');
 
 ## TODO: use a flag to determine if/when test_classes are loaded
 my @test_classes;
