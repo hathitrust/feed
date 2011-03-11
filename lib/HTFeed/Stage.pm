@@ -193,21 +193,30 @@ sub clean_punt{
     return;
 }
 
+sub clean_vol_path {
+    my $self = shift;
+    my $stagetype = shift;
+    my $volume = $self->{volume};
+
+    foreach my $ondisk (0,1) {
+        my $dir = eval "\$volume->get_${stagetype}_directory($ondisk)";
+        if(-e $dir) {
+            $self->get_logger()->warn("Removing " . $dir);
+            remove_tree $dir;
+        }
+    }
+}
+
 # unlink unpacked object
 sub clean_unpacked_object {
     my $self = shift;
-    my $dir  = $self->{volume}->get_staging_directory();
-
-    $self->get_logger()->warn("Removing " . $dir);
-    return remove_tree $dir;
+    return $self->clean_vol_path('staging');
 }
 
 # unlink zip
 sub clean_zip {
     my $self     = shift;
-    # make sure get_zip_path is called in scalar context..
-    my $zip = $self->{volume}->get_zip_path();
-    return unlink $zip;
+    return $self->clean_vol_path('zip');
 }
 
 # unlink mets file
@@ -220,14 +229,16 @@ sub clean_mets {
 # unlink preingest directory tree
 sub clean_preingest {
     my $self = shift;
-    my $dir = $self->{volume}->get_preingest_directory;
-    
-    if($dir){
-        my $logger = get_logger( ref($self) );
-        $logger->warn("Removing " . $dir);
+    return $self->clean_vol_path('preingest');
+}
+
+sub clean_download {
+    my $self = shift;
+    my $dir = $self->{volume}->get_download_location();
+    if(defined $dir) {
+        $self->get_logger()->warn("Removing " . $dir);
         return remove_tree $dir;
     }
-    return;
 }
 
 1;

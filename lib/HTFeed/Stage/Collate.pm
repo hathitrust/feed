@@ -6,9 +6,9 @@ use strict;
 use base qw(HTFeed::Stage);
 use HTFeed::Config qw(get_config);
 use HTFeed::DBTools;
-use File::Path qw(make_path remove_tree);
 use File::Copy;
 use File::Pairtree;
+use File::Path qw(make_path);
 
 sub run{
     my $self = shift;
@@ -92,9 +92,8 @@ sub clean_always{
 
 sub clean_success {
     my $self = shift;
-    my $toclean = $self->{volume}->get_download_location();
     $self->{volume}->clear_premis_events();
-    remove_tree($toclean) if defined $toclean;
+    $self->clean_download();
 }
 
 1;

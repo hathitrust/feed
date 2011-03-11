@@ -397,7 +397,7 @@ sub _add_zip_fg {
         id  => $self->_get_subsec_id("FG"),
         use => 'zip archive'
     );
-    my ($zip_path,$zip_name) = $volume->get_zip_path();
+    my ($zip_path,$zip_name) = ($volume->get_zip_directory(), $volume->get_zip_filename());
     $zip_filegroup->add_file( $zip_name, path => $zip_path, prefix => 'ZIP' );
     $mets->add_filegroup($zip_filegroup);
 }

@@ -21,11 +21,10 @@ sub ram_disk_size{
 
 sub run{
     my $self = shift;
+    # make staging directories
+    $self->SUPER::run();
     my $volume = $self->{volume};
 
-    # not getting preingest path from volume -- zip file contains extra paths we don't want to junk
-    # create preingest directory or symlink ram -> disk if needed
-    $volume->mk_preingest_directory($self->stage_on_disk());
     $self->unzip_file($volume->get_download_location(),get_config('staging' => 'preingest'));
 
     $self->_set_done();
