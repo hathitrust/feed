@@ -139,13 +139,13 @@ SQL
         header => "Number of items ingested (this week)",
         command => "grep -c ingested /htapps/babel/groove/prep/reports/%s*.csv"
     },
-    {
-        header => "Number of items ingested (total)",
-        query => <<'SQL'
-          SELECT count(*) FROM mdp_tracking_new.fs_log 
-            WHERE namespace = ?
-SQL
-    }
+#    {
+#        header => "Number of items ingested (total)",
+#        query => <<'SQL'
+#          SELECT count(*) FROM mdp_tracking_new.fs_log 
+#            WHERE namespace = ?
+#SQL
+#    }
     # number of items ingested total - from fs log?
 );
 
