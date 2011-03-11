@@ -147,6 +147,7 @@ sub fill_queue{
             while(my $job = $sth->fetchrow_hashref()){
                 push (@jobs, $job) if (! is_locked($job) and can_run_job($job));
             }
+            $sth->finish();
         }
     };
     if($@){
