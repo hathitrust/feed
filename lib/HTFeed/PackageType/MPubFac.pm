@@ -1,4 +1,4 @@
-package HTFeed::PackageType::MPub;
+package HTFeed::PackageType::MPubFac;
 
 use HTFeed::PackageType;
 use base qw(HTFeed::PackageType);
@@ -10,9 +10,9 @@ use HTFeed::Stage::Pack;
 use HTFeed::Stage::Handle;
 use HTFeed::Stage::Collate;
 
-#base case for MPub DCU
+#base case for MPub materials (Faculty Reprints)
 
-our $identifier = 'mpub';
+our $identifier = 'faculty_reprints';
 
 our $config = {
     volume_module => 'HTFeed::Volume',
@@ -111,6 +111,7 @@ __END__
 =pod
 
 This is the package type configuration file for base case MPub materials
+Specifically Faculty Reprints
 
 =head1 SYNOPSIS
 
