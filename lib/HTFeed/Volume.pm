@@ -13,7 +13,6 @@ use HTFeed::DBTools;
 use Time::localtime;
 use File::Pairtree;
 use Data::UUID;
-use File::Path qw(remove_tree);
 
 our $logger = get_logger(__PACKAGE__);
 
@@ -158,45 +157,70 @@ sub get_all_directory_files {
 =item get_staging_directory
 
 Returns the staging directory for the volume's AIP
-returns path to staging directory on disk if $flag
+returns path to staging directory on disk if $ondisk
 
 =cut
 
 sub get_staging_directory {
     my $self = shift;
-    my $flag = shift;
+    my $ondisk = shift;
     my $pt_objid = $self->get_pt_objid();
-    return get_config('staging'=>'disk'=>'ingest') . q(/) . $pt_objid if $flag;
+    return get_config('staging'=>'disk'=>'ingest') . q(/) . $pt_objid if $ondisk;
     return get_config('staging'=>'ingest') . q(/) . $pt_objid;
 }
 
-=item mk_staging_directory
+=item get_zip_directory
 
-makes staging directory, if $flag, creates it on disk rather than ram and symlinks to ram
+Returns the path to the directory where the zip archive for this
+object will be constructed. If $ondisk is set, returns a path
+on disk rather than in RAM.
+
+=cut
+
+sub get_zip_directory {
+    my $self = shift;
+    my $ondisk = shift;
+    my $pt_objid = $self->get_pt_objid();
+    return get_config('staging'=>'disk'=>'zipfile') . q(/) . $pt_objid if $ondisk;
+    return get_config('staging'=>'zipfile') . q(/) . $pt_objid;
+}
+
+=item get_zip_path
+
+Returns the full path (directory + filename) for the zip archive
+for this object. 
+
+=cut
+
+sub get_zip_path {
+    my $self = shift;
+    return $self->get_zip_directory() . q(/) . $self->get_zip_filename();
+}
+
+=item make_staging_directories
+
+makes staging directory, if $ondisk, creates it on disk rather than ram and symlinks to ram
 returns staging directory
 
 =synopsis
-mk_staging_dir($flag)
+make_staging_directories($ondisk)
 =cut
 
-sub mk_staging_directory{
+sub make_staging_directories{
     my $self = shift;
-    my $flag = shift;
-    
-    my $stage_dir = $self->get_staging_directory();
-    
-    if($flag){
-        my $disk_stage_dir = $self->get_staging_directory(1);
-        mkdir($disk_stage_dir) or croak("Can't mkdir $disk_stage_dir: $!");
-        symlink($disk_stage_dir,$stage_dir) or croak("Can't symlink $disk_stage_dir,$stage_dir: $!");
-    }
-    else{
-        mkdir($stage_dir) or croak("Can't mkdir $stage_dir: $!");
-    }
+    my $ondisk = shift;
 
-    return $stage_dir;
+    foreach my $stage_type qw(preingest staging zip) {
+        my $stage_dir = eval "\$self->get_${stage_type}_directory()";
+        if($ondisk) {
+            my $disk_stage_dir = eval "\$self->get_${stage_type}_directory(1)";
+            mkdir($disk_stage_dir) or croak("Can't mkdir $disk_stage_dir: $!");
+            symlink($disk_stage_dir,$stage_dir) or croak("Can't symlink $disk_stage_dir,$stage_dir: $!");
+        } else {
+            mkdir($stage_dir) or croak("Can't mkdir $stage_dir: $!");
+        }
+    }
 }
-
 
 =item get_download_directory
 
@@ -742,27 +766,18 @@ sub _get_current_date {
     return $ts;
 }
 
-=item get_zip_path
+=item get_zip_filename
 
-Returns the path to the zip archive to construct for this object.
-
-If called in an array context, returns an array containing 
-the staging path and the name of the zip file. If called in a
-scalar context, returns the path to the zip file.
+Returns the basename of the zip file to construct for this
+object.
 
 =cut
 
-sub get_zip_path {
+sub get_zip_filename {
     my $self = shift;
-    my $staging_path = get_config('staging'=>'ingest');
     my $pt_objid = $self->get_pt_objid();
 
-    if(wantarray) {
-        return ($staging_path,"$pt_objid.zip");
-    } else {
-        return "$staging_path/$pt_objid.zip";
-    }
-
+    return "$pt_objid.zip";
 }
 
 =item get_page_data(file)
@@ -812,17 +827,6 @@ sub get_SIP_filename {
     return sprintf($pattern,$objid);
 }
 
-sub clean_all {
-    my $self = shift;
-    $logger->warn("Removing " . $self->get_staging_directory());
-    remove_tree $self->get_staging_directory();
-    unlink($self->get_mets_path());
-    $logger->warn("Removing " . $self->get_mets_path());
-    unlink($self->get_zip_path());
-    $logger->warn("Removing " . $self->get_zip_path());
-}
-
-
 =item get_preingest_directory
 
 Returns the directory where the raw submitted object is staged. 
@@ -851,33 +855,6 @@ sub get_download_location {
     return;
 }
 
-
-=item mk_preingest_directory
-
-makes preingest directory, if $flag, creates it on disk rather than ram and symlinks to ram.
-returns preingest directory (or the link if $flag)
-
-=synopsis
-mk_preingest_directory($flag)
-=cut
-
-sub mk_preingest_directory{
-    my $self = shift;
-    my $flag = shift;
-    
-    my $stage_dir = $self->get_preingest_directory();
-    
-    if($flag){
-        my $disk_stage_dir = $self->get_preingest_directory(1);
-        mkdir($disk_stage_dir) or croak("Can't mkdir $disk_stage_dir: $!");
-        symlink($disk_stage_dir,$stage_dir) or croak("Can't symlink $disk_stage_dir,$stage_dir: $!");
-    }
-    else{
-        mkdir($stage_dir) or croak("Can't mkdir $stage_dir: $!");
-    }
-
-    return $stage_dir;
-}
 
 =item clear_premis_events
 

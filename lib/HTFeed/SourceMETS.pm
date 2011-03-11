@@ -5,7 +5,6 @@ use strict;
 use warnings;
 use HTFeed::METS;
 use Log::Log4perl qw(get_logger);
-use File::Path qw(remove_tree);
 use XML::LibXML;
 use base qw(HTFeed::METS);
 
@@ -83,10 +82,7 @@ sub clean_always {
 sub clean_success {
     # clean volume preingest directory
     my $self = shift;
-    my $dir = $self->{volume}->get_preingest_directory();
-    
-    $logger->warn("Removing " . $dir);
-    return remove_tree $dir;
+    return $self->clean_preingest();
 }
 
 # do cleaning that is appropriate after failure

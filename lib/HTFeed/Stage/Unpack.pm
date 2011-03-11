@@ -59,6 +59,13 @@ sub _extract_file {
     return 1;
 }
 
+sub run {
+    my $self = shift;
+
+    my $volume = $self->{volume};
+    $volume->make_staging_directories($self->stage_on_disk());
+}
+
 1;
 
 __END__

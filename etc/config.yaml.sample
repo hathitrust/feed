@@ -21,12 +21,14 @@ premis_config: /htapps/babel/feed/etc/premis.yaml
 staging:
   download: /htprep/download
   fetch: /htprep/mpub_dcu
-  ingest: /ram/staging
-  zip: /ram/zip_staging
-  preingest: /ram/preingest
+  ingest: /ram/feed/ingest
+  zip: /ram/feed/zip
+  zipfile: /ram/feed/zipfile
+  preingest: /ram/feed/preingest
   disk:
-    ingest: /htprep/ingest
-    preingest: /htprep/preingest
+    ingest: /l/prep/feed/ingest
+    preingest: /l/prep/feed/preingest
+    zipfile: /l/prep/feed/zipfile
 
 ram_disk: /ram
 ram_fill_limit: 0.8

@@ -6,7 +6,6 @@ use base qw(HTFeed::Volume);
 use HTFeed::XMLNamespaces qw(:namespaces);
 use HTFeed::Config qw(get_config);
 use List::MoreUtils qw(uniq);
-use File::Path qw(remove_tree);
 use Carp qw(croak);
 use Log::Log4perl qw(get_logger);
 
@@ -315,18 +314,13 @@ sub _set_pagenumber {
     }
 }
 
-=item get_preingest_directory
-
-Returns the directory where the raw submitted object is staged
-
-=cut
 
 sub get_preingest_directory {
     my $self = shift;
-    my $flag = shift;
+    my $ondisk = shift;
 
     my $objid = $self->get_objid();
-    return sprintf("%s/%s", get_config('staging'=>'disk'=>'preingest'), $objid) if $flag;
+    return sprintf("%s/%s", get_config('staging'=>'disk'=>'preingest'), $objid) if $ondisk;
     return sprintf("%s/%s", get_config('staging'=>'preingest'), $objid);
 }
 
@@ -440,9 +434,3 @@ sub get_capture_time {
     return $self->{capture_time};
 }
 
-sub clean_all {
-    my $self = shift;
-    $self->SUPER::clean_all();
-    $logger->warn("Removing " . $self->get_preingest_directory());
-    remove_tree $self->get_preingest_directory();
-}

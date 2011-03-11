@@ -28,8 +28,10 @@ sub _get_dirs{
     return [get_config('staging'=>'ingest'),
             get_config('staging'=>'zip'),
             get_config('staging'=>'preingest'),
+            get_config('staging'=>'zipfile'),
             get_config('staging'=>'disk'=>'ingest'),
             get_config('staging'=>'disk'=>'preingest'),
+            get_config('staging'=>'disk'=>'zipfile'),
     ];
 }
 

@@ -91,7 +91,7 @@ sub run_job {
         if ( $status eq 'punted' ) {
             get_logger()->info( 'VolumePunted', objid => $job->{id}, namespace => $job->{namespace} );
             eval {
-                $volume->clean_all() if $volume and $clean;
+                $stage->clean_punt() if $stage and $clean;
             };
             if($@) {
                 get_logger()->error( 'UnexpectedError', objid => $job->{id}, namespace => $job->{namespace}, detail => "Error cleaning volume: $@");
@@ -99,8 +99,6 @@ sub run_job {
         }
         update_queue($job->{namespace}, $job->{id}, $status, 1);
 
-        ## This makes no sense re: line 170
-        $stage->clean_punt() if ($stage and $status eq 'punted');
     }
 }
 
