@@ -1,4 +1,4 @@
-package HTFeed::PackageType::MPub;
+package HTFeed::PackageType::MPubDig;
 
 use HTFeed::PackageType;
 use base qw(HTFeed::PackageType);
@@ -10,9 +10,9 @@ use HTFeed::Stage::Pack;
 use HTFeed::Stage::Handle;
 use HTFeed::Stage::Collate;
 
-#base case for MPub DCU
+#base case for MPub DigOnDemand
 
-our $identifier = 'mpub';
+our $identifier = 'DigOnDemand';
 
 our $config = {
     volume_module => 'HTFeed::Volume',
@@ -111,6 +111,7 @@ __END__
 =pod
 
 This is the package type configuration file for base case MPub materials
+Specifically DigOnDemand
 
 =head1 SYNOPSIS
 

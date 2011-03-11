@@ -20,6 +20,7 @@ premis_config: /htapps/babel/feed/etc/premis.yaml
 
 staging:
   download: /htprep/download
+  fetch: /htprep/mpub_dcu
   ingest: /ram/staging
   zip: /ram/zip_staging
   preingest: /ram/preingest
