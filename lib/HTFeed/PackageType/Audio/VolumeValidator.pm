@@ -13,18 +13,11 @@ use Log::Log4perl qw(get_logger);
 
 my $logger = get_logger(__PACKAGE__);
 
-=item _validate_mets_consistency
-
-test special logic for audio METS validation
-
-=cut
-
 sub new {
     my $class = shift;
     my $self = $class->SUPER::new(@_);
 	$self->{stages}{validate_mets_consistency} = \&_validate_mets_consistency;
-	$self->{stages}{validate_wave_checksums} = \&_validate_wave_checksums;
-	$self->{stages}{validate_jp2} = \&_validate_jp2;
+	$self->{stages}{validate_consistency} = \&_validate_consistency;
 	return $self;
 }
 
@@ -143,112 +136,43 @@ sub _validate_mets_consistency {
     return;
 }
 
-
-=item _validate_mets_checksums
-
-validate checksums for wave files only
-based on checksum value in mets file
-
-=cut
-
-sub _validate_wave_checksums {
-
-	my $self = shift;
-	my $volume = $self->{volume};
-	my $path = $volume->get_staging_directory();
-	my $checksums = $volume->get_checksums();
-
-	my @tovalidate = uniq(
-		sort( (
-			@{ $volume->get_jhove_files() },
-			keys( %{ $volume->get_checksums() } )
-		) )
-	);
-
-	my @bad_files = ();
-
-	foreach my $file (@tovalidate) {
-		next unless ($file =~ /[ap]m\d{2,8}.(wav)/);
-		my $expected = $checksums->{$file};
-		my $actual =md5sum("$path/$file");
-
-		if ($actual ne $expected ) {
-			$self->set_error(
-				"BadChecksum",
-				field => 'checksum',
-				file => $file,
-				expected => $expected,
-				actual => $actual
-			);
-			push( @bad_files, "$file" );
-		}
-	}
-
-	my $outcome;
-	if (@bad_files) {
-		$outcome = PREMIS::Outcome->new('warning');
-		$outcome->add_file_list_detail( "files failed checksum validation",
-			"failed", \@bad_files );
-	}
-	else {
-		$outcome = PREMIS::Outcome->new('pass');
-	}
-	$volume->record_premis_event( 'page_md5_fixity', outcome => $outcome );
-
-	return;
-
-}
-
-sub md5sum {
-	my $file = shift;
-
-	my $ctx = Digest::MD5->new();
-	my $fh;
-	open( $fh, "<", $file ) or croak("Can't open $file: $!");
-	$ctx->addfile($fh);
-	close($fh);
-	return $ctx->hexdigest();
-}
-
-sub _validate_jp2 {
-
-    my $self = shift;
-	my $path = shift;
+sub _validate_consistency {
+    my $self   = shift;
     my $volume = $self->{volume};
 
-    my @tovalidate = uniq(
-        sort( (
-            @{ $volume->get_jhove_files() },
-            keys( %{ $volume->get_checksums() } )
-        ) )
-    );
+    my @filegroup_names = keys( %{ $volume->get_file_groups(); } );
+    my $files = $volume->get_file_groups_by_page();
 
-    foreach my $file (@tovalidate) {
-		next unless ($file =~ /\w+\.(jp2)/);
+    # Make sure there are no gaps in the sequence
+    if ( !$volume->get_nspkg->get('allow_sequence_gaps') ) {
+        my $prev_sequence_number = 0;
+        my @sequence_numbers     = sort( keys(%$files) );
+        foreach my $sequence_number (@sequence_numbers) {
+            if ( $sequence_number > $prev_sequence_number + 1 ) {
+                $self->set_error( "MissingFile",
+                    detail =>
+                    "Skip sequence number from $prev_sequence_number to $sequence_number"
+                );
+            }
+            $prev_sequence_number = $sequence_number;
+        }
+    }
 
-		my $dir = $volume->get_staging_directory();
-    	my $files_for_cmd = join( ' ', map { "$dir/$_" } $file );
-    	my $jhove_path = get_config('jhove');
-    	my $jhove_conf = get_config('jhoveconf');
-    	my $jhove_cmd = "$jhove_path -h XML -c $jhove_conf -m JPEG2000-hul " . $files_for_cmd;
+	# TODO only look for matches in am/pm
+    # Make sure each filegroup has an object for each sequence number
+    while ( my ( $sequence_number, $files ) = each( %{$files} ) ) {
+        if ( keys( %{$files} ) != @filegroup_names ) {
+            $self->set_error( "MissingFile",
+                detail => "File missing for $sequence_number: have "
+                . join( q{,}, keys %{$files} )
+                . '; expected '
+                . join( q{,}, @filegroup_names ) );
+        }
+    }
 
-		my @result_lines = split("\n", `$jhove_cmd`);
+    return;
 
-		foreach my $line (@result_lines) {
-			next unless ($line =~/status/);
-			my $expected = "Well-Formed and valid";
-			if($line !~ /$expected/i) {
-				$self->set_error(
-					"BadFile",
-                	file => $file,
-                	expected => $expected,
-                	actual => $line
-            );
-
-			} else {
-				return;
-			}
-		}
-	}
 }
+
+
 1;
