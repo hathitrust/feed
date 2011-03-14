@@ -8,6 +8,8 @@ use HTFeed::PackageType::Audio::Volume;
 our $identifier = 'audio';
 
 our $config = {
+    description => 'Voice of America audio content',
+
     volume_module => 'HTFeed::PackageType::Audio::Volume',
 
     # Regular expression that distinguishes valid files in the file package

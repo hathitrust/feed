@@ -7,6 +7,7 @@ our $identifier = 'mdlcontone_mhsc';
 
 our $config = {
     %{$HTFeed::PackageType::MDLContoneMHS::config},
+    description => 'Minnesota Historical Society images - composite objects',
 
     # what stage to run given the current state
     stage_map => {

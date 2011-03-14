@@ -24,6 +24,8 @@ use HTFeed::PackageType::IA::SourceMETS;
 our $identifier = 'ia';
 
 our $config = {
+    description => 'Internet Archive-digitized book content',
+
     volume_module => 'HTFeed::PackageType::IA::Volume',
 
     # Regular expression that distinguishes valid files in the file package

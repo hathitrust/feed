@@ -56,7 +56,8 @@ sub packageify{
     $string =~ s/\//::/g;
     $string =~ s/\.pm//g;
     my $key = ${$string . "::identifier"};
-    return "$string - $key";
+    my $desc = ${$string . "::config"}->{description};
+    return "$string - $key - $desc";
 }
 
 sub file_identifier {

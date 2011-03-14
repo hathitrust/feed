@@ -13,6 +13,7 @@ use strict;
 our $identifier = 'mdlcontone';
 
 our $config = {
+    description => 'Minnesota Digital Library contone images',
     volume_module => 'HTFeed::Volume',
 
     # Regular expression that distinguishes valid files in the file package

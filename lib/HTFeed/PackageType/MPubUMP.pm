@@ -15,6 +15,7 @@ use HTFeed::Stage::Collate;
 our $identifier = 'ump2ht';
 
 our $config = {
+    description => 'UM Press-digitized material',
     volume_module => 'HTFeed::Volume',
     
     # Regular expression that distinguishes valid files in the file package

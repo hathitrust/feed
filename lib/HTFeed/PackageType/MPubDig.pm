@@ -15,6 +15,7 @@ use HTFeed::Stage::Collate;
 our $identifier = 'DigOnDemand';
 
 our $config = {
+    description => 'DLPS Digitize on Demand',
     volume_module => 'HTFeed::Volume',
     
     # Regular expression that distinguishes valid files in the file package

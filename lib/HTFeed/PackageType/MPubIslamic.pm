@@ -13,6 +13,7 @@ use HTFeed::Stage::Collate;
 our $identifier = 'islamic_manuscripts';
 
 our $config = {
+    description => 'DCU-digitized Islamic Manuscripts',
     volume_module => 'HTFeed::Volume',
     
     # Regular expression that distinguishes valid files in the file package

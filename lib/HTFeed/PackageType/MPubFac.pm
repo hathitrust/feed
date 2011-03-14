@@ -15,6 +15,7 @@ use HTFeed::Stage::Collate;
 our $identifier = 'faculty_reprints';
 
 our $config = {
+    description => 'MPub Faculty Reprints',
     volume_module => 'HTFeed::Volume',
     
     # Regular expression that distinguishes valid files in the file package

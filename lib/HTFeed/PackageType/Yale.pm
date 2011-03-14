@@ -21,6 +21,7 @@ use HTFeed::XPathValidator qw(:closures);
 our $identifier = 'yale';
 
 our $config = {
+    description => 'Yale University-digitized book material',
 
     # Yale volumes will be cached on disk
     volume_module => 'HTFeed::PackageType::Yale::Volume',

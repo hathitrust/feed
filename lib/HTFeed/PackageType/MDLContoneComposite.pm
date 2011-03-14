@@ -14,6 +14,8 @@ our $identifier = 'mdlcontone_composite';
 our $config = {
     %{$HTFeed::PackageType::MDLContone::config},
 
+    description => 'Minnesota Digital Library images- composite objects',
+
     # Regular expression that distinguishes valid files in the file package
     # HTML OCR is valid for the package type but only expected/required for UC1
     valid_file_pattern => qr/^( 

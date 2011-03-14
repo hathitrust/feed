@@ -15,6 +15,7 @@ use HTFeed::Stage::Collate;
 our $identifier = 'mpub';
 
 our $config = {
+    description => 'Mpublishing/DCU digitized material',
     volume_module => 'HTFeed::Volume',
     
     # Regular expression that distinguishes valid files in the file package

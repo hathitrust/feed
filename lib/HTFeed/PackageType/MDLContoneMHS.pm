@@ -9,6 +9,7 @@ our $identifier = 'mdlcontone_mhs';
 
 our $config = {
     %{$HTFeed::PackageType::MDLContone::config},
+    description => 'Minnesota Historical Society images',
     volume_module => 'HTFeed::Volume',
 
     # Regular expression that distinguishes valid files in the file package
