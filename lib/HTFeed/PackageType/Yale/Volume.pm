@@ -433,4 +433,3 @@ sub get_capture_time {
 
     return $self->{capture_time};
 }
-
