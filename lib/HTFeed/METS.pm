@@ -309,9 +309,11 @@ sub _add_source_mets_events {
         push( @{ $src_premis_events->{$event_type} }, $src_event );
     }
 
-    foreach my $eventtype (
+    foreach my $eventcode (
         @{ $volume->get_nspkg()->get('source_premis_events_extract') } )
     {
+        my $eventconfig = $volume->get_nspkg()->get_event_configuration($eventcode);
+        my $eventtype = $eventconfig->{type};
         next unless defined $src_premis_events->{$eventtype};
         foreach my $src_event ( @{ $src_premis_events->{$eventtype} } ) {
             my $eventid = $xc->findvalue( "./premis:eventIdentifier[premis:eventIdentifierType='UUID']/premis:eventIdentifierValue",

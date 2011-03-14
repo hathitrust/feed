@@ -102,10 +102,10 @@ our $config = {
     # What PREMIS events to extract from the source METS and include
     source_premis_events_extract => [
     'capture',
-    'image compression',
-    'image header modification',
-    'message digest calculation',
-    'source mets creation'
+    'image_compression',
+    'image_header_modification',
+    'page_md5_create',
+    'source_mets_creation'
     ],
 
     # What PREMIS events to include (by internal PREMIS identifier, 
