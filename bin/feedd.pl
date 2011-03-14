@@ -117,6 +117,8 @@ sub wait_kid{
 # determine if we are done
 sub exit_condition{
     my $condition = -e get_config('daemon'=>'stop_file');
+
+    return $condition;
 }
 
 sub get_next_job{
