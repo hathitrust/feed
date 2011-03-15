@@ -12,9 +12,6 @@ our @EXPORT_OK = qw(set_config);
 
 my $config;
 
-# build error message at startup in case $ENV{HTFEED_CONFIG} changes 
-my $bad_path_error_message = "";
-
 init();
 
 sub init{
@@ -30,9 +27,6 @@ sub init{
     # load config file
     eval{
         $config = YAML::XS::LoadFile($config_file);
-        # Make sure error message refers to config we actually loaded
-        $bad_path_error_message = 
-            sprintf("%s Error: %%s is not data member in your config file (%s)", __PACKAGE__, $config);
         my $premis_config = YAML::XS::LoadFile(get_config('premis_config'));
         # copy premis config to main config
         while(my ($key, $val) = each(%$premis_config)) {
@@ -59,11 +53,11 @@ sub get_config{
     my $cursor = $config;
     foreach my $hashlevel (@_) {
         # die if we try to traverse the tree past a leaf
-        croak( sprintf($bad_path_error_message, join('=>',@_)) ) if (!ref($cursor));
+        croak( sprintf("%s is not in the config file", join('=>',@_)) ) if (!ref($cursor));
         $cursor = $cursor->{$hashlevel};
         
         # die if we try to traverse the tree where no path exists
-        croak( sprintf($bad_path_error_message, join('=>',@_)) ) if (not defined $cursor);
+        croak( sprintf("%s is not in the config file", join('=>',@_)) ) if (not defined $cursor);
     }
     return $cursor;
 }
@@ -72,7 +66,7 @@ sub get_config{
 change an entry after config is loaded
 this probably shouldn't be used in production, but will be quite helpful in test scripts
 
-change_config('setting','path'=>'to'=>'my'=>'setting')
+set_config('setting','path'=>'to'=>'my'=>'setting')
 =cut
 sub set_config{
     my $setting = shift;
@@ -80,7 +74,7 @@ sub set_config{
     my $cursor = $config;
     foreach my $hashlevel (@_) {
         $cursor = $cursor->{$hashlevel};
-        croak( sprintf("$bad_path_error_message", join('=>',@_,$leaf)) ) if (! ref($cursor));
+        croak( sprintf("%s is not in the config file", join('=>',@_,$leaf)) ) if (! ref($cursor));
     }
     $cursor->{$leaf} = $setting;
     return 1;
