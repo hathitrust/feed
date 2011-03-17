@@ -7,7 +7,7 @@ database:
 jhove: /l/local/bin/jhove
 jhoveconf: /l/local/jhove/conf/jhove.conf
 
-xerces: /l/local/xerces-c/bin/SAX2Count
+xerces: "/htapps/babel/feed/bin/validateCache /ram/schema.cache"
 kdu_munge: /l/local/bin/kdu_munge
 
 jhove: /l/local/bin/jhove

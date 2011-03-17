@@ -540,9 +540,9 @@ sub validate_xml {
     my $xerces = get_config('xerces');
 
     my $filename       = shift;
-    my $validation_cmd = "$xerces -f -p $filename 2>&1";
+    my $validation_cmd = "$xerces $filename 2>&1";
     my $val_results    = `$validation_cmd`;
-    if ( $val_results =~ /Error/ || $? ) {
+    if ( $val_results !~ /$filename OK/ || $? ) {
         wantarray ? return ( 0, $val_results ) : return (0);
     }
     else {
