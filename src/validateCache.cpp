@@ -109,15 +109,15 @@ class ValidateCacheHandlers : public DefaultHandler
 };
 
 int main(int argc, char** argv) {
-    bool errorOccurred;
+    bool errorOccurred = false;
     if(argc != 3) {
-        cout << "Usage: validateCache file.xml grammar.store" << endl;
+        cout << "Usage: validateCache schema.cache file.xml" << endl;
         exit(255);
     }
 
     XMLPlatformUtils::Initialize();
 
-    BinInputStream* grammarIn = new BinFileInputStream(argv[2]);
+    BinInputStream* grammarIn = new BinFileInputStream(argv[1]);
     Janitor<BinInputStream> janIn(grammarIn);
 
     XMLGrammarPool* grammarPool = new XMLGrammarPoolImpl(XMLPlatformUtils::fgMemoryManager);
@@ -147,19 +147,19 @@ int main(int argc, char** argv) {
     parser->setContentHandler(&handler);
 
     try {
-        parser->parse(argv[1]);
+        parser->parse(argv[2]);
     } catch (const XMLException& e) {
         errorOccurred = true;
         cout << StrX(e.getMessage()) << endl;
     }
 
     if(!handler.getSawError() && !errorOccurred) {
-        cout << argv[1] << " OK" << endl;
+        cout << argv[2] << " OK" << endl;
     } else {
         errorOccurred = true;
     }
 
-    BinOutputStream* grammarOut = new BinFileOutputStream(argv[2]);
+    BinOutputStream* grammarOut = new BinFileOutputStream(argv[1]);
     Janitor<BinOutputStream> janOut(grammarOut);
 
     try {
