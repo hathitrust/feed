@@ -212,12 +212,16 @@ sub make_staging_directories{
 
     foreach my $stage_type qw(preingest staging zip) {
         my $stage_dir = eval "\$self->get_${stage_type}_directory()";
+        next unless $stage_dir and $stage_dir ne '';
         if($ondisk) {
             my $disk_stage_dir = eval "\$self->get_${stage_type}_directory(1)";
-            mkdir($disk_stage_dir) or croak("Can't mkdir $disk_stage_dir: $!");
+            mkdir($disk_stage_dir)
+                or croak("Can't mkdir $disk_stage_dir: $!");
+
             symlink($disk_stage_dir,$stage_dir) or croak("Can't symlink $disk_stage_dir,$stage_dir: $!");
         } else {
-            mkdir($stage_dir) or croak("Can't mkdir $stage_dir: $!");
+            mkdir($stage_dir)
+                or croak("Can't mkdir $stage_dir: $!");
         }
     }
 }
