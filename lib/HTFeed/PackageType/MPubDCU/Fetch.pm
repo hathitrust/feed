@@ -1,4 +1,4 @@
-package HTFeed::PackageType::MPub::Fetch;
+package HTFeed::PackageType::MPubDCU::Fetch;
 
 use strict;
 use warnings;

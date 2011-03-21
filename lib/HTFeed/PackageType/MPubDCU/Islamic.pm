@@ -1,18 +1,13 @@
-package HTFeed::PackageType::MPubIslamic;
+package HTFeed::PackageType::MPubDCU::Islamic;
 
-use HTFeed::PackageType;
-use base qw(HTFeed::PackageType);
+use warnings;
 use strict;
-
-use HTFeed::PackageType::MPub::Fetch;
-use HTFeed::VolumeValidator;
-use HTFeed::Stage::Handle;
-use HTFeed::Stage::Pack;
-use HTFeed::Stage::Collate;
+use base qw(HTFeed::PackageType::MPubDCU);
 
 our $identifier = 'islamic_manuscripts';
 
 our $config = {
+    %{$HTFeed::PackageType::MPubDCU::config},
     description => 'DCU-digitized Islamic Manuscripts',
     volume_module => 'HTFeed::Volume',
     
@@ -54,7 +49,7 @@ __END__
 
 =pod
 
-This is the package type configuration file for MPub materials (Islamic MSS)
+This is the package type configuration file for MPubDCU materials (Islamic MSS)
 
 =head1 SYNOPSIS
 

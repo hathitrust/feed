@@ -1,11 +1,41 @@
 package HTFeed::PackageType;
 
+# This has to be added before factory-loading -- automatically
+# loads the volume module, stages, & module validator subclasses,
+# so that they don't have to be explicitly require'd.
+BEGIN {
+    sub on_factory_load {
+        no strict 'refs';
+
+        my $class = shift;
+        my $config = ${"${class}::config"};
+        my $volclass = $config->{volume_module};
+        my $stage_map = $config->{stage_map};
+        my $mod_validators = $config->{module_validators};
+        require_modules($volclass,values(%$stage_map),values(%$mod_validators));
+
+    }
+
+    sub require_modules {
+        foreach my $module (@_) {
+            next unless defined $module and $module ne '';
+            $module =~ s/::/\//g;
+            require $module . ".pm";
+        }
+    }
+}
+
 use warnings;
 use strict;
 use Carp;
 use HTFeed::FactoryLoader 'load_subclasses';
 
 use base qw(HTFeed::FactoryLoader);
+
+our $identifier = "pkgtype";
+our $config = {
+    description => "Base class for HathiTrust package types"
+};
 
 =item get($config)
 
@@ -26,12 +56,14 @@ sub get {
     my $config = ${"${class}::config"};
 
     if (defined $config->{$config_var}) {
-	return $config->{$config_var};
+        return $config->{$config_var};
     } else {
-	croak("Can't find namespace/packagetype configuration variable $config_var");
+        croak("Can't find namespace/packagetype configuration variable $config_var");
     }
 
 }
+
+
 
 1;
 __END__

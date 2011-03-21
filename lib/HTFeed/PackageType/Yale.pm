@@ -1,20 +1,8 @@
 package HTFeed::PackageType::Yale;
+
 use HTFeed::PackageType;
 use base qw(HTFeed::PackageType);
 use strict;
-
-use HTFeed::VolumeValidator;
-##TODO: commented out to not break compile
-#use HTFeed::PackageType::Yale::METS;
-use HTFeed::Stage::Handle;
-use HTFeed::Stage::Pack;
-use HTFeed::Stage::Collate;
-use HTFeed::PackageType::Yale::Volume;
-use HTFeed::PackageType::Yale::Unpack;
-use HTFeed::PackageType::Yale::VerifyManifest;
-use HTFeed::PackageType::Yale::ExtractOCR;
-use HTFeed::PackageType::Yale::ImageRemediate;
-use HTFeed::PackageType::Yale::SourceMETS;
 
 use HTFeed::XPathValidator qw(:closures);
 

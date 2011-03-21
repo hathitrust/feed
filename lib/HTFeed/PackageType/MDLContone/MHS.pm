@@ -1,8 +1,7 @@
-package HTFeed::PackageType::MDLContoneMHS;
+package HTFeed::PackageType::MDLContone::MHS;
 use HTFeed::XPathValidator qw(:closures);
-use HTFeed::PackageType::MDLContone;
-use HTFeed::PackageType::MDLContoneComposite::METS;
 use base qw(HTFeed::PackageType::MDLContone);
+use warnings;
 use strict;
 
 our $identifier = 'mdlcontone_mhs';
@@ -53,7 +52,7 @@ our $config = {
         ready      => 'HTFeed::PackageType::MDLContone::Unpack',
         unpacked   => 'HTFeed::PackageType::MDLContone::VolumeValidator',
         validated  => 'HTFeed::Stage::Pack',
-        packed     => 'HTFeed::PackageType::MDLContoneComposite::METS',
+        packed     => 'HTFeed::PackageType::MDLContone::Composite::METS',
         metsed     => 'HTFeed::Stage::Handle',
         handled    => 'HTFeed::Stage::Collate',
     },

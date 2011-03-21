@@ -1,9 +1,8 @@
 package HTFeed::PackageType::Audio;
 
-use strict;
 use warnings;
+use strict;
 use base qw(HTFeed::PackageType);
-use HTFeed::PackageType::Audio::Volume;
 
 our $identifier = 'audio';
 
@@ -71,7 +70,7 @@ our $config = {
     allow_sequence_gaps => 0,
 
     stage_map => {
-        ready             => 'HTFeed::PackageType::Audio::Unpack',
+#        ready             => 'HTFeed::PackageType::Audio::Unpack',
         unpacked          => 'HTFeed::PackageType::Audio::VolumeValidator',
         validated         => 'HTFeed::Stage::Pack',
         packed            => 'HTFeed::PackageType::Audio::METS',

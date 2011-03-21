@@ -1,14 +1,10 @@
 package HTFeed::PackageType::MDLContone;
-use HTFeed::XPathValidator qw(:closures);
-use HTFeed::PackageType;
-use HTFeed::PackageType::MDLContone::Unpack;
-use HTFeed::PackageType::MDLContone::VolumeValidator;
-use HTFeed::PackageType::MDLContone::METS;
-use HTFeed::Stage::Handle;
-use HTFeed::Stage::Pack;
-use HTFeed::Stage::Collate;
-use base qw(HTFeed::PackageType);
+
+use warnings;
 use strict;
+use base qw(HTFeed::PackageType);
+
+use HTFeed::XPathValidator qw(:closures);
 
 our $identifier = 'mdlcontone';
 

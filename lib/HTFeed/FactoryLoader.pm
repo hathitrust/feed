@@ -3,6 +3,7 @@ package HTFeed::FactoryLoader;
 use warnings;
 use strict;
 use File::Basename;
+use File::Find;
 use Carp;
 
 # common base stuff for namespace & packagetype
@@ -18,34 +19,45 @@ sub import {
     # If called as use HTFeed::FactoryLoader qw(load_subclasses)
     if(@_ and $_[0] eq 'load_subclasses') {
 
-	my $caller = caller();
-	# determine the subdirectory to find plugins in
-	my $module_path = $caller;
-	$module_path =~ s/::/\//g;
-	my $relative_path = $module_path;
-	$module_path .= '.pm';
-	$module_path = $INC{$module_path};
-	$module_path =~ s/.pm$//;
+        my $caller = caller();
+        # determine the subdirectory to find plugins in
+        my $module_path = $caller;
+        $module_path =~ s/::/\//g;
+        my $relative_path = $module_path;
+        $module_path = $INC{$module_path . ".pm"} ;
+        $module_path =~ s/.pm$//;
 
-	my $dh;
-	opendir( $dh, $module_path ) or croak("Can't readdir $module_path: $!");
+#        warn("Factory loading in $module_path\n");
 
-	# load each apparent perl module in the subdirectory and map from
-	# the identifier in each subclass to the class name
-	foreach my $package (
-	    map { substr( $_, 0, length($_) - 3 ) }
-	    grep { /^\w+\.pm$/ && -f "$module_path/$_" } readdir $dh
-	  )
-	{
-	    no strict 'refs';
-	    require "$relative_path/$package.pm";
-	    my $subclass_identifier = ${"${caller}::${package}::identifier"};
-	    croak("${caller}::${package} missing identifier")
-	      unless defined $subclass_identifier;
-	    $subclass_map{$caller}{$subclass_identifier} = "${caller}::${package}";
-	}
+        find ( { no_chdir => 1,
+                wanted => sub {
+                    my $file = $File::Find::name;
+                    if($file =~ qr(^$module_path/(.*)\.pm$) and -f $file) {
 
-	closedir($dh);
+                        my $package = $1;
+                        no strict 'refs';
+#                        warn("Requiring $relative_path/$package.pm in factory loader" . "\n");
+                        require "$relative_path/$package.pm";
+                        $package =~ s/\//::/g;
+                        # determine if this package is something we should have bothered loading
+                        my $is_subclass = eval "${caller}::${package}->isa(\$caller)"; 
+                        if($is_subclass) {
+                            my $subclass_identifier = ${"${caller}::${package}::identifier"};
+                            die("${caller}::${package} missing identifier")
+                                unless defined $subclass_identifier;
+#                            warn("${caller}::${package} -> $subclass_identifier loaded\n");
+                            $subclass_map{$caller}{$subclass_identifier} = "${caller}::${package}";
+
+                            # run callback for when package was loaded, if it exists
+                            if(eval "${caller}::${package}->can('on_factory_load')") {
+                                eval "${caller}::${package}->on_factory_load()";
+                                if($@) { die $@ };
+                            }
+                        }
+
+                    }
+            } }, $module_path );
+
     }
 
 }

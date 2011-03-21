@@ -4,7 +4,6 @@ use strict;
 use FindBin;
 use lib "$FindBin::Bin/../lib";
 
-use HTFeed::Version;
 use HTFeed::StagingSetup;
 use HTFeed::Run;
 
@@ -15,6 +14,7 @@ use HTFeed::DBTools qw(get_queued lock_volumes count_locks);
 use Log::Log4perl qw(get_logger);
 use Filesys::Df;
 
+use HTFeed::Version;
 print("feedd running, waiting for something to ingest\n");
 
 my $process_id = $$;

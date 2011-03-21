@@ -2,24 +2,7 @@ package HTFeed::PackageType::IA;
 
 use warnings;
 use strict;
-
 use base qw(HTFeed::PackageType);
-use HTFeed::PackageType::IA::Volume;
-
-use HTFeed::VolumeValidator;
-##TODO: commented out to not break compile
-#use HTFeed::PackageType::IA::METS;
-use HTFeed::Stage::Handle;
-use HTFeed::Stage::Pack;
-use HTFeed::Stage::Collate;
-use HTFeed::PackageType::IA::Download;
-use HTFeed::PackageType::IA::VerifyManifest;
-use HTFeed::PackageType::IA::Unpack;
-use HTFeed::PackageType::IA::DeleteCheck;
-use HTFeed::PackageType::IA::OCRSplit;
-use HTFeed::PackageType::IA::ImageRemediate;
-use HTFeed::PackageType::IA::SourceMETS;
-
 
 our $identifier = 'ia';
 

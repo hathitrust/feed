@@ -11,6 +11,11 @@ use HTFeed::Config qw(get_config);
 
 use base qw(HTFeed::FactoryLoader);
 
+our $identifier = "namespace";
+our $config = {
+    description => "Base class for HathiTrust namespaces"
+};
+
 sub new {
     my $class = shift;
     my $namespace_id = shift;

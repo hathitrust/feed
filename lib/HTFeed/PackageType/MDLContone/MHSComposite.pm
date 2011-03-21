@@ -1,12 +1,13 @@
-package HTFeed::PackageType::MDLContoneMHSComposite;
-use HTFeed::PackageType::MDLContoneMHS;
-use base qw(HTFeed::PackageType::MDLContoneMHS);
+package HTFeed::PackageType::MDLContone::MHSComposite;
+
+use base qw(HTFeed::PackageType::MDLContone::MHS);
+use warnings;
 use strict;
 
 our $identifier = 'mdlcontone_mhsc';
 
 our $config = {
-    %{$HTFeed::PackageType::MDLContoneMHS::config},
+    %{$HTFeed::PackageType::MDLContone::MHS::config},
     description => 'Minnesota Historical Society images - composite objects',
 
     # what stage to run given the current state
@@ -14,7 +15,7 @@ our $config = {
         ready      => 'HTFeed::PackageType::MDLContone::Unpack',
         unpacked   => 'HTFeed::VolumeValidator',
         validated  => 'HTFeed::Stage::Pack',
-        packed     => 'HTFeed::PackageType::MDLContoneComposite::METS',
+        packed     => 'HTFeed::PackageType::MDLContone::Composite::METS',
         metsed     => 'HTFeed::Stage::Handle',
         handled    => 'HTFeed::Stage::Collate',
     },

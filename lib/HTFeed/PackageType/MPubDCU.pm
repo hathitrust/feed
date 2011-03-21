@@ -1,21 +1,16 @@
-package HTFeed::PackageType::MPubUMP;
+package HTFeed::PackageType::MPubDCU;
 
-use HTFeed::PackageType;
-use base qw(HTFeed::PackageType);
+use warnings;
 use strict;
+use base qw(HTFeed::PackageType);
 
-use HTFeed::PackageType::MPub::Fetch;
-use HTFeed::VolumeValidator;
-use HTFeed::Stage::Pack;
-use HTFeed::Stage::Handle;
-use HTFeed::Stage::Collate;
 
-#base case for MPub (UM Press)
+#base case for MPub DCU
 
-our $identifier = 'ump2ht';
+our $identifier = 'mpub';
 
 our $config = {
-    description => 'UM Press-digitized material',
+    description => 'Mpublishing/DCU digitized material',
     volume_module => 'HTFeed::Volume',
     
     # Regular expression that distinguishes valid files in the file package
@@ -23,7 +18,6 @@ our $config = {
 		checksum\.md5 |
 		pageview\.dat |
 		\w+\.(xml) |
-		\w+\.(pdf) |
 		\d{8}.(html|jp2|tif|txt)
 		)/x,
 
@@ -66,7 +60,7 @@ our $config = {
 
     # What stage to run given the current state.
     stage_map => {
-        ready		=> 'HTFeed::PackageType::MPub::Fetch',
+        ready		=> 'HTFeed::PackageType::MPubDCU::Fetch',
         fetched		=> 'HTFeed::VolumeValidator',
 		validated	=> 'HTFeed::Stage::Pack',
         packed		=> 'HTFeed::Stage::Handle',
@@ -113,7 +107,6 @@ __END__
 =pod
 
 This is the package type configuration file for base case MPub materials
-Specifically UM Press
 
 =head1 SYNOPSIS
 
