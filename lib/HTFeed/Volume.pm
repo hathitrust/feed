@@ -13,8 +13,8 @@ use HTFeed::DBTools;
 use Time::localtime;
 use File::Pairtree;
 use Data::UUID;
+use File::Path qw(remove_tree);
 
-our $logger = get_logger(__PACKAGE__);
 
 # The namespace UUID for HathiTrust
 use constant HT_UUID => '09A5DAD6-3484-11E0-9D45-077BD5215A96';
@@ -463,7 +463,7 @@ sub get_marc_xml {
         q(//mets:dmdSec/mets:mdWrap[@MDTYPE="MARC"]/mets:xmlData));
 
     if ( $mdsec_nodes->size() ) {
-        $logger->warn("Multiple MARC mdsecs found") if ( $mdsec_nodes->size() > 1 );
+        get_logger()->warn("Multiple MARC mdsecs found") if ( $mdsec_nodes->size() > 1 );
         my $node = $mdsec_nodes->get_node(0)->firstChild();
         # ignore any whitespace, etc.
         while($node->nodeType() != XML_ELEMENT_NODE) {
@@ -877,8 +877,60 @@ sub clear_premis_events {
 
 }
 
+
+=item _clean_vol_path
+
+    remove staging directory
+
+=cut
+
+sub _clean_vol_path {
+    my $self = shift;
+    my $stagetype = shift;
+
+    foreach my $ondisk (0,1) {
+        my $dir = eval "\$self->get_${stagetype}_directory($ondisk)";
+        if(-e $dir) {
+            get_logger()->warn("Removing " . $dir);
+            remove_tree $dir;
+        }
+    }
+}
+
+# unlink unpacked object
+sub clean_unpacked_object {
+    my $self = shift;
+    return $self->_clean_vol_path('staging');
+}
+
+# unlink zip
+sub clean_zip {
+    my $self     = shift;
+    return $self->_clean_vol_path('zip');
+}
+
+# unlink mets file
+sub clean_mets {
+    my $self = shift;
+    return unlink $self->get_mets_path();
+}
+
+# unlink preingest directory tree
+sub clean_preingest {
+    my $self = shift;
+    return $self->_clean_vol_path('preingest');
+}
+
+# unlink SIP
+sub clean_download {
+    my $self = shift;
+    my $dir = $self->get_download_location();
+    if(defined $dir) {
+        get_logger()->debug("Removing " . $dir);
+        return remove_tree $dir;
+    }
+}
+
 1;
 
-
-
-__END__;
+__END__

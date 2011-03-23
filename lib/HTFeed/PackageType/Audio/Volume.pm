@@ -10,9 +10,9 @@ use Log::Log4perl qw(get_logger);
 my $logger = get_logger(__PACKAGE__);
 
 
-sub get_download_location {
-    # don't try to remove anything on clean
-    return undef;
+# don't try to remove SIP on clean
+sub clean_download{
+    return;
 }
 
 sub get_file_groups_by_page {
@@ -44,3 +44,5 @@ sub get_file_groups_by_page {
 }
 
 1;
+
+__END__
