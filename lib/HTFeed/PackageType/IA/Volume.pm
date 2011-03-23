@@ -93,7 +93,7 @@ sub get_download_directory {
     my $self = shift;
     my $ia_id = $self->get_ia_id();
     my $path = get_config('staging'=>'download');
-    my $pt_path = "$path/ia/" . id2ppath($ia_id);
+    my $pt_path = "$path/ia/$ia_id";
     make_path($pt_path) unless -e $pt_path;
     return $pt_path;
 }

@@ -142,6 +142,12 @@ sub md5sum($) {
     $fh->close();
 }
 
+# do cleaning that is appropriate after failure
+sub clean_failure{
+    my $self = shift;
+    $self->clean_download();
+}
+
 1;
 
 __END__
