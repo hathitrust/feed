@@ -11,13 +11,7 @@ use HTFeed::DBTools qw(update_queue);
 
 use Filesys::Df;
 
-our @EXPORT = qw(run_job can_run_job);
-
-# can_run_job( $job )
-sub can_run_job {
-    my $job = shift;
-    return ( exists HTFeed::Namespace->new($job->{namespace},$job->{pkg_type})->get('stage_map')->{$job->{status}} );
-}
+our @EXPORT = qw(run_job);
 
 # run_job( $job, $clean )
 sub run_job {
@@ -28,14 +22,9 @@ sub run_job {
     my $stage;
 
     eval {
-        $volume = HTFeed::Volume->new(
-            objid       => $job->{id},
-            namespace   => $job->{namespace},
-            packagetype => $job->{pkg_type},
-        );
-        my $stage_class = $volume->get_nspkg()->get('stage_map')->{$job->{status}};
+        $volume = $job->volume;
 
-        $stage = eval "$stage_class->new(volume => \$volume)";
+        $stage = $job->stage;
         
 #        # check if there is space on ramdisk
 #        my $required_size = $stage->ram_disk_size();

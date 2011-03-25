@@ -414,6 +414,20 @@ sub get_stages{
     return $stages;
 }
 
+=item get_stage($start_state)
+
+Returns string containing the name of the next stage this Volume needs for ingest
+
+=cut
+
+sub next_stage{
+    my $self = shift;
+    my $stage_map = $self->get_nspkg()->get('stage_map');
+    my $stage_name = shift;
+    $stage_name = 'ready' if not defined $stage_name;
+    return $stage_map->{$stage_name};
+}
+
 =item get_jhove_files
 
 Get all files that will need to have their metadata validated with JHOVE

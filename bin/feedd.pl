@@ -22,8 +22,8 @@ my $subprocesses = 0;
 my @jobs = ();
 my %locks_by_key = ();
 my %locks_by_pid = ();
-## TODO: set this somewhere else
-my $clean = 1;
+
+my $clean = get_config('daemon'=>'clean');
 
 # kill children on SIGINT, SIGTERM
 $SIG{'INT'} =
@@ -59,6 +59,8 @@ $SIG{'HUP'} =
 
         HTFeed::Config::init();
         HTFeed::DBTools::_init();
+        
+        $clean = get_config('daemon'=>'clean');
     };
 
 # exit right away if stop file is set
@@ -137,7 +139,7 @@ sub get_next_job{
 }
 
 sub fill_queue{
-    # db ops were crashing, this will catch them
+    # db ops were crashing, this will catch them, in which case
     # the internal queue will be starved until fill_queue runs again after the next wait()
     eval{
         my $needed_volumes = get_config('volumes_in_process_limit') - count_locks();
@@ -146,8 +148,11 @@ sub fill_queue{
         }
     
         if (my $sth = get_queued()){
-            while(my $job = $sth->fetchrow_hashref()){
-                push (@jobs, $job) if (! is_locked($job) and can_run_job($job));
+            while(my $job_info = $sth->fetchrow_arrayref()){
+                ## TODO: Make sure this works
+                my $job = HTFeed::Job->new(@{$job_info},\&update_queue);
+                ## if !can_run_job, $job will never be released
+                push (@jobs, $job) if (! is_locked($job) and $job->runnable);
             }
             $sth->finish();
         }
