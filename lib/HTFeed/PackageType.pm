@@ -18,9 +18,10 @@ BEGIN {
 
     sub require_modules {
         foreach my $module (@_) {
-            next unless defined $module and $module ne '';
-            $module =~ s/::/\//g;
-            require $module . ".pm";
+            my $modname = $module;
+            next unless defined $modname and $modname ne '';
+            $modname =~ s/::/\//g;
+            require $modname . ".pm";
         }
     }
 }
