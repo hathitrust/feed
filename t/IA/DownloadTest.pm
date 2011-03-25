@@ -5,19 +5,11 @@ use strict;
 use warnings;
 use Setup;
 
-#which need to be here?
-use File::Temp ();
-use File::Copy;
-use HTFeed::Config qw(set_config);
-use Getopt::Long;
-use FindBin;
-use HTFeed::Volume;
-use HTFeed::Log {root_logger => 'TRACE, file'};
-use YAML::XS ();
 use base qw(Test::Class);
-use Test::More;
-use HTFeed::Volume;
 use Test::Class;
+use HTFeed::Config qw(set_config);
+use HTFeed::Volume;
+use Test::More;
 use HTFeed::PackageType::IA::Download;
 
 my $self = shift;
