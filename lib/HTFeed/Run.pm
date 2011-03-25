@@ -8,7 +8,6 @@ use Log::Log4perl qw(get_logger);
 use HTFeed::Config qw(get_config);
 use HTFeed::Namespace;
 use HTFeed::DBTools qw(update_queue);
-
 use Filesys::Df;
 
 our @EXPORT = qw(run_job can_run_job);
@@ -89,7 +88,7 @@ sub run_job {
         get_logger()->info( 'StageFailed', objid => $job->{id}, namespace => $job->{namespace}, stage => ref($stage) );
 
         if ( $status eq 'punted' ) {
-            get_logger()->info( 'VolumePunted', objid => $job->{id}, namespace => $job->{namespace} );
+            get_logger()->info( 'VolumePunted', objid => $job->{id}, namespace => $job->{namespace}, stage => ref($stage) );
             eval {
                 $stage->clean_punt() if $stage and $clean;
             };
