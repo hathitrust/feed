@@ -111,6 +111,7 @@ sub lock_volumes{
     return 0 unless ($item_count > 0);
     
     ## TODO: order by priority
+    #my $sth = get_dbh()->prepare(q(UPDATE queue SET node = ? WHERE node IS NULL AND status = 'ready' ORDER BY priority LIMIT ?;));
     my $sth = get_dbh()->prepare(q(UPDATE queue SET node = ? WHERE node IS NULL AND status = 'ready' LIMIT ?;));
     $sth->execute(hostname,$item_count);
 
