@@ -22,7 +22,7 @@ use HTFeed::Log {root_logger => 'TRACE, file'};
 use Test::More;
 
 # get test config
-my $config_file = "$FindBin::Bin/etc/yale.yaml";
+my $config_file = "$FindBin::Bin/../etc/package.yaml";
 my $config_data = YAML::XS::LoadFile($config_file);
 
 my $all_pass_staging = $config_data->{package_directory}->{all_pass};
@@ -40,6 +40,8 @@ my $package_types = $config_data->{package_types};
 while( my ($package_type,$namespaces) = each %{ $package_types } ){
     while( my ($namespace,$objects) = each %{ $namespaces } ){
         foreach my $object ( @{ $objects } ){
+
+		next unless $package_type eq "yale";
 
             # get environment
             my ($objid,$fail_error_count) = @{$object};

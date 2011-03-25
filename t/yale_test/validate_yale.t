@@ -22,7 +22,7 @@ use HTFeed::Log {root_logger => 'TRACE, file'};
 use Test::More;
 
 # get test config
-my $config_file = "$FindBin::Bin/etc/yale.yaml";
+my $config_file = "$FindBin::Bin/../etc/package.yaml";
 my $config_data = YAML::XS::LoadFile($config_file);
 
 my $setup_mode;
