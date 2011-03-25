@@ -7,6 +7,7 @@ use base qw(HTFeed::PackageType);
 our $identifier = 'ia';
 
 our $config = {
+    %{$HTFeed::PackageType::config},
     description => 'Internet Archive-digitized book content',
 
     volume_module => 'HTFeed::PackageType::IA::Volume',
@@ -89,9 +90,12 @@ our $config = {
     ],
 
     premis_events => [
-        'page_md5_fixity',      'package_validation',
-        'page_feature_mapping', 'zip_compression',
-        'zip_md5_create',       'ingestion',
+        'page_md5_fixity',
+        'package_validation',
+        'page_feature_mapping',
+        'zip_compression',
+        'zip_md5_create',
+        'ingestion',
     ],
 
     # Overrides for the basic PREMIS event configuration
@@ -100,7 +104,6 @@ our $config = {
           { detail => 'Splitting of IA XML OCR into one plain text OCR file and one XML file (with coordinates) per page', }
     },
 
-    checksum_file => 0, # no separate checksum file for IA
     source_mets_file => qr/^IA_ark\+=13960=\w+\.xml$/,
 
     # Allow gaps in numerical sequence of filenames?
@@ -122,20 +125,6 @@ our $config = {
         handled           => 'HTFeed::Stage::Collate',
     },
 
-    # The list of filegroups that contain files that will be validated
-    # by JHOVE
-    metadata_filegroups => [qw(image)],
-
-    # The list of filegroups that contain files that should be validated
-    # to use valid UTF-8
-    utf8_filegroups => [qw(ocr hocr)],
-
-    # The HTFeed::ModuleValidator subclass to use for validating
-    # files with the given extensions
-    module_validators => {
-        'jp2'  => 'HTFeed::ModuleValidator::JPEG2000_hul',
-        'tif'  => 'HTFeed::ModuleValidator::TIFF_hul',
-    },
 
     # Validation overrides
     validation => {
@@ -156,7 +145,6 @@ our $config = {
     '%s_files.xml',
     '%s_scanfactors.xml' ],
 
-    uncompressed_extensions => [qw(tif jp2)],
 
 };
 

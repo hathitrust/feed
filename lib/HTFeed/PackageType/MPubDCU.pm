@@ -10,6 +10,7 @@ use base qw(HTFeed::PackageType);
 our $identifier = 'mpub';
 
 our $config = {
+    %{$HTFeed::PackageType::config},
     description => 'Mpublishing/DCU digitized material',
     volume_module => 'HTFeed::Volume',
     
@@ -46,18 +47,6 @@ our $config = {
     # The file containing the checksums for each data file
     checksum_file => qr/^checksum.md5$/,
 
-    # Allow gaps in numerical sequence of filenames?
-    allow_sequence_gaps => 0,
-
-	validation_run_stages => [
-    qw(validate_file_names 
-    validate_filegroups_nonempty
-    validate_consistency
-    validate_checksums
-    validate_utf8
-    validate_metadata)
-    ],
-
     # What stage to run given the current state.
     stage_map => {
         ready		=> 'HTFeed::PackageType::MPubDCU::Fetch',
@@ -66,23 +55,6 @@ our $config = {
         packed		=> 'HTFeed::Stage::Handle',
         handled		=> 'HTFeed::Stage::Collate',
 	},
-
-	# Filegroups that contain files that will be validated by JHOVE
-	metadata_filegroups	=> [qw(image)],
-
-	# Filegroups that contain files that should be validated to use UTF-8
-	utf8_filegroups		=> [qw(ocr)],
-
-    # The HTFeed::ModuleValidator subclass to use for validating
-    # files with the given extensions
-    module_validators => {
-        'jp2'  => 'HTFeed::ModuleValidator::JPEG2000_hul',
-        'tif'  => 'HTFeed::ModuleValidator::TIFF_hul',
-    },
-
-    # Validation overrides
-    validation => {
-    },
 
     # What PREMIS events to include (by internal PREMIS identifier, 
     # configured in config.yaml)
@@ -97,9 +69,6 @@ our $config = {
 	'ingestion',
     ],
 
-    # filename extensions not to compress in zip file
-    uncompressed_extensions => ['tif','jp2'],
-    
 };
 
 __END__
