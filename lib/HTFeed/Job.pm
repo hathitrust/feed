@@ -43,8 +43,9 @@ $job->update("collated");
 =cut
 sub update{
     my $self = shift;
-
-    my $fail = $self->stage->failed;
+    
+    my $stage = $self->stage;
+    my $fail = $stage->failed;
     my $new_status = $stage->get_stage_info('success_state');
     $new_status = $stage->get_stage_info('failure_state') if ($fail);
 
