@@ -5,8 +5,11 @@ use strict;
 
 use FindBin;
 use lib "$FindBin::Bin/../lib";
-use HTFeed::Volume;
+
 use HTFeed::Log {root_logger => 'INFO, screen'};
+use HTFeed::Job;
+use HTFeed::Run;
+
 use Getopt::Long;
 use HTFeed::StagingSetup;
 
@@ -29,51 +32,47 @@ my $startstate  = shift;
 usage() unless ($objid and $namespace and $packagetype);
 
 sub usage {
-    print "usage: ingest_test.pl [ -i | --ignore_errors ] [ --no-clean ] packagetype namespace objid [ state ]\n";
+    ## -i not doesn't work
+    # print "usage: ingest_test.pl [ -i | --ignore_errors ] [ --no-clean ] packagetype namespace objid [ state ]\n";
+    print "usage: ingest_test.pl [ --no-clean ] packagetype namespace objid [ state ]\n";
     exit 0;
 }
 
+# make staging dirs
 HTFeed::StagingSetup::make_stage();
 
-my $stage;
-my $errors = 0;
-my $volume = HTFeed::Volume->new(objid => $objid,namespace => $namespace,packagetype => $packagetype);
+my $job;
 
-my $stagelist = $volume->get_stages($startstate);
-print sprintf("Test ingest of %s %s %s commencing...\n",$packagetype,$namespace,$objid);
-print "Running stages: \n\n" . join("\n",@$stagelist), "\n";
-print "-----\n";
-foreach my $stage_name (@$stagelist) {
-    my $stage_volume = HTFeed::Volume->new(objid => $objid,namespace => $namespace,packagetype => $packagetype);
-    my $stage = eval "$stage_name->new(volume => \$stage_volume)";
-    $errors += run_stage($stage);
-    if ($errors and !$ignore_errors){
-        print "Ingest terminated due to failure\n";
-        if($clean) { $stage->clean_punt(); }
-        last;
-    }
+# instantiate first job for ingest
+$job = HTFeed::Job->new(pkg_type => $packagetype, namespace => $namespace, id => $objid, status => $startstate, callback => \&new_job);
+
+# run successive jobs until new_job fails to create one
+while($job){
+    run_job($job,$clean);
 }
 
-sub run_stage{
-    my $stage = shift;
+# callback method for $job->update
+# reports on success of stage and next state
+# and instantiates next $job
+sub new_job{
+    my ($ns,$id,$status,$release,$fail) = @_;
     
-    print "Running stage " . ref($stage) . "..\n";
+    # print results of last stage
+    my $stage = $job->stage_class;
+    my $report = "$ns $id: $stage ";
+    $report .= 'FAILED    ' if ($fail);
+    $report .= 'SUCCEEDED ' if (! $fail);
+    $report .= " - New status: $status\n";
+    print $report;
     
-    $stage->run();
-    if ($stage->succeeded()){
-        print "success\n";
+    if ($release){
+        # ingest complete
+        $job = undef;
+        print "Ingest complete\n";
     }
     else{
-        print "failure\n";
+        # instantiate job for next stage
+        $job = HTFeed::Job->new(pkg_type => $packagetype, namespace => $namespace, id => $objid, status => $status, callback => \&new_job);
     }
-
-    if($clean) {
-        $stage->clean();
-    }
-    
-    return $stage->failed();
 }
-
-print 'Volume ' . $volume->get_identifier() . " ingested unsuccessfully with $errors errors!\n" if ($errors);
-print 'Volume ' . $volume->get_identifier() . " ingested successfully!\n" unless ($errors);
 
