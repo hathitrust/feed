@@ -10,7 +10,7 @@ use DBD::mysql;
 
 use base qw(Exporter);
 
-our @EXPORT_OK = qw(get_dbh get_queued lock_volumes update_queue count_locks);
+our @EXPORT_OK = qw(get_dbh get_queued lock_volumes update_queue count_locks get_volumes_with_status);
 
 my %release_states = map {$_ => 1} @{get_config('daemon'=>'release_states')};
 
@@ -178,6 +178,26 @@ sub update_queue {
     $syntax .= qq( WHERE namespace = '$ns' AND id = '$objid';);
     
     get_dbh()->do($syntax);
+}
+
+# get_volumes_with_status($namespace, $pkg_type, $status, $limit)
+# Returns a reference to a list of objids for all volumes with the given
+# namespace, package type.  By default returns all volumes, or will return up
+# to $limit volumes if the $limit parameter is given.
+sub get_volumes_with_status {
+    my ($pkg_type, $namespace, $status, $limit) = @_;
+    my $query = qq(SELECT id FROM queue WHERE namespace = ? and pkg_type = ? and status = ?);
+    if($limit) { $query .= " LIMIT $limit"; }
+    my $sth = get_dbh()->prepare($query);
+    $sth->execute($namespace,$pkg_type,$status);
+    my $results = $sth->fetchall_arrayref();
+    # extract first (and only) column from results;
+    my $toreturn = [ map { $_->[0] } (@$results) ];
+    $sth->finish();
+
+    return $toreturn;
+
+
 }
 
 1;

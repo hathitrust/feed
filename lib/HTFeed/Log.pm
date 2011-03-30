@@ -31,6 +31,7 @@ my %error_codes = (
     BadValue            => 'Invalid value for field',
     OperationFailed     => 'Operation failed',
     FatalError          => 'Fatal error',
+    GRINError           => 'GRIN could not convert book',
     IncompleteStage     => 'Stage did not complete',
     MissingField        => 'Missing field value',
     MissingFile         => 'Missing file',
