@@ -80,6 +80,9 @@ stop_on_error: 1
 # true to spawn subprocesses to handle each stage
 fork: 1
 
+# enable debug
+debug: 0
+
 handle:
   repo_url_base: http://babel.hathitrust.org/cgi/pt?id=
   root_admin: 0.NA/2027

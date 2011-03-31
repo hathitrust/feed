@@ -82,7 +82,7 @@ sub clean_always {
 sub clean_success {
     # clean volume preingest directory
     my $self = shift;
-    return $self->clean_preingest();
+    return $self->{volume}->clean_preingest();
 }
 
 # do cleaning that is appropriate after failure

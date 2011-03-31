@@ -144,9 +144,17 @@ sub set_info {
     );
 }
 
-# run this to do appropriate cleaning after run()
-# this generally should not be overriden,
-# instead override clean_success() and clean_failure()
+=item clean
+
+run this to do appropriate cleaning after run()
+this generally should not be overriden,
+instead override clean_success() and clean_failure()
+
+=synopsis
+
+$stage->clean();
+
+=cut
 sub clean {
     my $self    = shift;
     my $success = $self->succeeded();
@@ -189,6 +197,28 @@ sub clean_punt{
     $volume->clean_zip();
     $volume->clean_unpacked_object();
     $volume->clean_preingest();
+    
+    return;
+}
+
+=item force_failed_status
+
+force stage to report success/failure
+
+=synopsis
+
+$stage->force_failed_status($failed)
+
+=cut
+
+sub force_failed_status{
+    my $self = shift;
+    my $failed = shift;
+    
+    croak "force_failed_status is only for testing" unless (get_config("debug"));
+
+    $self->_set_done();
+    $self->{failed} = $failed;
     
     return;
 }
