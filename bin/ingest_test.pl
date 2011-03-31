@@ -13,6 +13,10 @@ use HTFeed::Run;
 use Getopt::Long;
 use HTFeed::StagingSetup;
 
+use HTFeed::Config qw(get_config set_config);
+
+set_config('1','debug');
+
 # autoflush STDOUT
 $| = 1;
 
@@ -27,14 +31,12 @@ GetOptions (
 my $packagetype = shift;
 my $namespace = shift;
 my $objid = shift;
-my $startstate  = shift;
+my $startstate = (shift or 'ready');
 
 usage() unless ($objid and $namespace and $packagetype);
 
 sub usage {
-    ## -i not doesn't work
-    # print "usage: ingest_test.pl [ -i | --ignore_errors ] [ --no-clean ] packagetype namespace objid [ state ]\n";
-    print "usage: ingest_test.pl [ --no-clean ] packagetype namespace objid [ state ]\n";
+    print "usage: ingest_test.pl [ -i | --ignore_errors ] [ --no-clean ] packagetype namespace objid [ state ]\n";
     exit 0;
 }
 
@@ -47,32 +49,36 @@ my $job;
 $job = HTFeed::Job->new(pkg_type => $packagetype, namespace => $namespace, id => $objid, status => $startstate, callback => \&new_job);
 
 # run successive jobs until new_job fails to create one
-while($job){
-    run_job($job,$clean);
+if ($ignore_errors){
+    while($job){
+        run_job($job,$clean,0);    
+    }
 }
+else{
+    while($job){
+        run_job($job,$clean);
+    }
+}
+
+HTFeed::StagingSetup::clear_stage() if ($clean);
 
 # callback method for $job->update
 # reports on success of stage and next state
 # and instantiates next $job
 sub new_job{
     my ($ns,$id,$status,$release,$fail) = @_;
-    
-    # print results of last stage
-    my $stage = $job->stage_class;
-    my $report = "$ns $id: $stage ";
-    $report .= 'FAILED    ' if ($fail);
-    $report .= 'SUCCEEDED ' if (! $fail);
-    $report .= " - New status: $status\n";
-    print $report;
+
+    print "New status: $status\n";
     
     if ($release){
-        # ingest complete
         $job = undef;
-        print "Ingest complete\n";
+        print "Lock released\n";
     }
     else{
         # instantiate job for next stage
-        $job = HTFeed::Job->new(pkg_type => $packagetype, namespace => $namespace, id => $objid, status => $status, callback => \&new_job);
+        my $failure_count = $job->failure_count;
+        $failure_count++ if ($fail);
+        $job = HTFeed::Job->new($packagetype, $namespace, $objid, $status, $failure_count,\&new_job);
     }
 }
 
