@@ -11,7 +11,22 @@ use Filesys::Df;
 
 our @EXPORT = qw(run_job);
 
-# run_job( $job, [$clean], [$force_failed_status])
+=item run_job
+
+Run a job object, should catch and log any errors that are thrown in the process.
+
+=synopsis
+
+All options:
+ run_job( $job, [$clean], [$force_failed_status]);
+Ususal:
+ run_job( $job, 1 );
+Force success:
+ run_job( $job, $clean, 0 );
+Force failure:
+ run_job( $job, $clean, 1 );
+
+=cut
 sub run_job {
     my $job = shift;
     my $clean = shift;
