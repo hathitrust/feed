@@ -2,15 +2,10 @@ package HTFeed::PackageType::IA::Unpack::Test;
 
 use warnings;
 use strict;
-
-use base qw(HTFeed::Stage::AbstractTest);
+use base qw(HTFeed::PackageType::IA::AbstractTest);
 use HTFeed::Test::Support qw(get_fake_stage);
 use File::Path qw(make_path);
 use Test::More;
-
-sub fixDir : Test(setup) {
-	#set config
-}
 
 sub Unpack : Test(1){
     my $self = shift;
