@@ -51,7 +51,7 @@ sub _add_dmdsecs {
     register_namespaces($marc_xc);
     $self->_remediate_marc($marc_xc);
     eval { $xmlschema->validate( $marcxml ); };
-    $logger->warn("WARNING: marc.xml is not valid: $@ \n") if $@;
+    $logger->warn("BadFile",file=>"marc.xml",detail => $@) if $@;
     my $marc_valid = !defined $@;
 
     # Verify arkid in meta.xml matches given arkid

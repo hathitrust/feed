@@ -7,8 +7,6 @@ use base qw(Exporter);
 use Log::Log4perl qw(get_logger);
 use HTFeed::Config qw(get_config);
 use HTFeed::Namespace;
-use HTFeed::DBTools qw(update_queue);
-
 use Filesys::Df;
 
 our @EXPORT = qw(run_job);

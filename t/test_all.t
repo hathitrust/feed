@@ -8,3 +8,4 @@ use Test::Harness;
 chdir $FindBin::Bin;
 
 runtests qw{ db.t objid.t classtests.t validate.t };
+#runtests qw{ test_IA.t };

@@ -86,7 +86,7 @@ sub clean_always{
     my $pt_objid = $self->{volume}->get_pt_objid();
     my $zip_stage = get_config('staging','zip');
     
-    $logger->warn("Removing $zip_stage/$pt_objid");
+    $logger->trace("Removing $zip_stage/$pt_objid");
     remove_tree "$zip_stage/$pt_objid";
 }
 

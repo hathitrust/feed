@@ -16,6 +16,7 @@ use Log::Log4perl;
 
 use HTFeed::Log::Warp;
 use HTFeed::Log::Layout::PrettyPrint;
+use Sys::Hostname;
 
 my $root_log_config = get_config('l4p' => 'root_logger');
 
@@ -106,6 +107,7 @@ sub fields_hash_to_array{
     my $hash = shift;
     my @ret = ();
     
+    $hash->{hostname} = hostname;
     foreach my $field (@fields){
         # handle populated field
         if (my $entry = $hash->{$field}){

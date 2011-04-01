@@ -121,6 +121,7 @@ sub set_error {
         $error,
         namespace => $self->{volume}->get_namespace(),
         objid     => $self->{volume}->get_objid(),
+        stage     => ref($self),
         @_
     );
 
@@ -140,6 +141,7 @@ sub set_info {
         detail    => $message,
         namespace => $self->{volume}->get_namespace(),
         objid     => $self->{volume}->get_objid(),
+        stage     => ref($self),
         @_
     );
 }

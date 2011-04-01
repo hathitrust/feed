@@ -9,6 +9,7 @@ use HTFeed::XPathValidator qw(:closures);
 our $identifier = 'mdlcontone';
 
 our $config = {
+    %{$HTFeed::PackageType::config},
     description => 'Minnesota Digital Library contone images',
     volume_module => 'HTFeed::Volume',
 
@@ -39,7 +40,6 @@ our $config = {
         },
     },
 
-    checksum_file => 0, # no separate checksum file for MDL contone
     source_mets_file => qr/^mdl\.\w+\.\w+\d+\w?\.xml$/,
 
     # Allow gaps in numerical sequence of filenames?
@@ -63,17 +63,6 @@ our $config = {
         packed     => 'HTFeed::PackageType::MDLContone::METS',
         metsed     => 'HTFeed::Stage::Handle',
         handled    => 'HTFeed::Stage::Collate',
-    },
-
-    # The list of filegroups that contain files that will be validated
-    # by JHOVE
-    metadata_filegroups => [qw(image)],
-
-
-    # The HTFeed::ModuleValidator subclass to use for validating
-    # files with the given extensions
-    module_validators => {
-        'jp2'  => 'HTFeed::ModuleValidator::JPEG2000_hul',
     },
 
     # Validation overrides
@@ -116,12 +105,6 @@ our $config = {
     'ingestion',
     ],
 
-    # Overrides for the basic PREMIS event configuration
-    premis_overrides => {
-    },
-
-    # filename extensions not to compress in zip file
-    uncompressed_extensions => ['jp2'],
 
     SIP_filename_pattern => '%s.tar.gz',
 

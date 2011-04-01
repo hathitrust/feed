@@ -7,6 +7,7 @@ use base qw(HTFeed::PackageType);
 our $identifier = 'audio';
 
 our $config = {
+    %{$HTFeed::PackageType::config},
     description => 'Voice of America audio content',
 
     volume_module => 'HTFeed::PackageType::Audio::Volume',
@@ -63,11 +64,7 @@ our $config = {
 	validate_metadata)
 	],
 
-    checksum_file    => 0,
     source_mets_file => qr/\w+.xml$/,
-
-    # Allow gaps in numerical sequence of filenames?
-    allow_sequence_gaps => 0,
 
     stage_map => {
 #        ready             => 'HTFeed::PackageType::Audio::Unpack',
@@ -78,21 +75,12 @@ our $config = {
         handled           => 'HTFeed::Stage::Collate',
     },
 
-	# The list of filegroups that contain files that will be validated
-    # by JHOVE
-    metadata_filegroups => [qw(image)],
-
     # The HTFeed::ModuleValidator subclass to use for validating
     # files with the given extensions
     module_validators => {
         'wav' => 'HTFeed::ModuleValidator::WAVE_hul',
 		'jp2' => 'HTFeed::ModuleValidator::JPEG2000_hul',
     },
-
-    # Validation overrides
-    validation => {
-    },
-
 
     # What PREMIS events to include (by internal PREMIS identifier, 
     # configured in config.yaml)
@@ -122,10 +110,6 @@ our $config = {
         }
     
     },
-
-    # filename extensions not to compress in zip file
-    uncompressed_extensions => [],
-
 
 };
 
