@@ -8,6 +8,7 @@ my %namespace_tags = (
     chi => [qw(bib google)],
     coo => [qw(bib google)],
     inu => [qw(bib google)],
+    loc => [qw(bib ia)],
 #    mdl => [qw(local)],
     mdp => [qw(google)],
 #    miua => [qw(local)],
@@ -159,8 +160,8 @@ SQL
 SQL
     },
     {
-        header => "Number of items ingested (this week)",
-        command => "grep -c ingested /htapps/babel/groove/prep/reports/%s*.csv"
+        header => "Number of items ingested (last week)",
+        command => "zcat `find /htapps/babel/groove/prep/reports/%s -mtime -7 | tail -1` | grep -c ingested"
     },
 #    {
 #        header => "Number of items ingested (total)",
