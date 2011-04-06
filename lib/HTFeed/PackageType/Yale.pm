@@ -9,6 +9,7 @@ use HTFeed::XPathValidator qw(:closures);
 our $identifier = 'yale';
 
 our $config = {
+    %{$HTFeed::PackageType::config},
     description => 'Yale University-digitized book material',
 
     # Yale volumes will be cached on disk
@@ -58,11 +59,7 @@ our $config = {
         }
     },
 
-    checksum_file    => 0,
     source_mets_file => qr/^Yale_\w+\.xml$/,
-
-    # Allow gaps in numerical sequence of filenames?
-    allow_sequence_gaps => 0,
 
     # The list of stages to run to successfully ingest a volume.
     # The list of stages to run to successfully ingest a volume
@@ -79,20 +76,6 @@ our $config = {
         handled           => 'HTFeed::Stage::Collate',
     },
 
-    # The list of filegroups that contain files that will be validated
-    # by JHOVE
-    metadata_filegroups => [qw(image)],
-
-    # The list of filegroups that contain files that should be validated
-    # to use valid UTF-8
-    utf8_filegroups => [qw(ocr hocr)],
-
-    # The HTFeed::ModuleValidator subclass to use for validating
-    # files with the given extensions
-    module_validators => {
-        'jp2' => 'HTFeed::ModuleValidator::JPEG2000_hul',
-        'tif' => 'HTFeed::ModuleValidator::TIFF_hul',
-    },
 
     # Validation overrides
     validation => {
@@ -103,15 +86,6 @@ our $config = {
             ),
         },
     },
-
-    validation_run_stages => [
-        qw(validate_file_names
-          validate_filegroups_nonempty
-          validate_consistency
-          validate_checksums
-          validate_utf8
-          validate_metadata)
-    ],
 
     # What PREMIS events to include in the source METS file
     source_premis_events => [
@@ -137,9 +111,12 @@ our $config = {
     # What PREMIS events to include (by internal PREMIS identifier,
     # configured in config.yaml)
     premis_events => [
-        'page_md5_fixity',      'package_validation',
-        'page_feature_mapping', 'zip_compression',
-        'zip_md5_create',       'ingestion',
+        'page_md5_fixity',
+        'package_validation',
+        'page_feature_mapping',
+        'zip_compression',
+        'zip_md5_create',
+        'ingestion',
     ],
 
     # Overrides for the basic PREMIS event configuration
@@ -147,9 +124,6 @@ our $config = {
         'ocr_normalize' =>
           { detail => 'Extraction of plain-text OCR from ALTO XML', }
     },
-
-    # File extensions not to compress
-    uncompressed_extensions => ['jp2'],
 
     SIP_filename_pattern => '%s.zip',
 

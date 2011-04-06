@@ -122,6 +122,7 @@ sub set_error {
         $error,
         namespace => $self->{volume}->get_namespace(),
         objid     => $self->{volume}->get_objid(),
+        stage     => ref($self),
         @_
     );
 
@@ -141,6 +142,7 @@ sub set_info {
         detail    => $message,
         namespace => $self->{volume}->get_namespace(),
         objid     => $self->{volume}->get_objid(),
+        stage     => ref($self),
         @_
     );
 }
@@ -201,7 +203,7 @@ sub clean_vol_path {
     foreach my $ondisk (0,1) {
         my $dir = eval "\$volume->get_${stagetype}_directory($ondisk)";
         if(-e $dir) {
-            $self->get_logger()->warn("Removing " . $dir);
+            $self->get_logger()->trace("Removing " . $dir);
             remove_tree $dir;
         }
     }
@@ -236,7 +238,7 @@ sub clean_download {
     my $self = shift;
     my $dir = $self->{volume}->get_download_location();
     if(defined $dir) {
-        $self->get_logger()->warn("Removing " . $dir);
+        $self->get_logger()->trace("Removing " . $dir);
         return remove_tree $dir;
     }
 }

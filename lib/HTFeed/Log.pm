@@ -16,6 +16,7 @@ use Log::Log4perl;
 
 use HTFeed::Log::Warp;
 use HTFeed::Log::Layout::PrettyPrint;
+use Sys::Hostname;
 
 my $root_log_config = get_config('l4p' => 'root_logger');
 
@@ -30,6 +31,7 @@ my %error_codes = (
     BadValue            => 'Invalid value for field',
     OperationFailed     => 'Operation failed',
     FatalError          => 'Fatal error',
+    GRINError           => 'GRIN could not convert book',
     IncompleteStage     => 'Stage did not complete',
     MissingField        => 'Missing field value',
     MissingFile         => 'Missing file',
@@ -106,6 +108,7 @@ sub fields_hash_to_array{
     my $hash = shift;
     my @ret = ();
     
+    $hash->{hostname} = hostname;
     foreach my $field (@fields){
         # handle populated field
         if (my $entry = $hash->{$field}){

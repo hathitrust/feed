@@ -2,14 +2,25 @@ package HTFeed::PackageType::Yale::Unpack::Test;
 
 use warnings;
 use strict;
-
-use base qw(HTFeed::Stage::AbstractTest);
+use base qw(HTFeed::PackageType::Yale::AbstractTest);
+use HTFeed::Test::Support qw(get_fake_stage);
+use File::Path qw(make_path);
 use Test::More;
 
-#sub my_test : Test(1){
-#    my $self = shift;
-#    
-#}
+sub Prep : Test(setup){
+	#setup methods here
+}
+
+sub Unpack : Test(1){
+    my $self = shift;
+    my $stage = $self->{test_stage};
+	ok($stage->run(), 'Unpack succeeded');
+}
+
+sub Fail : Test(1){
+	#get broken package
+	#test error conditions
+}
 
 1;
 
