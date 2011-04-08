@@ -37,16 +37,40 @@ my @queries = (
 #        header => "Item records with digital objects",
 #    },
     {
-        header => "Item records without digital objects",
+        #    header => "Item records without digital objects",
+        header => "No digital object",
         required_tags => [qw(bib)],
         query => <<'SQL'
          SELECT count(*) FROM mdp_tracking.nonreturned 
              WHERE namespace = @namespace
 SQL
     },
+    {
+        header => "Not in GRIN",
+        required_tags => [qw(bib google)],
+        query => <<'SQL'
+          SELECT count(*) FROM mdp_tracking.nonreturned 
+            WHERE (namespace, barcode) NOT IN (SELECT ht_namespace, barcode FROM mdp_tracking.grin) 
+                  AND namespace = @namespace
+SQL
+    },
+    {
+        header => "No bib data",
+        required_tags => [qw(bib google)],
+        query => <<'SQL'
+          SELECT count(*) FROM mdp_tracking.grin g 
+            WHERE state IN ('NEW','CONVERTED','PREVIOUSLY_DOWNLOADED','IN_PROCESS') 
+                  AND (ht_namespace,barcode) NOT IN (SELECT namespace,barcode FROM mdp_tracking.book_queue) 
+                  AND (ht_namespace,barcode) NOT IN (SELECT namespace,barcode FROM mdp_tracking.nonreturned) 
+                  AND (ht_namespace,barcode) NOT IN (SELECT namespace,id FROM mdp.rights_current) 
+                  AND overall_error <= 15 
+                  AND src_lib_bibkey is NULL 
+                  AND ht_namespace = @namespace
+SQL
+    },
 
     {
-        header => "Number of items queued/in process",
+        header => "Queued/in process",
         query  => <<'SQL'
         SELECT
           (SELECT count(*) FROM mdp_tracking.book_queue 
@@ -60,7 +84,7 @@ SQL
 SQL
     },
     {
-        header => "Number of items stuck in process (no action in 5 days)",
+        header => "Delayed in process",
         query  => <<'SQL'
         SELECT
           (SELECT count(*) FROM mdp_tracking.book_queue 
@@ -75,16 +99,7 @@ SQL
 SQL
     },
     {
-        header => "Number of items with bib data but NOT IN GRIN",
-        required_tags => [qw(bib google)],
-        query => <<'SQL'
-          SELECT count(*) FROM mdp_tracking.nonreturned 
-            WHERE (namespace, barcode) NOT IN (SELECT ht_namespace, barcode FROM mdp_tracking.grin) 
-                  AND namespace = @namespace
-SQL
-    },
-    {
-        header => "NOT_AVAILABLE_FOR_DOWNLOAD (with or without bib data)",
+        header => "NAFD",
         required_tags => [qw(google)],
         query => <<'SQL'
             SELECT count(*) FROM mdp_tracking.grin
@@ -93,7 +108,7 @@ SQL
 SQL
     },
     {
-        header => "CHECKED_IN (with or without bib data)",
+        header => "CHECKED_IN",
         required_tags => [qw(google)],
         query  => <<'SQL'
             SELECT count(*) FROM mdp_tracking.grin 
@@ -102,7 +117,7 @@ SQL
 SQL
     },
     {
-        header => "High error (with or without bib data)",
+        header => "High error",
         required_tags => [qw(google)],
         query => <<'SQL'
           SELECT count(*) FROM mdp_tracking.grin 
@@ -111,7 +126,7 @@ SQL
 SQL
     },
     {
-        header => "Duplicate (with or without bib data)",
+        header => "Surrogates",
         required_tags => [qw(google)],
         query => <<'SQL'
           SELECT count(*) FROM mdp_tracking.grin 
@@ -120,21 +135,7 @@ SQL
 SQL
     },
     {
-        header => "Available on GRIN AND not high error or duplicate, but missing bib data",
-        required_tags => [qw(bib google)],
-        query => <<'SQL'
-          SELECT count(*) FROM mdp_tracking.grin g 
-            WHERE state IN ('NEW','CONVERTED','PREVIOUSLY_DOWNLOADED','IN_PROCESS') 
-                  AND (ht_namespace,barcode) NOT IN (SELECT namespace,barcode FROM mdp_tracking.book_queue) 
-                  AND (ht_namespace,barcode) NOT IN (SELECT namespace,barcode FROM mdp_tracking.nonreturned) 
-                  AND (ht_namespace,barcode) NOT IN (SELECT namespace,id FROM mdp.rights_current) 
-                  AND overall_error <= 15 
-                  AND src_lib_bibkey is NULL 
-                  AND ht_namespace = @namespace
-SQL
-    },
-    {
-        header => "Number of items failing validation/ingest (total) ",
+        header => "Failing ingest",
         query => <<'SQL'
         SELECT
           (SELECT count(*) FROM mdp_tracking.book_queue 
@@ -146,7 +147,7 @@ SQL
 SQL
     },
     {
-        header => "Number of items failing validation/ingest (attempted last 7 days)",
+        header => "Failed ingest",
         query => <<'SQL'
         SELECT
           (SELECT count(*) FROM mdp_tracking.book_queue 
@@ -160,7 +161,7 @@ SQL
 SQL
     },
     {
-        header => "Number of items ingested (last week)",
+        header => "Ingested in last week",
         command => "zcat `find /htapps/babel/groove/prep/reports/%s -mtime -7 | tail -1` | grep -c ingested"
     },
 #    {
