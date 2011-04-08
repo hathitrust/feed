@@ -110,9 +110,8 @@ sub lock_volumes{
     my $item_count = shift;
     return 0 unless ($item_count > 0);
     
-    ## TODO: order by priority
-    #my $sth = get_dbh()->prepare(q(UPDATE queue SET node = ? WHERE node IS NULL AND status = 'ready' ORDER BY priority LIMIT ?;));
-    my $sth = get_dbh()->prepare(q(UPDATE queue SET node = ? WHERE node IS NULL AND status = 'ready' LIMIT ?;));
+    # low priority numbers go first to make MySQL index happy
+    my $sth = get_dbh()->prepare(q(UPDATE queue SET node = ? WHERE node IS NULL AND status = 'ready' ORDER BY priority ASC, date_added ASC LIMIT ?;));
     $sth->execute(hostname,$item_count);
 
     return $sth->rows;
