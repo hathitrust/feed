@@ -143,9 +143,12 @@ sub _build_new_status{
     
     my $stage = $self->stage;
     
-    my $new_status = ($stage->succeeded) ? 
+    my $success = $stage->succeeded;
+    my $new_status = $success ? 
         $stage->get_stage_info('success_state') : $stage->get_stage_info('failure_state');
-        
+    $new_status = 'punted'
+        if((! $success) and ($self->failure_count >= get_config('failure_limit')));
+    
     return $new_status;
 }
 

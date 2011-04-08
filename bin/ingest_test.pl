@@ -78,6 +78,7 @@ sub new_job{
         # instantiate job for next stage
         my $failure_count = $job->failure_count;
         $failure_count++ if ($fail);
+        #print "Instantiating new job($packagetype, $namespace, $objid, $status, $failure_count,\&new_job)\n";
         $job = HTFeed::Job->new($packagetype, $namespace, $objid, $status, $failure_count,\&new_job);
     }
 }

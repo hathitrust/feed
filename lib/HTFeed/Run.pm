@@ -62,6 +62,11 @@ sub run_job {
     }
 
     if (defined $force_failed_status){
+        my $real_failure = $stage->failed;
+        my $fake_fail_word = $force_failed_status ? 'FAILURE' : 'SUCCESS';
+        my $real_fail_word = $real_failure ? 'FAILURE' : 'SUCCESS';
+        my $warning = "Forced stage staus: $fake_fail_word Real stage status: $real_fail_word";
+        warn $warning;
         $stage->force_failed_status($force_failed_status);
     }
 
