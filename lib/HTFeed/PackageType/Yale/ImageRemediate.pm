@@ -6,7 +6,6 @@ use strict;
 use base qw(HTFeed::Stage);
 
 use Log::Log4perl qw(get_logger);
-my $logger = get_logger(__PACKAGE__);
 
 sub run{
     my $self = shift;

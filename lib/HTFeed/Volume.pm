@@ -14,8 +14,6 @@ use Time::localtime;
 use File::Pairtree;
 use Data::UUID;
 
-our $logger = get_logger(__PACKAGE__);
-
 # The namespace UUID for HathiTrust
 use constant HT_UUID => '09A5DAD6-3484-11E0-9D45-077BD5215A96';
 
@@ -463,7 +461,7 @@ sub get_marc_xml {
         q(//mets:dmdSec/mets:mdWrap[@MDTYPE="MARC"]/mets:xmlData));
 
     if ( $mdsec_nodes->size() ) {
-        $logger->warn("Multiple MARC mdsecs found") if ( $mdsec_nodes->size() > 1 );
+        get_logger()->warn("Multiple MARC mdsecs found") if ( $mdsec_nodes->size() > 1 );
         my $node = $mdsec_nodes->get_node(0)->firstChild();
         # ignore any whitespace, etc.
         while($node->nodeType() != XML_ELEMENT_NODE) {

@@ -6,7 +6,6 @@ use strict;
 use base qw(HTFeed::Stage);
 
 use Log::Log4perl qw(get_logger);
-my $logger = get_logger(__PACKAGE__);
 
 sub run {
     my $self           = shift;
@@ -41,7 +40,7 @@ sub run {
             $set_if_undefined_fields->{'Resolution'} = $resolution;
         }
 
-        $logger->trace("Remediating $file");
+        get_logger()->trace("Remediating $file");
         HTFeed::ImageRemediate::remediate_image(
             $jp2_submitted,     $jp2_remediated,
             $set_always_fields, $set_if_undefined_fields

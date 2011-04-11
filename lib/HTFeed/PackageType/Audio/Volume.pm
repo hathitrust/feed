@@ -7,7 +7,6 @@ use HTFeed::Volume;
 use base qw(HTFeed::Volume);
 use Log::Log4perl qw(get_logger);
 
-my $logger = get_logger(__PACKAGE__);
 
 
 sub get_download_location {

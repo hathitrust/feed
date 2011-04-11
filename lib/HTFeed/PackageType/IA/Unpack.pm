@@ -7,7 +7,6 @@ use base qw(HTFeed::Stage::Unpack);
 use HTFeed::Config qw(get_config);
 
 use Log::Log4perl qw(get_logger);
-my $logger = get_logger(__PACKAGE__);
 
 # return estimated space needed on ramdisk
 sub ram_disk_size{

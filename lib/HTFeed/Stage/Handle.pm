@@ -9,7 +9,6 @@ use HDL::Handle;
 use DBI;
 
 use Log::Log4perl qw(get_logger);
-my $logger = get_logger(__PACKAGE__);
 
 sub run {
     my $self = shift;

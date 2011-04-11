@@ -9,7 +9,6 @@ use File::Basename qw(basename);
 use File::Path qw(remove_tree);
 
 use Log::Log4perl qw(get_logger);
-my $logger = get_logger(__PACKAGE__);
 
 # return estimated space needed on ramdisk
 sub ram_disk_size{
@@ -86,7 +85,7 @@ sub clean_always{
     my $pt_objid = $self->{volume}->get_pt_objid();
     my $zip_stage = get_config('staging','zip');
     
-    $logger->trace("Removing $zip_stage/$pt_objid");
+    get_logger()->trace("Removing $zip_stage/$pt_objid");
     remove_tree "$zip_stage/$pt_objid";
 }
 

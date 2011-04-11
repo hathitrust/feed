@@ -6,7 +6,6 @@ use strict;
 use base qw(HTFeed::Stage Exporter);
 
 use Log::Log4perl qw(get_logger);
-my $logger = get_logger(__PACKAGE__);
 
 our @EXPORT_OK = qw(unzip_file);
 
@@ -35,7 +34,7 @@ sub _extract_file {
 
     $otheroptions = '' if not defined $otheroptions;
 
-    $logger->trace("Extracting $infile with command $command");
+    get_logger()->trace("Extracting $infile with command $command");
 
     # make directory
     unless( -d $outdir or mkdir $outdir, 0770 ){
@@ -55,7 +54,7 @@ sub _extract_file {
         return;
     }
 
-    $logger->trace("Extracting $infile succeeded");
+    get_logger()->trace("Extracting $infile succeeded");
     return 1;
 }
 

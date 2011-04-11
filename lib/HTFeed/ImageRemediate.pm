@@ -5,8 +5,6 @@ use warnings;
 use HTFeed::Config qw(get_config);
 use Log::Log4perl qw(get_logger);
 
-my $logger = get_logger(__PACKAGE__);
-
 =item get_exiftool_fields($file)
 
     Returns a hash of all the tags found by ExifTool in the specified file.
@@ -127,14 +125,14 @@ sub remediate_image($$;$$) {
     if ( !$force_headers->{'Resolution'} ) {
         my $xres = $oldFields->{'Jpeg2000:CaptureXResolution'};
         my $yres = $oldFields->{'Jpeg2000:CaptureYResolution'};
-        $logger->warn("Non-square pixels??! XRes $xres YRes $yres")
+        get_logger()->warn("Non-square pixels??! XRes $xres YRes $yres")
           if ( ( $xres or $yres ) and $xres != $yres );
 
         if ($xres) {
             my $xresunit = $oldFields->{'Jpeg2000:CaptureXResolutionUnit'};
             my $yresunit = $oldFields->{'Jpeg2000:CaptureXResolutionUnit'};
 
-            $logger->warn("Resolution unit awry")
+            get_logger()->warn("Resolution unit awry")
               if ( not $xresunit or not $yresunit or $xresunit ne $yresunit );
 
             $xresunit eq 'um'
