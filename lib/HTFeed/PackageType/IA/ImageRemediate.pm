@@ -1,9 +1,8 @@
 package HTFeed::PackageType::IA::ImageRemediate;
 
-use HTFeed::ImageRemediate;
 use warnings;
 use strict;
-use base qw(HTFeed::Stage);
+use base qw(HTFeed::Stage::ImageRemediate);
 
 use Log::Log4perl qw(get_logger);
 
@@ -40,8 +39,7 @@ sub run {
             $set_if_undefined_fields->{'Resolution'} = $resolution;
         }
 
-        get_logger()->trace("Remediating $file");
-        HTFeed::ImageRemediate::remediate_image(
+        $self->remediate_image(
             $jp2_submitted,     $jp2_remediated,
             $set_always_fields, $set_if_undefined_fields
         );
@@ -53,10 +51,6 @@ sub run {
 
     $self->_set_done();
     return $self->succeeded();
-}
-
-sub stage_info {
-    return { success_state => 'images_remediated', failure_state => '' };
 }
 
 sub get_capture_time {

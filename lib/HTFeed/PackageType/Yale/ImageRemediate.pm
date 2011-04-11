@@ -1,9 +1,8 @@
 package HTFeed::PackageType::Yale::ImageRemediate;
 
-use HTFeed::ImageRemediate;
 use warnings;
 use strict;
-use base qw(HTFeed::Stage);
+use base qw(HTFeed::Stage::ImageRemediate);
 
 use Log::Log4perl qw(get_logger);
 
@@ -31,7 +30,7 @@ sub run{
         my $jp2_remediated = "$stage_path/$1_$2.jp2";
 
 
-        HTFeed::ImageRemediate::remediate_image( $jp2_submitted, $jp2_remediated,
+        $self->remediate_image( $jp2_submitted, $jp2_remediated,
             {'XMP-dc:source' => "$objid/$1_$2.jp2",
              'XMP-tiff:Artist' => 'Kirtas Technologies, Inc.',
              'XMP-tiff:DateTime' => $capture_time}, {} );
@@ -43,10 +42,6 @@ sub run{
     
     $self->_set_done();
     return $self->succeeded();
-}
-
-sub stage_info{
-    return {success_state => 'images_remediated', failure_state => ''};
 }
 
 1;

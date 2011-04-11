@@ -1,9 +1,14 @@
-package HTFeed::ImageRemediate;
+package HTFeed::Stage::ImageRemediate;
 
 use strict;
 use warnings;
+use base qw(HTFeed::Stage);
 use HTFeed::Config qw(get_config);
 use Log::Log4perl qw(get_logger);
+
+sub run {
+    die("Subclass must implement run.");
+}
 
 =item get_exiftool_fields($file)
 
@@ -58,7 +63,8 @@ sub get_exiftool_fields {
 
 =cut
 
-sub remediate_image($$;$$) {
+sub remediate_image {
+    my $self = shift;
     my $infile                   = shift;
     my $outfile                  = shift;
     my $force_headers            = ( shift or {} );
@@ -66,6 +72,8 @@ sub remediate_image($$;$$) {
 
     my $newFields = $force_headers;
     my $oldFields = get_exiftool_fields($infile);
+
+    get_logger()->trace("Remediating $infile to $outfile");
 
     # Jpeg2000:ImageWidth -> XMP-tiff:ImageWidth
     _copy_old_to_new( $oldFields->{'Jpeg2000:ImageWidth'},
@@ -238,5 +246,10 @@ sub _set_new_if_undefined($$$$) {
         $newFields->{$newFieldName} = $newFieldVal;
     }
 }
+
+sub stage_info {
+    return { success_state => 'images_remediated', failure_state => '' };
+}
+
 
 1;
