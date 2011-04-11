@@ -123,12 +123,28 @@ sub _add_dmdsecs {
 }
 
 sub _add_techmds {
+    my $self = shift;
 
-    # Google: notes.txt and pagedata.txt should no longer be present
+    # Add source METS if it is present
+    my $src_mets_file = $self->{volume}->get_source_mets_file();
+    
+    if($src_mets_file) {
+    
+        my $srcmets_mdsec = new METS::MetadataSection( 'techMD',
+            id => $self->_get_subsec_id('TMD'));
+        $srcmets_mdsec->set_md_ref(
+            mdtype => 'OTHER',
+            othermdtype => 'METS',
+            label  => 'Source METS',
+            loctype => 'OTHER',
+            otherloctype => 'SYSTEM',
+            xlink => { href => "$src_mets_file" },
 
-    # MIU: loadcd.log, checksum, pageview.dat, target files?
+        );
+        push( @{ $self->{amd_mdsecs} }, $srcmets_mdsec );
 
-    # UMP: PDF????!?!?!?
+    }
+
 
 }
 
