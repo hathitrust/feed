@@ -3,7 +3,7 @@ package HTFeed::Stage::Unpack;
 use warnings;
 use strict;
 
-use base qw(HTFeed::Stage Exporter);
+use base qw(HTFeed::Stage::DirectoryMaker Exporter);
 
 use Log::Log4perl qw(get_logger);
 
@@ -56,13 +56,6 @@ sub _extract_file {
 
     get_logger()->trace("Extracting $infile succeeded");
     return 1;
-}
-
-sub run {
-    my $self = shift;
-
-    my $volume = $self->{volume};
-    $volume->make_staging_directories($self->stage_on_disk());
 }
 
 1;

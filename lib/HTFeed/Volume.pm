@@ -195,35 +195,6 @@ sub get_zip_path {
     return $self->get_zip_directory() . q(/) . $self->get_zip_filename();
 }
 
-=item make_staging_directories
-
-makes staging directory, if $ondisk, creates it on disk rather than ram and symlinks to ram
-returns staging directory
-
-=synopsis
-make_staging_directories($ondisk)
-=cut
-
-sub make_staging_directories{
-    my $self = shift;
-    my $ondisk = shift;
-
-    foreach my $stage_type qw(preingest staging zip) {
-        my $stage_dir = eval "\$self->get_${stage_type}_directory()";
-        next unless $stage_dir and $stage_dir ne '';
-        if($ondisk) {
-            my $disk_stage_dir = eval "\$self->get_${stage_type}_directory(1)";
-            mkdir($disk_stage_dir)
-                or croak("Can't mkdir $disk_stage_dir: $!");
-
-            symlink($disk_stage_dir,$stage_dir) or croak("Can't symlink $disk_stage_dir,$stage_dir: $!");
-        } else {
-            mkdir($stage_dir)
-                or croak("Can't mkdir $stage_dir: $!");
-        }
-    }
-}
-
 =item get_download_directory
 
 Returns the directory the volume's SIP should be downloaded to

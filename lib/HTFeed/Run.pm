@@ -36,20 +36,6 @@ sub run_job {
 
         $stage = eval "$stage_class->new(volume => \$volume)";
         
-#        # check if there is space on ramdisk
-#        my $required_size = $stage->ram_disk_size();
-#        
-#        if ($required_size){ # no need to check if $required_size == 0
-#            if ($required_size > get_config('ram_disk_max_job_size')){
-#                # there isn't space to do this in memory, do it on disk
-#                $stage->set_run_on_disk();
-#            }
-#            elsif( (df(get_config('ram_disk')){bfree} * get_config('ram_fill_limit')) < $ram_disk_size ){
-#                # there isn't space to do this at the moment, but there will be
-#
-#            }
-#        }
-
         get_logger()->info( 'RunStage', objid => $job->{id}, namespace => $job->{namespace}, stage => ref($stage) );
         $stage->run();
     };

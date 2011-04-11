@@ -17,11 +17,6 @@ use FindBin;
 
 use base qw(HTFeed::Stage);
 
-# return estimated space needed on ramdisk
-sub ram_disk_size{
-    return 1048576; # 1M
-}
-
 sub new {
     my $class = shift;
 
