@@ -29,6 +29,7 @@ my %error_codes = (
     BadFilename         => 'Invalid filename',
     BadUTF              => 'UTF-8 validation error',
     BadValue            => 'Invalid value for field',
+    Blacklisted         => 'Volume blacklisted',
     OperationFailed     => 'Operation failed',
     FatalError          => 'Fatal error',
     GRINError           => 'GRIN could not convert book',
