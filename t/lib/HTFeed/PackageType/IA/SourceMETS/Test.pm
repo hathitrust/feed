@@ -4,46 +4,43 @@ use warnings;
 use strict;
 use base qw(HTFeed::PackageType::IA::AbstractTest);
 use HTFeed::Test::Support qw(get_fake_stage);
+use HTFeed::Config qw(set_config);
+use File::Copy;
 use File::Path qw(make_path);
 use Test::More;
 
+my $damaged = "/htapps/test.babel/feed/t/staging/DAMAGED";
+my $undamaged = "/htapps/test.babel/feed/t/staging/UNDAMAGED";
+
 sub SourceMETS : Test(1){
+	set_config("$undamaged/download","staging"=>"download");
 	my $self = shift;
 	my $stage = $self->{test_stage};
 	ok($stage->run(), 'SourceMETS ok');
 }
 
-sub Errors : Test(4){
-	# set to damaged
+sub Errors : Test(1){
+	set_config($damaged,"staging"=>"download");
+    my $self = shift;
+    my $stage = $self->{test_stage};
+    my $volume = $self->{volume};
+    my $ia_id = $volume->get_ia_id();
+    my $objdir = $volume->get_download_directory();
+    my $scandata = "$objdir/${ia_id}_scandata.xml";
 
-	my $self = shift;
-	my $volume = $self->{volume};
-	my $download_dir = $volume->get_download_directory;
-	my $ia_id = $volume->get_ia_id;
+    #get bad version from "samples"
+    my $samples = "$damaged/samples/ia/${ia_id}";
+    my $broken_scanData = "$samples/${ia_id}_scandata.xml";
+    copy($broken_scanData,$objdir) or die "copy failed: $!";
 
-	#TODO trigger warning for invalid MARC XML
+    ok($stage->run(), 'pass with warnings');
 
-	# $meta_arkid ne $volume->get_objid()
-	my $parser;
-	my $expected = $volume->get_objid();
-	my $metaxml = $parser->parse_file("$download_dir/${ia_id}_meta.xml");
-	my $meta_arkid = $metaxml->findvalue("//identifier-ark");
-	is(! $meta_arkid, $expected, 'unequal values');
-
-	# test missing files
-	my $scandata = "$download_dir/${ia_id}_scandata.xml";
-	is(! $scandata, 'missing scandata detected');
-
-	# $eventdate doesn't match regexp'
-	my $xpc;
-	my $eventdate = $xpc->findvalue("//scribe:scanLog/scribe:scanEvent[1]/scribe:endTimeStamp | //scanLog/scanEvent[1]/endTimeStamp");
-	unlike($eventdate =~ /^(\d\d\d\d)(\d\d)(\d\d)(\d\d)(\d\d)(\d\d)$/, 'eventDate mismatch');
-
-	# $scribe undef
-    my $scribe = $xpc->findvalue("//scribe:scanLog/scribe:scanEvent[1]/scribe:scribe | //scanLog/scanEvent[1]/scribe");
-	is($scribe, undef, 'undefined scribe detected');
+    #replace with standard scandata for next stage test
+    my $clean_copy = "$undamaged/download/ia/$ia_id/${ia_id}_scandata.xml";
+    copy($clean_copy,$objdir) or die "copy failed: $!";
 
 }
+
 1;
 
 __END__
