@@ -11,7 +11,7 @@ sub startup : Test(startup => 3){
     my $t_class = $self->testing_class();
 
     # instantiate and make sure the it isa what it should be
-    my $volume = get_test_volume();
+    my $volume = get_test_volume('ia');
     my $obj = new_ok( $t_class => [volume => $volume] );
     isa_ok($obj, 'HTFeed::Stage', $t_class);
 

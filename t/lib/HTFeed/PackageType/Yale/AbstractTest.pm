@@ -11,7 +11,7 @@ sub startup : Test(startup => 3){
     my $t_class = $self->testing_class();
 
     # instantiate and make sure the it isa what it should be
-    my $volume = get_test_volume();
+    my $volume = get_test_volume('yale');
     my $obj = new_ok( $t_class => [volume => $volume] );
     isa_ok($obj, 'HTFeed::Stage', $t_class);
 
@@ -23,12 +23,12 @@ sub startup : Test(startup => 3){
 }
 
 # make a clean stage for each test method
-#sub setup : Test(setup){
-#    my $self = shift;
-#    my $t_class = $self->testing_class();
-#    my $volume = $self->{volume};
-#    $self->{test_stage} = eval "$t_class->new(volume => \$volume)";
-#}
+sub setup : Test(setup){
+    my $self = shift;
+    my $t_class = $self->testing_class();
+    my $volume = $self->{volume};
+    $self->{test_stage} = eval "$t_class->new(volume => \$volume)";
+}
 
 1;
 
