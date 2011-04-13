@@ -88,4 +88,7 @@ handle:
     username: USERNAME
     password: PASSWORD
 
-
+jira:
+  wsdl: https://wush.net/jira/hathitrust/rpc/soap/jirasoapservice-v2?wsdl
+  username: USERNAME
+  password: PASSWORD
