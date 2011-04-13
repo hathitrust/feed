@@ -1,4 +1,6 @@
 #!/usr/bin/perl
+use strict;
+use warnings;
 use FindBin;
 use lib "$FindBin::Bin/../lib";
 use SOAP::Lite;
@@ -23,17 +25,11 @@ foreach my $issue (@$issues) {
     my $key = $issue->{key};
     print STDERR "Working on $key", "\n";
     my $url = '';
-    my @urls;
-    # Get the 'item URL' custom field (customfield_10010)
-    foreach my $customField ( @{$issue->{'customFieldValues'}} ) {
-        if($customField->{'customfieldId'} eq 'customfield_10040') {
-            $url = $customField->{'values'}->[0];
-            @urls = split(/\s*;\s*/, $url);
-        }
-    }
-
     my @results;
     my $had_error = 0;
+
+    
+    my @urls = get_item_urls($issue);
 
     if(!@urls) {
         print STDERR "Item URL missing/empty?\n";
@@ -42,28 +38,13 @@ foreach my $issue (@$issues) {
     }
 
     foreach my $url (@urls) {
-
-        # Try to extract ID from item ID
-        my $id = $url;
-        if($url =~ /babel.hathitrust.org.*id=(.*)/) {
-            $id = $1;
-        } elsif($url =~ /hdl.handle.net\/2027\/(.*)/) {
-            $id = $1;
-        }
-
-        if($id !~ /(\w{0,4})\.(.*)/) {
-            push(@results,"Couldn't extract object ID from '$id'\n");
-            $had_error++;
-            next;
-        } 
-
-        # Check that the found namespace/objid is valid
-        my ($namespace,$objid) = ($1,$2);
-        print STDERR "\tWorking on $namespace.$objid\n";
+        
+        print STDERR "\tWorking on $url\n";
+        my ($volume, $namespace, $objid);
         eval {
-            my $volume = new HTFeed::Volume(packagetype => 'google',
-                namespace => $namespace,
-                objid => $objid);
+            $volume = extract_volume($url);
+            $namespace = $volume->get_namespace();
+            $objid = $volume->get_objid();
         };
         if($@) {
             push (@results,"Bad ID '$namespace.$objid': $@");
@@ -131,3 +112,124 @@ EOT
 
 }
 
+# ----------------------
+# Check on queued items
+# ---------------------
+
+my $queue_status_sth = $dbh->prepare("select datediff(CURRENT_TIMESTAMP,q.lastupdate) as age, g.state, q.statusid, s.status_description, q.lastupdate, e.description from mdp_tracking.book_queue q left join mdp_tracking.errors e on q.namespace = e.namespace and q.barcode = e.barcode join mdp_tracking.status s on q.statusid = s.statusid join mdp_tracking.grin g on q.barcode = g.barcode and q.namespace = g.ht_namespace where q.namespace = ? and q.barcode = ?;");
+
+
+$issues = $service->getIssuesFromJqlSearch($token,'"Next Steps" = "HT to reingest"',1000);
+
+ISSUE: foreach my $issue (@$issues) {
+    my $key = $issue->{key};
+    print STDERR "Checking on $key", "\n";
+    my $url = '';
+
+    my @results;
+    my @urls = get_item_urls($issue);
+    my $report = 1;
+
+    if(!@urls) {
+        print STDERR "Item URL missing/empty?\n";
+        push(@results,"Item URL missing/empty?");
+    }
+
+    foreach my $url (@urls) {
+        my ($volume, $namespace, $objid);
+        print STDERR "\tWorking on $url\n";
+        eval {
+            $volume = extract_volume($url);
+            $namespace = $volume->get_namespace();
+            $objid = $volume->get_objid();
+        };
+        if($@) {
+            push (@results,"Bad ID '$namespace.$objid': $@");
+            next;
+        }
+
+        # Check GRIN to make sure object is enqueuable
+        $queue_status_sth->execute($namespace,$objid);
+        my ($age, $state, $statusid, $statusdesc, $lastupdate, $errorid, $errordesc) = $queue_status_sth->fetchrow_array();
+        if(not defined $age) {
+            # Not in queue, so hopefully reingested. Get date from filesystem
+            my $zip_file = $volume->get_repository_zip_path();
+            if(-e $zip_file) {
+                my $date = (stat($zip_file))[9];
+                push(@results,"$namespace.$objid ingested; zip file date " . scalar(localtime($date)));
+            } else {
+                push(@results,"$namespace.$objid not in queue, but not in repository either");
+                next;
+            }
+        } else {
+            # Still in the queue. Was there an error?
+            if($statusid eq  '9') {
+                push(@results,"$namespace.$objid failed ingested in $errorid: $errordesc");
+                next;
+            }
+            # Has it been sitting in the queue too long?
+            elsif($age > 7) {
+                push(@results,"$namespace.$objid stuck in queue -- status is '$statusdesc' last updated $lastupdate; GRIN state is $state");
+            } else {
+                $report = 0;
+                push(@results,"$namespace.$objid waiting for reingest -- status is '$statusdesc' last updated $lastupdate; GRIN state is $state");
+                # next ISSUE;
+            }
+        }
+    }
+
+    print "\n\nResults for $key; report = $report:\n";
+    print join("\n",@results), "\n\n\n";
+
+    if($report) {
+        my $mailer = new Mail::Mailer;
+        my $comment = join("\n",@results);
+        $mailer->open({ 'From' => 'aelkiss@umich.edu',
+            'Subject' => "($key): Ingest results",
+            'To' => 'feedback@issues.hathitrust.org' });
+
+        print $mailer <<EOT;
+Next Steps: UM to investigate further
+
+$comment
+
+EOT
+        $mailer->close() or warn("Couldn't send message: $!");
+    }
+
+}
+
+
+
+# -------------------
+
+sub get_item_urls {
+    my $issue = shift;
+    my @urls;
+    # Get the 'item URL' custom field (customfield_10010)
+    foreach my $customField ( @{$issue->{'customFieldValues'}} ) {
+        if($customField->{'customfieldId'} eq 'customfield_10040') {
+            my $url = $customField->{'values'}->[0];
+            @urls = split(/\s*;\s*/, $url);
+        }
+    }
+    return @urls;
+}
+
+# Extract the item ID and create a volume from the item URL
+sub extract_volume {
+    # Try to extract ID from item ID
+    my $url = shift;
+    my $id = $url;
+    if($url =~ /babel.hathitrust.org.*id=(.*)/) {
+        $id = $1;
+    } elsif($url =~ /hdl.handle.net\/2027\/(.*)/) {
+        $id = $1;
+    }
+
+    $id =~ /(\w{0,4})\.(.*)/ or die("Can't parse item URL");
+
+    return new HTFeed::Volume(packagetype => 'google',
+        namespace => $1,
+        objid => $2);
+}
