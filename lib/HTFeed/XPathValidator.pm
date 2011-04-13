@@ -10,8 +10,6 @@ use base qw(HTFeed::SuccessOrFailure Exporter);
 
 use XML::LibXML;
 
-my $logger = get_logger(__PACKAGE__);
-
 sub _xpathInit{
     my $self = shift;
 
@@ -135,7 +133,7 @@ sub _findvalue{
     my $queryObj = $self->{qlib}->query($base, $query) or croak ("_findvalue: invalid args");
 
     # verbose logging for debug
-    $logger->trace("looking for text of $query in $base...");
+    get_logger()->trace("looking for text of $query in $base...");
 
     # get root xpc, context node
     my $context_node = $self->{contexts}->{$base}->{node};

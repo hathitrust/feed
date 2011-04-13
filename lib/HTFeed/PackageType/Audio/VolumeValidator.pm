@@ -11,8 +11,6 @@ use Digest::MD5;
 use HTFeed::Config qw(get_config);
 use Log::Log4perl qw(get_logger);
 
-my $logger = get_logger(__PACKAGE__);
-
 sub new {
     my $class = shift;
     my $self = $class->SUPER::new(@_);

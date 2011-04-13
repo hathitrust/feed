@@ -1,11 +1,14 @@
-package HTFeed::ImageRemediate;
+package HTFeed::Stage::ImageRemediate;
 
 use strict;
 use warnings;
+use base qw(HTFeed::Stage);
 use HTFeed::Config qw(get_config);
 use Log::Log4perl qw(get_logger);
 
-my $logger = get_logger(__PACKAGE__);
+sub run {
+    die("Subclass must implement run.");
+}
 
 =item get_exiftool_fields($file)
 
@@ -60,7 +63,8 @@ sub get_exiftool_fields {
 
 =cut
 
-sub remediate_image($$;$$) {
+sub remediate_image {
+    my $self = shift;
     my $infile                   = shift;
     my $outfile                  = shift;
     my $force_headers            = ( shift or {} );
@@ -68,6 +72,8 @@ sub remediate_image($$;$$) {
 
     my $newFields = $force_headers;
     my $oldFields = get_exiftool_fields($infile);
+
+    get_logger()->trace("Remediating $infile to $outfile");
 
     # Jpeg2000:ImageWidth -> XMP-tiff:ImageWidth
     _copy_old_to_new( $oldFields->{'Jpeg2000:ImageWidth'},
@@ -127,14 +133,14 @@ sub remediate_image($$;$$) {
     if ( !$force_headers->{'Resolution'} ) {
         my $xres = $oldFields->{'Jpeg2000:CaptureXResolution'};
         my $yres = $oldFields->{'Jpeg2000:CaptureYResolution'};
-        $logger->warn("Non-square pixels??! XRes $xres YRes $yres")
+        get_logger()->warn("Non-square pixels??! XRes $xres YRes $yres")
           if ( ( $xres or $yres ) and $xres != $yres );
 
         if ($xres) {
             my $xresunit = $oldFields->{'Jpeg2000:CaptureXResolutionUnit'};
             my $yresunit = $oldFields->{'Jpeg2000:CaptureXResolutionUnit'};
 
-            $logger->warn("Resolution unit awry")
+            get_logger()->warn("Resolution unit awry")
               if ( not $xresunit or not $yresunit or $xresunit ne $yresunit );
 
             $xresunit eq 'um'
@@ -240,5 +246,10 @@ sub _set_new_if_undefined($$$$) {
         $newFields->{$newFieldName} = $newFieldVal;
     }
 }
+
+sub stage_info {
+    return { success_state => 'images_remediated', failure_state => '' };
+}
+
 
 1;

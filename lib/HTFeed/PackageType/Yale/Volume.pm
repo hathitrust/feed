@@ -9,7 +9,6 @@ use List::MoreUtils qw(uniq);
 use Carp qw(croak);
 use Log::Log4perl qw(get_logger);
 
-my $logger = get_logger(__PACKAGE__);
 
 =item get_page_data(file)
 
@@ -196,7 +195,7 @@ sub _extract_page_tags {
                 if defined $type_tag;
             }
             else {
-                $logger->warn( "Missing type on div" . $struct_div->toString() );
+                get_logger()->warn( "Missing type on div" . $struct_div->toString() );
             }
 
             $self->_map_label_page_tag( $struct_div, $pagetags );
@@ -273,10 +272,10 @@ sub _check_is_page {
     my $struct_div = shift;
     if ( $struct_div->hasAttribute('TYPE') ) {
         my $type = $struct_div->getAttribute('TYPE');
-        $logger->warn("Unexpected type $type") unless $type eq 'page';
+        get_logger()->warn("Unexpected type $type") unless $type eq 'page';
     }
     else {
-        $logger->warn('Missing TYPE attribute on div');
+        get_logger()->warn('Missing TYPE attribute on div');
     }
 }
 
@@ -287,9 +286,9 @@ sub _extract_page_number {
 
     if ( $struct_div->hasAttribute($attribute) ) {
         my $pagenum = $struct_div->getAttribute($attribute);
-        $logger->warn( "missing attribute $attribute on div " . $struct_div->toString() )
+        get_logger()->warn( "missing attribute $attribute on div " . $struct_div->toString() )
         if not defined $pagenum;
-        $logger->warn("Unexpected page number $pagenum")
+        get_logger()->warn("Unexpected page number $pagenum")
         unless $pagenum =~ /^\d+$/
             or $pagenum =~ /^[ivxlcdm]+$/;
         $self->{in_body} = 1 if $pagenum =~ /^\d+$/;
@@ -306,7 +305,7 @@ sub _set_pagenumber {
     my $newnumber      = shift;
     my $pagenumber_map = shift;
     if ( defined $newnumber ) {
-        $logger->warn("Inconsistent page numbering for $filename")
+        get_logger()->warn("Inconsistent page numbering for $filename")
         if (  $pagenumber_map->{$filename}
                 and $pagenumber_map->{$filename} ne $newnumber );
 

@@ -4,12 +4,12 @@ use strict;
 use FindBin;
 use lib "$FindBin::Bin/../lib";
 
+use HTFeed::Log { root_logger => 'INFO, dbi, screen' };
 use HTFeed::StagingSetup;
 use HTFeed::Run;
 
 use HTFeed::Config;
 use HTFeed::Volume;
-use HTFeed::Log { root_logger => 'INFO, dbi, screen' };
 use HTFeed::DBTools qw(get_queued lock_volumes count_locks);
 use Log::Log4perl qw(get_logger);
 use Filesys::Df;

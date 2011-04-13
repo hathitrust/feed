@@ -17,13 +17,6 @@ use FindBin;
 
 use base qw(HTFeed::Stage);
 
-my $logger = get_logger(__PACKAGE__);
-
-# return estimated space needed on ramdisk
-sub ram_disk_size{
-    return 1048576; # 1M
-}
-
 sub new {
     my $class = shift;
 
@@ -130,12 +123,28 @@ sub _add_dmdsecs {
 }
 
 sub _add_techmds {
+    my $self = shift;
 
-    # Google: notes.txt and pagedata.txt should no longer be present
+    # Add source METS if it is present
+    my $src_mets_file = $self->{volume}->get_source_mets_file();
+    
+    if($src_mets_file) {
+    
+        my $srcmets_mdsec = new METS::MetadataSection( 'techMD',
+            id => $self->_get_subsec_id('TMD'));
+        $srcmets_mdsec->set_md_ref(
+            mdtype => 'OTHER',
+            othermdtype => 'METS',
+            label  => 'Source METS',
+            loctype => 'OTHER',
+            otherloctype => 'SYSTEM',
+            xlink => { href => "$src_mets_file" },
 
-    # MIU: loadcd.log, checksum, pageview.dat, target files?
+        );
+        push( @{ $self->{amd_mdsecs} }, $srcmets_mdsec );
 
-    # UMP: PDF????!?!?!?
+    }
+
 
 }
 
@@ -175,10 +184,10 @@ sub _extract_old_premis {
                 my $uuid = $volume->make_premis_uuid($eventinfo->{eventtype},$eventinfo->{date});
                 my $update_eventid = 0;
                 if($eventinfo->{eventidtype} ne 'UUID') {
-                    $logger->info("Updating old event ID type $eventinfo->{eventidtype} to UUID for $eventinfo->{eventtype}/$eventinfo->{date}");
+                    get_logger()->info("Updating old event ID type $eventinfo->{eventidtype} to UUID for $eventinfo->{eventtype}/$eventinfo->{date}");
                     $update_eventid = 1;
                 } elsif($eventinfo->{eventid} ne $uuid) {
-                    $logger->warn("Warning: calculated UUID for $eventinfo->{eventtype} on $eventinfo->{date} did not match saved UUID; updating.");
+                    get_logger()->warn("Warning: calculated UUID for $eventinfo->{eventtype} on $eventinfo->{date} did not match saved UUID; updating.");
                     $update_eventid = 1;
                 }
 
@@ -774,7 +783,7 @@ sub _remediate_marc {
 
         # 06: Type of record
         if(substr($value,6,1) !~ /^[\dA-Za-z]$/) {
-            $logger->warn("Invalid value found for record type, can't remediate");
+            get_logger()->warn("Invalid value found for record type, can't remediate");
         }
 
         # 07: Bibliographic level
@@ -789,7 +798,7 @@ sub _remediate_marc {
 
         # 09: Character coding scheme
         if(substr($value,9,1) ne 'a') {
-            $logger->warn("Non-Unicode MARC-XML found");
+            get_logger()->warn("Non-Unicode MARC-XML found");
         }
 
         # 10: Indicator count

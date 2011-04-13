@@ -14,8 +14,6 @@ use Time::localtime;
 use File::Pairtree;
 use Data::UUID;
 
-our $logger = get_logger(__PACKAGE__);
-
 # The namespace UUID for HathiTrust
 use constant HT_UUID => '09A5DAD6-3484-11E0-9D45-077BD5215A96';
 
@@ -195,35 +193,6 @@ for this object.
 sub get_zip_path {
     my $self = shift;
     return $self->get_zip_directory() . q(/) . $self->get_zip_filename();
-}
-
-=item make_staging_directories
-
-makes staging directory, if $ondisk, creates it on disk rather than ram and symlinks to ram
-returns staging directory
-
-=synopsis
-make_staging_directories($ondisk)
-=cut
-
-sub make_staging_directories{
-    my $self = shift;
-    my $ondisk = shift;
-
-    foreach my $stage_type qw(preingest staging zip) {
-        my $stage_dir = eval "\$self->get_${stage_type}_directory()";
-        next unless $stage_dir and $stage_dir ne '';
-        if($ondisk) {
-            my $disk_stage_dir = eval "\$self->get_${stage_type}_directory(1)";
-            mkdir($disk_stage_dir)
-                or croak("Can't mkdir $disk_stage_dir: $!");
-
-            symlink($disk_stage_dir,$stage_dir) or croak("Can't symlink $disk_stage_dir,$stage_dir: $!");
-        } else {
-            mkdir($stage_dir)
-                or croak("Can't mkdir $stage_dir: $!");
-        }
-    }
 }
 
 =item get_download_directory
@@ -463,7 +432,7 @@ sub get_marc_xml {
         q(//mets:dmdSec/mets:mdWrap[@MDTYPE="MARC"]/mets:xmlData));
 
     if ( $mdsec_nodes->size() ) {
-        $logger->warn("Multiple MARC mdsecs found") if ( $mdsec_nodes->size() > 1 );
+        get_logger()->warn("Multiple MARC mdsecs found") if ( $mdsec_nodes->size() > 1 );
         my $node = $mdsec_nodes->get_node(0)->firstChild();
         # ignore any whitespace, etc.
         while($node->nodeType() != XML_ELEMENT_NODE) {

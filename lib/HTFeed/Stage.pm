@@ -27,7 +27,6 @@ sub new {
     my $self = {
         volume => undef,
         @_,
-        write_to_disk => 0,
         has_run => 0,
         failed  => 0,
     };
@@ -40,16 +39,6 @@ sub new {
     return $self;
 }
 
-# return space that we expect to use on the ramdisk
-sub ram_disk_size{
-    return 0;
-}
-
-# tell stage to run on disk
-sub set_write_to_disk{
-    my $self = shift;
-    $self->{write_to_disk} = 1;
-}
 
 # estimate_space($file, $multiplier)
 sub estimate_space{
@@ -84,13 +73,6 @@ sub get_stage_info {
         return $self->stage_info()->{$field};
     }
     return $self->stage_info();
-}
-
-# return a decision to stage on disk or not
-sub stage_on_disk{
-    my $self = shift;
-    return 1 if (get_config('ram_disk_max_job_size') < $self->ram_disk_size());
-    return;
 }
 
 # abstract

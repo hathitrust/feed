@@ -5,7 +5,6 @@ use strict;
 use base qw(HTFeed::Stage);
 
 use Log::Log4perl qw(get_logger);
-my $logger = get_logger(__PACKAGE__);
 
 =item extract_ocr()
 
@@ -20,7 +19,7 @@ sub run {
     my $mets_xc = $volume->get_yale_mets_xpc();
     my $objid = $volume->get_objid();
     my $stage_path = $volume->get_staging_directory();
-    $logger->trace("Extracting OCR..");
+    get_logger()->trace("Extracting OCR..");
     foreach my $alto_xml_node (
 	$mets_xc->findnodes(
 	    '//mets:fileGrp[@ID="ALTOGRP"]/mets:file/mets:FLocat/@xlink:href')
@@ -31,7 +30,7 @@ sub run {
 	$alto_dospath =~ /($objid)_(\d+)_ALTO\.xml/;
 	my $alto_txt    = "$1_$2.txt";
 	my $alto_newxml = "$1_$2.xml";
-	$logger->trace("Normalizing OCR file $alto_xml_file");
+	get_logger()->trace("Normalizing OCR file $alto_xml_file");
 
 	my $fh = new IO::File(">$stage_path/$alto_txt")
 	    or die("Can't open $stage_path/$alto_txt for writing: $!");

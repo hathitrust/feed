@@ -47,7 +47,20 @@ my @test_classes;
 ## TODO: add options for ns, packagetype
 ## TODO: get pt, ns, objid from a config file
 sub get_test_volume{
-    return HTFeed::Volume->new(objid => '35112102255959',namespace => 'mdp',packagetype => 'google');
+    my $voltype = shift;
+
+    $voltype = 'default' if not defined $voltype;
+
+    my $volumes = {
+        default => {objid =>  '35112102255959',namespace => 'mdp',packagetype => 'google' },
+        google => {objid =>  '35112102255959',namespace => 'mdp',packagetype => 'google' },
+        ia => {objid =>  'ark:/13960/t00000431',namespace => 'uc2',packagetype => 'ia' },
+        yale => {objid =>  '39002000104092',namespace => 'yale',packagetype => 'yale' },
+    };
+
+    die("Unknown pkgtype $voltype") if not defined $volumes->{$voltype};
+
+    return HTFeed::Volume->new(%{ $volumes->{$voltype} });
 }
 
 sub get_fake_stage{

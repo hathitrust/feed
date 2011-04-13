@@ -65,7 +65,7 @@ ok($execute, "correct syntax");
 #XXX sample
 row_ok(
 	table	=>	"queue",
-	where	=>	["status"	=> "success"],
+	where	=>	["status"	=> "punted"],
 	label	=>	"db call valid",
 );
 

@@ -4,39 +4,42 @@ use warnings;
 use strict;
 use base qw(HTFeed::PackageType::IA::AbstractTest);
 use HTFeed::Test::Support qw(get_fake_stage);
+use HTFeed::Config qw(set_config);
+use File::Copy;
+use File::Find;
 use File::Path qw(make_path);
 use Test::More;
-use File::Find;
 
-sub VerifyManifest : Test(1){
-    my $self = shift;
-	my $volume = $self->{volume};
+my $damaged = "/htapps/test.babel/feed/t/staging/DAMAGED";
+my $undamaged = "/htapps/test.babel/feed/t/staging/UNDAMAGED";
+
+sub ManifestVerification : Test(2){
+	set_config("$undamaged/download","staging"=>"download");
+	my $self = shift;
 	my $stage = $self->{test_stage};
 	ok($stage->run(), 'Verification Successful');
+	ok($stage->stage_info(), 'stage info ok');
 }
 
-sub Error : Test(1){
-	#point to damaged version
+sub Missing : Test(2){
+	set_config("$damaged","staging"=>"download");
+	my $self = shift;
+    my $volume = $self->{volume};
+    my $stage = $self->{test_stage};
+	my $ia_id = $volume->get_ia_id();
+	my $objdir   = $volume->get_download_directory();
+	my $manifest = "$objdir/${ia_id}_files.xml";
 
-    my $self = shift;
-	my $volume = $self->{volume};
-	my $objdir = $volume->get_download_directory();
-	my $stage = $self->{test_stage};
-	ok(! $objdir, 'Missing dir detected');
-}
+	unlink("$manifest");
 
-sub md5sum : Test(1){
+	#detect missing files.xml
+	ok(! -e "$objdir/$manifest", "missing file detected");
 
-	#TODO test md5sum check (see line 55)
+	#run again for failure coverage
+	ok($stage->run(), 'passed with warnings');
 
-	# test $core_mismatch
-
-	# test where file_md5sum ne $manifest_md5sum
-	my $file_md5sum;
-	my $manifest_md5sum;
-	ok($file_md5sum ne $manifest_md5sum, 'md5sum error detected');
-
-	#TODO test $mismatch_nonfatal
+	my $clean_copy = "$undamaged/download/ia/$ia_id/${ia_id}_files.xml";
+	copy($clean_copy,$objdir) or die "copy failed: $!";
 }
 
 1;

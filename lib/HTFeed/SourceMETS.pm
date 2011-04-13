@@ -8,7 +8,6 @@ use Log::Log4perl qw(get_logger);
 use XML::LibXML;
 use base qw(HTFeed::METS);
 
-my $logger = get_logger(__PACKAGE__);
 
 sub new {
     my $class  = shift;

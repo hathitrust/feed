@@ -1,4 +1,4 @@
-package HTFeed::PackageType::IA::AbstractTest;
+package HTFeed::PackageType::Audio::AbstractTest;
 
 use warnings;
 use strict;
@@ -11,12 +11,12 @@ sub startup : Test(startup => 3){
     my $t_class = $self->testing_class();
 
     # instantiate and make sure the it isa what it should be
-    my $volume = get_test_volume('ia');
+    my $volume = get_test_volume();
     my $obj = new_ok( $t_class => [volume => $volume] );
     isa_ok($obj, 'HTFeed::Stage', $t_class);
 
     # basic interface adherance
-    can_ok($obj, qw(run set_error clean clean_success clean_failure clean_always clean_punt clean_unpacked_object clean_zip clean_mets clean_preingest));
+    #can_ok($obj, qw(run set_error clean clean_success clean_failure clean_always clean_punt clean_unpacked_object clean_zip clean_mets clean_preingest));
 
     # save the volume for later
     $self->{volume} = $volume;
@@ -28,13 +28,16 @@ sub setup : Test(setup){
     my $t_class = $self->testing_class();
     my $volume = $self->{volume};
     $self->{test_stage} = eval "$t_class->new(volume => \$volume)";
+
+    #get undamaged package for standard test
+
+    #get damaged package for error test
 }
 
 sub teardown : Test(teardown){
-	# clean up stage
+    # clean up stage
 }
 
 1;
 
 __END__
-
