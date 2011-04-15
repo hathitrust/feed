@@ -16,7 +16,7 @@ sub startup : Test(startup => 3){
     isa_ok($obj, 'HTFeed::Stage', $t_class);
 
     # basic interface adherance
-    #can_ok($obj, qw(run set_error clean clean_success clean_failure clean_always clean_punt clean_unpacked_object clean_zip clean_mets clean_preingest));
+    can_ok($obj, qw(run set_error clean clean_success clean_failure clean_always clean_punt clean_unpacked_object clean_zip clean_mets clean_preingest));
 
     # save the volume for later
     $self->{volume} = $volume;
