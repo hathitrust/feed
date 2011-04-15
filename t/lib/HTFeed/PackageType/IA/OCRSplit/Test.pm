@@ -3,45 +3,61 @@ package HTFeed::PackageType::IA::OCRSplit::Test;
 use warnings;
 use strict;
 use base qw(HTFeed::PackageType::IA::AbstractTest);
-use HTFeed::Test::Support qw(get_fake_stage);
+use HTFeed::Test::Support qw(get_fake_stage test_config);
 use HTFeed::Config qw(set_config);
 use File::Copy;
 use File::Path qw(make_path);
 use Test::More;
 
-my $damaged = "/htapps/test.babel/feed/t/staging/DAMAGED";
-my $undamaged = "/htapps/test.babel/feed/t/staging/UNDAMAGED";
-
+# Test OCRSplit stage with undamaged package
 sub OCRSplit : Test(2){
-	set_config("$undamaged/download","staging"=>"download");
+
+	# my $config = test_config('undamaged');
+	set_config('/htapps/test.babel/feed/t/staging/UNDAMAGED/download','staging'=>'download');
+	set_config('/htapps/test.babel/feed/t/staging/UNDAMAGED/preingest','staging'=>'preingest');
+	set_config('/htapps/test.babel/feed/t/staging/UNDAMAGED/ingest','staging'=>'ingest');
+
     my $self = shift;
 	my $stage = $self->{test_stage};	
-	ok($stage->run(), 'OCRSplit succeeded');
-	ok($stage->stage_info(), 'stage info ok');
+	ok($stage->run(),'IA: OCRSplit succeeded with undamaged package');
+	ok($stage->stage_info(), 'IA: OCRSPlit stage info succeeded with undamaged package');
 }
 
+# Test error handling with missing file
 sub Errors : Test(2){
 
 	#load damaged package
-	set_config($damaged,"staging"=>"download");
+	# my $config = test_config('damaged');
+	set_config('/htapps/test.babel/feed/t/staging/DAMAGED','staging'=>'download');
+
 	my $self = shift;
 	my $stage = $self->{test_stage};
 	my $volume = $self->{volume};
 	my $objdir = $volume->get_download_directory();
 
 	my $ia_id = $volume->get_ia_id();
+
+	# Delete djvu.xml, ensure stage fails as expected
 	my $xml = "$objdir/${ia_id}_djvu.xml";
-
 	unlink($xml);
-	ok(! -e $xml, 'missing djvu detected');
-	ok(! $stage->run(), '...and the stage fails');
 
-	my $clean_copy = "$undamaged/download/ia/$ia_id/${ia_id}_djvu.xml";
+	subtest 'IA: OCRSplit stage fails with missing djvu file' => sub {
+		ok(! -e $xml, 'verify that djvu is missing...');
+		ok(! $stage->run(), '...and IA: OCRSplit stage fails');
+	};
+
+	#replace djvu for next test
+	my $clean_copy = "/htapps/test.babel/feed/t/staging/UNDAMAGED/download/ia/$ia_id/${ia_id}_djvu.xml";
     copy($clean_copy,$objdir) or die "copy failed: $!";
 }
 
+# test errors caused by corruputed data
 sub usemap : Test(1){
-	set_config($damaged,"staging"=>"download");
+
+	#load damaged package
+	# my $config = test_config('damaged');
+	set_config('/htapps/test.babel/feed/t/staging/DAMAGED','staging'=>'download');
+
     my $self = shift;
     my $stage = $self->{test_stage};
     my $volume = $self->{volume};
@@ -49,15 +65,17 @@ sub usemap : Test(1){
 	my $ia_id =  $volume->get_ia_id();
 
 	#get broken djvu from samples
-    my $samples = "$damaged/samples/ia/${ia_id}";
+    my $samples = "/htapps/test.babel/feed/t/staging/DAMAGED/samples/ia/${ia_id}";
     my $broken_scanData = "$samples/${ia_id}_djvu.xml";
     copy($broken_scanData,$objdir) or die "copy failed: $!";
 
-    #run the whole thing and see coverage
-    ok($stage->run(), 'pass with warnings');
+    #run the stage again with damaged package
+	#TODO: build additional tests to verify damaged state
+	# coverage confirms branches are tested
+    ok($stage->run(), 'IA: OCRSplit succeeds with warnings on damaged package');
 
     #replace with standard djvu for next stage test
-    my $clean_copy = "$undamaged/download/ia/$ia_id/${ia_id}_djvu.xml";
+    my $clean_copy = "/htapps/test.babel/feed/t/staging/UNDAMAGED/download/ia/$ia_id/${ia_id}_djvu.xml";
     copy($clean_copy,$objdir) or die "copy failed: $!";
 
 }
