@@ -15,6 +15,8 @@ use Data::Dumper;
 
 our @EXPORT_OK = qw(namespace_ids pkgtype_ids);
 
+use Readonly;
+Readonly my $VERSION => '0.1';
 
 sub import{
     my ($short, $long);
@@ -25,7 +27,7 @@ sub import{
 
 sub short_version{
     print "Feedr, The HathiTrust Ingest System. Feeding the Elephant since 2010.\n";
-    print "v0.1\n";
+    print "v$VERSION\n";
 }
 
 sub find_subclasses {

@@ -945,6 +945,17 @@ sub clean_download {
     }
 }
 
+=item ingested
+return true if item is already in the repository
+=cut
+sub ingested{
+    my $self = shift;
+    my $link = $self->get_repository_symlink();
+    
+    return 1 if (-e $link);
+    return;
+}
+
 1;
 
 __END__

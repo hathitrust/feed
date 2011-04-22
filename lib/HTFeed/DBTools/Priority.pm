@@ -4,27 +4,44 @@ package HTFeed::DBTools::Priority;
     Queries relating to prioritization
     
 =explanation of priority field
+    priority is a 26 bit int
     lowest number is first in the queue (after priority we order on insert date)
     
-    0 indicates ingest immediately
-    group priorities are integers between 1 and 0xFFEF (0xFFF0 and up are reserved)
-    priority = 0x10*group_priority + x, where x is a priority within the group
-    x is 1 (first in group) 2 (normal) or 3 (last in group)
+    0 = first
     
-    Reserved priorities:
-    0 - First
-    0xFFFFxx - Last
-    0xFFFExx - Newly added to queue
-    0xFFxxxx - reserved for future use
+    NL BBBB BBBB GGGG GGGG SSSS
+    
+    N = new
+    L = last
+    B = bin
+    S = Sub group priority (1-3)
 =cut
 
 use warnings;
 use strict;
+
+use Readonly;
+
+# very first/last
+Readonly::Scalar my $FIRST      => 0;
+Readonly::Scalar my $LAST       => 0x100000;
+# masks
+Readonly::Scalar my $SUBG_MASK  => 0xF;
+Readonly::Scalar my $GROUP_MASK => 0xFF0;
+Readonly::Scalar my $BIN_MASK   => 0xFF000;
+Readonly::Scalar my $NEW_MASK   => 0x200000;
+# offsets
+Readonly::Scalar my $GROUP_OFF  => 0x10;
+Readonly::Scalar my $BIN_OFF    => 0x1000;
+# max/min within group/bin
+Readonly::Scalar my $MAX        => 0xFF;
+Readonly::Scalar my $MIN        => 0x0;
+
 use Carp;
 use Switch;
 use base qw(HTFeed::DBTools);
 
-our @EXPORT_OK = qw(reprioritize);
+our @EXPORT_OK = qw(reprioritize initial_priority set_item_priority group_priority);
 
 =item set_item_priority
 set the priority for a volume
@@ -44,14 +61,14 @@ sub set_item_priority{
      
     my $priority = 0;
     switch ($modifier){
-        case "first"        { $priority = 0 }
-        case "last"         { $priority = 0xFFFFFF }
-        case "group_first"  { $priority = group_priority($ns,$pkg_type) * 0x100 + 1 }
-        case "group_last"   { $priority = group_priority($ns,$pkg_type) * 0x100 + 2 }
-        else                { $priority = group_priority($ns,$pkg_type) * 0x100 + 3 }
+        case "first"        { $priority = $FIRST }
+        case "last"         { $priority = $LAST }
+        case "group_first"  { $priority = group_priority($ns,$pkg_type) * $GROUP_OFF + 0x1 }
+        case "group_last"   { $priority = group_priority($ns,$pkg_type) * $GROUP_OFF + 0x3 }
+        else                { $priority = group_priority($ns,$pkg_type) * $GROUP_OFF + 0x2 }
     }
     
-    my $sth = HTFeed::DBTools::get_dbh()->prepare(q(UPDATE queue SET priority = ? WHERE namespace = ? AND id = ?;));
+    my $sth = HTFeed::DBTools::get_dbh()->prepare(qq(UPDATE queue SET priority = (priority & $BIN_MASK) + ? WHERE namespace = ? AND id = ?;));
     
     $sth->execute($priority,$ns,$pkg_type);
     
@@ -72,7 +89,7 @@ sub group_priority{
     my ($group_priority) = $get_group_priority->fetchrow_array();
     
     # if we didn't find a priority, default to last group
-    $group_priority = 0xFFF1 if (! defined $group_priority);
+    $group_priority = $MAX if (! defined $group_priority);
     
     return $group_priority;
 }
@@ -89,16 +106,17 @@ sub reprioritize{
     my $only_new_items = shift;
     my $where_syntax;
     if ($only_new_items){
-        # select new items (0xFFFDxx) and not set to last (0xFFFFFF)
-        $where_syntax = 'priority > 0xFFFC00 AND priority < 0xFFFFFF';
+        # select new items
+        $where_syntax = "priority >= $NEW_MASK";
     }
     else{
-        # select existing items
-        $where_syntax = 'priority != 0 AND priority < 0xFFFD00';
+        # select existing items, that aren't set to first or last
+        $where_syntax = "priority != 0 AND priority < $LAST";
     }
 
     my $get_nspkgs = HTFeed::DBTools::get_dbh()->prepare(qq(SELECT DISTINCT namespace, pkg_type FROM queue WHERE $where_syntax;));
-    my $update_priority = HTFeed::DBTools::get_dbh()->prepare(qq(UPDATE queue SET priority = (? * 0x100) + (priority & 0xFF) WHERE namespace = ? AND pkg_type = ? AND $where_syntax;));
+    my $mask = $BIN_MASK + $SUBG_MASK;
+    my $update_priority = HTFeed::DBTools::get_dbh()->prepare(qq(UPDATE queue SET priority = (? * $GROUP_OFF) + (priority & $mask) WHERE namespace = ? AND pkg_type = ? AND $where_syntax;));
     
     $get_nspkgs->execute();
     while(my ($ns,$pkg) = $get_nspkgs->fetchrow_array()){
@@ -111,10 +129,26 @@ sub reprioritize{
     return;
 }
 
-## Do we need this?
-#sub set_group_priorities{
-#    
-#}
+=item initial_priority
+returns the initial priority the Queue.pm should set on an item before running reprioritize()
+
+this is currently the only place where BIN is set
+=cut
+sub initial_priority{
+    my $volume = shift;
+    my $reingest = $volume->ingested();
+
+    # default bin is 1
+    my $bin = 1;
+    
+    # increment bin for anything that makes the volume a lower priority
+    if ($reingest){
+        $bin++;
+    }
+    my $priority = $NEW_MASK + $bin * $BIN_OFF + 0x2;
+
+    return $priority;
+}
 
 1;
 

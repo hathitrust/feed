@@ -9,7 +9,7 @@ use warnings;
 use strict;
 use Carp;
 use base qw(HTFeed::DBTools);
-use HTFeed::DBTools::Priority qw(reprioritize);
+use HTFeed::DBTools::Priority qw(reprioritize initial_priority);
 
 our @EXPORT = qw(enqueue_volumes reset_volumes);
 
@@ -23,15 +23,15 @@ sub enqueue_volumes{
     my $dbh = HTFeed::DBTools::get_dbh();
     my $sth;
     if($ignore){
-        $sth = $dbh->prepare(q(INSERT IGNORE INTO queue (pkg_type, namespace, id) VALUES (?,?,?);));
+        $sth = $dbh->prepare(q(INSERT IGNORE INTO queue (pkg_type, namespace, id, priority) VALUES (?,?,?,?);));
     }else {
-        $sth = $dbh->prepare(q(INSERT INTO queue (pkg_type, namespace, id) VALUES (?,?,?);));
+        $sth = $dbh->prepare(q(INSERT INTO queue (pkg_type, namespace, id, priority) VALUES (?,?,?,?);));
     }
     
     my @results;
     foreach my $volume (@{$volumes}){
         eval{
-            push @results, $sth->execute($volume->get_packagetype(), $volume->get_namespace(), $volume->get_objid());
+            push @results, $sth->execute($volume->get_packagetype(), $volume->get_namespace(), $volume->get_objid(), initial_priority($volume));
         } or print $@ and return \@results;
     }
 
