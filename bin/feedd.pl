@@ -6,18 +6,20 @@ use strict;
 use FindBin;
 use lib "$FindBin::Bin/../lib";
 
+use HTFeed::Version;
+
 use HTFeed::StagingSetup;
 use HTFeed::Run;
 
 use HTFeed::Config;
 use HTFeed::Volume;
-use HTFeed::Log { root_logger => 'INFO, dbi, screen' };
-use HTFeed::DBTools qw(get_queued lock_volumes count_locks);
+use HTFeed::Log { root_logger => 'INFO, dbi' };
+use HTFeed::DBTools qw(get_queued lock_volumes count_locks update_queue);
 use Log::Log4perl qw(get_logger);
 use Filesys::Df;
+use HTFeed::Job;
 
-use HTFeed::Version;
-print("feedd running, waiting for something to ingest\n");
+print("feedd running, waiting for something to ingest, pid = $$\n");
 
 my $process_id = $$;
 my $subprocesses = 0;
@@ -95,6 +97,7 @@ sub spawn{
     if ($pid){
         # parent
         lock_job($pid, $job);
+        get_logger()->trace("spawned $pid")
     }
     elsif ( defined $pid ) {
         # child
@@ -113,6 +116,7 @@ sub wait_kid{
     if ($pid > 0){
         # remove old job from lock table
         release_job($pid);
+        get_logger()->trace("released $pid");
         return $pid;
     }
     return;

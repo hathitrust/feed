@@ -119,7 +119,9 @@ sub update_queue {
     $syntax .= q(, failure_count=failure_count+1) if ($fail);
     $syntax .= q(, node = NULL) if (exists $release_states{$new_status});
     $syntax .= qq( WHERE namespace = '$ns' AND id = '$objid';);
-    
+    #print '$ns, $objid, $new_status, $fail';
+    #print "\n$ns, $objid, $new_status, $fail\n";
+    #print "$syntax\n\n";
     get_dbh()->do($syntax);
 }
 
