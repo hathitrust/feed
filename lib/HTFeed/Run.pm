@@ -7,84 +7,65 @@ use base qw(Exporter);
 use Log::Log4perl qw(get_logger);
 use HTFeed::Config qw(get_config);
 use HTFeed::Namespace;
-use HTFeed::DBTools qw(update_queue);
 use Filesys::Df;
 
-our @EXPORT = qw(run_job can_run_job);
+our @EXPORT = qw(run_job);
 
-# can_run_job( $job )
-sub can_run_job {
-    my $job = shift;
-    return ( exists HTFeed::Namespace->new($job->{namespace},$job->{pkg_type})->get('stage_map')->{$job->{status}} );
-}
+=item run_job
 
-# run_job( $job, $clean )
+Run a job object, should catch and log any errors that are thrown in the process.
+
+=synopsis
+
+All options:
+ run_job( $job, [$clean], [$force_failed_status]);
+Ususal:
+ run_job( $job, 1 );
+Force success:
+ run_job( $job, $clean, 0 );
+Force failure:
+ run_job( $job, $clean, 1 );
+
+=cut
 sub run_job {
     my $job = shift;
     my $clean = shift;
+    my $force_failed_status = shift;
 
-    my $volume;
     my $stage;
 
     eval {
-        $volume = HTFeed::Volume->new(
-            objid       => $job->{id},
-            namespace   => $job->{namespace},
-            packagetype => $job->{pkg_type},
-        );
-        my $stage_class = $volume->get_nspkg()->get('stage_map')->{$job->{status}};
-
-        $stage = eval "$stage_class->new(volume => \$volume)";
+        $stage = $job->stage;
         
-        get_logger()->info( 'RunStage', objid => $job->{id}, namespace => $job->{namespace}, stage => ref($stage) );
+        get_logger()->info( 'RunStage', objid => $job->id, namespace => $job->namespace, stage => $job->stage_class );
+
         $stage->run();
     };
 
     my $err = $@;
     if ( $err and $err !~ /STAGE_ERROR/ ) {
-        get_logger()->error( 'UnexpectedError', objid => $job->{id}, namespace => $job->{namespace}, stage => ref($stage), detail => $@ );
+        get_logger()->error( 'UnexpectedError', objid => $job->id, namespace => $job->namespace, stage => $job->stage_class, detail => $@ );
+    }
+
+    if (defined $force_failed_status){
+        my $real_failure = $stage->failed;
+        my $fake_fail_word = $force_failed_status ? 'FAILURE' : 'SUCCESS';
+        my $real_fail_word = $real_failure ? 'FAILURE' : 'SUCCESS';
+        my $warning = "Forced stage staus: $fake_fail_word Real stage status: $real_fail_word";
+        warn $warning;
+        $stage->force_failed_status($force_failed_status);
     }
 
     if ($stage and $clean) {
-        eval { $stage->clean(); };
+        eval { $job->clean(); };
         if ($@) {
-            get_logger()->error( 'UnexpectedError', objid => $job->{id}, namespace => $job->{namespace}, stage  => ref($stage), detail => $@ );
+            get_logger()->error( 'UnexpectedError', objid => $job->id, namespace => $job->namespace, stage => $job->stage_class, detail => $@ );
         }
     }
 
     # update queue table with new status and failure_count
-    if ( $stage and $stage->succeeded() ) {
-        # success
-        my $status = $stage->get_stage_info('success_state');
-        get_logger()->info( 'StageSucceeded', objid => $job->{id}, namespace => $job->{namespace}, stage => ref($stage) );
-        update_queue($job->{namespace}, $job->{id}, $status);
-    }
-    else {
-        # failure
-        my $status;
-        if ( $job->{failure_count} >= get_config('failure_limit') or not defined $stage) {
-            # punt if failure limit exceeded or stage construction failed
-            $status = 'punted'; 
-        } elsif($stage) {
-            my $new_status = $stage->get_stage_info('failure_state');
-            $status = $new_status if ($new_status and $new_status ne '');
-        } 
-        ## TODO: else {unexpected error} ?
+    $job->update();
 
-        get_logger()->info( 'StageFailed', objid => $job->{id}, namespace => $job->{namespace}, stage => ref($stage) );
-
-        if ( $status eq 'punted' ) {
-            get_logger()->info( 'VolumePunted', objid => $job->{id}, namespace => $job->{namespace}, stage => ref($stage) );
-            eval {
-                $stage->clean_punt() if $stage and $clean;
-            };
-            if($@) {
-                get_logger()->error( 'UnexpectedError', objid => $job->{id}, namespace => $job->{namespace}, detail => "Error cleaning volume: $@");
-            }
-        }
-        update_queue($job->{namespace}, $job->{id}, $status, 1);
-
-    }
 }
 
 1;

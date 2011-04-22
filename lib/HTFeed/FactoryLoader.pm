@@ -32,8 +32,7 @@ sub import {
         find ( { no_chdir => 1,
                 wanted => sub {
                     my $file = $File::Find::name;
-                    if($file =~ qr(^$module_path/(.*)\.pm$) and -f $file) {
-
+                    if($file =~ qr(^$module_path/([^.]*)\.pm$) and -f $file) {                        
                         my $package = $1;
                         no strict 'refs';
 #                        warn("Requiring $relative_path/$package.pm in factory loader" . "\n");

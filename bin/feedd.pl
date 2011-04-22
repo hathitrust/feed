@@ -1,29 +1,33 @@
+#!/usr/bin/perl
+
 use warnings;
 use strict;
 
 use FindBin;
 use lib "$FindBin::Bin/../lib";
 
-use HTFeed::Log { root_logger => 'INFO, dbi, screen' };
+use HTFeed::Log { root_logger => 'INFO, dbi' };
+use HTFeed::Version;
+
 use HTFeed::StagingSetup;
 use HTFeed::Run;
 
 use HTFeed::Config;
 use HTFeed::Volume;
-use HTFeed::DBTools qw(get_queued lock_volumes count_locks);
+use HTFeed::DBTools qw(get_queued lock_volumes count_locks update_queue);
 use Log::Log4perl qw(get_logger);
 use Filesys::Df;
+use HTFeed::Job;
 
-use HTFeed::Version;
-print("feedd running, waiting for something to ingest\n");
+print("feedd running, waiting for something to ingest, pid = $$\n");
 
 my $process_id = $$;
 my $subprocesses = 0;
 my @jobs = ();
 my %locks_by_key = ();
 my %locks_by_pid = ();
-## TODO: set this somewhere else
-my $clean = 1;
+
+my $clean = get_config('daemon'=>'clean');
 
 # kill children on SIGINT, SIGTERM
 $SIG{'INT'} =
@@ -59,6 +63,8 @@ $SIG{'HUP'} =
 
         HTFeed::Config::init();
         HTFeed::DBTools::_init();
+        
+        $clean = get_config('daemon'=>'clean');
     };
 
 # exit right away if stop file is set
@@ -91,6 +97,7 @@ sub spawn{
     if ($pid){
         # parent
         lock_job($pid, $job);
+        get_logger()->trace("spawned $pid")
     }
     elsif ( defined $pid ) {
         # child
@@ -109,6 +116,7 @@ sub wait_kid{
     if ($pid > 0){
         # remove old job from lock table
         release_job($pid);
+        get_logger()->trace("released $pid");
         return $pid;
     }
     return;
@@ -137,7 +145,7 @@ sub get_next_job{
 }
 
 sub fill_queue{
-    # db ops were crashing, this will catch them
+    # db ops were crashing, this will catch them, in which case
     # the internal queue will be starved until fill_queue runs again after the next wait()
     eval{
         my $needed_volumes = get_config('volumes_in_process_limit') - count_locks();
@@ -146,8 +154,11 @@ sub fill_queue{
         }
     
         if (my $sth = get_queued()){
-            while(my $job = $sth->fetchrow_hashref()){
-                push (@jobs, $job) if (! is_locked($job) and can_run_job($job));
+            while(my $job_info = $sth->fetchrow_arrayref()){
+                ## TODO: Make sure this works
+                my $job = HTFeed::Job->new(@{$job_info},\&update_queue);
+                ## if !can_run_job, $job will never be released
+                push (@jobs, $job) if (! is_locked($job) and $job->runnable);
             }
             $sth->finish();
         }

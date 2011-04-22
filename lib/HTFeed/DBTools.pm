@@ -57,84 +57,16 @@ sub get_queued{
     return;
 }
 
-# enqueue(\@volumes)
-# 
-# add volumes to queue
-sub enqueue_volumes{
-    my $volumes = shift;
-    my $ignore = shift;
-    
-    $dbh = get_dbh();
-    my $sth;
-    my $blacklist_sth = $dbh->prepare("SELECT * FROM blacklist WHERE namespace = ? and id = ?");
-    if($ignore){
-        $sth = $dbh->prepare(q(INSERT IGNORE INTO queue (pkg_type, namespace, id) VALUES (?,?,?);));
-    }else {
-        $sth = $dbh->prepare(q(INSERT INTO queue (pkg_type, namespace, id) VALUES (?,?,?);));
-    }
-    
-    my @results;
-    foreach my $volume (@{$volumes}){
-        eval{
-            # First make sure volume is not on the blacklist.
-            my $namespace = $volume->get_namespace();
-            my $objid = $volume->get_objid();
-
-            $blacklist_sth->execute($namespace,$objid);
-            if($blacklist_sth->fetchrow_array()) {
-                get_logger()->warn("Blacklisted",namespace=>$namespace,objid=>$objid);
-                push(@results,0);
-                return;
-            }
-            push @results, $sth->execute($volume->get_packagetype(), $namespace, $objid);
-        } or print $@ and return \@results;
-    }
-    return \@results;
-}
-
-# reset(\@volumes, $force)
-# 
-# reset punted volumes, reset all volumes if $force
-sub reset_volumes{
-    my $volumes = shift;
-    my $force = shift;
-    
-    $dbh = get_dbh();
-    my $sth;
-    if($force){
-        $sth = $dbh->prepare(q(UPDATE queue SET node = NULL, status = 'ready', failure_count = 0 WHERE namespace = ? and id = ?;));
-    }
-    else{
-        $sth = $dbh->prepare(q(UPDATE queue SET node = NULL, status = 'ready', failure_count = 0 WHERE status = 'punted' and namespace = ? and id = ?;));
-    }
-    
-    my @results;
-    foreach my $volume (@{$volumes}){
-        push @results, $sth->execute($volume->get_namespace(), $volume->get_objid());
-    }
-    return \@results;
-}
-
 # lock_volumes($number_of_items)
 # locks available volumes to host, up to $number_of_items
 # returns number of volumes locked
 sub lock_volumes{
     my $item_count = shift;
-#    warn("Locking $item_count volumes to " . hostname . "\n"); 
     return 0 unless ($item_count > 0);
     
-    ## TODO: order by priority
-    my $sth = get_dbh()->prepare(q(UPDATE queue SET node = ? WHERE node IS NULL AND status = 'ready' LIMIT ?;));
+    # trying to make sure MySQL uses index
+    my $sth = get_dbh()->prepare(q(UPDATE queue SET node = ? WHERE node IS NULL AND status = 'ready' ORDER BY node, status, priority, date_added LIMIT ?;));
     $sth->execute(hostname,$item_count);
-
-#    $sth = get_dbh()->prepare(q(SELECT pkg_type, namespace, id FROM queue WHERE node = ?));
-#    $sth->execute(hostname);
-#    my $count = 0;
-#    while(my $row = $sth->fetchrow_arrayref()) {
-#        warn "Locked to " . hostname . ": " . join(" ",@$row), "\n";
-#        $count++;
-#    }
-#    warn "Total locked to " . hostname . ": $count \n";
 
     return $sth->rows;
 }
@@ -188,7 +120,9 @@ sub update_queue {
     $syntax .= q(, failure_count=failure_count+1) if ($fail);
     $syntax .= q(, node = NULL) if (exists $release_states{$new_status});
     $syntax .= qq( WHERE namespace = '$ns' AND id = '$objid';);
-    
+    #print '$ns, $objid, $new_status, $fail';
+    #print "\n$ns, $objid, $new_status, $fail\n";
+    #print "$syntax\n\n";
     get_dbh()->do($syntax);
 }
 
