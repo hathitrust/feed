@@ -76,7 +76,13 @@ sub run{
         return $self->succeeded();
     }
     
-    $self->set_error('OperationFailed', detail => 'Collate failed, file not found');
+    # report which file(s) are missing
+    my $detail = 'Collate failed, file(s) not found: ';
+    $detail .= $mets_source unless(-f $mets_source);
+    $detail .= $zip_source  unless(-f $zip_source);
+    $detail .= $pairtree_object_path unless(-d $pairtree_object_path);
+    
+    $self->set_error('OperationFailed', detail => $detail);
     return;
 }
 
@@ -86,14 +92,14 @@ sub stage_info{
 
 sub clean_always{
     my $self = shift;
-    $self->clean_mets();
-    $self->clean_zip();
+    $self->{volume}->clean_mets();
+    $self->{volume}->clean_zip();
 }
 
 sub clean_success {
     my $self = shift;
     $self->{volume}->clear_premis_events();
-    $self->clean_download();
+    $self->{volume}->clean_download();
 }
 
 1;

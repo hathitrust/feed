@@ -7,7 +7,6 @@ package HTFeed::Stage;
 use warnings;
 use strict;
 use Carp;
-use File::Path qw(remove_tree);
 use Log::Log4perl qw(get_logger);
 use File::Find;
 use HTFeed::Config qw(get_config);
@@ -129,9 +128,17 @@ sub set_info {
     );
 }
 
-# run this to do appropriate cleaning after run()
-# this generally should not be overriden,
-# instead override clean_success() and clean_failure()
+=item clean
+
+run this to do appropriate cleaning after run()
+this generally should not be overriden,
+instead override clean_success() and clean_failure()
+
+=synopsis
+
+$stage->clean();
+
+=cut
 sub clean {
     my $self    = shift;
     my $success = $self->succeeded();
@@ -168,61 +175,36 @@ sub clean_always {
 # NOT run by clean(), because clean() doesn't know you punted
 sub clean_punt{
     my $self = shift;
+    my $volume = $self->{volume};
     
-    $self->clean_mets();
-    $self->clean_zip();
-    $self->clean_unpacked_object();
-    $self->clean_preingest();
+    $volume->clean_mets();
+    $volume->clean_zip();
+    $volume->clean_unpacked_object();
+    $volume->clean_preingest();
     
     return;
 }
 
-sub clean_vol_path {
+=item force_failed_status
+
+force stage to report success/failure
+
+=synopsis
+
+$stage->force_failed_status($failed)
+
+=cut
+
+sub force_failed_status{
     my $self = shift;
-    my $stagetype = shift;
-    my $volume = $self->{volume};
+    my $failed = shift;
+    
+    croak "force_failed_status is only for testing" unless (get_config("debug"));
 
-    foreach my $ondisk (0,1) {
-        my $dir = eval "\$volume->get_${stagetype}_directory($ondisk)";
-        if(-e $dir) {
-            $self->get_logger()->trace("Removing " . $dir);
-            remove_tree $dir;
-        }
-    }
-}
-
-# unlink unpacked object
-sub clean_unpacked_object {
-    my $self = shift;
-    return $self->clean_vol_path('staging');
-}
-
-# unlink zip
-sub clean_zip {
-    my $self     = shift;
-    return $self->clean_vol_path('zip');
-}
-
-# unlink mets file
-sub clean_mets {
-    my $self = shift;
-    return unlink $self->{volume}->get_mets_path();
-
-}
-
-# unlink preingest directory tree
-sub clean_preingest {
-    my $self = shift;
-    return $self->clean_vol_path('preingest');
-}
-
-sub clean_download {
-    my $self = shift;
-    my $dir = $self->{volume}->get_download_location();
-    if(defined $dir) {
-        $self->get_logger()->trace("Removing " . $dir);
-        return remove_tree $dir;
-    }
+    $self->_set_done();
+    $self->{failed} = $failed;
+    
+    return;
 }
 
 1;

@@ -40,6 +40,7 @@ daemon:
   - collated
   - rights
   stop_file: /htapps/babel/feed/etc/STOPFEED
+  clean: 1
 
 sample_directory: /htprep/qr
 repository:
@@ -78,6 +79,9 @@ failure_limit: 1
 stop_on_error: 1
 # true to spawn subprocesses to handle each stage
 fork: 1
+
+# enable debug
+debug: 0
 
 handle:
   repo_url_base: http://babel.hathitrust.org/cgi/pt?id=

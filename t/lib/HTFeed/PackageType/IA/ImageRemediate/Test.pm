@@ -3,26 +3,32 @@ package HTFeed::PackageType::IA::ImageRemediate::Test;
 use warnings;
 use strict;
 use base qw(HTFeed::PackageType::IA::AbstractTest);
-use HTFeed::Test::Support qw(get_fake_stage);
+use HTFeed::Test::Support qw(get_fake_stage test_config);
 use HTFeed::Config qw(set_config);
 use File::Copy;
 use File::Path qw(make_path);
 use Test::More;
 
-my $damaged = "/htapps/test.babel/feed/t/staging/DAMAGED";
-my $undamaged = "/htapps/test.babel/feed/t/staging/UNDAMAGED";
-
+# Run ImageRemediate on undamaged package
 sub ImageRemediate : Test(2){
-	set_config("$undamaged/download","staging"=>"download");
+
+	#my $config = test_config('undamaged');
+    set_config('/htapps/test.babel/feed/t/staging/UNDAMAGED/download','staging'=>'download');
+    set_config('/htapps/test.babel/feed/t/staging/UNDAMAGED/ingest','staging'=>'ingest');
+    set_config('/htapps/test.babel/feed/t/staging/UNDAMAGED/preingest','staging'=>'preingest');
+
 	my $self  = shift;
 	my $stage = $self->{test_stage};
-	ok($stage->run(), 'ImageRemediate succeeeded');
-	ok($stage->stage_info(), 'stage info ok');
+	ok($stage->run(), 'IA: ImageRemediate succeeeded with undamaged package');
+	ok($stage->stage_info(), 'IA: ImageRemediate stage info succeeded with undamaged package');
 }
 
+# Test error handling with damaged package
 sub TestErrors : Test(1){
 
-	set_config($damaged,"staging"=>"download");
+	#my $config = test_config('damaged');
+    set_config('/htapps/test.babel/feed/t/staging/DAMAGED/','staging'=>'download');
+
 	my $self = shift;
 	my $stage = $self->{test_stage};
 	my $volume = $self->{volume};
@@ -30,16 +36,18 @@ sub TestErrors : Test(1){
     my $objdir = $volume->get_download_directory();
     my $scandata = "$objdir/${ia_id}_scandata.xml";
 
-	#get bad version from "samples"
-    my $samples = "$damaged/samples/ia/${ia_id}";
+	#get damaged version from "samples"
+    my $samples = "/htapps/test.babel/feed/t/staging/DAMAGED/samples/ia/${ia_id}";
     my $broken_scanData = "$samples/${ia_id}_scandata.xml";
     copy($broken_scanData,$objdir) or die "copy failed: $!";
 
-    #run the whole thing and see coverage
+	#run the stage again with damaged package
+    # TODO: build additional tests to verify damaged state
+    # coverage confirms branches are tested
     ok($stage->run(), 'pass with warnings');
 
-    #replace with standard scandata for next stage test
-    my $clean_copy = "$undamaged/download/ia/$ia_id/${ia_id}_scandata.xml";
+    #replace with standard package for next stage test
+    my $clean_copy = "/htapps/test.babel/feed/t/staging/UNDAMAGED/download/ia/$ia_id/${ia_id}_scandata.xml";
     copy($clean_copy,$objdir) or die "copy failed: $!";
 }
 

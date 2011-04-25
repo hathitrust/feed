@@ -3,7 +3,7 @@ package HTFeed::PackageType::IA::ImageRemediate;
 use warnings;
 use strict;
 use base qw(HTFeed::Stage::ImageRemediate);
-
+use Carp;
 use Log::Log4perl qw(get_logger);
 
 sub run {

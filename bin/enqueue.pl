@@ -5,7 +5,7 @@ use lib "$FindBin::Bin/../lib";
 
 use warnings;
 use strict;
-use HTFeed::DBTools;
+use HTFeed::DBTools::Queue;
 use HTFeed::Volume;
 use Getopt::Long qw(:config no_ignore_case);
 use Pod::Usage;
@@ -103,10 +103,10 @@ else{
 # add volumes to queue
 my $results;
 if($reset or $force_reset){
-    $results = HTFeed::DBTools::reset_volumes(\@volumes, $force_reset);
+    $results = reset_volumes(\@volumes, $force_reset);
 }
 else{
-    $results = HTFeed::DBTools::enqueue_volumes(\@volumes, $insert);
+    $results = enqueue_volumes(\@volumes, $insert);
 }
 
 if ($verbose or !$quiet){

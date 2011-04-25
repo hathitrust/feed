@@ -13,6 +13,8 @@ use HTFeed::DBTools;
 use Time::localtime;
 use File::Pairtree;
 use Data::UUID;
+use File::Path qw(remove_tree);
+
 
 # The namespace UUID for HathiTrust
 use constant HT_UUID => '09A5DAD6-3484-11E0-9D45-077BD5215A96';
@@ -381,6 +383,20 @@ sub get_stages{
     }
 
     return $stages;
+}
+
+=item get_stage($start_state)
+
+Returns string containing the name of the next stage this Volume needs for ingest
+
+=cut
+
+sub next_stage{
+    my $self = shift;
+    my $stage_map = $self->get_nspkg()->get('stage_map');
+    my $stage_name = shift;
+    $stage_name = 'ready' if not defined $stage_name;
+    return $stage_map->{$stage_name};
 }
 
 =item get_jhove_files
@@ -846,8 +862,71 @@ sub clear_premis_events {
 
 }
 
+
+=item _clean_vol_path
+
+    remove staging directory
+
+=cut
+
+sub _clean_vol_path {
+    my $self = shift;
+    my $stagetype = shift;
+
+    foreach my $ondisk (0,1) {
+        my $dir = eval "\$self->get_${stagetype}_directory($ondisk)";
+        if(-e $dir) {
+            get_logger()->warn("Removing " . $dir);
+            remove_tree $dir;
+        }
+    }
+}
+
+# unlink unpacked object
+sub clean_unpacked_object {
+    my $self = shift;
+    return $self->_clean_vol_path('staging');
+}
+
+# unlink zip
+sub clean_zip {
+    my $self     = shift;
+    return $self->_clean_vol_path('zip');
+}
+
+# unlink mets file
+sub clean_mets {
+    my $self = shift;
+    return unlink $self->get_mets_path();
+}
+
+# unlink preingest directory tree
+sub clean_preingest {
+    my $self = shift;
+    return $self->_clean_vol_path('preingest');
+}
+
+# unlink SIP
+sub clean_download {
+    my $self = shift;
+    my $dir = $self->get_download_location();
+    if(defined $dir) {
+        get_logger()->debug("Removing " . $dir);
+        return remove_tree $dir;
+    }
+}
+
+=item ingested
+return true if item is already in the repository
+=cut
+sub ingested{
+    my $self = shift;
+    my $link = $self->get_repository_symlink();
+    
+    return 1 if (-e $link);
+    return;
+}
+
 1;
 
-
-
-__END__;
+__END__

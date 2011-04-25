@@ -9,6 +9,8 @@ use strict;
 use HTFeed::Config qw(get_config);
 use Carp;
 
+use Getopt::Long qw(:config pass_through no_ignore_case);
+
 use Data::Dumper;
 #$Data::Dumper::Indent = 0;
 
@@ -39,11 +41,11 @@ my %error_codes = (
     NotEqualValues      => 'Mismatched field values',
     NotMatchedValue     => 'Mismatched/invalid value for field',
     ToolVersionError	=> 'Can\'t get tool version',
-    VolumePunted	=> 'Volume punted',
-    RunStage		=> 'Running stage',
-    UnexpectedError	=> 'Unexpected error',
-    StageSucceeded	=> 'Stage succeeded',
-    StageFailed		=> 'Stage failed',
+    VolumePunted	    => 'Volume punted',
+    RunStage		    => 'Running stage',
+    UnexpectedError	    => 'Unexpected error',
+    StageSucceeded	    => 'Stage succeeded',
+    StageFailed		    => 'Stage failed',
 
 
 );
@@ -61,10 +63,40 @@ sub import{
 
     my $class = shift;
     my $config = shift;
-    my $new_root_log_config = $config->{root_logger};
-    if ($new_root_log_config){
-        $root_log_config = $new_root_log_config;
+    
+    # override config command option
+    my $root_log_config_from_command;
+    my ($level, $screen, $dbi, $file);
+    GetOptions (
+        "level=s" => \$level,
+        "screen"  => \$screen,
+        "dbi"     => \$dbi,
+        "file"    => \$file
+    );
+    
+    if ($level or $screen or $dbi or $file){
+        $level = 'INFO' unless $level;
+        die "Invalid logging options: please specify logger"
+            unless($screen or $dbi or $file);
+        
+        $root_log_config_from_command = $level;
+        $root_log_config_from_command .= ', dbi' if ($dbi);
+        $root_log_config_from_command .= ', screen' if ($screen);
+        $root_log_config_from_command .= ', file' if ($file);
     }
+
+    # override config use option
+    my $root_log_config_from_use = $config->{root_logger};
+    
+    # command takes precedence over use, which takes precedence over config file
+    if ($root_log_config_from_command){
+        $root_log_config = $root_log_config_from_command;
+    }
+    elsif ($root_log_config_from_use){
+        $root_log_config = $root_log_config_from_use;
+    }
+    
+    print "Logging with root logger config '$root_log_config'\n";
     _init();
 }
 

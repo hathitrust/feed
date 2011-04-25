@@ -30,10 +30,6 @@ sub setup : Test(setup){
     $self->{test_stage} = eval "$t_class->new(volume => \$volume)";
 }
 
-sub teardown : Test(teardown){
-	# clean up stage
-}
-
 1;
 
 __END__

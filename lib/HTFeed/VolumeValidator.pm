@@ -420,8 +420,7 @@ sub md5sum {
 sub clean_failure {
     my $self = shift;
 
-    #$self->clean_ram_download();
-    $self->clean_unpacked_object();
+    $self->{volume}->clean_unpacked_object();
 }
 
 1;

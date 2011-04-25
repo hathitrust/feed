@@ -9,9 +9,8 @@ use File::Path qw(make_path);
 use Test::More;
 
 sub temp_setup : Test(setup){
-	set_config('/htapps/test.babel/feed/t/staging/UNDAMAGED/preingest','staging'=>'preingest');
-	set_config('/htapps/test.babel/feed/t/staging/UNDAMAGED/zipfile','staging'=>'zipfile');
-	#determine that cleanup has been run
+
+	# verify that staging dirs are clean
 	my $self = shift;
 	my $volume = $self->{volume};
 	my $objid = $volume->get_objid();
@@ -27,12 +26,19 @@ sub temp_setup : Test(setup){
 	}
 }
 
-
+# Run IA Unpack stage on undamaged package
 sub Unpack : Test(1){
+
+	#TODO use config setup method once Support/Test.pm is finalized
+	set_config('/htapps/test.babel/feed/t/staging/UNDAMAGED/preingest','staging'=>'preingest');
+	set_config('/htapps/test.babel/feed/t/staging/UNDAMAGED/zipfile','staging'=>'zipfile');
+	set_config('/htapps/test.babel/feed/t/staging/UNDAMAGED/ingest','staging'=>'ingest');
+	set_config('/htapps/test.babel/feed/t/staging/UNDAMAGED/download','staging'=>'download');
+
     my $self = shift;
 	my $volume = $self->{volume};
 	my $stage = $self->{test_stage};
-	ok($stage->run, 'Unpacked');
+	ok($stage->run, 'IA: Unpack stage succeeds with undamaged volume');
 }
 
 1;
