@@ -29,6 +29,14 @@ premis_events:
     detail: Initial capture of item
     executor: VOLUME_ARTIST
 
+  file_md5_create:
+    type: file md5 create
+    detail: Calculation of file level checksums 
+    executor: MiU
+    executor_type: MARC21 Code
+    tools:
+    - GROOVE
+
   file_rename:
     type: file rename
     detail: File renaming to HathiTrust conventions
@@ -63,6 +71,14 @@ premis_events:
   ingestion:
     type: ingestion
     detail: Ingestion of object package into repository
+    executor: MiU
+    executor_type: MARC21 Code
+    tools:
+    - GROOVE
+
+  manual_quality_review:
+    type: manual quality review
+    detail: files manually reviewed during quality control process
     executor: MiU
     executor_type: MARC21 Code
     tools:
