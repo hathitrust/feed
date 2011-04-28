@@ -61,7 +61,7 @@ sub update{
         if ($fail);
     get_logger()->info( 'VolumePunted', objid => $self->id, namespace => $self->namespace )
         if ($new_status eq 'punted');
-
+    
     &{$self->{callback}}($self->namespace, $self->id, $new_status, $release, $fail);
 
     return;
@@ -124,8 +124,6 @@ sub _build_stage_class{
 
     my $class = $self->volume->next_stage($self->status);
     
-    ## TODO: remove this hack once 'clean' branch is merged
-    $class =~ s/\//::/g;
     return $class;
 }
 
@@ -148,7 +146,10 @@ sub _build_new_status{
         $stage->get_stage_info('success_state') : $stage->get_stage_info('failure_state');
     $new_status = 'punted'
         if((! $success) and ($self->failure_count >= get_config('failure_limit')));
-    
+
+    # punt if we next status is undefined
+    $new_status = 'punted' unless $new_status;
+
     return $new_status;
 }
 

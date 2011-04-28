@@ -53,39 +53,6 @@ sub enqueue_volumes{
     return \@results;
 }
 
-sub enqueue_volumes{
-    my $volumes = shift;
-    my $ignore = shift;
-    
-    $dbh = get_dbh();
-    my $sth;
-    my $blacklist_sth = $dbh->prepare("SELECT * FROM blacklist WHERE namespace = ? and id = ?");
-    if($ignore){
-        $sth = $dbh->prepare(q(INSERT IGNORE INTO queue (pkg_type, namespace, id) VALUES (?,?,?);));
-    }else {
-        $sth = $dbh->prepare(q(INSERT INTO queue (pkg_type, namespace, id) VALUES (?,?,?);));
-    }
-    
-    my @results;
-    foreach my $volume (@{$volumes}){
-        eval{
-            # First make sure volume is not on the blacklist.
-            my $namespace = $volume->get_namespace();
-            my $objid = $volume->get_objid();
-
-            $blacklist_sth->execute($namespace,$objid);
-            if($blacklist_sth->fetchrow_array()) {
-                get_logger()->warn("Blacklisted",namespace=>$namespace,objid=>$objid);
-                push(@results,0);
-                return;
-            }
-            push @results, $sth->execute($volume->get_packagetype(), $namespace, $objid);
-        } or print $@ and return \@results;
-    }
-    return \@results;
-}
-
-
 # reset(\@volumes, $force)
 # 
 # reset punted volumes, reset all volumes if $force
