@@ -122,30 +122,9 @@ sub _add_dmdsecs {
     # MIU: add TEIHDR; do not add second call number??
 }
 
+# no techmds by default
 sub _add_techmds {
     my $self = shift;
-
-    # Add source METS if it is present
-    my $src_mets_file = $self->{volume}->get_source_mets_file();
-    
-    if($src_mets_file) {
-    
-        my $srcmets_mdsec = new METS::MetadataSection( 'techMD',
-            id => $self->_get_subsec_id('TMD'));
-        $srcmets_mdsec->set_md_ref(
-            mdtype => 'OTHER',
-            othermdtype => 'METS',
-            label  => 'Source METS',
-            loctype => 'OTHER',
-            otherloctype => 'SYSTEM',
-            xlink => { href => "$src_mets_file" },
-
-        );
-        push( @{ $self->{amd_mdsecs} }, $srcmets_mdsec );
-
-    }
-
-
 }
 
 # extract existing PREMIS events from object currently in repos
@@ -413,6 +392,26 @@ sub _add_zip_fg {
     $mets->add_filegroup($zip_filegroup);
 }
 
+sub _add_srcmets_fg {
+    my $self   = shift;
+    my $mets   = $self->{mets};
+    my $volume = $self->{volume};
+
+    # Add source METS if it is present
+    my $src_mets_file = $self->{volume}->get_source_mets_file();
+
+    if($src_mets_file) {
+        my $mets_filegroup = new METS::FileGroup(
+            id  => $self->_get_subsec_id("FG"),
+            use => 'source METS'
+        );
+        $mets_filegroup->add_file( $src_mets_file, 
+            path => $volume->get_staging_directory(), 
+            prefix => 'METS' );
+        $mets->add_filegroup($mets_filegroup);
+    }
+}
+
 sub _add_content_fgs {
     my $self   = shift;
     my $mets   = $self->{mets};
@@ -439,6 +438,7 @@ sub _add_filesecs {
     my $self = shift;
 
     # first add zip
+    $self->_add_srcmets_fg();
     $self->_add_zip_fg();
     $self->_add_content_fgs();
 
@@ -551,7 +551,7 @@ sub validate_xml {
     my $filename       = shift;
     my $validation_cmd = "$xerces $filename 2>&1";
     my $val_results    = `$validation_cmd`;
-    if ( $val_results !~ /$filename OK/ || $? ) {
+    if ( $val_results !~ /\Q$filename\E OK/ || $? ) {
         wantarray ? return ( 0, $val_results ) : return (0);
     }
     else {
