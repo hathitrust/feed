@@ -68,6 +68,14 @@ premis_events:
     tools:
     - GROOVE
 
+  manual_quality_review:
+    type: manual quality review
+    detail: Files manually reviewed during quality control process
+    executor: MiU
+    executor_type: MARC21 Code
+    tools:
+    - GROOVE
+
   mets_validation:
     type: validation
     detail: Validation of source METS file
