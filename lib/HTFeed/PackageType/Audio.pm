@@ -90,7 +90,7 @@ our $config = {
     'capture',
     'manual_quality_review',
     'source_mets_creation',
-    'file_md5_create',
+    'page_md5_create',
     ],
 
     premis_events => [
@@ -105,9 +105,6 @@ our $config = {
         manual_quality_review => {
             type => 'manual quality review',
         },
-        file_md5_create => {
-            type => 'fixity check',
-        }
     
     },
 
