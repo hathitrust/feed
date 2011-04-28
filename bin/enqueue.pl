@@ -144,7 +144,7 @@ enqueue.pl [-v|-q] [-r|-R|-i] -d packagetype [infile]
 
 enqueue.pl [-v|-q] [-r|-R|-i] -1 packagetype namespace objid]
 
-    INOUT OPTIONS
+    INPUT OPTIONS
     -d dot format infile - follow with packagetype
         all lines of infile are expected to be of the form namespace.objid.
 

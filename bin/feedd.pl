@@ -32,7 +32,7 @@ my $clean = get_config('daemon'=>'clean');
 # kill children on SIGINT, SIGTERM
 $SIG{'INT'} =
     sub {
-        warn("Process $$ received SIGINT/SIGTERM, cleaning up...\n");
+        warn("feedd process $$ received SIGINT/SIGTERM, cleaning up...\n");
         unless($$ eq $process_id){
             # child dies
             exit 0;
@@ -198,10 +198,14 @@ END{
         
         # release all locks
         HTFeed::DBTools::reset_in_flight_locks();
-        print "Waiting 30 seconds (so we don't respawn too fast out of inittab)\n";
-        sleep 30;
+        
+        # what is says, if we exiting with a non zero status (i.e. we died)
+        # this prevents waiting to exit when we are sent SIGINT
+        if ($?){
+            print "Waiting 30 seconds (so we don't respawn too fast out of inittab)\n";
+            sleep 30;            
+        }
     }
-
 }
 
 1;
