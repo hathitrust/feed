@@ -83,3 +83,16 @@ sub new_job{
     }
 }
 
+__END__
+
+=head1 NAME
+
+    ingest_test.pl - add volumes to Feedr queue
+
+=head1 SYNOPSIS
+
+ingest_test.pl [ -i | --ignore_errors ] [ --no-clean ] packagetype namespace objid [ state ]\n
+
+=cut
+
+
