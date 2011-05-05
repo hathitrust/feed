@@ -67,7 +67,8 @@ our $config = {
         ready             => 'HTFeed::PackageType::Yale::Unpack',
         unpacked          => 'HTFeed::PackageType::Yale::VerifyManifest',
         manifest_verified => 'HTFeed::PackageType::Yale::ExtractOCR',
-        ocr_extracted     => 'HTFeed::PackageType::Yale::ImageRemediate',
+        ocr_extracted     => 'HTFeed::PackageType::Yale::BoilerplateRemove',
+        boilerplate_removed => 'HTFeed::PackageType::Yale::ImageRemediate',
         images_remediated => 'HTFeed::PackageType::Yale::SourceMETS',
         src_metsed        => 'HTFeed::VolumeValidator',
         validated         => 'HTFeed::Stage::Pack',
@@ -97,6 +98,7 @@ our $config = {
         'source_mets_creation',
         'page_md5_create',
         'mets_validation',
+        'boilerplate_remove',
     ],
 
      # What PREMIS event types  to extract from the source METS and include in the HT METS
@@ -106,6 +108,7 @@ our $config = {
         'ocr_normalize', 
         'source_mets_creation',
         'page_md5_create',
+        'boilerplate_remove',
     ],
 
     # What PREMIS events to include (by internal PREMIS identifier,
@@ -122,7 +125,14 @@ our $config = {
     # Overrides for the basic PREMIS event configuration
     premis_overrides => {
         'ocr_normalize' =>
-          { detail => 'Extraction of plain-text OCR from ALTO XML', }
+          { detail => 'Extraction of plain-text OCR from ALTO XML', },
+        'boilerplate_remove' => 
+          { type => 'delete files',
+            detail => 'Replace boilerplate images with blank pages' ,
+            executor => 'MiU',
+            executor_type => 'MARC21 Code',
+            tools => ['GROOVE']
+          },
     },
 
     SIP_filename_pattern => '%s.zip',
