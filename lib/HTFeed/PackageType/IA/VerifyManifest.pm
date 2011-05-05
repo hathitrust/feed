@@ -73,10 +73,12 @@ sub run {
         } else {
             $outcome = new PREMIS::Outcome('pass');
         }
-        $outcome->add_file_list_detail("files passed checksum validation",
-            "passed", \@passed);
-        $outcome->add_file_list_detail("files not checked",
-            "unchecked", \@unchecked);
+#        $outcome->add_file_list_detail("files passed checksum validation",
+#            "passed", \@passed);
+        if(@unchecked) {
+            $outcome->add_file_list_detail("files not checked",
+                "unchecked", \@unchecked);
+        }
         $volume->record_premis_event('source_md5_fixity',outcome => $outcome);
     }
 
