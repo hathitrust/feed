@@ -8,7 +8,7 @@ use FindBin;
 use lib "$FindBin::Bin/lib";
 use lib "$FindBin::Bin/../lib";
 
-use HTFeed::Log {root_logger => 'INFO, screen'};
+use HTFeed::Log {root_logger => 'INFO, file'};
 use HTFeed::Config qw(get_config set_config);
 set_config('1','debug');
 
