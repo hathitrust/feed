@@ -5,6 +5,7 @@ use warnings;
 use base qw(HTFeed::Stage);
 use HTFeed::Config qw(get_config);
 use Log::Log4perl qw(get_logger);
+use Carp;
 
 sub run {
     die("Subclass must implement run.");
@@ -195,7 +196,16 @@ sub remediate_image {
         _set_new_if_undefined( $oldFields, $newFields, $field, $val );
     }
 
+    # first copy old values, since kdu_munge will eat the XMP if it is
+    # present
     my $exifTool = new Image::ExifTool;
+    my $info = $exifTool->SetNewValuesFromFile( $infile, '*:*' );
+    while( my ( $key, $val ) = each (%$info) ) {
+        if($key eq 'Error') {
+            croak("Error extracting old headers: $!");
+        }
+    }
+    # then copy new fields
     while ( my ( $field, $val ) = each(%$newFields) ) {
         my ( $success, $errStr ) = $exifTool->SetNewValue( $field, $val );
         if ( defined $errStr ) {

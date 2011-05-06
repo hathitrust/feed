@@ -13,7 +13,8 @@ sub ram_disk_size{
     my $self = shift;
     my $volume = $self->{volume};
 
-    my $multiplier = 2.10;
+    # zip file may be compressed by a relatively significant factor. Be conservative in space usage.
+    my $multiplier = 3.10;
 
     return HTFeed::Stage::estimate_space($volume->get_download_location(), $multiplier);
 }
