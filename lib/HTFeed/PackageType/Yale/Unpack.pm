@@ -30,9 +30,9 @@ sub run{
     return $self->succeeded();
 }
 
-# override parent class method not to junk paths
+# override parent class method not to junk paths and to force lowercasing of all filenames
 sub unzip_file {
-    return HTFeed::Stage::Unpack::_extract_file(q(yes 'n' | unzip -o -q '%s' -d '%s' %s 2>&1),@_);
+    return HTFeed::Stage::Unpack::_extract_file(q(yes 'n' | unzip -LL -o -q '%s' -d '%s' %s 2>&1),@_);
 }
 
 

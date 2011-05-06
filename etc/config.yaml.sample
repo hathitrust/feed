@@ -4,6 +4,8 @@ database:
   username: USERNAME
   password: PASSWORD
 
+imagemagick: /l/local/ImageMagick-6.6.9-8/bin/convert
+
 jhove: /l/local/bin/jhove
 jhoveconf: /l/local/jhove/conf/jhove.conf
 

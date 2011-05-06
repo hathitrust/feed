@@ -438,8 +438,8 @@ sub _add_filesecs {
     my $self = shift;
 
     # first add zip
-    $self->_add_srcmets_fg();
     $self->_add_zip_fg();
+    $self->_add_srcmets_fg();
     $self->_add_content_fgs();
 
     # MIU: Extra stuff for MIU: archival XML, objid XML?

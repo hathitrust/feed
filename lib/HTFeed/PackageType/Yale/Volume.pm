@@ -336,16 +336,14 @@ sub dospath_to_path($) {
 
     my $objid = $self->get_objid();
     # METS file may have inconsistent case w.r.t filesystem
-    $dospath =~ s/Images/IMAGES/g;
-    $dospath =~ s/MetaData/METADATA/g;
     my $preingest_path = $self->get_preingest_directory();
 
     if ( $dospath =~ /^\.\.\.\\$objid\\(.*)/ ) {
         my $relpath = $1;
 
-        # convert DOS-style paths to Unix-style
+        # convert DOS-style paths to Unix-style and lowercase (as we did for unzip)
         $relpath =~ s/\\/\//g;
-        my $abspath = "$preingest_path/$relpath";
+        my $abspath = lc("$preingest_path/$relpath");
 
         if ( -e $abspath ) {
             return $abspath;
@@ -376,10 +374,7 @@ sub get_yale_mets_xpc {
     my $directory = $self->get_preingest_directory();
     my $objid = $self->get_objid();
     if(not defined $self->{yale_mets_xc}) {
-        my $mets = "$directory/METADATA/${objid}_METS.xml";
-        if ( !-e $mets ) {
-            $mets = "$directory/METADATA/${objid}_Mets.xml";
-        }
+        my $mets = "$directory/metadata/${objid}_mets.xml";
 
         $self->{yale_mets_xc} = $self->_parse_xpc($mets);
 
@@ -409,8 +404,8 @@ sub get_capture_time {
         if(!$capture_time) {
             my $preingest_dir = $self->get_preingest_directory();
 
-            my $metadata_dir = "$preingest_dir/METADATA";
-            my $scanjob = "$metadata_dir/${objid}_ScanJob.xml";
+            my $metadata_dir = "$preingest_dir/metadata";
+            my $scanjob = "$metadata_dir/${objid}_scanjob.xml";
             my $doc;
             my $xc;
             eval {

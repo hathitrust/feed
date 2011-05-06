@@ -19,7 +19,7 @@ sub run {
     my $objid  = $volume->get_objid();
 
     my $objdir   = $volume->get_preingest_directory();
-    my $manifest = "$objdir/METADATA/${objid}_AllFilesManifest.txt";
+    my $manifest = "$objdir/metadata/${objid}_allfilesmanifest.txt";
 
     get_logger()->trace("Verifying checksums..");
     if ( -e $manifest ) {
@@ -30,9 +30,9 @@ sub run {
         while ( my $line = <$manifest_fh> ) {
             chomp($line);
             my ( $dospath, $manifest_md5sum ) = split( "\t", $line );
-            next if $dospath =~ /2Restore/;    # garbage files
-            next if $dospath =~ /Thumbs.db$/;
-	    next if $dospath =~ /\.jpg$/;
+            next if $dospath =~ /2Restore/i;    # garbage files
+            next if $dospath =~ /Thumbs.db$/i;
+	    next if $dospath =~ /\.jpg$/i;
             $self->_check_dospath_md5sum( $dospath, $manifest_md5sum );
 
         }
