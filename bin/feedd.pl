@@ -155,7 +155,7 @@ sub fill_queue{
     
         if (my $sth = get_queued()){
             while(my $job_info = $sth->fetchrow_arrayref()){
-                ## TODO: Make sure this works
+                # instantiate HTFeed::Job
                 my $job = HTFeed::Job->new(@{$job_info},\&update_queue);
                 ## if !can_run_job, $job will never be released
                 push (@jobs, $job) if (! is_locked($job) and $job->runnable);

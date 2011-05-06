@@ -16,15 +16,16 @@ sub startup : Test(startup => 3){
     my $self = shift;
     my $t_class = $self->testing_class();
     
-    # instantiate and make sure the it isa what it should be
+    # instantiate and make sure it isa what it should be
     my $volume = get_test_volume();
     my $obj = new_ok( $t_class => [volume => $volume] );
     isa_ok($obj, 'HTFeed::Stage', $t_class);
     
     # basic interface adherance
-    can_ok($obj, qw(run set_error clean clean_success clean_failure clean_always clean_punt clean_unpacked_object clean_zip clean_mets clean_preingest));
+    can_ok($obj, qw(run set_error clean clean_success clean_failure clean_always clean_punt));
     
     # save the volume for later
+    ## dead code?
     $self->{volume} = $volume;
 }
 
@@ -32,11 +33,10 @@ sub startup : Test(startup => 3){
 sub setup : Test(setup){
     my $self = shift;
     my $t_class = $self->testing_class();
-    my $volume = $self->{volume};
+    my $volume = get_test_volume($self->pkgtype);
     
     HTFeed::StagingSetup::make_stage;
     
-    ## TODO: use a stage-appropriate volume
     $self->{test_stage} = eval "$t_class->new(volume => \$volume)";
 }
 
@@ -44,7 +44,6 @@ sub setup : Test(setup){
 sub teardown : Test(teardown){
     HTFeed::StagingSetup::clear_stage;
 }
-
 
 sub clean_failure : Test(1){
     my $self = shift;
@@ -131,6 +130,7 @@ sub look_for_artifacts{
                 foreach my $re (@allowed){
                     if ($artifact =~ /$re/){
                         $inc_unwanted_found = 0;
+                        diag("unwanted artifact: $artifact");
                         last;
                     }
                 }
@@ -203,12 +203,16 @@ sub all_staging_dirs{
 
     my $dirs = [];
     
-    foreach my $key (%{$staging}){
+    foreach my $key (keys %{$staging}){
         my $dir = $staging->{$key};
         push @{$dirs}, $dir unless (ref $dir);
     }
     
     return $dirs;
+}
+
+sub pkgtype{
+    return undef;
 }
 
 1;
