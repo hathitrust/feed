@@ -3,7 +3,6 @@ package HTFeed::PackageType::MPubDCU::Fetch;
 use strict;
 use warnings;
 use base qw(HTFeed::Stage);
-use File::Copy::Recursive qw(dircopy);
 use HTFeed::Config qw(get_config);
 
 sub run {
@@ -13,17 +12,15 @@ sub run {
 	my $objid = $volume->get_objid();
 	my $packagetype = $volume->get_packagetype();
 	my $ns = $volume->get_namespace();
-	my $fetch_path = get_config('staging'=>'fetch') . "/$packagetype/forHT";
+	my $fetch_dir = get_config('staging'=>'fetch');
 	my $staging_dir = get_config('staging' => 'download');
+	my $source = "$fetch_dir/$packagetype/forHT/$objid";
 
 	if(! -e $staging_dir) {
 		mkdir $staging_dir or die("Can't mkdir $staging_dir: $!");
 	}
 	
-	my $src = "$fetch_path/$objid";
-	my $dest = "$staging_dir/$objid";
-	dircopy($src,$dest)
-		or $self->set_error('OperationFailed', operation=>'copy', detail=>"copy $src $dest failed: $!");
+	system("cp -rs $source $staging_dir") and die("I FAILED");
 
 	$self->_set_done();
 	return $self->succeeded();
