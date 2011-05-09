@@ -32,6 +32,7 @@ sub run {
             my ( $dospath, $manifest_md5sum ) = split( "\t", $line );
             next if $dospath =~ /2Restore/i;    # garbage files
             next if $dospath =~ /Thumbs.db$/i;
+            next if $dospath =~ /AllFilesManifest/i; # will always be wrong
 	    next if $dospath =~ /\.jpg$/i;
             $self->_check_dospath_md5sum( $dospath, $manifest_md5sum );
 
