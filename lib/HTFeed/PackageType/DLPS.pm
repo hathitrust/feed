@@ -33,5 +33,4 @@ our $config = {
 	#PREMIS overrides
 	premis_overrides => {},
 
-;
-}
+};
