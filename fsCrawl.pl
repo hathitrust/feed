@@ -8,6 +8,8 @@ use HTFeed::DBTools qw(get_dbh);
 use File::Basename;
 use File::Pairtree;
 use HTFeed::Volume;
+use HTFeed::Namespace;
+use HTFeed::PackageType;
 use POSIX qw(strftime);
 
 
@@ -149,7 +151,7 @@ sub zipcheck {
     return unless $do_md5 or $do_mets;
 
     # use google as a 'default' namespace for now
-    my $volume = new HTFeed::Volume(packagetype => "google",namespace => $namespace,objid => $objid);
+    my $volume = new HTFeed::Volume(packagetype => "pkgtype",namespace => $namespace,objid => $objid);
     my $mets = $volume->get_repos_mets_xpc();
     my $rval = undef;
 
