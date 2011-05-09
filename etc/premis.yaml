@@ -35,7 +35,7 @@ premis_events:
     executor: MiU
     executor_type: MARC21 Code
     tools:
-    - GROOVE
+      - GROOVE
 
   ht_mets_creation:
     type: mets creation
@@ -43,7 +43,7 @@ premis_events:
     executor: MiU
     executor_type: MARC21 Code
     tools:
-    - GROOVE
+      - GROOVE
 
   image_compression:
     type: image compression
@@ -57,8 +57,8 @@ premis_events:
     executor: MiU
     executor_type: MARC21 Code
     tools:
-    - GROOVE
-    - EXIFTOOL
+      - GROOVE
+      - EXIFTOOL
 
   ingestion:
     type: ingestion
@@ -66,7 +66,7 @@ premis_events:
     executor: MiU
     executor_type: MARC21 Code
     tools:
-    - GROOVE
+      - GROOVE
 
   manual_quality_review:
     type: manual quality review
@@ -74,7 +74,7 @@ premis_events:
     executor: MiU
     executor_type: MARC21 Code
     tools:
-    - GROOVE
+      - GROOVE
 
   mets_validation:
     type: validation
@@ -82,7 +82,7 @@ premis_events:
     executor: MiU
     executor_type: MARC21 Code
     tools:
-    - XERCES
+      - XERCES
 
   ocr_normalize:
     type: ocr split
@@ -90,7 +90,7 @@ premis_events:
     executor: MiU
     executor_type: MARC21 Code
     tools:
-    - GROOVE
+      - GROOVE
 
   package_inspection:
     type: package inspection
@@ -98,7 +98,7 @@ premis_events:
     executor: MiU
     executor_type: MARC21 Code
     tools:
-    - GROOVE
+      - GROOVE
 
   package_validation:
     type: validation
@@ -106,9 +106,9 @@ premis_events:
     executor: MiU
     executor_type: MARC21 Code
     tools:
-    - GROOVE
-    - JHOVE
-    - XERCES
+      - GROOVE
+      - JHOVE
+      - XERCES
 
   page_feature_mapping:
     type: page feature mapping
@@ -116,7 +116,7 @@ premis_events:
     executor: MiU
     executor_type: MARC21 Code
     tools:
-    - GROOVE
+      - GROOVE
 
   page_md5_create:
     type: message digest calculation
@@ -124,7 +124,7 @@ premis_events:
     executor: MiU
     executor_type: MARC21 Code
     tools:
-    - DIGEST_MD5
+      - DIGEST_MD5
 
   page_md5_fixity:
     type: fixity check
@@ -132,7 +132,7 @@ premis_events:
     executor: MiU
     executor_type: MARC21 Code
     tools:
-    - DIGEST_MD5
+      - DIGEST_MD5
 
   preingest:
     type: transformation
@@ -140,7 +140,7 @@ premis_events:
     executor: MiU
     executor_type: MARC21 Code
     tools:
-    - GROOVE
+      - GROOVE
     # list any other tools here??
 
   source_md5_fixity:
@@ -149,7 +149,7 @@ premis_events:
     executor: MiU
     executor_type: MARC21 Code
     tools:
-    - DIGEST_MD5
+      - DIGEST_MD5
 
   source_mets_creation:
     type: source mets creation
@@ -157,7 +157,7 @@ premis_events:
     executor: MiU
     executor_type: MARC21 Code
     tools:
-    - GROOVE
+      - GROOVE
 
   zip_compression:
     type: zip archive creation
@@ -165,7 +165,7 @@ premis_events:
     executor: MiU
     executor_type: MARC21 Code
     tools:
-    - ZIP
+      - ZIP
 
   zip_md5_create:
     type: zip file message digest calculation
@@ -173,5 +173,5 @@ premis_events:
     executor: MiU
     executor_type: MARC21 Code
     tools:
-    - DIGEST_MD5
+      - DIGEST_MD5
 
