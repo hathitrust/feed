@@ -10,7 +10,6 @@ use base qw(HTFeed::Stage);
 use HTFeed::Config qw(get_config);
 
 use Log::Log4perl qw(get_logger);
-my $logger = get_logger(__PACKAGE__);
 
 # Verifies that all files listed in the manifest exist and that their checksums
 # match those provided in the source METS.
@@ -26,7 +25,7 @@ sub run {
     my $mismatch_ok_files = [ "${ia_id}_meta.xml" ];
 
     if(!-e "$objdir/$manifest") {
-        $logger->warn("FileMissing","${ia_id}_files.xml");
+        get_logger()->warn("FileMissing","${ia_id}_files.xml");
         my $outcome = new PREMIS::Outcome('warning');
         $outcome->add_detail_note("Manifest ${ia_id}_files.xml not found, fixity check could not be performed");
         $volume->record_premis_event("source_md5_fixity",outcome => $outcome);
@@ -74,10 +73,12 @@ sub run {
         } else {
             $outcome = new PREMIS::Outcome('pass');
         }
-        $outcome->add_file_list_detail("files passed checksum validation",
-            "passed", \@passed);
-        $outcome->add_file_list_detail("files not checked",
-            "unchecked", \@unchecked);
+#        $outcome->add_file_list_detail("files passed checksum validation",
+#            "passed", \@passed);
+        if(@unchecked) {
+            $outcome->add_file_list_detail("files not checked",
+                "unchecked", \@unchecked);
+        }
         $volume->record_premis_event('source_md5_fixity',outcome => $outcome);
     }
 
@@ -105,7 +106,7 @@ sub _check_md5sum($$) {
 
     my $md5sum = md5sum("$path/$file");
     if ( $md5sum eq $manifest_md5sum ) {
-        $logger->trace("Verified $file $md5sum");
+        get_logger()->trace("Verified $file $md5sum");
         return 1;
     }
     else {
@@ -118,7 +119,7 @@ sub _check_md5sum($$) {
         );
 
         if($mismatch_nonfatal) {
-            $logger->warn(@error_params);
+            get_logger()->warn(@error_params);
         } else {
             $self->set_error(@error_params);
         }
@@ -140,6 +141,12 @@ sub md5sum($) {
 
     return Digest::MD5->new->addfile($fh)->hexdigest;
     $fh->close();
+}
+
+# do cleaning that is appropriate after failure
+sub clean_failure{
+    my $self = shift;
+    $self->{volume}->clean_download();
 }
 
 1;

@@ -6,11 +6,9 @@ use base qw(HTFeed::Volume);
 use HTFeed::XMLNamespaces qw(:namespaces);
 use HTFeed::Config qw(get_config);
 use List::MoreUtils qw(uniq);
-use File::Path qw(remove_tree);
 use Carp qw(croak);
 use Log::Log4perl qw(get_logger);
 
-my $logger = get_logger(__PACKAGE__);
 
 =item get_page_data(file)
 
@@ -197,7 +195,7 @@ sub _extract_page_tags {
                 if defined $type_tag;
             }
             else {
-                $logger->warn( "Missing type on div" . $struct_div->toString() );
+                get_logger()->warn( "Missing type on div" . $struct_div->toString() );
             }
 
             $self->_map_label_page_tag( $struct_div, $pagetags );
@@ -274,10 +272,10 @@ sub _check_is_page {
     my $struct_div = shift;
     if ( $struct_div->hasAttribute('TYPE') ) {
         my $type = $struct_div->getAttribute('TYPE');
-        $logger->warn("Unexpected type $type") unless $type eq 'page';
+        get_logger()->warn("Unexpected type $type") unless $type eq 'page';
     }
     else {
-        $logger->warn('Missing TYPE attribute on div');
+        get_logger()->warn('Missing TYPE attribute on div');
     }
 }
 
@@ -288,9 +286,9 @@ sub _extract_page_number {
 
     if ( $struct_div->hasAttribute($attribute) ) {
         my $pagenum = $struct_div->getAttribute($attribute);
-        $logger->warn( "missing attribute $attribute on div " . $struct_div->toString() )
+        get_logger()->warn( "missing attribute $attribute on div " . $struct_div->toString() )
         if not defined $pagenum;
-        $logger->warn("Unexpected page number $pagenum")
+        get_logger()->warn("Unexpected page number $pagenum")
         unless $pagenum =~ /^\d+$/
             or $pagenum =~ /^[ivxlcdm]+$/;
         $self->{in_body} = 1 if $pagenum =~ /^\d+$/;
@@ -307,7 +305,7 @@ sub _set_pagenumber {
     my $newnumber      = shift;
     my $pagenumber_map = shift;
     if ( defined $newnumber ) {
-        $logger->warn("Inconsistent page numbering for $filename")
+        get_logger()->warn("Inconsistent page numbering for $filename")
         if (  $pagenumber_map->{$filename}
                 and $pagenumber_map->{$filename} ne $newnumber );
 
@@ -315,18 +313,13 @@ sub _set_pagenumber {
     }
 }
 
-=item get_preingest_directory
-
-Returns the directory where the raw submitted object is staged
-
-=cut
 
 sub get_preingest_directory {
     my $self = shift;
-    my $flag = shift;
+    my $ondisk = shift;
 
     my $objid = $self->get_objid();
-    return sprintf("%s/%s", get_config('staging'=>'disk'=>'preingest'), $objid) if $flag;
+    return sprintf("%s/%s", get_config('staging'=>'disk'=>'preingest'), $objid) if $ondisk;
     return sprintf("%s/%s", get_config('staging'=>'preingest'), $objid);
 }
 
@@ -343,16 +336,14 @@ sub dospath_to_path($) {
 
     my $objid = $self->get_objid();
     # METS file may have inconsistent case w.r.t filesystem
-    $dospath =~ s/Images/IMAGES/g;
-    $dospath =~ s/MetaData/METADATA/g;
     my $preingest_path = $self->get_preingest_directory();
 
     if ( $dospath =~ /^\.\.\.\\$objid\\(.*)/ ) {
         my $relpath = $1;
 
-        # convert DOS-style paths to Unix-style
+        # convert DOS-style paths to Unix-style and lowercase (as we did for unzip)
         $relpath =~ s/\\/\//g;
-        my $abspath = "$preingest_path/$relpath";
+        my $abspath = lc("$preingest_path/$relpath");
 
         if ( -e $abspath ) {
             return $abspath;
@@ -383,10 +374,7 @@ sub get_yale_mets_xpc {
     my $directory = $self->get_preingest_directory();
     my $objid = $self->get_objid();
     if(not defined $self->{yale_mets_xc}) {
-        my $mets = "$directory/METADATA/${objid}_METS.xml";
-        if ( !-e $mets ) {
-            $mets = "$directory/METADATA/${objid}_Mets.xml";
-        }
+        my $mets = "$directory/metadata/${objid}_mets.xml";
 
         $self->{yale_mets_xc} = $self->_parse_xpc($mets);
 
@@ -416,8 +404,8 @@ sub get_capture_time {
         if(!$capture_time) {
             my $preingest_dir = $self->get_preingest_directory();
 
-            my $metadata_dir = "$preingest_dir/METADATA";
-            my $scanjob = "$metadata_dir/${objid}_ScanJob.xml";
+            my $metadata_dir = "$preingest_dir/metadata";
+            my $scanjob = "$metadata_dir/${objid}_scanjob.xml";
             my $doc;
             my $xc;
             eval {
@@ -438,11 +426,4 @@ sub get_capture_time {
     }
 
     return $self->{capture_time};
-}
-
-sub clean_all {
-    my $self = shift;
-    $self->SUPER::clean_all();
-    $logger->warn("Removing " . $self->get_preingest_directory());
-    remove_tree $self->get_preingest_directory();
 }

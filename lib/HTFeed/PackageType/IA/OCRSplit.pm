@@ -8,7 +8,6 @@ use base qw(HTFeed::Stage);
 use HTFeed::Config qw(get_config);
 
 use Log::Log4perl qw(get_logger);
-my $logger = get_logger(__PACKAGE__);
 
 #
 # Split the OCR file (_djvu.xml) into a TXT and an XML file for each page
@@ -20,7 +19,7 @@ sub run {
     my $ia_id = $volume->get_ia_id();
     my $download_directory = $volume->get_download_directory();
     my $preingest_directory = $volume->get_preingest_directory();
-    my $staging_directory = $volume->mk_staging_directory($self->stage_on_disk());
+    my $staging_directory = $volume->get_staging_directory();
 
     my $xml = "${ia_id}_djvu.xml";
 
@@ -68,7 +67,7 @@ sub run {
         $bodynode->appendChild($objnode);
 
 
-        $logger->trace("Writing OCR for $usemap");
+        get_logger()->trace("Writing OCR for $usemap");
         # write out with ignorable white space
         $pagedoc->toFile(sprintf("%s/%08d.xml",$staging_directory,$seqnum),1);
 
@@ -95,3 +94,5 @@ sub run {
 sub stage_info{
     return {success_state => 'ocr_extracted', failure_state => ''};
 }
+
+1;

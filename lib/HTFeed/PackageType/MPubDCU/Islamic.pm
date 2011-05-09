@@ -1,12 +1,14 @@
-package HTFeed::PackageType::MPubIslamic;
-use HTFeed::PackageType::MPub;
-use base qw(HTFeed::PackageType::MPub);
-use strict;
+package HTFeed::PackageType::MPubDCU::Islamic;
 
-our $identifier = 'mpub_islamic';
+use warnings;
+use strict;
+use base qw(HTFeed::PackageType::MPubDCU);
+
+our $identifier = 'islamic_manuscripts';
 
 our $config = {
-	%{$HTFeed::PackageType::MPub::config},
+    %{$HTFeed::PackageType::MPubDCU::config},
+    description => 'DCU-digitized Islamic Manuscripts',
     volume_module => 'HTFeed::Volume',
     
     # Regular expression that distinguishes valid files in the file package
@@ -47,7 +49,7 @@ __END__
 
 =pod
 
-This is the package type configuration file for MPub materials (Islamic MSS)
+This is the package type configuration file for MPubDCU materials (Islamic MSS)
 
 =head1 SYNOPSIS
 

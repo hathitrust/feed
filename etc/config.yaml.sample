@@ -4,10 +4,12 @@ database:
   username: USERNAME
   password: PASSWORD
 
+imagemagick: /l/local/ImageMagick-6.6.9-8/bin/convert
+
 jhove: /l/local/bin/jhove
 jhoveconf: /l/local/jhove/conf/jhove.conf
 
-xerces: /l/local/xerces-c/bin/SAX2Count
+xerces: "/htapps/babel/feed/bin/validateCache /ram/schema.cache"
 kdu_munge: /l/local/bin/kdu_munge
 
 jhove: /l/local/bin/jhove
@@ -20,12 +22,15 @@ premis_config: /htapps/babel/feed/etc/premis.yaml
 
 staging:
   download: /htprep/download
-  ingest: /ram/staging
-  zip: /ram/zip_staging
-  preingest: /ram/preingest
+  fetch: /htprep/mpub_dcu
+  ingest: /ram/feed/ingest
+  zip: /ram/feed/zip
+  zipfile: /ram/feed/zipfile
+  preingest: /ram/feed/preingest
   disk:
-    ingest: /htprep/ingest
-    preingest: /htprep/preingest
+    ingest: /l/prep/feed/ingest
+    preingest: /l/prep/feed/preingest
+    zipfile: /l/prep/feed/zipfile
 
 ram_disk: /ram
 ram_fill_limit: 0.8
@@ -37,6 +42,7 @@ daemon:
   - collated
   - rights
   stop_file: /htapps/babel/feed/etc/STOPFEED
+  clean: 1
 
 sample_directory: /htprep/qr
 repository:
@@ -76,6 +82,9 @@ stop_on_error: 1
 # true to spawn subprocesses to handle each stage
 fork: 1
 
+# enable debug
+debug: 0
+
 handle:
   repo_url_base: http://babel.hathitrust.org/cgi/pt?id=
   root_admin: 0.NA/2027
@@ -85,4 +94,7 @@ handle:
     username: USERNAME
     password: PASSWORD
 
-
+jira:
+  wsdl: https://wush.net/jira/hathitrust/rpc/soap/jirasoapservice-v2?wsdl
+  username: USERNAME
+  password: PASSWORD

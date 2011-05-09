@@ -16,7 +16,6 @@ use HTFeed::Config qw(get_config);
 
 use base qw(HTFeed::Stage);
 
-my $logger = get_logger(__PACKAGE__);
 
 sub new {
     my $class = shift;
@@ -47,7 +46,7 @@ sub run {
     foreach my $stage ( @{$self->{run_stages}} ) {
         if ( exists( $self->{stages}{$stage} ) ) {
             my $sub = $self->{stages}{$stage};
-            $logger->debug("Running validation stage $stage");
+            get_logger()->debug("Running validation stage $stage");
 
             &{$sub}($self);
 
@@ -114,7 +113,7 @@ sub _validate_filegroups {
 
     my $filegroups = $volume->get_file_groups();
     while ( my ( $filegroup_name, $filegroup ) = each( %{$filegroups} ) ) {
-        $logger->debug("validating nonempty filegroup $filegroup_name");
+        get_logger()->debug("validating nonempty filegroup $filegroup_name");
         my $filecount = scalar( @{ $filegroup->get_filenames() } );
         if ( !$filecount and $filegroup->get_required() ) {
             $self->set_error( "BadFilegroup", filegroup => $filegroup );
@@ -362,7 +361,7 @@ sub _validate_metadata {
                 my $xpc = XML::LibXML::XPathContext->new($xml_block);
                 register_namespaces($xpc);
 
-                $logger->trace("validating $file");
+                get_logger()->trace("validating $file");
                 my $mod_val = HTFeed::ModuleValidator->new(
                     xpc => $xpc,
 
@@ -374,7 +373,7 @@ sub _validate_metadata {
 
                 # check, log success
                 if ( $mod_val->succeeded() ) {
-                    $logger->debug( "File validation succeeded",
+                    get_logger()->debug( "File validation succeeded",
                         file => $file );
                 }
                 else {
@@ -421,8 +420,7 @@ sub md5sum {
 sub clean_failure {
     my $self = shift;
 
-    #$self->clean_ram_download();
-    $self->clean_unpacked_object();
+    $self->{volume}->clean_unpacked_object();
 }
 
 1;

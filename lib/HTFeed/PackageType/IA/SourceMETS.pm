@@ -8,7 +8,6 @@ use HTFeed::SourceMETS;
 use HTFeed::XMLNamespaces qw(:namespaces :schemas register_namespaces);
 use base qw(HTFeed::SourceMETS);
 
-my $logger = get_logger(__PACKAGE__);
 
 sub new {
     my $class  = shift;
@@ -51,7 +50,7 @@ sub _add_dmdsecs {
     register_namespaces($marc_xc);
     $self->_remediate_marc($marc_xc);
     eval { $xmlschema->validate( $marcxml ); };
-    $logger->warn("WARNING: marc.xml is not valid: $@ \n") if $@;
+    get_logger()->warn("BadFile",file=>"marc.xml",detail => $@) if $@;
     my $marc_valid = !defined $@;
 
     # Verify arkid in meta.xml matches given arkid

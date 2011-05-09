@@ -8,10 +8,6 @@ use Log::Log4perl qw(get_logger);
 
 use base qw(HTFeed::XPathValidator);
 
-use HTFeed::ModuleValidator::JPEG_hul;
-use HTFeed::ModuleValidator::JPEG2000_hul;
-use HTFeed::ModuleValidator::TIFF_hul;
-use HTFeed::ModuleValidator::WAVE_hul;
 use HTFeed::XMLNamespaces qw(register_namespaces);
 use HTFeed::Config qw(get_config);
 

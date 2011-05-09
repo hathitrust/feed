@@ -1,13 +1,15 @@
 package HTFeed::PackageType::Audio;
 
-use strict;
 use warnings;
+use strict;
 use base qw(HTFeed::PackageType);
-use HTFeed::PackageType::Audio::Volume;
 
 our $identifier = 'audio';
 
 our $config = {
+    %{$HTFeed::PackageType::config},
+    description => 'Voice of America audio content',
+
     volume_module => 'HTFeed::PackageType::Audio::Volume',
 
     # Regular expression that distinguishes valid files in the file package
@@ -42,46 +44,36 @@ our $config = {
         	    utf8 => 0
 			},
 
-			#image => {
-				#prefix => 'box' || 'acc',
-				#use => 'image',
-				#file_pattern => qr/\w+\.(jp2)$/,
-				#required => 0,
-				#content => 1,
-				#jhove => 1,
-				#utf8 => 0
-			#},
+			image => {
+				use => 'image',
+				file_pattern => qr/\w+\.(jp2)$/,
+				required => 0,
+				content => 1,
+				jhove => 1,
+				utf8 => 0
+			},
 
     },
-
+	
 	validation_run_stages => [
 	qw(validate_file_names
 	validate_filegroups_nonempty
 	validate_consistency
-	validate_metadata
 	validate_mets_consistency
-	validate_wave_checksums
-	validate_jp2)
+	validate_checksums
+	validate_metadata)
 	],
 
-    checksum_file    => 0,
     source_mets_file => qr/\w+.xml$/,
 
-    # Allow gaps in numerical sequence of filenames?
-    allow_sequence_gaps => 0,
-
     stage_map => {
-        ready             => 'HTFeed::PackageType::Audio::Unpack',
+#        ready             => 'HTFeed::PackageType::Audio::Unpack',
         unpacked          => 'HTFeed::PackageType::Audio::VolumeValidator',
         validated         => 'HTFeed::Stage::Pack',
         packed            => 'HTFeed::PackageType::Audio::METS',
         metsed            => 'HTFeed::Stage::Handle',
         handled           => 'HTFeed::Stage::Collate',
     },
-
-	# The list of filegroups that contain files that will be validated
-    # by JHOVE
-    metadata_filegroups => [qw(image)],
 
     # The HTFeed::ModuleValidator subclass to use for validating
     # files with the given extensions
@@ -90,20 +82,15 @@ our $config = {
 		'jp2' => 'HTFeed::ModuleValidator::JPEG2000_hul',
     },
 
-    # Validation overrides
-    validation => {
-    },
-
-
     # What PREMIS events to include (by internal PREMIS identifier, 
     # configured in config.yaml)
     # TODO: determine Audio HT PREMIS events
     # TODO: determine Audio PREMIS source METS events to extract
     source_premis_events_extract => [
     'capture',
-    'manual quality review',
-    'source mets creation',
-    'message digest calculation',
+    'manual_quality_review',
+    'source_mets_creation',
+    'page_md5_create',
     ],
 
     premis_events => [
@@ -114,11 +101,12 @@ our $config = {
     'ingestion',
     ],
 
-    premis_overrides => {},
-
-    # filename extensions not to compress in zip file
-    uncompressed_extensions => [],
-
+    premis_overrides => {
+        manual_quality_review => {
+            type => 'manual quality review',
+        },
+    
+    },
 
 };
 

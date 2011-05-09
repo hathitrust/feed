@@ -1,8 +1,8 @@
 ---
 package_directory:
-  damaged: /htapps/ezbrooks.babel/break_GRIN/staging/DAMAGED
-  logs: /htapps/ezbrooks.babel/break_GRIN/staging/logs
-  undamaged: /htapps/ezbrooks.babel/break_GRIN/staging/UNDAMAGED
+  damaged: /htapps/test.babel/feed/t/staging/DAMAGED
+  logs: /htapps/test.babel/feed/t/staging/logs
+  undamaged: /htapps/test.babel/feed/t/staging/UNDAMAGED
 package_types:
   google:
     inu:
@@ -151,4 +151,10 @@ package_types:
       - 367
     - - '89003971397'
       - 660
-volume_count: 69
+  yale:
+    yale:
+    - - '39002000104092'
+  ia:
+    uc2:
+    - - 'ark:/13960/t00000431'
+volume_count: 71

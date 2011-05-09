@@ -7,7 +7,6 @@ use LWP::UserAgent;
 use base qw(HTFeed::Stage);
 
 use Log::Log4perl qw(get_logger);
-my $logger = get_logger(__PACKAGE__);
 
 # $self->download(url => $url, path => $path, filename => $filename, not_found_ok => 1);
 # downloads file at $url to $path/$filename
@@ -33,7 +32,7 @@ sub download{
     my $ua = LWP::UserAgent->new;
     $ua->agent('HTFeedBot/0.1 '); # space causes LWP to append its ua
 
-    $logger->trace("Requesting $url");
+    get_logger()->trace("Requesting $url");
     my $request = HTTP::Request->new('GET', $url);
     my $response = $ua->request($request, $pathname);
 
@@ -41,7 +40,7 @@ sub download{
         my $size = (-s $pathname);
         my $expected_size = $response->header('content-length');
         if (not defined $expected_size or $size eq $expected_size){
-            $logger->trace("Downloading $url succeeded, $size bytes downloaded");
+            get_logger()->trace("Downloading $url succeeded, $size bytes downloaded");
             return 1;
         }
         else{
@@ -50,7 +49,7 @@ sub download{
         }
     }
     elsif($not_found_ok and $response->code() eq 404){
-        $logger->trace("$url not found");
+        get_logger()->trace("$url not found");
         return 0;
     }
     else{
@@ -66,7 +65,7 @@ sub stage_info{
 # do cleaning that is appropriate after failure
 sub clean_failure{
     my $self = shift;
-    #$self->clean_ram_download();
+    $self->{volume}->clean_download();
 }
 
 1;

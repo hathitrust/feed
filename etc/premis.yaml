@@ -68,6 +68,14 @@ premis_events:
     tools:
     - GROOVE
 
+  manual_quality_review:
+    type: manual quality review
+    detail: Files manually reviewed during quality control process
+    executor: MiU
+    executor_type: MARC21 Code
+    tools:
+    - GROOVE
+
   mets_validation:
     type: validation
     detail: Validation of source METS file
@@ -94,7 +102,7 @@ premis_events:
 
   package_validation:
     type: validation
-    detail: Validation of object components
+    detail: Validation of technical characteristics of image and OCR files
     executor: MiU
     executor_type: MARC21 Code
     tools:
@@ -120,7 +128,7 @@ premis_events:
 
   page_md5_fixity:
     type: fixity check
-    detail: Validation of page-level MD5 checksums
+    detail: Validation of MD5 checksums for image and OCR files
     executor: MiU
     executor_type: MARC21 Code
     tools:

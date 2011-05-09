@@ -11,12 +11,21 @@ use HTFeed::Config qw(get_config);
 
 use base qw(HTFeed::FactoryLoader);
 
+our $identifier = "namespace";
+our $config = {
+    description => "Base class for HathiTrust namespaces"
+};
+
 sub new {
     my $class = shift;
     my $namespace_id = shift;
     my $packagetype = shift;
     my $self = $class->SUPER::new($namespace_id);
     if(defined $packagetype) {
+        my $allowed_packagetypes = $self->get('packagetypes');
+        if(not grep { $_ eq $packagetype } @{ $allowed_packagetypes }) {
+            croak("Invalid packagetype $packagetype for namespace $namespace_id");
+        }
         # Can accept either a already-constructed HTFeed::PackageType or the package type identifier.
         if(!ref($packagetype)) {
             $packagetype = new HTFeed::PackageType($packagetype);
@@ -48,9 +57,14 @@ sub get {
 
     no strict 'refs';
 
-    my $packagetype_id = $self->{'packagetype'}->get_identifier();
-    my $ns_pkgtype_override = ${"${class}::packagetype_overrides"}->{$packagetype_id};
+    my $packagetype_id; 
+    my $ns_pkgtype_override; 
     my $ns_config = ${"${class}::config"};
+
+    if(defined $self->{'packagetype'}) {
+        $packagetype_id = $self->{'packagetype'}->get_identifier();
+        $ns_pkgtype_override = ${"${class}::packagetype_overrides"}->{$packagetype_id};
+    }
 
     if (defined $ns_pkgtype_override and defined $ns_pkgtype_override->{$config_var}) {
         return $ns_pkgtype_override->{$config_var};

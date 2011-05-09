@@ -4,17 +4,38 @@ use warnings;
 use strict;
 
 use base qw(Exporter);
-our @EXPORT_OK = qw(get_test_volume get_fake_stage md5_dir);
+our @EXPORT_OK = qw(get_test_volume get_fake_stage md5_dir test_config);
 
+use HTFeed::Config qw(set_config);
 use HTFeed::Volume;
 use HTFeed::Stage::Fake;
 use Digest::MD5;
 use FindBin;
 use File::Find;
 
-use HTFeed::Config qw(set_config);
-set_config('/htapps/ezbrooks.babel/break_GRIN/staging/download','staging'=>'download');
-set_config('/htapps/ezbrooks.babel/break_GRIN/staging/ingest','staging'=>'ingest');
+#sub test_config{
+#	my $test_type = shift;
+#
+#	my $types = {
+#		undamaged => {
+#			set_config('/htapps/test.babel/feed/t/staging/UNDAMAGED/download','staging'=>'download'),
+#			set_config('/htapps/test.babel/feed/t/staging/UNDAMAGED/ingest','staging'=>'ingest'),
+#			set_config('/htapps/test.babel/feed/t/staging/UNDAMAGED/preingest','staging'=>'preingest'),
+#			set_config('/htapps/test.babel/feed/t/staging/UNDAMAGED/zipfile','staging'=>'zipfile'),
+#		},
+#		damaged  => {
+#			set_config('/htapps/test.babel/feed/t/staging/DAMAGED/download','staging'=>'download'),
+#			set_config('/htapps/test.babel/feed/t/staging/DAMAGED/ingest','staging'=>'ingest'),
+#			set_config('/htapps/test.babel/feed/t/staging/DAMAGED/preingest','staging'=>'preingest'),
+#			set_config('/htapps/test.babel/feed/t/staging/DAMAGED/zipfile','staging'=>'zipfile'),
+#		}
+#	};
+#
+#	die("Unknown config $test_type") if not defined $types->{$test_type};
+#
+#	#TODO: fix syntax to return correct values
+#	print $types->{$test_type};
+#}
 
 ## TODO: use a flag to determine if/when test_classes are loaded
 my @test_classes;
@@ -44,10 +65,21 @@ my @test_classes;
 
 # get_test_volume
 # returns a valid volume object
-## TODO: add options for ns, packagetype
-## TODO: get pt, ns, objid from a config file
 sub get_test_volume{
-    return HTFeed::Volume->new(objid => '35112102255959',namespace => 'mdp',packagetype => 'google');
+    my $voltype = shift;
+
+    $voltype = 'default' if not defined $voltype;
+
+    my $volumes = {
+        default => {objid =>  '35112102255959',namespace => 'mdp',packagetype => 'google' },
+        google => {objid =>  '35112102255959',namespace => 'mdp',packagetype => 'google' },
+        ia => {objid =>  'ark:/13960/t00000431',namespace => 'uc2',packagetype => 'ia' },
+        yale => {objid =>  '39002001567222',namespace => 'yale',packagetype => 'yale' },
+    };
+
+    die("Unknown pkgtype $voltype") if not defined $volumes->{$voltype};
+
+    return HTFeed::Volume->new(%{ $volumes->{$voltype} });
 }
 
 sub get_fake_stage{

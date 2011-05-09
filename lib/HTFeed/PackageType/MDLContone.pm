@@ -1,18 +1,16 @@
 package HTFeed::PackageType::MDLContone;
-use HTFeed::XPathValidator qw(:closures);
-use HTFeed::PackageType;
-use HTFeed::PackageType::MDLContone::Unpack;
-use HTFeed::PackageType::MDLContone::VolumeValidator;
-use HTFeed::PackageType::MDLContone::METS;
-use HTFeed::Stage::Handle;
-use HTFeed::Stage::Pack;
-use HTFeed::Stage::Collate;
-use base qw(HTFeed::PackageType);
+
+use warnings;
 use strict;
+use base qw(HTFeed::PackageType);
+
+use HTFeed::XPathValidator qw(:closures);
 
 our $identifier = 'mdlcontone';
 
 our $config = {
+    %{$HTFeed::PackageType::config},
+    description => 'Minnesota Digital Library contone images',
     volume_module => 'HTFeed::Volume',
 
     # Regular expression that distinguishes valid files in the file package
@@ -42,7 +40,6 @@ our $config = {
         },
     },
 
-    checksum_file => 0, # no separate checksum file for MDL contone
     source_mets_file => qr/^mdl\.\w+\.\w+\d+\w?\.xml$/,
 
     # Allow gaps in numerical sequence of filenames?
@@ -68,17 +65,6 @@ our $config = {
         handled    => 'HTFeed::Stage::Collate',
     },
 
-    # The list of filegroups that contain files that will be validated
-    # by JHOVE
-    metadata_filegroups => [qw(image)],
-
-
-    # The HTFeed::ModuleValidator subclass to use for validating
-    # files with the given extensions
-    module_validators => {
-        'jp2'  => 'HTFeed::ModuleValidator::JPEG2000_hul',
-    },
-
     # Validation overrides
     validation => {
         'HTFeed::ModuleValidator::JPEG2000_hul' => {
@@ -102,10 +88,10 @@ our $config = {
     # What PREMIS events to extract from the source METS and include
     source_premis_events_extract => [
     'capture',
-    'image compression',
-    'image header modification',
-    'message digest calculation',
-    'source mets creation'
+    'image_compression',
+    'image_header_modification',
+    'page_md5_create',
+    'source_mets_creation'
     ],
 
     # What PREMIS events to include (by internal PREMIS identifier, 
@@ -119,12 +105,6 @@ our $config = {
     'ingestion',
     ],
 
-    # Overrides for the basic PREMIS event configuration
-    premis_overrides => {
-    },
-
-    # filename extensions not to compress in zip file
-    uncompressed_extensions => ['jp2'],
 
     SIP_filename_pattern => '%s.tar.gz',
 

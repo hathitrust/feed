@@ -1,18 +1,15 @@
-package HTFeed::PackageType::MDLContoneComposite;
-use HTFeed::PackageType;
-use HTFeed::VolumeValidator;
-use HTFeed::PackageType::MDLContone::Unpack;
-use HTFeed::PackageType::MDLContoneComposite::METS;
-use HTFeed::Stage::Handle;
-use HTFeed::Stage::Pack;
-use HTFeed::Stage::Collate;
-use base qw(HTFeed::PackageType::MDLContone);
+package HTFeed::PackageType::MDLContone::Composite;
+
+use warnings;
 use strict;
+use base qw(HTFeed::PackageType);
 
 our $identifier = 'mdlcontone_composite';
 
 our $config = {
     %{$HTFeed::PackageType::MDLContone::config},
+
+    description => 'Minnesota Digital Library images- composite objects',
 
     # Regular expression that distinguishes valid files in the file package
     # HTML OCR is valid for the package type but only expected/required for UC1
@@ -68,7 +65,7 @@ our $config = {
         ready      => 'HTFeed::PackageType::MDLContone::Unpack',
         unpacked   => 'HTFeed::VolumeValidator',
         validated  => 'HTFeed::Stage::Pack',
-        packed     => 'HTFeed::PackageType::MDLContoneComposite::METS',
+        packed     => 'HTFeed::PackageType::MDLContone::Composite::METS',
         metsed     => 'HTFeed::Stage::Handle',
         handled    => 'HTFeed::Stage::Collate',
     },

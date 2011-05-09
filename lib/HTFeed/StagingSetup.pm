@@ -7,10 +7,12 @@ use File::Path qw(make_path remove_tree);
 
 use HTFeed::Config qw(get_config);
 
+use Log::Log4perl qw(get_logger);
+
 # delete all staging dirs
 sub _wipe_dirs{
     foreach my $dir (@{$_[0]}){
-        warn("Wiping " . $dir . " in HTFeed::StagingSetup\n");
+        get_logger()->warn("Wiping " . $dir . " in HTFeed::StagingSetup\n");
         remove_tree $dir;
     }
 }
@@ -18,7 +20,7 @@ sub _wipe_dirs{
 # create all staging dirs
 sub _make_dirs{
     foreach my $dir (@{$_[0]}){
-        warn("Making " . $dir . " in HTFeed::StagingSetup\n");
+        get_logger()->warn("Making " . $dir . " in HTFeed::StagingSetup\n");
         make_path $dir;
     }
 }
@@ -28,8 +30,10 @@ sub _get_dirs{
     return [get_config('staging'=>'ingest'),
             get_config('staging'=>'zip'),
             get_config('staging'=>'preingest'),
+            get_config('staging'=>'zipfile'),
             get_config('staging'=>'disk'=>'ingest'),
             get_config('staging'=>'disk'=>'preingest'),
+            get_config('staging'=>'disk'=>'zipfile'),
     ];
 }
 

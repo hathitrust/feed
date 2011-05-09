@@ -15,7 +15,6 @@ use File::Pairtree;
 use Data::UUID;
 use File::Path qw(remove_tree);
 
-our $logger = get_logger(__PACKAGE__);
 
 # The namespace UUID for HathiTrust
 use constant HT_UUID => '09A5DAD6-3484-11E0-9D45-077BD5215A96';
@@ -158,45 +157,45 @@ sub get_all_directory_files {
 =item get_staging_directory
 
 Returns the staging directory for the volume's AIP
-returns path to staging directory on disk if $flag
+returns path to staging directory on disk if $ondisk
 
 =cut
 
 sub get_staging_directory {
     my $self = shift;
-    my $flag = shift;
+    my $ondisk = shift;
     my $pt_objid = $self->get_pt_objid();
-    return get_config('staging'=>'disk'=>'ingest') . q(/) . $pt_objid if $flag;
+    return get_config('staging'=>'disk'=>'ingest') . q(/) . $pt_objid if $ondisk;
     return get_config('staging'=>'ingest') . q(/) . $pt_objid;
 }
 
-=item mk_staging_directory
+=item get_zip_directory
 
-makes staging directory, if $flag, creates it on disk rather than ram and symlinks to ram
-returns staging directory
+Returns the path to the directory where the zip archive for this
+object will be constructed. If $ondisk is set, returns a path
+on disk rather than in RAM.
 
-=synopsis
-mk_staging_dir($flag)
 =cut
 
-sub mk_staging_directory{
+sub get_zip_directory {
     my $self = shift;
-    my $flag = shift;
-    
-    my $stage_dir = $self->get_staging_directory();
-    
-    if($flag){
-        my $disk_stage_dir = $self->get_staging_directory(1);
-        mkdir($disk_stage_dir) or croak("Can't mkdir $disk_stage_dir: $!");
-        symlink($disk_stage_dir,$stage_dir) or croak("Can't symlink $disk_stage_dir,$stage_dir: $!");
-    }
-    else{
-        mkdir($stage_dir) or croak("Can't mkdir $stage_dir: $!");
-    }
-
-    return $stage_dir;
+    my $ondisk = shift;
+    my $pt_objid = $self->get_pt_objid();
+    return get_config('staging'=>'disk'=>'zipfile') . q(/) . $pt_objid if $ondisk;
+    return get_config('staging'=>'zipfile') . q(/) . $pt_objid;
 }
 
+=item get_zip_path
+
+Returns the full path (directory + filename) for the zip archive
+for this object. 
+
+=cut
+
+sub get_zip_path {
+    my $self = shift;
+    return $self->get_zip_directory() . q(/) . $self->get_zip_filename();
+}
 
 =item get_download_directory
 
@@ -386,6 +385,20 @@ sub get_stages{
     return $stages;
 }
 
+=item get_stage($start_state)
+
+Returns string containing the name of the next stage this Volume needs for ingest
+
+=cut
+
+sub next_stage{
+    my $self = shift;
+    my $stage_map = $self->get_nspkg()->get('stage_map');
+    my $stage_name = shift;
+    $stage_name = 'ready' if not defined $stage_name;
+    return $stage_map->{$stage_name};
+}
+
 =item get_jhove_files
 
 Get all files that will need to have their metadata validated with JHOVE
@@ -435,7 +448,7 @@ sub get_marc_xml {
         q(//mets:dmdSec/mets:mdWrap[@MDTYPE="MARC"]/mets:xmlData));
 
     if ( $mdsec_nodes->size() ) {
-        $logger->warn("Multiple MARC mdsecs found") if ( $mdsec_nodes->size() > 1 );
+        get_logger()->warn("Multiple MARC mdsecs found") if ( $mdsec_nodes->size() > 1 );
         my $node = $mdsec_nodes->get_node(0)->firstChild();
         # ignore any whitespace, etc.
         while($node->nodeType() != XML_ELEMENT_NODE) {
@@ -742,27 +755,18 @@ sub _get_current_date {
     return $ts;
 }
 
-=item get_zip_path
+=item get_zip_filename
 
-Returns the path to the zip archive to construct for this object.
-
-If called in an array context, returns an array containing 
-the staging path and the name of the zip file. If called in a
-scalar context, returns the path to the zip file.
+Returns the basename of the zip file to construct for this
+object.
 
 =cut
 
-sub get_zip_path {
+sub get_zip_filename {
     my $self = shift;
-    my $staging_path = get_config('staging'=>'ingest');
     my $pt_objid = $self->get_pt_objid();
 
-    if(wantarray) {
-        return ($staging_path,"$pt_objid.zip");
-    } else {
-        return "$staging_path/$pt_objid.zip";
-    }
-
+    return "$pt_objid.zip";
 }
 
 =item get_page_data(file)
@@ -812,17 +816,6 @@ sub get_SIP_filename {
     return sprintf($pattern,$objid);
 }
 
-sub clean_all {
-    my $self = shift;
-    $logger->warn("Removing " . $self->get_staging_directory());
-    remove_tree $self->get_staging_directory();
-    unlink($self->get_mets_path());
-    $logger->warn("Removing " . $self->get_mets_path());
-    unlink($self->get_zip_path());
-    $logger->warn("Removing " . $self->get_zip_path());
-}
-
-
 =item get_preingest_directory
 
 Returns the directory where the raw submitted object is staged. 
@@ -852,33 +845,6 @@ sub get_download_location {
 }
 
 
-=item mk_preingest_directory
-
-makes preingest directory, if $flag, creates it on disk rather than ram and symlinks to ram.
-returns preingest directory (or the link if $flag)
-
-=synopsis
-mk_preingest_directory($flag)
-=cut
-
-sub mk_preingest_directory{
-    my $self = shift;
-    my $flag = shift;
-    
-    my $stage_dir = $self->get_preingest_directory();
-    
-    if($flag){
-        my $disk_stage_dir = $self->get_preingest_directory(1);
-        mkdir($disk_stage_dir) or croak("Can't mkdir $disk_stage_dir: $!");
-        symlink($disk_stage_dir,$stage_dir) or croak("Can't symlink $disk_stage_dir,$stage_dir: $!");
-    }
-    else{
-        mkdir($stage_dir) or croak("Can't mkdir $stage_dir: $!");
-    }
-
-    return $stage_dir;
-}
-
 =item clear_premis_events
 
 Deletes the PREMIS events for this volume. Typically used when the volume has been collated
@@ -888,17 +854,79 @@ and there is no longer a need to retain the PREMIS events in the database.
 
 sub clear_premis_events {
     my $self = shift;
-	my $volume = $self->{volume};
 
-    my $ns = $volume->get_namespace();
+    my $ns = $self->get_namespace();
     my $objid = $self->get_objid();
     my $sth = HTFeed::DBTools::get_dbh()->prepare("DELETE FROM premis_events WHERE namespace = ? and id = ?");
     $sth->execute($ns,$objid);
 
 }
 
+
+=item _clean_vol_path
+
+    remove staging directory
+
+=cut
+
+sub _clean_vol_path {
+    my $self = shift;
+    my $stagetype = shift;
+
+    foreach my $ondisk (0,1) {
+        my $dir = eval "\$self->get_${stagetype}_directory($ondisk)";
+        if(-e $dir) {
+            get_logger()->warn("Removing " . $dir);
+            remove_tree $dir;
+        }
+    }
+}
+
+# unlink unpacked object
+sub clean_unpacked_object {
+    my $self = shift;
+    return $self->_clean_vol_path('staging');
+}
+
+# unlink zip
+sub clean_zip {
+    my $self     = shift;
+    return $self->_clean_vol_path('zip');
+}
+
+# unlink mets file
+sub clean_mets {
+    my $self = shift;
+    return unlink $self->get_mets_path();
+}
+
+# unlink preingest directory tree
+sub clean_preingest {
+    my $self = shift;
+    return $self->_clean_vol_path('preingest');
+}
+
+# unlink SIP
+sub clean_download {
+    my $self = shift;
+    my $dir = $self->get_download_location();
+    if(defined $dir) {
+        get_logger()->debug("Removing " . $dir);
+        return remove_tree $dir;
+    }
+}
+
+=item ingested
+return true if item is already in the repository
+=cut
+sub ingested{
+    my $self = shift;
+    my $link = $self->get_repository_symlink();
+    
+    return 1 if (-e $link);
+    return;
+}
+
 1;
 
-
-
-__END__;
+__END__

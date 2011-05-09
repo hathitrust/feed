@@ -1,36 +1,38 @@
+#!/usr/bin/perl
+
 use warnings;
 use strict;
 
-## here for debug
-use Data::Dumper;
+use FindBin;
+use lib "$FindBin::Bin/../lib";
 
-use DBI;
-
+use HTFeed::Log { root_logger => 'INFO, dbi' };
 use HTFeed::Version;
+
 use HTFeed::StagingSetup;
 use HTFeed::Run;
 
 use HTFeed::Config;
 use HTFeed::Volume;
-use HTFeed::Log { root_logger => 'INFO, dbi, screen' };
-use HTFeed::DBTools qw(get_queued lock_volumes count_locks);
+use HTFeed::DBTools qw(get_queued lock_volumes count_locks update_queue);
 use Log::Log4perl qw(get_logger);
 use Filesys::Df;
+use HTFeed::Job;
 
-print("feedd running, waiting for something to ingest\n");
+print("feedd running, waiting for something to ingest, pid = $$\n");
 
 my $process_id = $$;
 my $subprocesses = 0;
 my @jobs = ();
 my %locks_by_key = ();
 my %locks_by_pid = ();
-## TODO: set this somewhere else
-my $clean = 1;
+
+my $clean = get_config('daemon'=>'clean');
 
 # kill children on SIGINT, SIGTERM
 $SIG{'INT'} =
     sub {
-        warn("Process $$ received SIGINT/SIGTERM, cleaning up...\n");
+        warn("feedd process $$ received SIGINT/SIGTERM, cleaning up...\n");
         unless($$ eq $process_id){
             # child dies
             exit 0;
@@ -61,9 +63,14 @@ $SIG{'HUP'} =
 
         HTFeed::Config::init();
         HTFeed::DBTools::_init();
+        
+        $clean = get_config('daemon'=>'clean');
     };
 
-HTFeed::StagingSetup::make_stage($clean);
+# exit right away if stop file is set
+if( ! exit_condition() ) {
+    HTFeed::StagingSetup::make_stage($clean);
+}
 
 my $i = 0;
 while(! exit_condition()){
@@ -79,11 +86,10 @@ while(! exit_condition()){
         sleep 15;
     }
 }
-print "Finishing work on locked volumes...\n";
+print "Stop file found; finishing work on locked volumes...\n";
 while ($subprocesses){
     wait_kid();
 }
-
 # fork, lock job, increment $subprocess
 sub spawn{
     my $job = shift;
@@ -91,6 +97,7 @@ sub spawn{
     if ($pid){
         # parent
         lock_job($pid, $job);
+        get_logger()->trace("spawned $pid")
     }
     elsif ( defined $pid ) {
         # child
@@ -109,6 +116,7 @@ sub wait_kid{
     if ($pid > 0){
         # remove old job from lock table
         release_job($pid);
+        get_logger()->trace("released $pid");
         return $pid;
     }
     return;
@@ -116,7 +124,9 @@ sub wait_kid{
 
 # determine if we are done
 sub exit_condition{
-    return (-e get_config('daemon'=>'stop_file'));
+    my $condition = -e get_config('daemon'=>'stop_file');
+
+    return $condition;
 }
 
 sub get_next_job{
@@ -135,7 +145,7 @@ sub get_next_job{
 }
 
 sub fill_queue{
-    # db ops were crashing, this will catch them
+    # db ops were crashing, this will catch them, in which case
     # the internal queue will be starved until fill_queue runs again after the next wait()
     eval{
         my $needed_volumes = get_config('volumes_in_process_limit') - count_locks();
@@ -144,9 +154,13 @@ sub fill_queue{
         }
     
         if (my $sth = get_queued()){
-            while(my $job = $sth->fetchrow_hashref()){
-                push (@jobs, $job) if (! is_locked($job) and can_run_job($job));
+            while(my $job_info = $sth->fetchrow_arrayref()){
+                # instantiate HTFeed::Job
+                my $job = HTFeed::Job->new(@{$job_info},\&update_queue);
+                ## if !can_run_job, $job will never be released
+                push (@jobs, $job) if (! is_locked($job) and $job->runnable);
             }
+            $sth->finish();
         }
     };
     if($@){
@@ -184,6 +198,13 @@ END{
         
         # release all locks
         HTFeed::DBTools::reset_in_flight_locks();
+        
+        # what is says, if we exiting with a non zero status (i.e. we died)
+        # this prevents waiting to exit when we are sent SIGINT
+        if ($?){
+            print "Waiting 30 seconds (so we don't respawn too fast out of inittab)\n";
+            sleep 30;            
+        }
     }
 }
 

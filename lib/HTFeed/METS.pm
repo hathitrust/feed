@@ -13,15 +13,9 @@ use Cwd qw(cwd abs_path);
 use HTFeed::Config qw(get_config);
 use Date::Manip;
 use File::Basename qw(basename dirname);
+use FindBin;
 
 use base qw(HTFeed::Stage);
-
-my $logger = get_logger(__PACKAGE__);
-
-# return estimated space needed on ramdisk
-sub ram_disk_size{
-    return 1048576; # 1M
-}
 
 sub new {
     my $class = shift;
@@ -128,14 +122,9 @@ sub _add_dmdsecs {
     # MIU: add TEIHDR; do not add second call number??
 }
 
+# no techmds by default
 sub _add_techmds {
-
-    # Google: notes.txt and pagedata.txt should no longer be present
-
-    # MIU: loadcd.log, checksum, pageview.dat, target files?
-
-    # UMP: PDF????!?!?!?
-
+    my $self = shift;
 }
 
 # extract existing PREMIS events from object currently in repos
@@ -174,10 +163,10 @@ sub _extract_old_premis {
                 my $uuid = $volume->make_premis_uuid($eventinfo->{eventtype},$eventinfo->{date});
                 my $update_eventid = 0;
                 if($eventinfo->{eventidtype} ne 'UUID') {
-                    $logger->info("Updating old event ID type $eventinfo->{eventidtype} to UUID for $eventinfo->{eventtype}/$eventinfo->{date}");
+                    get_logger()->info("Updating old event ID type $eventinfo->{eventidtype} to UUID for $eventinfo->{eventtype}/$eventinfo->{date}");
                     $update_eventid = 1;
                 } elsif($eventinfo->{eventid} ne $uuid) {
-                    $logger->warn("Warning: calculated UUID for $eventinfo->{eventtype} on $eventinfo->{date} did not match saved UUID; updating.");
+                    get_logger()->warn("Warning: calculated UUID for $eventinfo->{eventtype} on $eventinfo->{date} did not match saved UUID; updating.");
                     $update_eventid = 1;
                 }
 
@@ -308,9 +297,11 @@ sub _add_source_mets_events {
         push( @{ $src_premis_events->{$event_type} }, $src_event );
     }
 
-    foreach my $eventtype (
+    foreach my $eventcode (
         @{ $volume->get_nspkg()->get('source_premis_events_extract') } )
     {
+        my $eventconfig = $volume->get_nspkg()->get_event_configuration($eventcode);
+        my $eventtype = $eventconfig->{type};
         next unless defined $src_premis_events->{$eventtype};
         foreach my $src_event ( @{ $src_premis_events->{$eventtype} } ) {
             my $eventid = $xc->findvalue( "./premis:eventIdentifier[premis:eventIdentifierType='UUID']/premis:eventIdentifierValue",
@@ -396,9 +387,29 @@ sub _add_zip_fg {
         id  => $self->_get_subsec_id("FG"),
         use => 'zip archive'
     );
-    my ($zip_path,$zip_name) = $volume->get_zip_path();
+    my ($zip_path,$zip_name) = ($volume->get_zip_directory(), $volume->get_zip_filename());
     $zip_filegroup->add_file( $zip_name, path => $zip_path, prefix => 'ZIP' );
     $mets->add_filegroup($zip_filegroup);
+}
+
+sub _add_srcmets_fg {
+    my $self   = shift;
+    my $mets   = $self->{mets};
+    my $volume = $self->{volume};
+
+    # Add source METS if it is present
+    my $src_mets_file = $self->{volume}->get_source_mets_file();
+
+    if($src_mets_file) {
+        my $mets_filegroup = new METS::FileGroup(
+            id  => $self->_get_subsec_id("FG"),
+            use => 'source METS'
+        );
+        $mets_filegroup->add_file( $src_mets_file, 
+            path => $volume->get_staging_directory(), 
+            prefix => 'METS' );
+        $mets->add_filegroup($mets_filegroup);
+    }
 }
 
 sub _add_content_fgs {
@@ -428,6 +439,7 @@ sub _add_filesecs {
 
     # first add zip
     $self->_add_zip_fg();
+    $self->_add_srcmets_fg();
     $self->_add_content_fgs();
 
     # MIU: Extra stuff for MIU: archival XML, objid XML?
@@ -537,9 +549,9 @@ sub validate_xml {
     my $xerces = get_config('xerces');
 
     my $filename       = shift;
-    my $validation_cmd = "$xerces -f -p $filename 2>&1";
+    my $validation_cmd = "$xerces $filename 2>&1";
     my $val_results    = `$validation_cmd`;
-    if ( $val_results =~ /Error/ || $? ) {
+    if ( $val_results !~ /\Q$filename\E OK/ || $? ) {
         wantarray ? return ( 0, $val_results ) : return (0);
     }
     else {
@@ -580,20 +592,16 @@ Returns the git revision of the currently running script
 
 sub git_revision {
     my $self = shift;
-    my $path =
-      dirname( abs_path(__FILE__) )
-      ;    # get path to this file, hope it's in a git repo
-    my $scriptname = basename($0);
-    my $gitrev = `cd $path; git rev-parse HEAD`;
+    my $gitrev = `cd $FindBin::RealBin; git rev-parse HEAD`;
     chomp $gitrev if defined $gitrev;
 
     if ( !$? and defined $gitrev and $gitrev =~ /^[0-9a-f]{40}/ ) {
-        return "$scriptname git rev $gitrev";
+        return "$FindBin::Script git rev $gitrev";
     }
     else {
         $self->set_error( 'ToolVersionError',
-            detail => "Can't get git revision for $0: git returned '$gitrev' with status $?");
-        return "$scriptname";
+            detail => "Can't get git revision for $FindBin::Script: git returned '$gitrev' with status $?");
+        return "$FindBin::Script";
     }
 
 }
@@ -719,14 +727,13 @@ sub get_tool_version {
 sub clean_always {
     my $self = shift;
 
-    #$self->clean_ram_download();
-    $self->clean_unpacked_object();
+    $self->{volume}->clean_unpacked_object();
 }
 
 # do cleaning that is appropriate after failure
 sub clean_failure {
     my $self = shift;
-    $self->clean_mets();
+    $self->{volume}->clean_mets();
 }
 
 # fixes errors in MARC leader by changing fields to their default value if they
@@ -775,7 +782,7 @@ sub _remediate_marc {
 
         # 06: Type of record
         if(substr($value,6,1) !~ /^[\dA-Za-z]$/) {
-            $logger->warn("Invalid value found for record type, can't remediate");
+            get_logger()->warn("Invalid value found for record type, can't remediate");
         }
 
         # 07: Bibliographic level
@@ -790,7 +797,7 @@ sub _remediate_marc {
 
         # 09: Character coding scheme
         if(substr($value,9,1) ne 'a') {
-            $logger->warn("Non-Unicode MARC-XML found");
+            get_logger()->warn("Non-Unicode MARC-XML found");
         }
 
         # 10: Indicator count

@@ -1,8 +1,11 @@
 #!/usr/bin/perl
 
+use FindBin;
+use lib "$FindBin::Bin/../lib";
+
 use warnings;
 use strict;
-use HTFeed::DBTools;
+use HTFeed::DBTools::Queue;
 use HTFeed::Volume;
 use Getopt::Long qw(:config no_ignore_case);
 use Pod::Usage;
@@ -100,10 +103,10 @@ else{
 # add volumes to queue
 my $results;
 if($reset or $force_reset){
-    $results = HTFeed::DBTools::reset_volumes(\@volumes, $force_reset);
+    $results = reset_volumes(\@volumes, $force_reset);
 }
 else{
-    $results = HTFeed::DBTools::enqueue_volumes(\@volumes, $insert);
+    $results = enqueue_volumes(\@volumes, $insert);
 }
 
 if ($verbose or !$quiet){
@@ -141,7 +144,7 @@ enqueue.pl [-v|-q] [-r|-R|-i] -d packagetype [infile]
 
 enqueue.pl [-v|-q] [-r|-R|-i] -1 packagetype namespace objid]
 
-    INOUT OPTIONS
+    INPUT OPTIONS
     -d dot format infile - follow with packagetype
         all lines of infile are expected to be of the form namespace.objid.
 

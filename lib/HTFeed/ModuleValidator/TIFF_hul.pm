@@ -50,7 +50,7 @@ sub _set_validators {
         'samples_per_pixel' => v_eq( 'mix', 'samplesPerPixel', '1' ),
 
         'dimensions' =>
-          v_and( v_gt( 'mix', 'length', '1' ), v_gt( 'mix', 'width', '1' ) ),
+          v_and( v_gt( 'mix', 'length', '0' ), v_gt( 'mix', 'width', '0' ) ),
 
         'extract_info' => sub {
             my $self = shift;

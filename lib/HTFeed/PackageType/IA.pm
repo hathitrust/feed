@@ -2,28 +2,14 @@ package HTFeed::PackageType::IA;
 
 use warnings;
 use strict;
-
 use base qw(HTFeed::PackageType);
-use HTFeed::PackageType::IA::Volume;
-
-use HTFeed::VolumeValidator;
-##TODO: commented out to not break compile
-#use HTFeed::PackageType::IA::METS;
-use HTFeed::Stage::Handle;
-use HTFeed::Stage::Pack;
-use HTFeed::Stage::Collate;
-use HTFeed::PackageType::IA::Download;
-use HTFeed::PackageType::IA::VerifyManifest;
-use HTFeed::PackageType::IA::Unpack;
-use HTFeed::PackageType::IA::DeleteCheck;
-use HTFeed::PackageType::IA::OCRSplit;
-use HTFeed::PackageType::IA::ImageRemediate;
-use HTFeed::PackageType::IA::SourceMETS;
-
 
 our $identifier = 'ia';
 
 our $config = {
+    %{$HTFeed::PackageType::config},
+    description => 'Internet Archive-digitized book content',
+
     volume_module => 'HTFeed::PackageType::IA::Volume',
 
     # Regular expression that distinguishes valid files in the file package
@@ -95,18 +81,21 @@ our $config = {
     # What PREMIS event types  to extract from the source METS and include in the HT METS
     source_premis_events_extract => [
         'capture',
-        'package inspection',
-        'file rename',
-        'image header modification',
-        'ocr split',
-        'message digest calculation',
-        'source mets creation',
+        'package_inspection',
+        'file_rename',
+        'image_header_modification',
+        'ocr_normalize',
+        'page_md5_create',
+        'source_mets_creation',
     ],
 
     premis_events => [
-        'page_md5_fixity',      'package_validation',
-        'page_feature_mapping', 'zip_compression',
-        'zip_md5_create',       'ingestion',
+        'page_md5_fixity',
+        'package_validation',
+        'page_feature_mapping',
+        'zip_compression',
+        'zip_md5_create',
+        'ingestion',
     ],
 
     # Overrides for the basic PREMIS event configuration
@@ -115,7 +104,6 @@ our $config = {
           { detail => 'Splitting of IA XML OCR into one plain text OCR file and one XML file (with coordinates) per page', }
     },
 
-    checksum_file => 0, # no separate checksum file for IA
     source_mets_file => qr/^IA_ark\+=13960=\w+\.xml$/,
 
     # Allow gaps in numerical sequence of filenames?
@@ -137,20 +125,6 @@ our $config = {
         handled           => 'HTFeed::Stage::Collate',
     },
 
-    # The list of filegroups that contain files that will be validated
-    # by JHOVE
-    metadata_filegroups => [qw(image)],
-
-    # The list of filegroups that contain files that should be validated
-    # to use valid UTF-8
-    utf8_filegroups => [qw(ocr hocr)],
-
-    # The HTFeed::ModuleValidator subclass to use for validating
-    # files with the given extensions
-    module_validators => {
-        'jp2'  => 'HTFeed::ModuleValidator::JPEG2000_hul',
-        'tif'  => 'HTFeed::ModuleValidator::TIFF_hul',
-    },
 
     # Validation overrides
     validation => {
@@ -171,7 +145,6 @@ our $config = {
     '%s_files.xml',
     '%s_scanfactors.xml' ],
 
-    uncompressed_extensions => [qw(tif jp2)],
 
 };
 

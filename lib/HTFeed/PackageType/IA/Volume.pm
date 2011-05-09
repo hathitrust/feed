@@ -93,17 +93,17 @@ sub get_download_directory {
     my $self = shift;
     my $ia_id = $self->get_ia_id();
     my $path = get_config('staging'=>'download');
-    my $pt_path = "$path/ia/" . id2ppath($ia_id);
+    my $pt_path = "$path/ia/$ia_id";
     make_path($pt_path) unless -e $pt_path;
     return $pt_path;
 }
 
 sub get_preingest_directory {
     my $self = shift;
-    my $flag = shift;
+    my $ondisk = shift;
 
     my $arkid = $self->get_objid();
-    return sprintf("%s/%s", get_config('staging'=>'disk'=>'preingest'), s2ppchars($arkid)) if $flag;
+    return sprintf("%s/%s", get_config('staging'=>'disk'=>'preingest'), s2ppchars($arkid)) if $ondisk;
     return sprintf("%s/%s", get_config('staging'=>'preingest'), s2ppchars($arkid));
 }
 

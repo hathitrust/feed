@@ -2,6 +2,7 @@ package HTFeed::Version;
 
 use warnings;
 use strict;
+no strict 'refs';
 
 use Getopt::Long qw(:config pass_through no_ignore_case);
 
@@ -10,9 +11,12 @@ use HTFeed::PackageType;
 use HTFeed::Namespace;
 use Exporter;
 use base qw(Exporter);
+use Data::Dumper;
 
 our @EXPORT_OK = qw(namespace_ids pkgtype_ids);
 
+use Readonly;
+Readonly my $VERSION => '0.1';
 
 sub import{
     my ($short, $long);
@@ -23,49 +27,45 @@ sub import{
 
 sub short_version{
     print "Feedr, The HathiTrust Ingest System. Feeding the Elephant since 2010.\n";
-    print "v0.1\n";
+    print "v$VERSION\n";
 }
 
+sub find_subclasses {
+    my $class = shift;
+
+    return grep { eval "$_->isa('$class')" }
+        (map { s/\//::/g; s/\.pm//g; $_} 
+            ( grep { /.pm$/ } (keys %INC)));
+}
 sub long_version{
     short_version();
-
-    my @ns_keys = grep(m|^HTFeed/Namespace/\w+\.pm|, keys %INC);
-    my @pt_keys = grep(m|^HTFeed/PackageType/\w+\.pm|, keys %INC);
+    # convert paths to module names; return all those that are a subclass
+    # of the given class
 
     print "\n*** Loaded Namespaces ***\n";
-    print join("\n",map {packageify($_)} sort @ns_keys);
+    print join("\n",map {id_desc_info($_)} ( sort( find_subclasses("HTFeed::Namespace") )));
     print "\n*** Loaded PackageTypes ***\n";
-    print join("\n",map {packageify($_)} sort @pt_keys);
+    print join("\n",map {id_desc_info($_)} ( sort( find_subclasses("HTFeed::PackageType") )));
+    print "\n*** Loaded Stages ***\n";
+    print join("\n",sort( find_subclasses("HTFeed::Stage")));
     print "\n";
 }
 
+
 sub namespace_ids {
-    my @ns_keys = grep(m|^HTFeed/Namespace/\w+\.pm|, keys %INC);
-    return map {file_identifier($_)} sort @ns_keys;
+    return map {${$_ . "::identifier"}} (sort find_subclasses("HTFeed::Namespace"));
 
 }
 
 sub pkgtype_ids {
-    my @pt_keys = grep(m|^HTFeed/PackageType/\w+\.pm|, keys %INC);
-    return map {file_identifier($_)} sort @pt_keys;
+    return map {${$_ . "::identifier"}} (sort find_subclasses("HTFeed::PackageType"));
 }
 
-sub packageify{
-    no strict 'refs';
-    my $string = shift;
-    $string =~ s/\//::/g;
-    $string =~ s/\.pm//g;
-    my $key = ${$string . "::identifier"};
-    return "$string - $key";
-}
-
-sub file_identifier {
-    no strict 'refs';
-    my $string = shift;
-    $string =~ s/\//::/g;
-    $string =~ s/\.pm//g;
-    my $key = ${$string . "::identifier"};
-    return "$key";
+sub id_desc_info {
+    my $class = shift;
+    my $key = ${$class . "::identifier"};
+    my $desc = ${$class . "::config"}->{description};
+    return "$class - $key - $desc";
 }
 
 
@@ -79,6 +79,6 @@ use HTFeed::Version;
 
 # at command line
 script.pl -version
-=Descriptoin
+=Description
 use in a pl to enable -version and -Version flags
 =cut
