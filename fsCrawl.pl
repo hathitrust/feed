@@ -20,7 +20,7 @@ my $mets_ins = "insert into fs_log_status (namespace, id, path, status, detail) 
 my $base= shift @ARGV or die("Missing base directory..");
 my $filesProcessed = 0;
 my $prevpath;
-my $do_md5 = 0;
+my $do_md5 = 1;
 my $do_mets = 0;
 open(RUN, "find $base -follow -type f|") or die ("Can't open pipe to find: $!");
 
@@ -161,7 +161,7 @@ sub zipcheck {
     #  </METS:fileGrp>
 
     if($do_md5) {
-        my $zipname = $volume->get_zip();
+        my $zipname = $volume->get_zip_filename();
         my $mets_zipsum = $mets->findvalue("//mets:file[mets:FLocat/\@xlink:href='$zipname']/\@CHECKSUM");
 
         if(not defined $mets_zipsum or length($mets_zipsum) ne 32) {
