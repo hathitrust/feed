@@ -46,6 +46,9 @@ BEGIN {
             'tif'  => 'HTFeed::ModuleValidator::TIFF_hul',
         },
 
+        # by default run no stages
+        stage_map => { },
+
         # Validation overrides
         validation => {
         },
@@ -65,6 +68,9 @@ BEGIN {
         source_premis_events_extract => [],
 
         uncompressed_extensions => [qw(tif jp2)],
+
+        # use default volume module
+        volume_module => 'HTFeed::Volume',
     };
 }
 

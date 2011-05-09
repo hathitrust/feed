@@ -4,16 +4,21 @@ use warnings;
 use strict;
 use Algorithm::LUHN;
 use Carp;
-use HTFeed::FactoryLoader 'load_subclasses';
 use HTFeed::PackageType;
 use HTFeed::Config qw(get_config);
 
+BEGIN{
+
+    our $identifier = "namespace";
+    our $config = {
+        description => "Base class for HathiTrust namespaces"
+    };
+
+}
+
+use HTFeed::FactoryLoader 'load_subclasses';
 use base qw(HTFeed::FactoryLoader);
 
-our $identifier = "namespace";
-our $config = {
-    description => "Base class for HathiTrust namespaces"
-};
 
 sub new {
     my $class = shift;
@@ -22,6 +27,7 @@ sub new {
     my $self = $class->SUPER::new($namespace_id);
     if(defined $packagetype) {
         my $allowed_packagetypes = $self->get('packagetypes');
+        push(@$allowed_packagetypes,'pkgtype'); # always allow default packagetype
         if(not grep { $_ eq $packagetype } @{ $allowed_packagetypes }) {
             croak("Invalid packagetype $packagetype for namespace $namespace_id");
         }

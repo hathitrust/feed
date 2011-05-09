@@ -20,7 +20,9 @@ sub run {
 		mkdir $staging_dir or die("Can't mkdir $staging_dir: $!");
 	}
 	
-	system("cp -rs $source $staging_dir") and die("I FAILED");
+<<<<<<< Updated upstream
+	system("cp -rs $source $staging_dir") 
+        and $self->set_error('OperationFailed', operation=>'copy', detail=>"copy $src $dest failed with status: $?");
 
 	$self->_set_done();
 	return $self->succeeded();
