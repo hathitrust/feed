@@ -546,12 +546,16 @@ sub _validate_mets {
 
 sub validate_xml {
     my $self   = shift;
-    my $xerces = get_config('xerces');
+    my $use_caching = $self->{volume}->get_nspkg()->get('use_schema_caching');
+    my $xerces;
+    $xerces = $use_caching ? get_config('xerces') : get_config('xerces_nocache');
 
     my $filename       = shift;
     my $validation_cmd = "$xerces $filename 2>&1";
     my $val_results    = `$validation_cmd`;
-    if ( $val_results !~ /\Q$filename\E OK/ || $? ) {
+    if ( ($use_caching and $val_results !~ /\Q$filename\E OK/) or
+         (!$use_caching and $val_results =~ /Error/) or
+        $? ) {
         wantarray ? return ( 0, $val_results ) : return (0);
     }
     else {
