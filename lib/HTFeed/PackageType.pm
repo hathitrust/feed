@@ -46,6 +46,9 @@ BEGIN {
             'tif'  => 'HTFeed::ModuleValidator::TIFF_hul',
         },
 
+        # by default run no stages
+        stage_map => { },
+
         # Validation overrides
         validation => {
         },
@@ -70,6 +73,9 @@ BEGIN {
         # the same namespace is used for metadata that might have different 
         # schemas in different packages.
         use_schema_caching => 1,
+
+        # use default volume module
+        volume_module => 'HTFeed::Volume',
     };
 }
 

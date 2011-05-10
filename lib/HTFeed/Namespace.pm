@@ -3,18 +3,22 @@ package HTFeed::Namespace;
 use warnings;
 use strict;
 use Algorithm::LUHN;
-use Noid;
 use Carp;
-use HTFeed::FactoryLoader 'load_subclasses';
 use HTFeed::PackageType;
 use HTFeed::Config qw(get_config);
 
+BEGIN{
+
+    our $identifier = "namespace";
+    our $config = {
+        description => "Base class for HathiTrust namespaces"
+    };
+
+}
+
+use HTFeed::FactoryLoader 'load_subclasses';
 use base qw(HTFeed::FactoryLoader);
 
-our $identifier = "namespace";
-our $config = {
-    description => "Base class for HathiTrust namespaces"
-};
 
 sub new {
     my $class = shift;
@@ -23,6 +27,7 @@ sub new {
     my $self = $class->SUPER::new($namespace_id);
     if(defined $packagetype) {
         my $allowed_packagetypes = $self->get('packagetypes');
+        push(@$allowed_packagetypes,'pkgtype'); # always allow default packagetype
         if(not grep { $_ eq $packagetype } @{ $allowed_packagetypes }) {
             croak("Invalid packagetype $packagetype for namespace $namespace_id");
         }
@@ -251,10 +256,71 @@ sub ia_ark_id_is_valid {
     # trim off ark:/
     $ark_id =~ s/^ark:\///;
     # validate check char
-    return unless ( Noid::checkchar( $ark_id ) );
+    return unless ( noid_checkchar( $ark_id ) );
 
     return 1;
 }
+
+
+# NOID check character routine - from Noid.pm 
+# Extended digits array.  Maps ordinal value to ASCII character.
+my @xdig = (
+    '0', '1', '2', '3', '4',   '5', '6', '7', '8', '9',
+    'b', 'c', 'd', 'f', 'g',   'h', 'j', 'k', 'm', 'n',
+    'p', 'q', 'r', 's', 't',   'v', 'w', 'x', 'z'
+);
+# $legalstring should be 0123456789bcdfghjkmnpqrstvwxz
+my $legalstring = join('', @xdig);
+my $alphacount = scalar(@xdig);        # extended digits count
+my $digitcount = 10;           # pure digit count
+
+# Ordinal value hash for extended digits.  Maps ASCII characters to ordinals.
+my %ordxdig = (
+    '0' =>  0,  '1' =>  1,  '2' =>  2,  '3' =>  3,  '4' =>  4,
+    '5' =>  5,  '6' =>  6,  '7' =>  7,  '8' =>  8,  '9' =>  9,
+
+    'b' => 10,  'c' => 11,  'd' => 12,  'f' => 13,  'g' => 14,
+    'h' => 15,  'j' => 16,  'k' => 17,  'm' => 18,  'n' => 19,
+
+    'p' => 20,  'q' => 21,  'r' => 22,  's' => 23,  't' => 24,
+    'v' => 25,  'w' => 26,  'x' => 27,  'z' => 28
+);
+
+# Compute check character for given identifier.  If identifier ends in '+'
+# (plus), replace it with a check character computed from the preceding chars,
+# and return the modified identifier.  If not, isolate the last char and
+# compute a check character using the preceding chars; return the original
+# identifier if the computed char matches the isolated char, or undef if not.
+
+# User explanation:  check digits help systems to catch transcription
+# errors that users might not be aware of upon retrieval; while users
+# often have other knowledge with which to determine that the wrong
+# retrieval occurred, this error is sometimes not readily apparent.
+# Check digits reduce the chances of this kind of error.
+# yyy ask Steve Silberstein (of III) about check digits?
+
+sub noid_checkchar{ my( $id )=@_;
+    return undef
+        if (! $id );
+    my $lastchar = chop($id);
+    my $pos = 1;
+    my $sum = 0;
+    my $c;
+    for $c (split(//, $id)) {
+        # if character undefined, it's ordinal value is zero
+        $sum += $pos * (defined($ordxdig{"$c"}) ? $ordxdig{"$c"} : 0);
+        $pos++;
+    }
+    my $checkchar = $xdig[$sum % $alphacount];
+    #print "RADIX=$alphacount, mod=", $sum % $alphacount, "\n";
+    return $id . $checkchar
+        if ($lastchar eq "+" || $lastchar eq $checkchar);
+    return undef;       # must be request to check, but failed match
+    # xxx test if check char changes on permutations
+    # XXX include test of length to make sure < than 29 (R) chars long
+    # yyy will this work for doi/handles?
+}
+
 
 1;
 __END__
