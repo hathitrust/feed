@@ -2,7 +2,7 @@ package HTFeed::Config;
 
 use warnings;
 use strict;
-use YAML::Any;
+use YAML::XS;
 use Carp;
 use FindBin;
 
@@ -26,8 +26,8 @@ sub init{
 
     # load config file
     eval{
-        $config = YAML::Any::LoadFile($config_file);
-        my $premis_config = YAML::Any::LoadFile(get_config('premis_config'));
+        $config = YAML::XS::LoadFile($config_file);
+        my $premis_config = YAML::XS::LoadFile(get_config('premis_config'));
         # copy premis config to main config
         while(my ($key, $val) = each(%$premis_config)) {
             $config->{$key} = $val;
