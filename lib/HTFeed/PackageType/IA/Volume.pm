@@ -44,6 +44,7 @@ sub get_ia_id{
     #TODO make this work if db result is null
     $ia_id = $results->[0];
 
+    croak("Missing IA ID for $arkid") if not defined $ia_id or $ia_id eq '';
     $self->{ia_id} = $ia_id;
     return $ia_id;
 }

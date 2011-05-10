@@ -46,6 +46,9 @@ BEGIN {
             'tif'  => 'HTFeed::ModuleValidator::TIFF_hul',
         },
 
+        # by default run no stages
+        stage_map => { },
+
         # Validation overrides
         validation => {
         },
@@ -65,6 +68,14 @@ BEGIN {
         source_premis_events_extract => [],
 
         uncompressed_extensions => [qw(tif jp2)],
+
+        # by default use XML schema caching. Breaks for some package types where
+        # the same namespace is used for metadata that might have different 
+        # schemas in different packages.
+        use_schema_caching => 1,
+
+        # use default volume module
+        volume_module => 'HTFeed::Volume',
     };
 }
 

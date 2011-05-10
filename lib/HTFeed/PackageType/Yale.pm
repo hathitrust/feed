@@ -137,6 +137,10 @@ our $config = {
 
     SIP_filename_pattern => '%s.zip',
 
+    # Don't use schema caching for Yale because of the incompatibility
+    # of different versions of the MODS schemas
+    use_schema_caching => 0,
+
 };
 
 __END__

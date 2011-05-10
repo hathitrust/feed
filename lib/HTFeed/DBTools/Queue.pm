@@ -22,7 +22,7 @@ sub enqueue_volumes{
     
     my $dbh = HTFeed::DBTools::get_dbh();
     my $sth;
-    my $blacklist_sth = $dbh->prepare("SELECT * FROM blacklist WHERE namespace = ? and id = ?");
+    my $blacklist_sth = $dbh->prepare("SELECT namespace, id FROM mdp_tracking.blacklist WHERE namespace = ? and id = ?");
     if($ignore){
         $sth = $dbh->prepare(q(INSERT IGNORE INTO queue (pkg_type, namespace, id, priority) VALUES (?,?,?,?);));
     }else {
@@ -60,7 +60,7 @@ sub reset_volumes{
     my $volumes = shift;
     my $force = shift;
     
-    my $dbh = get_dbh();
+    my $dbh = HTFeed::DBTools::get_dbh();
     my $sth;
     if($force){
         $sth = $dbh->prepare(q(UPDATE queue SET node = NULL, status = 'ready', failure_count = 0 WHERE namespace = ? and id = ?;));

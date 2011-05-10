@@ -10,6 +10,7 @@ jhove: /l/local/bin/jhove
 jhoveconf: /l/local/jhove/conf/jhove.conf
 
 xerces: "/htapps/babel/feed/bin/validateCache /ram/schema.cache"
+xerces_nocache: "/l/local/xerces-c/bin/SAX2Count -f -p"
 kdu_munge: /l/local/bin/kdu_munge
 
 jhove: /l/local/bin/jhove

@@ -14,6 +14,7 @@ our %subclass_map;
 # Load all subclasses
 sub import {
 
+    no strict 'refs';
     my $class = shift;
 
     # If called as use HTFeed::FactoryLoader qw(load_subclasses)
@@ -27,6 +28,18 @@ sub import {
         $module_path = $INC{$module_path . ".pm"} ;
         $module_path =~ s/.pm$//;
 
+        # load the base class's identifier
+        my $subclass_identifier = ${"${caller}::identifier"};
+        die("$caller missing identifier")
+            unless defined $subclass_identifier;
+        $subclass_map{$caller}{$subclass_identifier} = $caller;
+
+        # run callback for when package was loaded, if it exists
+        if(eval "${caller}->can('on_factory_load')") {
+            eval "${caller}->on_factory_load()";
+            if($@) { die $@ };
+        }
+
 #        warn("Factory loading in $module_path\n");
 
         find ( { no_chdir => 1,
@@ -34,8 +47,6 @@ sub import {
                     my $file = $File::Find::name;
                     if($file =~ qr(^$module_path/([^.]*)\.pm$) and -f $file) {                        
                         my $package = $1;
-                        no strict 'refs';
-#                        warn("Requiring $relative_path/$package.pm in factory loader" . "\n");
                         require "$relative_path/$package.pm";
                         $package =~ s/\//::/g;
                         # determine if this package is something we should have bothered loading
@@ -44,7 +55,6 @@ sub import {
                             my $subclass_identifier = ${"${caller}::${package}::identifier"};
                             die("${caller}::${package} missing identifier")
                                 unless defined $subclass_identifier;
-#                            warn("${caller}::${package} -> $subclass_identifier loaded\n");
                             $subclass_map{$caller}{$subclass_identifier} = "${caller}::${package}";
 
                             # run callback for when package was loaded, if it exists
