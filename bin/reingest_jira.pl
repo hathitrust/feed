@@ -26,15 +26,7 @@ print "Logged in, token = $token\n";
 my $issues = $service->getIssuesFromJqlSearch($token,'"Next Steps" = "HT to queue"',1000);
 
 my $dbh = HTFeed::DBTools::get_dbh();
-my $queue_sth = $dbh->prepare("insert into mdp_tracking.book_queue select ht_namespace, barcode, 1, \
-    scan_date, process_date, NULL, CURRENT_TIMESTAMP \
-    from mdp_tracking.grin where ht_namespace = ? and barcode = ?");
-
-my $grin_sth = $dbh->prepare("select state,overall_error,conditions,src_lib_bibkey,\
-    dl_date,process_date,analyze_date, \
-    (dl_date - process_date) < 0 as reprocessed, \
-    (dl_date - analyze_date) < 0 as reanalyzed \
-    from mdp_tracking.grin where ht_namespace = ? and barcode = ?");
+my $queue_sth = $dbh->prepare("insert into mdp_tracking.book_queue (namespace, barcode, statusid, scandate, processeddate, node, lastupdate) values (?, ?, 1, ?, ?, NULL, CURRENT_TIMESTAMP)");
 
 foreach my $issue (@$issues) {
     my $key = $issue->{key};
@@ -70,9 +62,7 @@ foreach my $issue (@$issues) {
         }
 
         # Check GRIN to make sure object is enqueuable
-        $grin_sth->execute($namespace,$objid);
-        my ($state,$err,$condition,$src,$dl_date,
-            $process_date,$analyze_date,$reprocessed,$reanalyzed) = $grin_sth->fetchrow_array();
+        my $grin_info = get_grin_info($volume);
         my $zip_file = $volume->get_repository_zip_path();
         if(-e $zip_file) {
             my $zipdate = (stat($zip_file))[9];
@@ -83,8 +73,11 @@ foreach my $issue (@$issues) {
 #        push (@results,"$namespace.$objid download date is $dl_date") if defined $dl_date; 
 #        push (@results,"$namespace.$objid process date is $process_date") if defined $process_date;
 #        push (@results,"$namespace.$objid analyze date is $analyze_date") if defined $analyze_date;
+        my $reanalyzed = ($grin_info->{'Analyzed Date'} gt $grin_info->{'Converted Date'});
+        my $reprocessed = ($grin_info->{'Processed Date'} gt $grin_info->{'Converted Date'});
         push (@results,"$namespace.$objid has been analyzed since it was last downloaded") if $reanalyzed;
         push (@results,"$namespace.$objid has been processed since it was last downloaded") if $reprocessed;
+        my $state = $grin_info->{'State'};
         if(not defined $state) {
             push(@results,"$namespace.$objid not found in GRIN");
             $had_error++;
@@ -95,6 +88,7 @@ foreach my $issue (@$issues) {
             $had_error++;
             next;
         }
+        my $src = $grin_info->{'Source Library Bibkey'};
         if(defined $src and $src ne '') {
             push (@results,"$namespace.$objid appears to be a surrogate: $src\n");
             $had_error++;
@@ -111,9 +105,9 @@ foreach my $issue (@$issues) {
 
         if(!$dry_run) {
             eval {
-                my $rows = $queue_sth->execute($namespace,$objid);
+                my $rows = $queue_sth->execute($namespace,$objid,$grin_info->{'Processed Date'},$grin_info->{'Analyzed Date'});
                 if($rows eq '0E0') {
-                    push (@results,"$namespace.$objid unexpected error queueing -- couldn't queue even though found in GRIN?\n");
+                    push (@results,"$namespace.$objid unexpected error queueing\n");
                     $had_error++;
                 } else {
                     push (@results,"$namespace.$objid queued");
@@ -284,4 +278,24 @@ sub extract_volume {
     return new HTFeed::Volume(packagetype => 'google',
         namespace => $1,
         objid => $2);
+}
+
+sub get_grin_info {
+    my $volume = shift;
+    my $grin_instance = $volume->get_nspkg()->get('grinid');
+    my $grin_id = uc($volume->get_objid());
+
+    my $url = "https://books.google.com/libraries/$grin_instance/_barcode_search?execute_query=true&barcodes=$grin_id&format=text&mode=full";
+    my $res = `curl '$url'`;
+
+    my @lines = split("\n",$res);
+
+    if(@lines != 2) {
+        die("Can't get GRIN info for $grin_instance:$grin_id: $res");
+    } else {
+        my @splitlines = map { [ split("\t",$_) ] } @lines;
+        return { map { $splitlines[0][$_] => $splitlines[1][$_] } ( 0..$#{$splitlines[0]} ) };
+    }
+    
+
 }
