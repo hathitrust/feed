@@ -60,12 +60,14 @@ if( ! exit_condition() ) {
 
 my $i = 0;
 while(! exit_condition()){
-    my $bfree = df(get_config('ram_disk'))->{bfree} ;
+    my $df = df(get_config('ram_disk'));
 #    warn("Iteration $i: RAM disk has $bfree blocks free\n");$i++;
-    if( $bfree < 200*1024){
-        die("RAM disk has only $bfree blocks free\n");
+    my $pctused = df(get_config('ram_disk'))->{per};
+    if( $pctused > get_config('ram_fill_limit') * 100) {
+        die("RAM disk is $pctused% full!\n");
     }
-    while (($subprocesses < get_config('volumes_in_process_limit')) and (my $job = get_next_job())){
+    while (($subprocesses < get_config('volumes_in_process_limit')) 
+            and (my $job = get_next_job())){
         spawn($job);
     }
     wait_kid() or do {

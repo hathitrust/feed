@@ -3,6 +3,7 @@ package HTFeed::Stage::DirectoryMaker;
 use warnings;
 use strict;
 use Carp;
+use Filesys::Df;
 
 use base qw(HTFeed::Stage);
 use HTFeed::Config;
@@ -60,7 +61,9 @@ on $self->ram_disk_size()
 
 sub stage_on_disk{
     my $self = shift;
-    return 1 if (get_config('ram_disk_max_job_size') < $self->ram_disk_size());
+    my $ram_size = df(get_config('ram_disk'));
+    my $max_job_size = ($ram_size->{blocks}*1024 * get_config('ram_fill_limit')) / get_config('volumes_in_process_limit');
+    return 1 if ($self->ram_disk_size() > $max_job_size);
     return;
 }
 
