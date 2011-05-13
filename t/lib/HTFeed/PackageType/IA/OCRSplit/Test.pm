@@ -2,7 +2,8 @@ package HTFeed::PackageType::IA::OCRSplit::Test;
 
 use warnings;
 use strict;
-use base qw(HTFeed::PackageType::IA::AbstractTest);
+#use base qw(HTFeed::PackageType::IA::AbstractTest);
+use base qw(HTFeed::Stage::AbstractTest);
 use HTFeed::Test::Support qw(get_fake_stage test_config);
 use HTFeed::Config qw(set_config);
 use File::Copy;
