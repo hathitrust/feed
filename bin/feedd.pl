@@ -29,20 +29,6 @@ my %locks_by_pid = ();
 
 my $clean = get_config('daemon'=>'clean');
 
-# kill children on SIGINT, SIGTERM
-$SIG{'INT'} =
-    sub {
-        warn("feedd process $$ received SIGINT/SIGTERM, cleaning up...\n");
-        unless($$ eq $process_id){
-            # child dies
-            exit 0;
-        }
-        # parent kills kids
-        kill 2, keys %locks_by_pid;
-        exit 0;
-    };
-$SIG{'TERM'} = $SIG{'INT'};
-
 # reread config on SIGHUP
 # 
 # Caveats: This won't affect the L4P settings.
@@ -191,21 +177,30 @@ sub release_job{
 }
 
 END{
-    # clean up on exit of original pid (i.e. don't clean on END of fork()ed pid) if $clean
-    if (($$ eq $process_id) and $clean){
-        # delete everything in staging, except download
-        HTFeed::StagingSetup::clear_stage();
+    # clean up on exit of original pid (i.e. don't clean on END of fork()ed pid)
+    if($$ eq $process_id){
+        # parent kills kids
+        kill 2, keys %locks_by_pid;
         
-        # release all locks
-        HTFeed::DBTools::reset_in_flight_locks();
+        # delete staging dirs
+        if ($clean){
+
+            # delete everything in staging, except download
+            HTFeed::StagingSetup::clear_stage();
+
+            # release all locks
+            HTFeed::DBTools::reset_in_flight_locks();   
+        }
         
-        # what is says, if we exiting with a non zero status (i.e. we died)
+        # what it says; if we exiting with a non zero status (i.e. we died)
         # this prevents waiting to exit when we are sent SIGINT
         if ($?){
             print "Waiting 30 seconds (so we don't respawn too fast out of inittab)\n";
             sleep 30;            
         }
     }
+    
+    warn("feedd process $$ terminating");
 }
 
 1;
