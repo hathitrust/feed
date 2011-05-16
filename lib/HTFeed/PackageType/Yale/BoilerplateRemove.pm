@@ -53,8 +53,8 @@ sub run{
 
     if(!$self->{failed}) {
         my $outcome = new PREMIS::Outcome('success');
-        $outcome->add_file_list_detail( "boilerplate removed from images",
-                        "modified", \@removed);
+        $outcome->add_file_list_detail( "boiler plate images replaced",
+                        "replaced", \@removed);
         $volume->record_premis_event('boilerplate_remove',outcome => $outcome);
         
     }
