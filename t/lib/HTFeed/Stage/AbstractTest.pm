@@ -126,15 +126,17 @@ sub look_for_artifacts{
     find(sub{
             my $artifact = $File::Find::name;
             if (! -d $artifact){
-                my $inc_unwanted_found = 1;
+                my $bad_file = 1;
                 foreach my $re (@allowed){
                     if ($artifact =~ /$re/){
-                        $inc_unwanted_found = 0;
-                        diag("unwanted artifact: $artifact");
+                        $bad_file = 0;
                         last;
                     }
                 }
-                $unwanted_found += $inc_unwanted_found;
+                if($bad_file){
+                    $unwanted_found++;
+                    diag("excess artifact after $event_name: $artifact");
+                }
                 foreach my $re (keys %required){
                     if ($artifact =~ /$re/){
                         $required{$re}++;

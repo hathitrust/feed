@@ -13,6 +13,8 @@ use Digest::MD5;
 use FindBin;
 use File::Find;
 
+use Carp;
+
 #sub test_config{
 #	my $test_type = shift;
 #
@@ -100,7 +102,8 @@ sub md5_dir{
         $file = "$dir/$file";
         open(my $fh, '<', $file);
         binmode $fh;
-        $digest->addfile($fh);
+        eval{$digest->addfile($fh);};
+            if($@){confess "md5_dir: reading $dir/$file failed";}
         close $fh;
     }
     

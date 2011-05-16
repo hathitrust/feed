@@ -2,7 +2,8 @@ package HTFeed::PackageType::Yale::ExtractOCR::Test;
 
 use warnings;
 use strict;
-use base qw(HTFeed::PackageType::Yale::AbstractTest);
+#use base qw(HTFeed::PackageType::Yale::AbstractTest);
+use base qw(HTFeed::Stage::AbstractTest);
 use HTFeed::Config qw(set_config);
 use HTFeed::Test::Support qw(get_fake_stage);
 use File::Path qw(make_path);

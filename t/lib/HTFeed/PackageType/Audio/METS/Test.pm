@@ -2,7 +2,8 @@ package HTFeed::PackageType::Audio::METS::Test;
 
 use warnings;
 use strict;
-use base qw(HTFeed::PackageType::Audio::AbstractTest);
+#use base qw(HTFeed::PackageType::Audio::AbstractTest);
+use base qw(HTFeed::Stage::AbstractTest);
 use HTFeed::Test::Support qw(get_fake_stage);
 use File::Path qw(make_path);
 use Test::More;

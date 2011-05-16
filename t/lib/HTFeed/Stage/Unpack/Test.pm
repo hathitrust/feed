@@ -21,17 +21,17 @@ sub unzip_file : Test(1){
     my $temp_dir = mkdtemp("/tmp/feed_test_XXXXX");
 
     eval {
-    HTFeed::Stage::Download::download(get_fake_stage(), url => $url, path => $temp_dir, filename => $filename);
-    HTFeed::Stage::Unpack::unzip_file(get_fake_stage(), "$temp_dir/$filename", $temp_dir );
+        HTFeed::Stage::Download::download(get_fake_stage(), url => $url, path => $temp_dir, filename => $filename);
+        HTFeed::Stage::Unpack::unzip_file(get_fake_stage(), "$temp_dir/$filename", $temp_dir );
+        unlink "$temp_dir/$filename";
+
+        my $md5_found = md5_dir($temp_dir);
     
-    my $md5_found = md5_dir($temp_dir);
-    
-    is ($md5_expected, $md5_found);
-};
+        is ($md5_found, $md5_expected);
+    };
 
     # catch exception, clean up & rethrow
     my $err = $@;
-    unlink "$temp_dir/$filename";
     remove_tree($temp_dir);
     if($err) { die ($err); }
 }
@@ -41,6 +41,7 @@ sub untgz_file : Test(1){
 
     my $url = 'http://www.handle.net/hs-source/hcc5.tar.gz';
     my $filename = 'hcc5.tar.gz';
+    my $expanded_dir_name = 'hcc5';
     my $md5_expected = 'fdc4c09d3d6808219eae310bc740e99c';
 
     my $temp_dir = mkdtemp("/tmp/feed_test_XXXXX");
@@ -50,9 +51,9 @@ sub untgz_file : Test(1){
         HTFeed::Stage::Unpack::untgz_file(get_fake_stage(), "$temp_dir/$filename", $temp_dir );
         unlink "$temp_dir/$filename";
         
-        my $md5_found = md5_dir($temp_dir);
+        my $md5_found = md5_dir("$temp_dir/$expanded_dir_name");
        
-        is ($md5_expected, $md5_found);
+        is ($md5_found, $md5_expected);
     };
 
     # catch exception, clean up & rethrow

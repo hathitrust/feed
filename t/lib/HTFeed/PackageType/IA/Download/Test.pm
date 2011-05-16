@@ -2,7 +2,8 @@ package HTFeed::PackageType::IA::Download::Test;
 
 use warnings;
 use strict;
-use base qw(HTFeed::PackageType::IA::AbstractTest);
+#use base qw(HTFeed::PackageType::IA::AbstractTest);
+use base qw(HTFeed::Stage::AbstractTest);
 use File::Path qw(make_path);
 use HTFeed::Config qw(set_config);
 use HTFeed::Test::Support qw(get_fake_stage test_config);
