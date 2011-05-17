@@ -2,9 +2,7 @@ package HTFeed::PackageType::Yale::VerifyManifest::Test;
 
 use warnings;
 use strict;
-#use base qw(HTFeed::PackageType::Yale::AbstractTest);
 use base qw(HTFeed::Stage::AbstractTest);
-use HTFeed::Config qw(set_config);
 use HTFeed::Test::Support qw(get_fake_stage test_config);
 use File::Copy;
 use File::Path qw(make_path);
@@ -13,10 +11,7 @@ use Test::More;
 # Test stage with undamaged packaeg
 sub VerifyManifest : Test(2){
 
-	#my $config = test_config('undamaged');
-    set_config('/htapps/test.babel/feed/t/staging/UNDAMAGED/preingest','staging'=>'preingest');
-    set_config('/htapps/test.babel/feed/t/staging/UNDAMAGED/ingest','staging'=>'ingest');
-    set_config('/htapps/test.babel/feed/t/staging/UNDAMAGED/download','staging'=>'download');
+	my $config = test_config('undamaged');
 
     my $self = shift;
 	my $stage = $self->{test_stage};
@@ -28,8 +23,7 @@ sub VerifyManifest : Test(2){
 sub missing : Test(2){
 
 	#set config to damaged package
-	#my $config = test_config('damaged');
-    set_config('/htapps/test.babel/feed/t/staging/DAMAGED/yale/preingest','staging'=>'preingest');
+	my $config = test_config('damaged');
 
 	my $self = shift;
 	my $stage = $self->{test_stage};

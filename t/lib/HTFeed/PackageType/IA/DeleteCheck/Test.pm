@@ -2,9 +2,7 @@ package HTFeed::PackageType::IA::DeleteCheck::Test;
 
 use warnings;
 use strict;
-#use base qw(HTFeed::PackageType::IA::AbstractTest);
 use base qw(HTFeed::Stage::AbstractTest);
-use HTFeed::Config qw(set_config);
 use HTFeed::Test::Support qw(get_fake_stage test_config);
 use File::Copy;
 use File::Path qw(make_path);
@@ -13,8 +11,7 @@ use Test::More;
 # Run DeleteCheck on undamaged package
 sub Delete_Check : Test(2){
 	
-	#my $config = test_config('undamaged');
-	set_config('/htapps/test.babel/feed/t/staging/UNDAMAGED/download','staging'=>'download');
+	my $config = test_config('undamaged');
 
     my $self = shift;
 	my $stage = $self->{test_stage};
@@ -25,8 +22,7 @@ sub Delete_Check : Test(2){
 # Test error handling with specific files missing
 sub Missing : Test(2){
 
-	#my $config = test_config('damaged');
-	set_config('/htapps/test.babel/feed/t/staging/DAMAGED/','staging'=>'download');
+	my $config = test_config('damaged');
 
 	my $self = shift;
 	my $stage = $self->{test_stage};
@@ -54,8 +50,7 @@ sub Missing : Test(2){
 # test additional warnings
 sub Warnings : Test(1){
 
-	#my $config = test_config('damaged');
-	set_config('/htapps/test.babel/feed/t/staging/DAMAGED/','staging'=>'download');
+	my $config = test_config('damaged');
 
 	my $self = shift;
 	my $stage = $self->{test_stage};

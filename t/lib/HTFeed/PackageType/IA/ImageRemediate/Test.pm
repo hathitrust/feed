@@ -2,10 +2,9 @@ package HTFeed::PackageType::IA::ImageRemediate::Test;
 
 use warnings;
 use strict;
-#use base qw(HTFeed::PackageType::IA::AbstractTest);
 use base qw(HTFeed::Stage::AbstractTest);
 use HTFeed::Test::Support qw(get_fake_stage test_config);
-use HTFeed::Config qw(set_config);
+#use HTFeed::Config qw(set_config);
 use File::Copy;
 use File::Path qw(make_path);
 use Test::More;
@@ -13,10 +12,7 @@ use Test::More;
 # Run ImageRemediate on undamaged package
 sub ImageRemediate : Test(2){
 
-	#my $config = test_config('undamaged');
-    set_config('/htapps/test.babel/feed/t/staging/UNDAMAGED/download','staging'=>'download');
-    set_config('/htapps/test.babel/feed/t/staging/UNDAMAGED/ingest','staging'=>'ingest');
-    set_config('/htapps/test.babel/feed/t/staging/UNDAMAGED/preingest','staging'=>'preingest');
+	my $config = test_config('undamaged');
 
 	my $self  = shift;
 	my $stage = $self->{test_stage};
@@ -27,8 +23,7 @@ sub ImageRemediate : Test(2){
 # Test error handling with damaged package
 sub TestErrors : Test(1){
 
-	#my $config = test_config('damaged');
-    set_config('/htapps/test.babel/feed/t/staging/DAMAGED/','staging'=>'download');
+	my $config = test_config('damaged');
 
 	my $self = shift;
 	my $stage = $self->{test_stage};

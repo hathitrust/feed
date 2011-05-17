@@ -2,20 +2,15 @@ package HTFeed::PackageType::Yale::Unpack::Test;
 
 use warnings;
 use strict;
-#use base qw(HTFeed::PackageType::Yale::AbstractTest);
 use base qw(HTFeed::Stage::AbstractTest);
-use HTFeed::Config qw(set_config);
-use HTFeed::Test::Support;
+use HTFeed::Test::Support qw(get_fake_stage test_config);
 use File::Copy;
 use File::Path qw(make_path);
 use Test::More;
 
 sub config : Test(setup){
-	#TODO: switch to config method in Setup.pm
-    set_config('/htapps/test.babel/feed/t/staging/UNDAMAGED/download','staging'=>'download');
-    set_config('/htapps/test.babel/feed/t/staging/UNDAMAGED/preingest','staging'=>'preingest');
-    set_config('/htapps/test.babel/feed/t/staging/UNDAMAGED/ingest','staging'=>'ingest');
-    set_config('/htapps/test.babel/feed/t/staging/UNDAMAGED/zipfile','staging'=>'zipfile');
+
+	my $config = test_config('undamaged');
 
     # cleanup staging area prior to unpacking
     my $self = shift;

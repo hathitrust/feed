@@ -2,10 +2,9 @@ package HTFeed::PackageType::IA::OCRSplit::Test;
 
 use warnings;
 use strict;
-#use base qw(HTFeed::PackageType::IA::AbstractTest);
 use base qw(HTFeed::Stage::AbstractTest);
 use HTFeed::Test::Support qw(get_fake_stage test_config);
-use HTFeed::Config qw(set_config);
+#use HTFeed::Config qw(set_config);
 use File::Copy;
 use File::Path qw(make_path);
 use Test::More;
@@ -13,10 +12,7 @@ use Test::More;
 # Test OCRSplit stage with undamaged package
 sub OCRSplit : Test(2){
 
-	# my $config = test_config('undamaged');
-	set_config('/htapps/test.babel/feed/t/staging/UNDAMAGED/download','staging'=>'download');
-	set_config('/htapps/test.babel/feed/t/staging/UNDAMAGED/preingest','staging'=>'preingest');
-	set_config('/htapps/test.babel/feed/t/staging/UNDAMAGED/ingest','staging'=>'ingest');
+	my $config = test_config('undamaged');
 
     my $self = shift;
 	my $stage = $self->{test_stage};	
@@ -28,8 +24,7 @@ sub OCRSplit : Test(2){
 sub Errors : Test(2){
 
 	#load damaged package
-	# my $config = test_config('damaged');
-	set_config('/htapps/test.babel/feed/t/staging/DAMAGED','staging'=>'download');
+	my $config = test_config('damaged');
 
 	my $self = shift;
 	my $stage = $self->{test_stage};
@@ -56,8 +51,7 @@ sub Errors : Test(2){
 sub usemap : Test(1){
 
 	#load damaged package
-	# my $config = test_config('damaged');
-	set_config('/htapps/test.babel/feed/t/staging/DAMAGED','staging'=>'download');
+	my $config = test_config('damaged');
 
     my $self = shift;
     my $stage = $self->{test_stage};

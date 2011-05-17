@@ -2,22 +2,18 @@ package HTFeed::PackageType::IA::VerifyManifest::Test;
 
 use warnings;
 use strict;
-#use base qw(HTFeed::PackageType::IA::AbstractTest);
 use base qw(HTFeed::Stage::AbstractTest);
-use HTFeed::Test::Support qw(get_fake_stage);
-use HTFeed::Config qw(set_config);
+use HTFeed::Test::Support qw(get_fake_stage test_config);
+#use HTFeed::Config qw(set_config);
 use File::Copy;
 use File::Find;
 use File::Path qw(make_path);
 use Test::More;
 
-#This will go away when config method is finalized in Test/Support.pm
-my $damaged = "/htapps/test.babel/feed/t/staging/DAMAGED";
-my $undamaged = "/htapps/test.babel/feed/t/staging/UNDAMAGED";
-
 # Run IA VerifyManifest stage with normal conditions
 sub ManifestVerification : Test(2){
-	set_config("$undamaged/download","staging"=>"download");
+
+	my $config = test_config('undamaged');
 	my $self = shift;
 	my $stage = $self->{test_stage};
 	ok($stage->run(), 'IA: Verify Manifest stage succeeded for undamaged package');
@@ -26,13 +22,14 @@ sub ManifestVerification : Test(2){
 
 # Run IA VeryfyManifest stage with missing manifest file
 sub Missing : Test(2){
-	set_config("$damaged","staging"=>"download");
+	my $config = test_config('damaged');
 	my $self = shift;
     my $volume = $self->{volume};
     my $stage = $self->{test_stage};
 	my $ia_id = $volume->get_ia_id();
 	my $objdir   = $volume->get_download_directory();
 	my $manifest = "$objdir/${ia_id}_files.xml";
+	my $undamaged = "/htapps/test.babel/feed/t/staging/UNDAMAGED";
 
 	# delete $manifest
 	unlink("$manifest");

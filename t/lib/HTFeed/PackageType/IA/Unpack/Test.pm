@@ -2,10 +2,9 @@ package HTFeed::PackageType::IA::Unpack::Test;
 
 use warnings;
 use strict;
-#use base qw(HTFeed::PackageType::IA::AbstractTest);
 use base qw(HTFeed::Stage::AbstractTest);
-use HTFeed::Test::Support qw(get_fake_stage);
-use HTFeed::Config qw(set_config);
+use HTFeed::Test::Support qw(get_fake_stage test_config);
+#use HTFeed::Config qw(set_config);
 use File::Path qw(make_path);
 use Test::More;
 
@@ -30,11 +29,7 @@ sub temp_setup : Test(setup){
 # Run IA Unpack stage on undamaged package
 sub Unpack : Test(1){
 
-	#TODO use config setup method once Support/Test.pm is finalized
-	set_config('/htapps/test.babel/feed/t/staging/UNDAMAGED/preingest','staging'=>'preingest');
-	set_config('/htapps/test.babel/feed/t/staging/UNDAMAGED/zipfile','staging'=>'zipfile');
-	set_config('/htapps/test.babel/feed/t/staging/UNDAMAGED/ingest','staging'=>'ingest');
-	set_config('/htapps/test.babel/feed/t/staging/UNDAMAGED/download','staging'=>'download');
+	my $config = test_config('undamaged');
 
     my $self = shift;
 	my $volume = $self->{volume};
