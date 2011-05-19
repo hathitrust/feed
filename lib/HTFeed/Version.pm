@@ -53,12 +53,12 @@ sub long_version{
 
 
 sub namespace_ids {
-    return map {${$_ . "::identifier"}} (sort find_subclasses("HTFeed::Namespace"));
+    return map {${$_ . "::identifier"}} (sort(find_subclasses("HTFeed::Namespace")));
 
 }
 
 sub pkgtype_ids {
-    return map {${$_ . "::identifier"}} (sort find_subclasses("HTFeed::PackageType"));
+    return map {${$_ . "::identifier"}} (sort(find_subclasses("HTFeed::PackageType")));
 }
 
 sub id_desc_info {
