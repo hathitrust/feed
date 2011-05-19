@@ -12,32 +12,27 @@ use HTFeed::Stage::Fake;
 use Digest::MD5;
 use FindBin;
 use File::Find;
-
 use Carp;
 
-#sub test_config{
-#	my $test_type = shift;
-#
-#	my $types = {
-#		undamaged => {
-#			set_config('/htapps/test.babel/feed/t/staging/UNDAMAGED/download','staging'=>'download'),
-#			set_config('/htapps/test.babel/feed/t/staging/UNDAMAGED/ingest','staging'=>'ingest'),
-#			set_config('/htapps/test.babel/feed/t/staging/UNDAMAGED/preingest','staging'=>'preingest'),
-#			set_config('/htapps/test.babel/feed/t/staging/UNDAMAGED/zipfile','staging'=>'zipfile'),
-#		},
-#		damaged  => {
-#			set_config('/htapps/test.babel/feed/t/staging/DAMAGED/download','staging'=>'download'),
-#			set_config('/htapps/test.babel/feed/t/staging/DAMAGED/ingest','staging'=>'ingest'),
-#			set_config('/htapps/test.babel/feed/t/staging/DAMAGED/preingest','staging'=>'preingest'),
-#			set_config('/htapps/test.babel/feed/t/staging/DAMAGED/zipfile','staging'=>'zipfile'),
-#		}
-#	};
-#
-#	die("Unknown config $test_type") if not defined $types->{$test_type};
-#
-#	#TODO: fix syntax to return correct values
-#	print $types->{$test_type};
-#}
+sub test_config{
+	my $test_type = shift;
+	
+	die("Unknown config $test_type") if not defined $test_type;
+
+	if($test_type eq 'undamaged'){
+		set_config('/htapps/test.babel/feed/t/staging/UNDAMAGED/download','staging'=>'download'),
+		set_config('/htapps/test.babel/feed/t/staging/UNDAMAGED/ingest','staging'=>'ingest'),
+		set_config('/htapps/test.babel/feed/t/staging/UNDAMAGED/preingest','staging'=>'preingest'),
+		set_config('/htapps/test.babel/feed/t/staging/UNDAMAGED/zipfile','staging'=>'zipfile'),
+	}elsif($test_type eq 'damaged'){
+		set_config('/htapps/test.babel/feed/t/staging/DAMAGED/download','staging'=>'download'),
+		set_config('/htapps/test.babel/feed/t/staging/DAMAGED/ingest','staging'=>'ingest'),
+		set_config('/htapps/test.babel/feed/t/staging/DAMAGED/preingest','staging'=>'preingest'),
+		set_config('/htapps/test.babel/feed/t/staging/DAMAGED/zipfile','staging'=>'zipfile'),
+	}else{
+		die("Unknown config $test_type");
+	}
+}
 
 ## TODO: use a flag to determine if/when test_classes are loaded
 my @test_classes;
