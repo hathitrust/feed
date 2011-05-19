@@ -35,7 +35,6 @@ staging:
 
 ram_disk: /ram
 ram_fill_limit: 0.8
-ram_disk_max_job_size: 1073741824
 
 daemon:
   release_states:
@@ -99,3 +98,5 @@ jira:
   wsdl: https://wush.net/jira/hathitrust/rpc/soap/jirasoapservice-v2?wsdl
   username: USERNAME
   password: PASSWORD
+  from: aelkiss@umich.edu
+  to: feedback@issues.hathitrust.org
