@@ -13,6 +13,7 @@ premis_tools:
     DIGEST_MD5: $self->perl_mod_version('Digest::MD5');
     GPG: $self->system_version('gnupg');
     ZIP: $self->local_directory_version('zip');
+    KDU_COMPRESS: "6.4.0"
 
 # Location of the symlinks for 'local directory version'
 premis_tool_local: /l/local
@@ -48,8 +49,11 @@ premis_events:
   image_compression:
     type: image compression
     detail: Conversion of raw scans to compressed TIFF and JPEG2000
-    # executor is package-type specific
-    # tools is package-type specific
+    executor: MiU
+    executor_type: MARC21 Code
+    tools:
+      - KDU_COMPRESS
+      - EXIFTOOL
 
   image_header_modification:
     type: image header modification
