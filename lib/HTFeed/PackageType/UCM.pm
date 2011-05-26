@@ -1,6 +1,7 @@
 package HTFeed::PackageType::UCM;
 
 use HTFeed::PackageType;
+use HTFeed::XPathValidator qw(:closures);
 use base qw(HTFeed::PackageType);
 use strict;
 
@@ -42,7 +43,7 @@ our $config = {
         images_remediated => 'HTFeed::PackageType::UCM::SourceMETS',
         src_metsed        => 'HTFeed::VolumeValidator',
         validated         => 'HTFeed::Stage::Pack',
-        packed            => 'HTFeed::METS',
+        packed            => 'HTFeed::PackageType::UCM::METS',
 #        metsed            => 'HTFeed::Stage::Handle',
 #        handled           => 'HTFeed::Stage::Collate',
     },
@@ -70,13 +71,22 @@ our $config = {
     premis_events => [
         'page_md5_fixity',
         'package_validation',
-        'page_feature_mapping',
         'zip_compression',
         'zip_md5_create',
         'ingestion',
     ],
 
     source_mets_file => qr/^UCM_\w+\.xml$/,
+
+    validation => {
+      'HTFeed::ModuleValidator::JPEG2000_hul' => {
+          'layers' => v_eq( 'codingStyleDefault', 'layers', '8' ),
+          'resolution'      => v_and(
+              v_ge( 'xmp', 'xRes', 300 ), # should work even though resolution is specified as NNN/1
+              v_same( 'xmp', 'xRes', 'xmp', 'yRes' )
+          ),
+      }
+    }
 
 };
 

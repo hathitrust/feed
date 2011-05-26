@@ -32,7 +32,7 @@ sub _add_capture_event {
 
     # try to get the capture date for the first image
     # FIXME: placeholder
-    my $capture_date = "1970-01-01T00:00";
+    my $capture_date = "1970-01-01T00:00:00Z";
     my $eventcode = 'capture';
     my $eventconfig = $volume->get_nspkg()->get_event_configuration($eventcode);
     $eventconfig->{'eventid'} = $volume->make_premis_uuid($eventconfig->{'type'},$capture_date);
@@ -40,6 +40,13 @@ sub _add_capture_event {
     $eventconfig->{'executor_type'} = 'MARC21 Code';
     $eventconfig->{'date'} = $capture_date; 
     my $event = $self->add_premis_event($eventconfig);
+}
+
+sub _add_dmdsecs {
+    # no descriptive metadata sections to add
+    my $self = shift;
+
+    return;
 }
 
 1;

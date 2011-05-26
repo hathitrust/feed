@@ -92,7 +92,6 @@ sub clean_failure{
 }
 
 # Basic structMap with no page labels.
-# TODO: factor out to base SourceMETS subclass
 sub _add_struct_map {
     my $self   = shift;
     my $mets   = $self->{mets};

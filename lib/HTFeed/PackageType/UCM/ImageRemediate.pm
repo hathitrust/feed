@@ -46,6 +46,10 @@ sub run{
     # then convert tif to jp2 & add xmp
 
     foreach my $i (0..$#sortedpages) {
+        # reset remediator;
+
+        $self->{newFields} = {};
+        $self->{oldFields} = {};
         my $infile = $sortedpages[$i];
         my $outfile = sprintf("%08d.jp2",$i+1);
         my ($field,$val);
@@ -70,7 +74,14 @@ sub run{
         # try to compress the TIFF -> JPEG2000
         get_logger()->info("Compressing $infile to $outfile");
         my $kdu_compress = get_config('kdu_compress');
-        system(qq($kdu_compress -quiet -i '$infile' -o '$staging_dir/$outfile' Clevels=$levels Clayers=8 Corder=RLCP Cuse_sop=yes Cuse_eph=yes "Cmodes=RESET|RESTART|CAUSAL|ERTERM|SEGMARK"))
+
+        # Settings for kdu_compress recommended from Roger Espinosa. "-slope"
+        # is a VBR compression mode; the value of 42988 corresponds to pre-6.4
+        # slope of 51180, the current (as of 5/6/2011) recommended setting for
+        # Google digifeeds.
+
+        system(qq($kdu_compress -quiet -i '$infile' -o '$staging_dir/$outfile' Clevels=$levels Clayers=8 Corder=RLCP Cuse_sop=yes Cuse_eph=yes "Cmodes=RESET|RESTART|CAUSAL|ERTERM|SEGMARK" -no_weights -slope 42988))
+
           and $self->set_error("OperationFailed",
             operation=>"kdu_compress",
             file=>$infile,
@@ -86,6 +97,8 @@ sub run{
 
         $self->copy_old_to_new("IFD0:ModifyDate","XMP-tiff:DateTime");
         $self->set_new_if_undefined("XMP-dc:source","$staging_dir/$outfile");
+        $self->set_new_if_undefined("XMP-tiff:Compression","JPEG 2000");
+        $self->set_new_if_undefined("XMP-tiff:Artist","Universidad Complutense de Madrid");
 
         my $exifTool = new Image::ExifTool;
         while ( ( $field, $val ) = each(%{$self->{newFields}}) ) {
