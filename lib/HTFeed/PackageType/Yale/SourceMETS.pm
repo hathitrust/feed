@@ -32,7 +32,6 @@ sub _add_dmdsecs {
     my $preingest_dir = $volume->get_preingest_directory();
     my $metadata_dir = "$preingest_dir/metadata";
 
-    # TODO: remediate MARC
     my $marc_mdsec = $self->_add_dmd_sec(
         $self->_get_subsec_id("DMD"), 'MARC',
         'Yale MARC record',

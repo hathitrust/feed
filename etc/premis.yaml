@@ -13,7 +13,7 @@ premis_tools:
     DIGEST_MD5: $self->perl_mod_version('Digest::MD5');
     GPG: $self->system_version('gnupg');
     ZIP: $self->local_directory_version('zip');
-    KDU_COMPRESS: "6.4.0"
+    KDU_COMPRESS: $self->local_directory_version('kakadu');
 
 # Location of the symlinks for 'local directory version'
 premis_tool_local: /l/local
@@ -52,6 +52,7 @@ premis_events:
     executor: MiU
     executor_type: MARC21 Code
     tools:
+      - GROOVE
       - KDU_COMPRESS
       - EXIFTOOL
 

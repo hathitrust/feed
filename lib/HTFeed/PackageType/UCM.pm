@@ -43,7 +43,7 @@ our $config = {
         images_remediated => 'HTFeed::PackageType::UCM::SourceMETS',
         src_metsed        => 'HTFeed::VolumeValidator',
         validated         => 'HTFeed::Stage::Pack',
-        packed            => 'HTFeed::PackageType::UCM::METS',
+        packed            => 'HTFeed::METS',
 #        metsed            => 'HTFeed::Stage::Handle',
 #        handled           => 'HTFeed::Stage::Collate',
     },

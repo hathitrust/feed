@@ -31,22 +31,32 @@ sub _add_capture_event {
     my $volume = $self->{volume};
 
     # try to get the capture date for the first image
-    # FIXME: placeholder
-    my $capture_date = "1970-01-01T00:00:00Z";
-    my $eventcode = 'capture';
-    my $eventconfig = $volume->get_nspkg()->get_event_configuration($eventcode);
-    $eventconfig->{'eventid'} = $volume->make_premis_uuid($eventconfig->{'type'},$capture_date);
-    $eventconfig->{'executor'} = 'SpMaUC';
-    $eventconfig->{'executor_type'} = 'MARC21 Code';
-    $eventconfig->{'date'} = $capture_date; 
-    my $event = $self->add_premis_event($eventconfig);
+    my $exifTool = new Image::ExifTool;
+    $exifTool->ExtractInfo($volume->get_staging_directory() . "/00000001.jp2");
+    my $capture_date = $exifTool->GetValue('DateTime','XMP-tiff');
+    $capture_date =~ s/(\d{4}).(\d{2}).(\d{2}).(\d{2}).(\d{2}).(\d{2})(.*)/$1-$2-$3T$4:$5:$6$7/; # fix separator
+    if(not defined $capture_date or !$capture_date) {
+        $self->set_error("BadField",file => "00000001.jp2",field=>"XMP-tiff:DateTime",detail=>"Couldn't get capture time with ExifTool");
+    } else {
+
+        my $eventcode = 'capture';
+        my $eventconfig = $volume->get_nspkg()->get_event_configuration($eventcode);
+        $eventconfig->{'eventid'} = $volume->make_premis_uuid($eventconfig->{'type'},$capture_date);
+        $eventconfig->{'executor'} = 'SpMaUC';
+        $eventconfig->{'executor_type'} = 'MARC21 Code';
+        $eventconfig->{'date'} = $capture_date; 
+        my $event = $self->add_premis_event($eventconfig);
+    }
 }
 
 sub _add_dmdsecs {
-    # no descriptive metadata sections to add
     my $self = shift;
+    my $volume = $self->{volume};
+    my $objid = $volume->get_objid();
+    my $preingest_directory = $volume->get_preingest_directory();
+    $self->_add_marc_from_file("$preingest_directory/marc.xml");
 
-    return;
+
 }
 
 1;
