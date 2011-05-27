@@ -13,7 +13,7 @@ use Test::More;
 # Run IA VerifyManifest stage with normal conditions
 sub ManifestVerification : Test(2){
 
-	my $config = test_config('undamaged');
+	test_config('undamaged');
 	my $self = shift;
 	my $stage = $self->{test_stage};
 	ok($stage->run(), 'IA: Verify Manifest stage succeeded for undamaged package');
@@ -22,7 +22,7 @@ sub ManifestVerification : Test(2){
 
 # Run IA VeryfyManifest stage with missing manifest file
 sub Missing : Test(2){
-	my $config = test_config('damaged');
+	test_config('damaged');
 	my $self = shift;
     my $volume = $self->{volume};
     my $stage = $self->{test_stage};

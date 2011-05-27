@@ -29,7 +29,7 @@ sub temp_setup : Test(setup){
 # Run IA Unpack stage on undamaged package
 sub Unpack : Test(1){
 
-	my $config = test_config('undamaged');
+	test_config('undamaged');
 
     my $self = shift;
 	my $volume = $self->{volume};

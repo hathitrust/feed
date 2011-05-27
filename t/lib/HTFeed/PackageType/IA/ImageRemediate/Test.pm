@@ -12,7 +12,7 @@ use Test::More;
 # Run ImageRemediate on undamaged package
 sub ImageRemediate : Test(2){
 
-	my $config = test_config('undamaged');
+	test_config('undamaged');
 
 	my $self  = shift;
 	my $stage = $self->{test_stage};
@@ -23,7 +23,7 @@ sub ImageRemediate : Test(2){
 # Test error handling with damaged package
 sub TestErrors : Test(1){
 
-	my $config = test_config('damaged');
+	test_config('damaged');
 
 	my $self = shift;
 	my $stage = $self->{test_stage};

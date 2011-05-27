@@ -14,26 +14,24 @@ use FindBin;
 use File::Find;
 use Carp;
 
-my %staging_configs = {
+my %staging_configs = (
     damaged     => {
         download  => '/htapps/test.babel/feed/t/staging/DAMAGED/download',
         ingest    => '/htapps/test.babel/feed/t/staging/DAMAGED/ingest',
         preingest => '/htapps/test.babel/feed/t/staging/DAMAGED/preingest',
-        zipfile   => '/htapps/test.babel/feed/t/staging/DAMAGED/zipfile',
     },
     undamaged     => {
         download  => '/htapps/test.babel/feed/t/staging/UNDAMAGED/download',
         ingest    => '/htapps/test.babel/feed/t/staging/UNDAMAGED/ingest',
         preingest => '/htapps/test.babel/feed/t/staging/UNDAMAGED/preingest',
-        zipfile   => '/htapps/test.babel/feed/t/staging/UNDAMAGED/zipfile',
     },
+    
     original    => {
         download  => get_config('staging'=>'download'),
         ingest    => get_config('staging'=>'ingest'),
         preingest => get_config('staging'=>'preingest'),
-        zipfile   => get_config('staging'=>'zipfile'),
     },
-}
+);
 
 sub test_config{
 	my $test_type = shift;
