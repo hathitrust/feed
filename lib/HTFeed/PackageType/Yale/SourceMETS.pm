@@ -68,11 +68,23 @@ sub _add_dmdsecs {
         }
     }
 
-    $self->_add_dmd_sec(
+    my $mods_dmdsec = $self->_add_dmd_sec(
         $self->_get_subsec_id("DMD"), 'MODS',
         'MODS metadata',
         "$metadata_dir/${objid}_mods.xml"
     );
+
+    # try to fix up schema reference for MODS
+
+    my $mods_xc = new XML::LibXML::XPathContext($mods_dmdsec->{'mdwrap'});
+    register_namespaces($mods_xc);
+    foreach my $mods ($mods_xc->findnodes('.//mods:mods')) {
+        my $schema = $mods->getAttribute('xsi:schemaLocation');
+        # force use of latest MODS schema
+        $schema =~ s/mods-3-[01234].xsd/mods.xsd/; 
+        $mods->setAttribute('xsi:schemaLocation',$schema);
+    }
+
     $self->_add_dmd_sec(
         $self->_get_subsec_id("DMD"), 'DC',
         'OAI/DC metadata',

@@ -83,7 +83,7 @@ our $config = {
         'HTFeed::ModuleValidator::JPEG2000_hul' => {
             'camera'               => undef,
             'decomposition_levels' => v_between(
-                'codingStyleDefault', 'decompositionLevels', '3', '32'
+                'codingStyleDefault', 'decompositionLevels', '2', '32'
             ),
         },
     },
@@ -136,10 +136,6 @@ our $config = {
     },
 
     SIP_filename_pattern => '%s.zip',
-
-    # Don't use schema caching for Yale because of the incompatibility
-    # of different versions of the MODS schemas
-    use_schema_caching => 0,
 
 };
 
