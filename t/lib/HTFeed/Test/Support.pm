@@ -6,7 +6,7 @@ use strict;
 use base qw(Exporter);
 our @EXPORT_OK = qw(get_test_volume get_fake_stage md5_dir test_config);
 
-use HTFeed::Config qw(set_config);
+use HTFeed::Config qw(get_config set_config);
 use HTFeed::Volume;
 use HTFeed::Stage::Fake;
 use Digest::MD5;
@@ -14,24 +14,36 @@ use FindBin;
 use File::Find;
 use Carp;
 
+my %staging_configs = (
+    damaged     => {
+        download  => '/htapps/test.babel/feed/t/staging/DAMAGED/download',
+        ingest    => '/htapps/test.babel/feed/t/staging/DAMAGED/ingest',
+        preingest => '/htapps/test.babel/feed/t/staging/DAMAGED/preingest',
+    },
+    undamaged     => {
+        download  => '/htapps/test.babel/feed/t/staging/UNDAMAGED/download',
+        ingest    => '/htapps/test.babel/feed/t/staging/UNDAMAGED/ingest',
+        preingest => '/htapps/test.babel/feed/t/staging/UNDAMAGED/preingest',
+    },
+    
+    original    => {
+        download  => get_config('staging'=>'download'),
+        ingest    => get_config('staging'=>'ingest'),
+        preingest => get_config('staging'=>'preingest'),
+    },
+);
+
 sub test_config{
 	my $test_type = shift;
 	
-	die("Unknown config $test_type") if not defined $test_type;
+	die("Unknown config $test_type") unless $staging_configs{$test_type};
 
-	if($test_type eq 'undamaged'){
-		set_config('/htapps/test.babel/feed/t/staging/UNDAMAGED/download','staging'=>'download'),
-		set_config('/htapps/test.babel/feed/t/staging/UNDAMAGED/ingest','staging'=>'ingest'),
-		set_config('/htapps/test.babel/feed/t/staging/UNDAMAGED/preingest','staging'=>'preingest'),
-		set_config('/htapps/test.babel/feed/t/staging/UNDAMAGED/zipfile','staging'=>'zipfile'),
-	}elsif($test_type eq 'damaged'){
-		set_config('/htapps/test.babel/feed/t/staging/DAMAGED/download','staging'=>'download'),
-		set_config('/htapps/test.babel/feed/t/staging/DAMAGED/ingest','staging'=>'ingest'),
-		set_config('/htapps/test.babel/feed/t/staging/DAMAGED/preingest','staging'=>'preingest'),
-		set_config('/htapps/test.babel/feed/t/staging/DAMAGED/zipfile','staging'=>'zipfile'),
-	}else{
-		die("Unknown config $test_type");
-	}
+    my $staging_config = $staging_configs{$test_type};
+    
+    foreach my $key (keys %{$staging_config}){
+        my $value = $staging_config->{$key};
+        set_config($value,'staging',$key);
+    }
 }
 
 ## TODO: use a flag to determine if/when test_classes are loaded

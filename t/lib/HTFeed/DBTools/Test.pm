@@ -6,6 +6,7 @@ use strict;
 use base qw(HTFeed::Test::Class);
 use Test::More;
 use HTFeed::DBTools;
+use HTFeed::DBTools::Queue;
 use HTFeed::Volume;
 use HTFeed::Namespace;
 use HTFeed::PackageType;
@@ -27,7 +28,7 @@ sub test_blacklist : Test(3) {
         namespace => $ns,
         objid => $objid);
 
-    my $results = HTFeed::DBTools::enqueue_volumes([$test_volume]);
+    my $results = enqueue_volumes([$test_volume]);
 
     is($results->[0],0,"enqueing blacklisted volume $ns.$objid fails");
 
@@ -53,7 +54,7 @@ sub test_queue : Test(3) {
         namespace => $ns,
         objid => $objid);
 
-    my $results = HTFeed::DBTools::enqueue_volumes([$test_volume]);
+    my $results = enqueue_volumes([$test_volume]);
 
     is($results->[0],1,"enqueing volume $ns.$objid succeeds");
 

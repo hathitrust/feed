@@ -8,7 +8,7 @@ use File::Path qw(make_path);
 use Test::More;
 
 sub prep : Test(setup){
-	my $config = test_config('undamaged');
+	test_config('undamaged');
 }
 
 sub ImageRemediate : Test(1){
