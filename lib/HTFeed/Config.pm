@@ -2,7 +2,7 @@ package HTFeed::Config;
 
 use warnings;
 use strict;
-use YAML::XS;
+use YAML::AppConfig;
 use Carp;
 use FindBin;
 
@@ -26,12 +26,8 @@ sub init{
 
     # load config file
     eval{
-        $config = YAML::XS::LoadFile($config_file);
-        my $premis_config = YAML::XS::LoadFile(get_config('premis_config'));
-        # copy premis config to main config
-        while(my ($key, $val) = each(%$premis_config)) {
-            $config->{$key} = $val;
-        }
+        $config = YAML::AppConfig->new(file => $config_file);
+        $config->merge(file => get_config('premis_config'));
     };
     if ($@){ die ("loading $config_file failed: $@"); }
 
@@ -50,7 +46,7 @@ get_config('jhove');
 =cut
 sub get_config{
     # drill down to the leaf
-    my $cursor = $config;
+    my $cursor = $config->get(shift @_);
     foreach my $hashlevel (@_) {
         # die if we try to traverse the tree past a leaf
         croak( sprintf("%s is not in the config file", join('=>',@_)) ) if (!ref($cursor));
@@ -71,12 +67,21 @@ set_config('setting','path'=>'to'=>'my'=>'setting')
 sub set_config{
     my $setting = shift;
     my $leaf = pop;
-    my $cursor = $config;
-    foreach my $hashlevel (@_) {
-        $cursor = $cursor->{$hashlevel};
-        croak( sprintf("%s is not in the config file", join('=>',@_,$leaf)) ) if (! ref($cursor));
+
+    if(!@_) {
+        $config->set($leaf,$setting);
+    } else {
+        my $topkey = shift @_;
+        my $topval = $config->get($topkey);
+        my $cursor = $topval;
+        foreach my $hashlevel (@_) {
+            $cursor = $cursor->{$hashlevel};
+            croak( sprintf("%s is not in the config file", join('=>',@_,$leaf)) ) if (! ref($cursor));
+        }
+        $cursor->{$leaf} = $setting;
+        $config->set($topkey,$topval);
     }
-    $cursor->{$leaf} = $setting;
+
     return 1;
 }
 
