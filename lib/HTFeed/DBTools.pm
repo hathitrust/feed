@@ -110,11 +110,11 @@ sub ingest_log_success {
     $sth->execute($ns,$objid,$repeat);
 }
 
-# update_queue($ns, $objid, $new_status, [$fail])
+# update_queue($ns, $objid, $new_status, [$release, [$fail]])
 # $fail indicates to incriment failure_count
 # job will be released if $new_status is a release state
 sub update_queue {
-    my ($ns, $objid, $new_status, $fail) = @_;
+    my ($ns, $objid, $new_status, $release, $fail) = @_;
     
     my $syntax = qq(UPDATE queue SET status = '$new_status');
     $syntax .= q(, failure_count=failure_count+1) if ($fail);
