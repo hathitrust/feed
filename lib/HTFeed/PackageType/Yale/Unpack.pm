@@ -36,6 +36,12 @@ sub unzip_file {
     return HTFeed::Stage::Unpack::_extract_file(q(yes 'n' | unzip -LL -o -q '%s' -d '%s' %s 2>&1),@_);
 }
 
+# do cleaning that is appropriate after failure
+sub clean_failure{
+    my $self = shift;
+    $self->{volume}->clean_preingest();
+}
+
 
 1;
 
