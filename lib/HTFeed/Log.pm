@@ -56,10 +56,13 @@ my %error_codes = (
 #   HTFeed::Log::Warp (for DB appenders), HTFeed::Log::Layout::PrettyPrint (for text appenders)
 my @fields = qw(namespace objid file field actual expected detail operation stage);
 
-# on import 
+# on import
+my $log_initialized = 0;
+
 sub import{
     # init once and only once
-    return if(Log::Log4perl->initialized());
+    return if($log_initialized);
+    $log_initialized = 1;
 
     my $class = shift;
     my $config = shift;
@@ -71,11 +74,11 @@ sub import{
         "level=s" => \$level,
         "screen"  => \$screen,
         "dbi"     => \$dbi,
-        "file"    => \$file
+        "file=s"  => \$file
     );
     
     if ($level or $screen or $dbi or $file){
-        $level = 'INFO' unless $level;
+        $level = 'INFO' unless $level; # default to INFO when using a logger flag
         die "Invalid logging options: please specify logger"
             unless($screen or $dbi or $file);
         
@@ -87,8 +90,11 @@ sub import{
 
     # override config use option
     my $root_log_config_from_use = $config->{root_logger};
-    
+
+    # set logging config
     # command takes precedence over use, which takes precedence over config file
+    
+    # $root_log_config
     if ($root_log_config_from_command){
         $root_log_config = $root_log_config_from_command;
     }
@@ -98,6 +104,9 @@ sub import{
     
     print "Logging with root logger config '$root_log_config'\n";
     _init();
+
+    # log file
+    set_logfile($file) if $file;
 }
 
 # call to initialize logging
@@ -106,7 +115,7 @@ sub _init{
     my $l4p_config = get_config('l4p'=>'config');
 
     Log::Log4perl->init($l4p_config);
-    Log::Log4perl->get_logger(__PACKAGE__)->trace('l4p initialized');
+    Log::Log4perl->get_logger()->trace('l4p initialized');
 
     return;
 }
@@ -125,9 +134,8 @@ sub set_logfile{
 }
 
 # returns get_config('l4p' => 'root_logger')
-# unless an override was set by
-# use HTFeed::Log {root_logger => 'INFO, file'}
-#
+# unless Log.pm was instructed to override this on import (see pod)
+# 
 # should only be called by config.l4p
 #
 # get_root_log_config()
@@ -177,4 +185,20 @@ sub error_code_to_string{
 
 1;
 
-__END__;
+__END__
+
+=head1 NAME
+
+HTFeed::Log - Logging for HTFeed
+
+=head1 SYNOPSIS
+
+# Initialize Log4perl with default config (from config.yaml)
+use HTFeed::Log;
+
+# Initialize Log4perl with custom root logger (use)
+use HTFeed::Log {root_logger => 'INFO, screen'};
+
+# Initialize Log4perl with custom root logger (command line)
+# while executing any script that uses Log.pm (even indirectly)
+myscript.pl [-screen] [-dbi] [-file FILENAME] [-level (TRACE|DEBUG|INFO|WARN|ERROR|FATAL|OFF)]
