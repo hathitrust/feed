@@ -104,3 +104,8 @@ jira:
   password: PASSWORD
   from: aelkiss@umich.edu
   to: feedback@issues.hathitrust.org
+
+ctools:
+  username: USERNAME
+  password: PASSWORD
+  url: https://DOMAIN/dav/SITE
