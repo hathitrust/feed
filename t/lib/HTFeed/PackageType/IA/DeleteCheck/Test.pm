@@ -11,7 +11,7 @@ use Test::More;
 # Run DeleteCheck on undamaged package
 sub Delete_Check : Test(2){
 	
-	my $config = test_config('undamaged');
+	test_config('undamaged');
 
     my $self = shift;
 	my $stage = $self->{test_stage};
@@ -22,7 +22,7 @@ sub Delete_Check : Test(2){
 # Test error handling with specific files missing
 sub Missing : Test(2){
 
-	my $config = test_config('damaged');
+	test_config('damaged');
 
 	my $self = shift;
 	my $stage = $self->{test_stage};
@@ -50,7 +50,7 @@ sub Missing : Test(2){
 # test additional warnings
 sub Warnings : Test(1){
 
-	my $config = test_config('damaged');
+	test_config('damaged');
 
 	my $self = shift;
 	my $stage = $self->{test_stage};

@@ -9,7 +9,7 @@ use Test::More;
 
 sub SourceMETS : Test(1){
 
-	my $config = test_config('undamaged');
+    test_config('undamaged');
 
 	my $self = shift;
 	my $stage = $self->{test_stage};

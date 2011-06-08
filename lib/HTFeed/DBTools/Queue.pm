@@ -11,6 +11,8 @@ use Carp;
 use base qw(HTFeed::DBTools);
 use HTFeed::DBTools::Priority qw(reprioritize initial_priority);
 
+use Log::Log4perl qw(get_logger);
+
 our @EXPORT = qw(enqueue_volumes reset_volumes);
 
 # enqueue(\@volumes)

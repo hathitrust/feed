@@ -6,6 +6,7 @@ use warnings;
 use HTFeed::METS;
 use Log::Log4perl qw(get_logger);
 use XML::LibXML;
+use HTFeed::XMLNamespaces qw(:namespaces :schemas register_namespaces);
 use base qw(HTFeed::METS);
 
 
@@ -92,7 +93,6 @@ sub clean_failure{
 }
 
 # Basic structMap with no page labels.
-# TODO: factor out to base SourceMETS subclass
 sub _add_struct_map {
     my $self   = shift;
     my $mets   = $self->{mets};
@@ -132,6 +132,30 @@ sub _add_struct_map {
     }
     $mets->add_struct_map($struct_map);
 
+}
+
+sub _add_marc_from_file {
+    my $self = shift;
+    my $marc_path = shift;
+
+    # Validate MARC XML (if not valid, will still include and add warning)
+    my $xmlschema = XML::LibXML::Schema->new(location => SCHEMA_MARC);
+    my $parser = new XML::LibXML;
+    my $marcxml = $parser->parse_file($marc_path);
+    my $marc_xc = new XML::LibXML::XPathContext($marcxml);
+    register_namespaces($marc_xc);
+    $self->_remediate_marc($marc_xc);
+    eval { $xmlschema->validate( $marcxml ); };
+    get_logger()->warn("BadFile",file=>"marc.xml",detail => $@) if $@;
+    my $marc_valid = !defined $@;
+
+    my $dmdsec = new METS::MetadataSection( 'dmdSec', 'id' => $self->_get_subsec_id("DMD"));
+    $dmdsec->set_xml_node(
+        $marcxml->documentElement(),
+        mdtype => 'MARC',
+        label  => 'MARC record'
+    );
+    $self->{mets}->add_dmd_sec($dmdsec);
 }
 
 1;

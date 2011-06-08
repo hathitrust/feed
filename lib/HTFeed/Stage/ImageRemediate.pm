@@ -22,6 +22,7 @@ sub run {
 sub get_exiftool_fields {
     require Image::ExifTool;
 
+    my $self   = shift;
     my $file   = shift;
     my $fields = {};
 
@@ -39,7 +40,7 @@ sub get_exiftool_fields {
     return $fields;
 }
 
-=item remediate_image($oldfile,$newfile,$force_headers,$set_if_undefined_headers)
+=item $self->remediate_image($oldfile,$newfile,$force_headers,$set_if_undefined_headers)
 
     Prevalidates and remediates the image headers in $oldfile and writes the results as $newfile.
 
@@ -71,58 +72,37 @@ sub remediate_image {
     my $force_headers            = ( shift or {} );
     my $set_if_undefined_headers = shift;
 
-    my $newFields = $force_headers;
-    my $oldFields = get_exiftool_fields($infile);
+    $self->{newFields} = $force_headers;
+    $self->{oldFields} = $self->get_exiftool_fields($infile);
 
     get_logger()->trace("Remediating $infile to $outfile");
 
-    # Jpeg2000:ImageWidth -> XMP-tiff:ImageWidth
-    _copy_old_to_new( $oldFields->{'Jpeg2000:ImageWidth'},
-        $newFields, 'XMP-tiff:ImageWidth' );
-
-    # Jpeg2000:ImageHeight -> XMP-tiff:ImageHeight
-    _copy_old_to_new( $oldFields->{'Jpeg2000:ImageHeight'},
-        $newFields, 'XMP-tiff:ImageHeight' );
-
-    # Jpeg2000:Compression -> XMP-tiff:Compression
-    _copy_old_to_new( $oldFields->{'Jpeg2000:Compression'},
-        $newFields, 'XMP-tiff:Compression' );
-
-    # IFD0:Make -> XMP-tiff:Make
-    _copy_old_to_new( $oldFields->{'IFD0:Make'}, $newFields, 
-        'XMP-tiff:Make' );
-
-    # IFD0:Model -> XMP-tiff:Model
-    _copy_old_to_new( $oldFields->{'IFD0:Model'}, $newFields,
-        'XMP-tiff:Model' );
+    foreach my $field (qw(ImageWidth ImageHeight Compression)) {
+        $self->copy_old_to_new( "Jpeg2000:$field",  "XMP-tiff:$field" );
+    }
+    foreach my $field (qw(Make Model)) {
+        $self->copy_old_to_new( "IFD0:$field",  "XMP-tiff:$field" );
+    }
 
     # For IA, Colorspace should always be sRGB. Only set these fields if they
     # aren't already defined.
-    if ( $oldFields->{'Jpeg2000:Colorspace'} eq 'sRGB' ) {
-        _set_new_if_undefined( $oldFields, $newFields, 'XMP-tiff:BitsPerSample',
-            '8, 8, 8' );
-        _set_new_if_undefined( $oldFields, $newFields,
-            'XMP-tiff:PhotometricInterpretation', 'RGB' );
-        _set_new_if_undefined( $oldFields, $newFields,
-            'XMP-tiff:SamplesPerPixel', '3' );
+    if ( $self->{oldFields}->{'Jpeg2000:Colorspace'} eq 'sRGB' ) {
+        $self->set_new_if_undefined( 'XMP-tiff:BitsPerSample', '8, 8, 8' );
+        $self->set_new_if_undefined( 'XMP-tiff:PhotometricInterpretation', 'RGB' );
+        $self->set_new_if_undefined( 'XMP-tiff:SamplesPerPixel', '3' );
     }
 
     # Other package types may have grayscale JP2s that need remediation.
     # Final image validation should kick these out if grayscale is not
     # expected.
-    if ( $oldFields->{'Jpeg2000:Colorspace'} eq 'Grayscale' ) {
-        _set_new_if_undefined( $oldFields, $newFields, 'XMP-tiff:BitsPerSample',
-            '8' );
-        _set_new_if_undefined( $oldFields, $newFields,
-            'XMP-tiff:PhotometricInterpretation',
-            'BlackIsZero' );
-        _set_new_if_undefined( $oldFields, $newFields,
-            'XMP-tiff:SamplesPerPixel', '1' );
+    if ( $self->{oldFields}->{'Jpeg2000:Colorspace'} eq 'Grayscale' ) {
+        $self->set_new_if_undefined( 'XMP-tiff:BitsPerSample', '8' );
+        $self->set_new_if_undefined( 'XMP-tiff:PhotometricInterpretation', 'BlackIsZero' );
+        $self->set_new_if_undefined( 'XMP-tiff:SamplesPerPixel', '1' );
     }
 
     # Orientation should always be normal
-    _set_new_if_undefined( $oldFields, $newFields, 'XMP-tiff:Orientation',
-        'Horizontal (normal)' );
+    $self->set_new_if_undefined( 'XMP-tiff:Orientation', 'Horizontal (normal)' );
 
     # Force dc:source even if it was already defined
     # $newFields->{'XMP-dc:Source'}   = "$ark_id/$image_file";
@@ -132,14 +112,14 @@ sub remediate_image {
 
     # try to get resolution from JPEG2000 headers
     if ( !$force_headers->{'Resolution'} ) {
-        my $xres = $oldFields->{'Jpeg2000:CaptureXResolution'};
-        my $yres = $oldFields->{'Jpeg2000:CaptureYResolution'};
+        my $xres = $self->{oldFields}->{'Jpeg2000:CaptureXResolution'};
+        my $yres = $self->{oldFields}->{'Jpeg2000:CaptureYResolution'};
         get_logger()->warn("Non-square pixels??! XRes $xres YRes $yres")
           if ( ( $xres or $yres ) and $xres != $yres );
 
         if ($xres) {
-            my $xresunit = $oldFields->{'Jpeg2000:CaptureXResolutionUnit'};
-            my $yresunit = $oldFields->{'Jpeg2000:CaptureXResolutionUnit'};
+            my $xresunit = $self->{oldFields}->{'Jpeg2000:CaptureXResolutionUnit'};
+            my $yresunit = $self->{oldFields}->{'Jpeg2000:CaptureXResolutionUnit'};
 
             get_logger()->warn("Resolution unit awry")
               if ( not $xresunit or not $yresunit or $xresunit ne $yresunit );
@@ -169,31 +149,28 @@ sub remediate_image {
       )
     {
         if ($force_res) {
-            $newFields->{'XMP-tiff:XResolution'}    = $resolution;
-            $newFields->{'XMP-tiff:YResolution'}    = $resolution;
-            $newFields->{'XMP-tiff:ResolutionUnit'} = 'inches';
+            $self->{newFields}->{'XMP-tiff:XResolution'}    = $resolution;
+            $self->{newFields}->{'XMP-tiff:YResolution'}    = $resolution;
+            $self->{newFields}->{'XMP-tiff:ResolutionUnit'} = 'inches';
         }
         else {
-            _set_new_if_undefined( $oldFields, $newFields,
-                'XMP-tiff:XResolution', $resolution );
-            _set_new_if_undefined( $oldFields, $newFields,
-                'XMP-tiff:YResolution', $resolution );
-            _set_new_if_undefined( $oldFields, $newFields,
-                'XMP-tiff:ResolutionUnit', 'inches' );
+            $self->set_new_if_undefined( 'XMP-tiff:XResolution', $resolution );
+            $self->set_new_if_undefined( 'XMP-tiff:YResolution', $resolution );
+            $self->set_new_if_undefined( 'XMP-tiff:ResolutionUnit', 'inches' );
 
         }
 
         # Overwrite IFD0:XResolution/IFD0:YResolution if they are present
-        if ( defined $oldFields->{'IFD0:XResolution'} ) {
-            $newFields->{'IFD0:XResolution'} = $resolution;
-            $newFields->{'IFD0:YResolution'} = $resolution;
+        if ( defined $self->{oldFields}->{'IFD0:XResolution'} ) {
+            $self->{newFields}->{'IFD0:XResolution'} = $resolution;
+            $self->{newFields}->{'IFD0:YResolution'} = $resolution;
         }
     }
 
     # Add other provided new headers if requested and the file does not
     # already have a value set for the given field
     while( my ( $field, $val ) = each (%$set_if_undefined_headers) ) {
-        _set_new_if_undefined( $oldFields, $newFields, $field, $val );
+        $self->set_new_if_undefined( $field, $val );
     }
 
     # first copy old values, since kdu_munge will eat the XMP if it is
@@ -206,7 +183,7 @@ sub remediate_image {
         }
     }
     # then copy new fields
-    while ( my ( $field, $val ) = each(%$newFields) ) {
+    while ( my ( $field, $val ) = each(%{$self->{newFields}}) ) {
         my ( $success, $errStr ) = $exifTool->SetNewValue( $field, $val );
         if ( defined $errStr ) {
             croak("Error setting new tag $field => $val: $errStr\n");
@@ -215,45 +192,64 @@ sub remediate_image {
 
 
     my $kdu_munge = get_config('kdu_munge');
-    system("$kdu_munge -i $infile -o $outfile 2>&1 > /dev/null");
+    system("$kdu_munge -i $infile -o $outfile 2>&1 > /dev/null") and
+        $self->set_error("OperationFailed",file=>$outfile,operation=>"kdu_munge");
+
+    $self->update_tags($exifTool,$outfile);
+
+}
+
+=item $self->update_tags($exifTool,$outfile)
+
+Updates the tags in outfile with the parameters set in the given exiftool
+
+=cut
+
+sub update_tags {
+    my $self = shift;
+    my $exifTool = shift;
+    my $outfile = shift;
 
     if ( !$exifTool->WriteInfo($outfile) ) {
-        die(    "Couldn't update JPEG2000 tags for $outfile: "
-              . $exifTool->GetValue('Error')
-              . "\n" );
+        $self->set_error("OperationFailed",
+            operation=>"exiftool write",
+            file=>"$outfile",
+            detail => $exifTool->GetValue('Error'));
     }
-
 }
 
-=item _copy_old_to_new($oldValue, $newFields, $newFieldName)
+=item $self->copy_old_to_new($oldFieldName, $newFieldName)
 
 Copies old field value to the new field value, but only if the old value is defined
 and the new one isn't.
 
 =cut 
 
-sub _copy_old_to_new($$$) {
-    my ( $oldValue, $newFields, $newFieldName ) = @_;
+sub copy_old_to_new($$$) {
+    my $self = shift;
+    my ( $oldFieldName, $newFieldName ) = @_;
+    my $oldValue = $self->{oldFields}->{$oldFieldName};
 
-    if ( defined $oldValue
-        and not defined $newFields->{$newFieldName} )
+    if ( defined $self->{oldFields}->{$oldFieldName}
+        and not defined $self->{newFields}->{$newFieldName} )
     {
-        $newFields->{$newFieldName} = $oldValue;
+        $self->{newFields}->{$newFieldName} = $oldValue;
     }
 }
 
-=item _set_new_if_undefined($oldFields,$newFields,$newFieldName,$newFieldVal)
+=item $self->set_new_if_undefined($newFieldName,$newFieldVal)
 
 Copies old field value to the new field value, but only if the old value is defined
 and the new one isn't.
 
 =cut 
 
-sub _set_new_if_undefined($$$$) {
-    my ( $oldFields, $newFields, $newFieldName, $newFieldVal ) = @_;
+sub set_new_if_undefined($$$) {
+    my $self = shift;
+    my ( $newFieldName, $newFieldVal ) = @_;
 
-    if ( not defined $oldFields->{$newFieldName} ) {
-        $newFields->{$newFieldName} = $newFieldVal;
+    if ( not defined $self->{oldFields}->{$newFieldName} ) {
+        $self->{newFields}->{$newFieldName} = $newFieldVal;
     }
 }
 

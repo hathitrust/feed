@@ -42,34 +42,17 @@ sub _add_dmdsecs {
     my $marc_path = "$download_directory/${ia_id}_marc.xml";
     my $metaxml_path = "$download_directory/${ia_id}_meta.xml";
 
-    # Validate MARC XML (if not valid, will still include and add warning)
-    my $xmlschema = XML::LibXML::Schema->new(location => SCHEMA_MARC);
-    my $parser = new XML::LibXML;
-    my $marcxml = $parser->parse_file($marc_path);
-    my $marc_xc = new XML::LibXML::XPathContext($marcxml);
-    register_namespaces($marc_xc);
-    $self->_remediate_marc($marc_xc);
-    eval { $xmlschema->validate( $marcxml ); };
-    get_logger()->warn("BadFile",file=>"marc.xml",detail => $@) if $@;
-    my $marc_valid = !defined $@;
+    $self->_add_marc_from_file($marc_path);
 
     # Verify arkid in meta.xml matches given arkid
+    my $parser = new XML::LibXML;
     my $metaxml = $parser->parse_file("$download_directory/${ia_id}_meta.xml");
     my $meta_arkid = $metaxml->findvalue("//identifier-ark");
     if($meta_arkid ne $volume->get_objid()) {
         $self->_set_error("NotEqualValues",field=>"identifier-ark",expected=>$objid,actual=>$meta_arkid);
     }
 
-
     my $dmdsec = new METS::MetadataSection( 'dmdSec', 'id' => $self->_get_subsec_id("DMD"));
-    $dmdsec->set_xml_node(
-        $marcxml->documentElement(),
-        mdtype => 'MARC',
-        label  => 'IA MARC record'
-    );
-    $self->{mets}->add_dmd_sec($dmdsec);
-
-    $dmdsec = new METS::MetadataSection( 'dmdSec', 'id' => $self->_get_subsec_id("DMD"));
     $dmdsec->set_xml_file(
         $metaxml_path,
         mdtype => 'OTHER',

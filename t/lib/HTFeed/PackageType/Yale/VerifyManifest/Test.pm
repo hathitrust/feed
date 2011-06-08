@@ -11,7 +11,7 @@ use Test::More;
 # Test stage with undamaged packaeg
 sub VerifyManifest : Test(2){
 
-	my $config = test_config('undamaged');
+	test_config('undamaged');
 
     my $self = shift;
 	my $stage = $self->{test_stage};
@@ -23,7 +23,7 @@ sub VerifyManifest : Test(2){
 sub missing : Test(2){
 
 	#set config to damaged package
-	my $config = test_config('damaged');
+	test_config('damaged');
 
 	my $self = shift;
 	my $stage = $self->{test_stage};

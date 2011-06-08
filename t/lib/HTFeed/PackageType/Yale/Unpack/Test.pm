@@ -10,7 +10,7 @@ use Test::More;
 
 sub config : Test(setup){
 
-	my $config = test_config('undamaged');
+	test_config('undamaged');
 
     # cleanup staging area prior to unpacking
     my $self = shift;

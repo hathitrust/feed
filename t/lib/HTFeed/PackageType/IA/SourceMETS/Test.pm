@@ -12,7 +12,7 @@ use Test::More;
 # Test SourceMETS with undamaged package
 sub SourceMETS : Test(1){
 
-	my $config = test_config('undamaged');
+	test_config('undamaged');
 
 	my $self = shift;
 	my $stage = $self->{test_stage};
@@ -22,7 +22,7 @@ sub SourceMETS : Test(1){
 # Test for errors with damaged package
 sub Errors : Test(1){
 
-	my $config = test_config('damaged');
+	test_config('damaged');
 
     my $self = shift;
     my $stage = $self->{test_stage};

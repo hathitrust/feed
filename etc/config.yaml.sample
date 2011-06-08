@@ -18,6 +18,10 @@ xerces: "$feed_home/bin/validateCache /ram/schema.cache"
 kdu_munge: /l/local/bin/kdu_munge
 kdu_compress: /l/local/bin/kdu_compress
 
+# path to kdu_compress from kakadu 6.4 - the version is important because
+# different versions of kakadu interpret compression settings differently.
+kdu_compress: kdu_compress
+
 jhove: /l/local/bin/jhove
 jhoveconf: /l/local/jhove/conf/jhove.conf
 
@@ -138,3 +142,8 @@ jira:
   password: PASSWORD
   from: FROM_EMAIL
   to: TO_EMAIL
+
+ctools:
+  username: USERNAME
+  password: PASSWORD
+  url: https://DOMAIN/dav/SITE

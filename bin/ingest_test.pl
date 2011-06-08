@@ -7,6 +7,7 @@ use FindBin;
 use lib "$FindBin::Bin/../lib";
 
 use HTFeed::Log {root_logger => 'INFO, screen'};
+use HTFeed::Version;
 use HTFeed::Job;
 use HTFeed::Run;
 

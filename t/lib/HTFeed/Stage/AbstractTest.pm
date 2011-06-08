@@ -41,7 +41,7 @@ sub setup : Test(setup){
 }
 
 # eliminate junk left behind
-sub teardown : Test(teardown){
+sub stage_abstract_teardown : Test(teardown){
     HTFeed::StagingSetup::clear_stage;
 }
 

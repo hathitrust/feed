@@ -479,7 +479,7 @@ sub _add_struct_map {
                 # try to find page number & page tags for this page
                 if ( not defined $pagedata ) {
                     $pagedata = $volume->get_page_data($file);
-                    @pagedata = %$pagedata;
+                    @pagedata = %$pagedata if defined $pagedata;
                 }
                 else {
                     my $other_pagedata = $volume->get_page_data($file);

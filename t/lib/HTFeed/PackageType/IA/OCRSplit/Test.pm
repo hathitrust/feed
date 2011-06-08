@@ -12,7 +12,7 @@ use Test::More;
 # Test OCRSplit stage with undamaged package
 sub OCRSplit : Test(2){
 
-	my $config = test_config('undamaged');
+	test_config('undamaged');
 
     my $self = shift;
 	my $stage = $self->{test_stage};	
@@ -24,7 +24,7 @@ sub OCRSplit : Test(2){
 sub Errors : Test(2){
 
 	#load damaged package
-	my $config = test_config('damaged');
+	test_config('damaged');
 
 	my $self = shift;
 	my $stage = $self->{test_stage};
@@ -51,7 +51,7 @@ sub Errors : Test(2){
 sub usemap : Test(1){
 
 	#load damaged package
-	my $config = test_config('damaged');
+	test_config('damaged');
 
     my $self = shift;
     my $stage = $self->{test_stage};
