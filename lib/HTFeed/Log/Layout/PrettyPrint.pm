@@ -36,10 +36,10 @@ sub render {
         $error_message = HTFeed::Log::error_code_to_string(shift @$message);
         my %message_fields = @$message;
     
-        my $error_array = HTFeed::Log::fields_hash_to_array(\%message_fields);
+#        my $error_array = HTFeed::Log::fields_hash_to_array(\%message_fields);
     
-        foreach (@$error_array){
-            $error_message .= "\t$_";
+        while(my ($key,$val) = each(%message_fields)) {
+            $error_message .= "\t$key=$val";
         }
     }
     # just print the message as is

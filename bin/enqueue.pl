@@ -16,6 +16,7 @@ my $force_reset = 0; # -R
 my $insert = 0; # -i
 my $verbose = 0; # -v
 my $quiet = 0; # -q
+my $state = 'ready'; # -s
 my $help = 0; # -help,-?
 
 my $dot_packagetype = undef; # -d
@@ -30,6 +31,7 @@ GetOptions(
     'i' => \$insert,
     'v' => \$verbose,
     'q' => \$quiet,
+    's' => \$state,
     'help|?' => \$help,
 
     'd=s' => \$dot_packagetype,    
@@ -103,10 +105,10 @@ else{
 # add volumes to queue
 my $results;
 if($reset or $force_reset){
-    $results = reset_volumes(\@volumes, $force_reset);
+    $results = reset_volumes(\@volumes, $state, $force_reset);
 }
 else{
-    $results = enqueue_volumes(\@volumes, $insert);
+    $results = enqueue_volumes(\@volumes, $state, $insert);
 }
 
 if ($verbose or !$quiet){

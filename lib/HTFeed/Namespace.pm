@@ -24,7 +24,7 @@ use base qw(HTFeed::FactoryLoader);
 sub new {
     my $class = shift;
     my $namespace_id = shift;
-    my $packagetype = shift;
+    my $packagetype = (shift or 'pkgtype');
     my $self = $class->SUPER::new($namespace_id);
     if(defined $packagetype) {
         my $allowed_packagetypes = ($self->get('packagetypes') or []);

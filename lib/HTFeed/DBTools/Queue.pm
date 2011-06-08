@@ -18,15 +18,16 @@ our @EXPORT = qw(enqueue_volumes reset_volumes);
 # add volumes to queue
 sub enqueue_volumes{
     my $volumes = shift;
+    my $status = (shift or "available");
     my $ignore = shift;
     
     my $dbh = HTFeed::DBTools::get_dbh();
     my $sth;
     my $blacklist_sth = $dbh->prepare("SELECT namespace, id FROM mdp_tracking.blacklist WHERE namespace = ? and id = ?");
     if($ignore){
-        $sth = $dbh->prepare(q(INSERT IGNORE INTO queue (pkg_type, namespace, id, priority) VALUES (?,?,?,?);));
+        $sth = $dbh->prepare(q(INSERT IGNORE INTO queue (pkg_type, namespace, id, priority, status) VALUES (?,?,?,?,?);));
     }else {
-        $sth = $dbh->prepare(q(INSERT INTO queue (pkg_type, namespace, id, priority) VALUES (?,?,?,?);));
+        $sth = $dbh->prepare(q(INSERT INTO queue (pkg_type, namespace, id, priority, status) VALUES (?,?,?,?,?);));
     }
     
     my @results;
@@ -43,7 +44,7 @@ sub enqueue_volumes{
                 return;
             }
 
-            push @results, $sth->execute($volume->get_packagetype(), $volume->get_namespace(), $volume->get_objid(), initial_priority($volume));
+            push @results, $sth->execute($volume->get_packagetype(), $volume->get_namespace(), $volume->get_objid(), initial_priority($volume), $status);
         } or print $@ and return \@results;
     }
 
@@ -56,22 +57,23 @@ sub enqueue_volumes{
 # reset(\@volumes, $force)
 # 
 # reset punted volumes, reset all volumes if $force
-sub reset_volumes{
+sub reset_volumes {
     my $volumes = shift;
+    my $status = (shift or "ready");
     my $force = shift;
     
     my $dbh = HTFeed::DBTools::get_dbh();
     my $sth;
     if($force){
-        $sth = $dbh->prepare(q(UPDATE queue SET node = NULL, status = 'ready', failure_count = 0 WHERE namespace = ? and id = ?;));
+        $sth = $dbh->prepare(q(UPDATE queue SET node = NULL, status = ?, failure_count = 0 WHERE namespace = ? and id = ?;));
     }
     else{
-        $sth = $dbh->prepare(q(UPDATE queue SET node = NULL, status = 'ready', failure_count = 0 WHERE status = 'punted' and namespace = ? and id = ?;));
+        $sth = $dbh->prepare(q(UPDATE queue SET node = NULL, status = ?, failure_count = 0 WHERE status = 'punted' and namespace = ? and id = ?;));
     }
     
     my @results;
     foreach my $volume (@{$volumes}){
-        push @results, $sth->execute($volume->get_namespace(), $volume->get_objid());
+        push @results, $sth->execute($status,$volume->get_namespace(), $volume->get_objid());
     }
     return \@results;
 }
