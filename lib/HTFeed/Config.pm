@@ -4,7 +4,7 @@ use warnings;
 use strict;
 use YAML::XS;
 use Carp;
-use FindBin;
+use File::Basename;
 
 use base qw(Exporter);
 our @EXPORT = qw(get_config);
@@ -21,7 +21,9 @@ sub init{
         $config_file = $ENV{HTFEED_CONFIG};
     }
     else{
-        $config_file = "$FindBin::Bin/../etc/config.yaml";
+        my $this_module = 'HTFeed/Config.pm';
+        my $path_to_this_module = dirname($INC{$this_module});
+        $config_file = "$path_to_this_module/../../etc/config.yaml";
     }
 
     # load config file
