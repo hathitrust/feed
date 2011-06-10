@@ -120,11 +120,11 @@ sub _init{
     return;
 }
 
-# change out file for file logger
-# if this isn't set and we use the file logger everything is logged to /dev/null
-# as per config.l4p
-#
-# set_logfile($filename)
+=item set_logfile
+set_logfile($filename)
+change out file for file logger
+if this isn't set and we use the file logger everything is logged to /dev/null as per config.l4p
+=cut
 sub set_logfile{
     my $file_name = shift;
     my $appender = Log::Log4perl::appender_by_name('file');
