@@ -114,7 +114,7 @@ __END__
 
 =head1 SYNOPSIS
 
-ingest_test.pl [ -i | --ignore_errors ] [ --no-clean ] packagetype namespace objid [ state ]\n
+ingest_test.pl [[ -i | --ignore_errors ] | [ -f | --fail]] [ --no-clean ] packagetype namespace objid [ state ]\n
 
 =cut
 
