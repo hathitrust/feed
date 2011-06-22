@@ -4,7 +4,6 @@ use warnings;
 use strict;
 use IO::Handle;
 use IO::File;
-use GnuPG::Interface;
 
 use base qw(HTFeed::Stage::Unpack);
 
