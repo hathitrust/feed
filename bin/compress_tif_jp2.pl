@@ -67,8 +67,10 @@ foreach my $infile (@ARGV) {
 
     # Migrate the DocumentName field to the XMP dc:source field, updating
     # the extension
-    $docname =~ s/\.tif$/\.jp2/;
-    $self->set_new_if_undefined("XMP-dc:source",$docname);
+    if(defined $docname) {
+        $docname =~ s/\.tif$/\.jp2/;
+        $self->set_new_if_undefined("XMP-dc:source",$docname);
+    }
 
     # Set the XMP-tiff:Compression header to JPEG 2000
     $self->set_new_if_undefined("XMP-tiff:Compression","JPEG 2000");
