@@ -162,6 +162,13 @@ sub _setdocumentname {
     my $self         = shift;
     my $documentname = shift;
 
+    if( not defined $documentname or $documentname eq '') {
+        $self->set_error(
+            "MissingField",
+            field => 'documentname'
+        );
+        return 0;
+    }
     # match
     if ( $self->{documentname} ) {
         if ( $self->{documentname} eq $documentname ) {
