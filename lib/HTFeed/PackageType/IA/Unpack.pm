@@ -45,6 +45,7 @@ sub run{
 sub clean_failure{
     my $self = shift;
     $self->{volume}->clean_download();
+    $self->{volume}->clean_preingest();
 }
 
 

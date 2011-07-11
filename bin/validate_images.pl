@@ -6,7 +6,7 @@ validate_images.pl validates all jhove-validatable files in a directory
 
 use FindBin;
 use lib "$FindBin::Bin/../lib";
-use HTFeed::Log {root_logger => 'TRACE, screen'};
+use HTFeed::Log {root_logger => 'INFO, screen'};
 use strict;
 use warnings;
 use HTFeed::TestVolume;

@@ -44,6 +44,7 @@ sub _extract_file {
 
     unless( -e $infile ) {
         $requester->set_error('MissingFile',file=>$infile);
+        return;
     }
 
     my $cmd = sprintf($command, $infile, $outdir, $otheroptions); 

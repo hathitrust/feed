@@ -104,3 +104,17 @@ jira:
   password: PASSWORD
   from: aelkiss@umich.edu
   to: feedback@issues.hathitrust.org
+
+# for grin_reports.pl
+ctools:
+  username: USERNAME
+  password: PASSWORD
+  url: https://DOMAIN/dav/SITE
+
+# for get_brittle_books.pl
+rejected_books:
+  local_user: USERNAME
+  scp_user: USERNAME
+  host: HOSTNAME
+  source_path_name: PATHNAME
+  destination_path: PATH
