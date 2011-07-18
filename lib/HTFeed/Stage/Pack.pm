@@ -20,9 +20,12 @@ sub run{
     my @files_to_zip = ();
 
     # Make a temporary staging directory
-    my $zip_stage = get_config('staging','zip');
+    my $zip_stage = get_config('staging'=>'zip');
+    my $zipfile_stage = get_config('staging'=>'zipfile');
     mkdir($zip_stage);
+    mkdir($zipfile_stage);
     mkdir("$zip_stage/$pt_objid");
+    mkdir("$zipfile_stage/$pt_objid");
 
     # don't compress jp2, tif, etc..
     my $uncompressed_extensions = join(":",@{ $volume->get_nspkg()->get('uncompressed_extensions') });
