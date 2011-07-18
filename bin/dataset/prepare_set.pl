@@ -12,9 +12,6 @@ use HTFeed::Version;
 
 HTFeed::StagingSetup::make_stage(1);
 
-print HTFeed::Version::get_feed_version_number;
-exit(1);
-
 my $get_partitions = 0;
 my ($start_date,$end_date);
 
