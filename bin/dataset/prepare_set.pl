@@ -18,8 +18,8 @@ exit(1);
 my $get_partitions = 0;
 my ($start_date,$end_date);
 
-#my @ns = ('uc2','nnc2');
-my @ns = ('mdp');
+my @ns = ('uc2','nnc2');
+#my @ns = ('mdp');
 
 # generate base query for finding pd volumes in rights_current
 my $rights_current_base_q = 'mdp.rights_current WHERE ';
@@ -90,7 +90,7 @@ if ($get_partitions){
 ####
 
 my $kids = 0;
-my $max_kids = 0;
+my $max_kids = 16;
 
 # get namespace,id for selected date range
 my $rights_current_date_range_q = "SELECT namespace,id FROM $rights_current_base_q";
