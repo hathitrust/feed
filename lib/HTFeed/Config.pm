@@ -5,6 +5,8 @@ use strict;
 use YAML::XS;
 use Carp;
 use File::Basename;
+use File::Spec;
+use Cwd qw(realpath);
 
 use base qw(Exporter);
 our @EXPORT = qw(get_config);
@@ -15,6 +17,8 @@ my $config;
 init();
 
 sub init{
+    my $feed_app_root;
+    
     # get config file
     my $config_file;
     if (defined $ENV{HTFEED_CONFIG}){
@@ -23,7 +27,8 @@ sub init{
     else{
         my $this_module = 'HTFeed/Config.pm';
         my $path_to_this_module = dirname($INC{$this_module});
-        $config_file = "$path_to_this_module/../../etc/config.yaml";
+        $feed_app_root = realpath "$path_to_this_module/../..";
+        $config_file = "$feed_app_root/etc/config.yaml";
     }
 
     # load config file
@@ -37,6 +42,11 @@ sub init{
     };
     if ($@){ die ("loading $config_file failed: $@"); }
 
+    # add feed_app_root to config
+    unless (defined $config->{feed_app_root}){
+        $config->{feed_app_root} = $feed_app_root;
+    }
+    
     ## TODO: check file validity, can't do this until we establish what the file will look like
     ## TODO: test script to dig out all the config vars and check against config file
 }

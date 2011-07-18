@@ -114,6 +114,8 @@ sub ingest_log_success {
 # $fail indicates to incriment failure_count
 # job will be released if $new_status is a release state
 sub update_queue {
+    ## TODO: use release state rather than recalculating it (once this is assured to be safe)
+
     my ($ns, $objid, $new_status, $release, $fail) = @_;
     
     my $syntax = qq(UPDATE queue SET status = '$new_status');

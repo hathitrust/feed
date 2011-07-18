@@ -11,12 +11,23 @@ use HTFeed::PackageType;
 use HTFeed::Namespace;
 use Exporter;
 use base qw(Exporter);
-use Data::Dumper;
 
 our @EXPORT_OK = qw(namespace_ids pkgtype_ids);
+our @EXPORT = qw(namespace_ids pkgtype_ids get_feed_version_number);
 
-use Readonly;
-Readonly my $VERSION => '0.1';
+my $VERSION = 'unknown';
+
+{
+    my $version_file = get_config('feed_app_root') . '/bin/rdist.timestamp';
+    if (-e $version_file){
+        open(my $fh, '<', $version_file);
+        my $version_string = <$fh>;
+        close $fh;
+        chomp $version_string;
+        $version_string =~ /feed_v(\d+\.\d+\.\d+)/;
+        $VERSION = $1;
+    }
+}
 
 sub import{
     my ($short, $long);
@@ -54,7 +65,6 @@ sub long_version{
 
 sub namespace_ids {
     return map {${$_ . "::identifier"}} (sort(find_subclasses("HTFeed::Namespace")));
-
 }
 
 sub pkgtype_ids {
@@ -68,6 +78,15 @@ sub id_desc_info {
     return "$class - $key - $desc";
 }
 
+sub nspkg {
+    #print join("\n",map {id_desc_info($_)} ( sort( find_subclasses("HTFeed::Namespace") )));
+    
+    return map {$_ => {id_desc_info($_)}} HTFeed::Version::find_subclasses("HTFeed::Namespace");
+}
+
+sub get_feed_version_number{
+    return $VERSION;
+}
 
 1;
 
