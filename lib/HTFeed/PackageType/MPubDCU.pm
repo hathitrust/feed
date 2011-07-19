@@ -46,13 +46,15 @@ our $config = {
 
     # The file containing the checksums for each data file
     checksum_file => qr/^checksum.md5$/,
+	source_mets_file => qr/^UOM_\w+\.xml$/,
 
     # What stage to run given the current state.
     stage_map => {
         ready		=> 'HTFeed::PackageType::MPubDCU::Fetch',
         fetched		=> 'HTFeed::VolumeValidator',
 		validated	=> 'HTFeed::Stage::Pack',
-        packed		=> 'HTFeed::Stage::Handle',
+		packed		=> 'HTFeed::METS',
+        metsed		=> 'HTFeed::Stage::Handle',
         handled		=> 'HTFeed::Stage::Collate',
 	},
 
@@ -65,9 +67,10 @@ our $config = {
 	'package_validation',
 	'zip_compression',
 	'zip_md5_create',
-#	'ht_mets_creation',
+	'ht_mets_creation',
 	'ingestion',
     ],
+
 
 };
 
