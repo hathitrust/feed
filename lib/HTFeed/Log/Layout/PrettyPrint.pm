@@ -4,6 +4,7 @@ use strict;
 use warnings;
 use Log::Log4perl;
 use Log::Log4perl::Level;
+use Data::Dumper;
 
 # A Log::Log4perl::Layout
 # requires log4perl.appender.app_name.warp_message = 0
@@ -43,6 +44,10 @@ sub render {
             } 
             if($val eq '') {
                 $val = "(empty)";
+            }
+            # handle fields with data
+            if (ref($val)){
+                $val = Dumper($val);
             }
             $error_message .= "\t$key: $val";
         }
