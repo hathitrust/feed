@@ -183,7 +183,8 @@ sub _get_overrides {
 
     my $packagetype_id = $self->{'packagetype'}->get_identifier();
 
-    my $ns_override = ${"${class}::$key"};
+    my $ns_config = ${"${class}::config"};
+    my $ns_override = $ns_config->{$key};
     _copyhash($value,$ns_override,$subkey);
 
     my $pkgtype_override = $self->{'packagetype'}->get($key);
