@@ -13,7 +13,7 @@ sub run {
 	my $packagetype = $volume->get_packagetype();
 	my $ns = $volume->get_namespace();
 	my $fetch_dir = get_config('staging'=>'fetch');
-	my $staging_dir = get_config('staging' => 'download');
+	my $staging_dir = get_config('staging' => 'ingest');
 	my $source = "$fetch_dir/$packagetype/forHT/$objid";
 
 	if(! -e $staging_dir) {
@@ -25,6 +25,10 @@ sub run {
 
 	$self->_set_done();
 	return $self->succeeded();
+}
+
+sub stage_info{
+	return {success_state => 'fetched', failure_state => 'punted'};
 }
 
 1;
