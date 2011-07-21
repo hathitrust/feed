@@ -5,9 +5,9 @@ use Readonly;
 use Exporter;
 use base qw(Exporter);
 
-our @EXPORT_OK   = qw(register_namespaces NS_METS NS_PREMIS NS_MARC NS_MIX NS_JHOVE NS_XLINK NS_DC NS_XSI SCHEMA_PREMIS SCHEMA_MARC );
+our @EXPORT_OK   = qw(register_namespaces NS_METS NS_PREMIS1 NS_PREMIS NS_MARC NS_MIX NS_JHOVE NS_XLINK NS_DC NS_XSI SCHEMA_PREMIS SCHEMA_MARC );
 our %EXPORT_TAGS = ( 'namespaces' =>
-      [qw(NS_METS NS_PREMIS NS_MARC NS_MIX NS_JHOVE NS_XLINK NS_DC NS_XSI)],
+      [qw(NS_METS NS_PREMIS NS_PREMIS1 NS_MARC NS_MIX NS_JHOVE NS_XLINK NS_DC NS_XSI)],
       'schemas' => 
       [qw(SCHEMA_PREMIS SCHEMA_MARC)]
   );
