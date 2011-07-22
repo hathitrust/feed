@@ -39,15 +39,15 @@ sub render {
         while(@$message) {
             my $key = shift (@$message);
             my $val = shift (@$message);
+            # handle fields with data
+            if (ref($val)){
+                $val = Dumper($val);
+            }
             if(not defined $val) {
                 $val = '(null)';
             } 
             if($val eq '') {
                 $val = "(empty)";
-            }
-            # handle fields with data
-            if (ref($val)){
-                $val = Dumper($val);
             }
             $error_message .= "\t$key: $val";
         }
