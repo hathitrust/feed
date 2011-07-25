@@ -115,7 +115,8 @@ sub _add_dmdsecs {
     $dmdsec->set_data(
         $volume->get_marc_xml(),    # will throw an exception if no MARC found
         mdtype => 'MARC',
-        label  => 'Physical volume MARC record'
+        label  => 'Physical volume MARC record',
+        mimetype => 'text/xml'
     );
     $mets->add_dmd_sec($dmdsec);
 
@@ -441,8 +442,6 @@ sub _add_filesecs {
     $self->_add_zip_fg();
     $self->_add_srcmets_fg();
     $self->_add_content_fgs();
-
-    # MIU: Extra stuff for MIU: archival XML, objid XML?
 
 }
 

@@ -22,7 +22,7 @@ sub add_volume{
         unless (-e $volume->get_repository_zip_path() and -e $volume->get_repository_mets_path());
 
     # extract all .txt
-    unzip_file(_make_self(),$volume->get_repository_zip_path(),$volume->get_staging_directory(),'*.txt');
+    unzip_file(_make_self($volume),$volume->get_repository_zip_path(),$volume->get_staging_directory(),'*.txt');
         
     # make sure list of files extracted matches list of files expected
     my $expected = $volume->get_file_groups()->{ocr}->{files};
@@ -41,7 +41,7 @@ sub add_volume{
     }
     
     # missing files is a fatal error
-    die join (q(,), @missing) . ' files missing' if ($#missing > -1);
+    die join (q(,), @missing) . " files missing from $htid" if ($#missing > -1);
 
     # delete any .txt files that aren't ocr
     foreach my $extra_file (@extra){
@@ -66,12 +66,28 @@ sub add_volume{
 
 # don't instantiate externally, this is just to pass around to make $self->set_error() work
 sub _make_self{
-    my $self = bless {failed => 0}, __PACKAGE__;
+    my $volume = shift;
+    my $self = bless {volume => $volume}, __PACKAGE__;
     return $self;
 }
 
+# only used by unzip
 sub set_error{
-    HTFeed::Stage::set_error(@_);
+    my $self  = shift;
+    my $error = shift;
+
+   # # log error w/ l4p
+   # get_logger()->error(
+   #     $error,
+   #     namespace => $self->{volume}->get_namespace(),
+   #     objid     => $self->{volume}->get_objid(),
+   #     stage     => ref($self),
+   #     @_
+   # );
+    
+    my $id = $self->{volume}->get_identifier();
+    
+    die("$error unzipping $id");
 }
 
 #=item remove_volume
