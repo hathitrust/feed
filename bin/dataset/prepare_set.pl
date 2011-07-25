@@ -6,6 +6,7 @@ use lib "$FindBin::Bin/../../lib";
 use HTFeed::DBTools qw(get_dbh);
 use HTFeed::Dataset;
 use HTFeed::Volume;
+use HTFeed::Config;
 
 use HTFeed::StagingSetup;
 use HTFeed::Version;
@@ -99,7 +100,7 @@ if ($get_partitions){
 HTFeed::StagingSetup::make_stage(1);
 
 my $kids = 0;
-my $max_kids = 0;
+my $max_kids = get_config('dataset'=>'threads');
 
 # get namespace,id for selected date range
 my $rights_current_date_range_q = "SELECT namespace,id FROM $rights_current_base_q";
