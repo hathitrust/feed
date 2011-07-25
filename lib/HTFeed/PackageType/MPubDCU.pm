@@ -12,7 +12,7 @@ our $identifier = 'mpub';
 our $config = {
     %{$HTFeed::PackageType::config},
     description => 'Mpublishing/DCU digitized material',
-    volume_module => 'HTFeed::Volume',
+    volume_module => 'HTFeed::PackageType::MPubDCU::Volume',
     
     # Regular expression that distinguishes valid files in the file package
     valid_file_pattern => qr/^( 
@@ -46,13 +46,15 @@ our $config = {
 
     # The file containing the checksums for each data file
     checksum_file => qr/^checksum.md5$/,
+	source_mets_file => qr/^UOM_\w+\.xml$/,
 
     # What stage to run given the current state.
     stage_map => {
         ready		=> 'HTFeed::PackageType::MPubDCU::Fetch',
-        fetched		=> 'HTFeed::VolumeValidator',
+        fetched		=> 'HTFeed::PackageType::MPubDCU::VolumeValidator',
 		validated	=> 'HTFeed::Stage::Pack',
-        packed		=> 'HTFeed::Stage::Handle',
+		packed		=> 'HTFeed::PackageType::MPubDCU::METS',
+        metsed		=> 'HTFeed::Stage::Handle',
         handled		=> 'HTFeed::Stage::Collate',
 	},
 
@@ -65,9 +67,9 @@ our $config = {
 	'package_validation',
 	'zip_compression',
 	'zip_md5_create',
-#	'ht_mets_creation',
 	'ingestion',
     ],
+
 
 };
 

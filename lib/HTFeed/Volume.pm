@@ -927,6 +927,30 @@ sub ingested{
     return;
 }
 
+=item set_error
+For compatibility with HTFeed::Stage - logs an error 
+with the namespace and object ID set, and croaks if
+'stop_on_error' is set.
+=cut
+
+sub set_error {
+    my $self  = shift;
+    my $error = shift;
+
+    # log error w/ l4p
+    my $logger = get_logger( ref($self) );
+    $logger->error(
+        $error,
+        namespace => $self->get_namespace(),
+        objid     => $self->get_objid(),
+        @_
+    );
+
+    if ( get_config('stop_on_error') ) {
+        croak("STAGE_ERROR");
+    }
+}
+
 1;
 
 __END__

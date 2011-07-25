@@ -1,11 +1,13 @@
 #!/usr/bin/perl
 
-use FindBin;
-use lib "$FindBin::Bin/../lib";
 use strict;
 use warnings;
-use HTFeed::Volume;
+
+use FindBin;
+use lib "$FindBin::Bin/../lib";
+
 use HTFeed::Log {root_logger => 'TRACE, screen'};
+use HTFeed::Volume;
 use HTFeed::Config qw(set_config);
 
 use Getopt::Long;
