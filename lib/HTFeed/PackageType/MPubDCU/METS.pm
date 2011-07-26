@@ -42,9 +42,7 @@ sub _add_premis {
     my $self = shift;
     my $volume = $self->{volume};
     my $nspkg = $volume->get_nspkg();
-    my $xpc = $volume->get_repository_mets_xpc();
     $self->{parser} = new XML::LibXML;
-    return unless defined $xpc;
 
     # preservationLevel
 
@@ -66,23 +64,26 @@ EOT
     $self->{premis_node} = new XML::LibXML::DocumentFragment();
 
     # old PREMIS events
-    foreach my $event ($xpc->findnodes('//premis1:event')) {
-        my $PREMIS_id = $xpc->findvalue('.//premis1:eventIdentifierValue',$event);
-        my $PREMIS_type = $xpc->findvalue('.//premis1:eventType',$event);
-        my $PREMIS_date = $xpc->findvalue('.//premis1:eventDateTime',$event);
+    my $xpc = $volume->get_repository_mets_xpc();
+    if(defined $xpc) {
+        foreach my $event ($xpc->findnodes('//premis1:event')) {
+            my $PREMIS_id = $xpc->findvalue('.//premis1:eventIdentifierValue',$event);
+            my $PREMIS_type = $xpc->findvalue('.//premis1:eventType',$event);
+            my $PREMIS_date = $xpc->findvalue('.//premis1:eventDateTime',$event);
 
-        $self->{old_events}{$PREMIS_type}{$PREMIS_date} = $event;
+            $self->{old_events}{$PREMIS_type}{$PREMIS_date} = $event;
 
-	# canonicalize to ensure namespaces handled correctly
-	$self->{premis_node}->appendChild($event);
-        my ($eventIdPrefix,$eventCount) = $PREMIS_id =~ /^(\D+)(\d+)$/;
-        if(defined $eventCount) {
-            if(not defined $self->{event_type_counters}{$eventIdPrefix}
-                    or $self->{event_type_counters}{$eventIdPrefix} < $eventCount) {
-                $self->{event_type_counters}{$eventIdPrefix} = $eventCount;
+            # canonicalize to ensure namespaces handled correctly
+            $self->{premis_node}->appendChild($event);
+            my ($eventIdPrefix,$eventCount) = $PREMIS_id =~ /^(\D+)(\d+)$/;
+            if(defined $eventCount) {
+                if(not defined $self->{event_type_counters}{$eventIdPrefix}
+                        or $self->{event_type_counters}{$eventIdPrefix} < $eventCount) {
+                    $self->{event_type_counters}{$eventIdPrefix} = $eventCount;
+                }
+            } else {
+                $self->set_error("BadField",field => "premis1:eventIdentifierValue",actual=>$PREMIS_id);
             }
-        } else {
-            $self->set_error("BadField",field => "premis1:eventIdentifierValue",actual=>$PREMIS_id);
         }
     }
 
@@ -173,34 +174,6 @@ sub _get_event_time {
     my ($eventid, $date, $outcome_node) = $self->{volume}->get_event_info($event_id);
 
     return $date;
-
-}
-
-# Override parent class: don't add source METS; add content filegroups in specific order
-sub _add_filesecs {
-    my $self = shift;
-
-    $self->_add_zip_fg();
-    my $mets   = $self->{mets};
-    my $volume = $self->{volume};
-
-    # then add the actual content files
-    my $filegroups = $volume->get_file_groups();
-    $self->{filegroups} = {};
-
-    foreach my $filegroup_name (qw(image ocr pdf)) {
-        my $filegroup = $filegroups->{$filegroup_name};
-        my $mets_filegroup = new METS::FileGroup(
-            id  => $self->_get_subsec_id("FG"),
-            use => $filegroup->get_use()
-        );
-        $mets_filegroup->add_files( $filegroup->get_filenames(),
-            prefix => $filegroup->get_prefix(),
-            path => $volume->get_staging_directory() );
-
-        $self->{filegroups}{$filegroup_name} = $mets_filegroup;
-        $mets->add_filegroup($mets_filegroup);
-    }
 
 }
 

@@ -45,7 +45,7 @@ our $config = {
     },
 
     # The file containing the checksums for each data file
-    checksum_file => qr/^checksum\.md5$/,
+    checksum_file => "checksum.md5",
 
     # What stage to run given the current state.
     stage_map => {
