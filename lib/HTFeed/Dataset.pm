@@ -8,7 +8,7 @@ use HTFeed::Config;
 use HTFeed::Stage::Unpack qw(unzip_file);
 
 use File::Copy;
-use File::Pairtree;
+use File::Pairtree qw(id2ppath s2ppchars);
 use File::Path qw(make_path);
 
 =item add_volume

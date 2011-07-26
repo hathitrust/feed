@@ -7,7 +7,7 @@ use base qw(HTFeed::Stage);
 use HTFeed::Config qw(get_config);
 use HTFeed::DBTools;
 use File::Copy;
-use File::Pairtree;
+use File::Pairtree qw(id2ppath s2ppchars);
 use File::Path qw(make_path);
 
 sub run{
