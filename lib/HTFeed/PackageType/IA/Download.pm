@@ -4,7 +4,7 @@ use warnings;
 use strict;
 use base qw(HTFeed::Stage::Download);
 use HTFeed::Config qw(get_config);
-use File::Pairtree;
+use File::Pairtree qw(id2ppath s2ppchars);
 use File::Path qw(make_path);
 use HTFeed::Stage::Unpack qw(unzip_file);
 

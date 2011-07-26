@@ -46,7 +46,8 @@ sub enqueue_volumes{
                 return;
             }
 
-            push @results, $sth->execute($volume->get_packagetype(), $volume->get_namespace(), $volume->get_objid(), initial_priority($volume), $status);
+            my $res = $sth->execute($volume->get_packagetype(), $volume->get_namespace(), $volume->get_objid(), initial_priority($volume), $status);
+            push @results, $res;
         } or get_logger()->error($@) and return \@results;
     }
 

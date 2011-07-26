@@ -11,7 +11,7 @@ use XML::LibXML;
 use HTFeed::Config qw(get_config);
 use HTFeed::DBTools;
 use Time::localtime;
-use File::Pairtree;
+use File::Pairtree qw(id2ppath s2ppchars);
 use Data::UUID;
 use File::Path qw(remove_tree);
 
