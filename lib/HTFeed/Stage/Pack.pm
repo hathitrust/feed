@@ -54,7 +54,7 @@ sub run{
         $self->set_error('OperationFailed',operation=>'zip',detail=>'Creating zip file',exitstatus=>$zipret,file=>$zip_path);
     } else {
 
-        $zipret = system("unzip -q -t $zip_path");
+        $zipret = system("unzip -q -t '$zip_path'");
 
         if($zipret) {
             $self->set_error('OperationFailed',operation=>'unzip',exitstatus=>$zipret,file=>$zip_path,detail=>'Verifying zip file');

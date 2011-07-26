@@ -189,9 +189,9 @@ sub _setdocumentname {
 
     # deal with inconsistant use of '_' and '-'
     my $pattern = "$id/$file";
-    $pattern =~ s/[-_]/\[-_\]/g;
+    #$pattern =~ s/[-_]/\[-_\]/g;
 
-    unless ( $documentname =~ m|$pattern|i ) {
+    unless ( $documentname =~ m|\Q$pattern\E|i ) {
         $self->set_error(
             "BadValue",
             field  => 'documentname',

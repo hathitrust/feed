@@ -11,16 +11,54 @@ our $identifier = 'ump2ht';
 our $config = {
     %{$HTFeed::PackageType::MPubDCU::config},
     description => 'University of Michigan Press',
+    capture_agent => 'MPublishing',
     
     # Regular expression that distinguishes valid files in the file package
     # UM Press material may include a PDF. TBD how to represent this.
     valid_file_pattern => qr/^( 
 		checksum\.md5 |
 		pageview\.dat |
-		\w+\.(xml) |
-		\w+\.(pdf) |
-		\d{8}.(html|jp2|tif|txt)
+		\w+\.pdf |
+		\d{8}.(jp2|tif|txt)
 		)/x,
+
+    # See HTFeed::PackageType for documentation
+    filegroups => {
+        image => {
+            prefix => 'IMG',
+            use => 'image',
+            file_pattern => qr/\d{8}\.(jp2|tif)$/,
+            required => 1,
+            content => 1,
+            jhove => 1,
+            utf8 => 0
+        },
+        ocr => {
+            prefix => 'OCR',
+            use => 'ocr',
+            file_pattern => qr/\d{8}\.txt$/,
+            required => 1,
+            content => 1,
+            jhove => 0,
+            utf8 => 1
+        },
+        pdf => {
+            prefix => 'PDF',
+            use => 'pdf',
+            file_pattern => qr/\d{8}\.pdf$/,
+            required => 0,
+            content => 1,
+            jhove => 0,
+            utf8 => 0
+        },
+    },
+
+    # Validation overrides - make/model not expected
+    validation => {
+        'HTFeed::ModuleValidator::JPEG2000_hul' => {
+            'camera'               => undef,
+        }
+    },
 
 };
 

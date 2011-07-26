@@ -1,110 +1,151 @@
 ---
+# Basic directories and configuration
+feed_home: /path/to/feed
+
+admin_email: EMAIL
+
 database:
-  datasource: dbi:mysql:mdp_tracking_new:mysql-htdev
+# Datasouce must should be dbi:mysql:database:host
+  datasource: dbi:mysql:HOST:DATABASE
   username: USERNAME
   password: PASSWORD
 
+# Paths to various tools
+
 imagemagick: /l/local/ImageMagick-6.6.9-8/bin/convert
 
-jhove: /l/local/bin/jhove
-jhoveconf: /l/local/jhove/conf/jhove.conf
-
-xerces: "/htapps/babel/feed/bin/validateCache /ram/schema.cache"
-xerces_nocache: "/l/local/xerces-c/bin/SAX2Count -f -p"
+xerces: "$feed_home/bin/validateCache /ram/schema.cache"
 kdu_munge: /l/local/bin/kdu_munge
-
 # path to kdu_compress from kakadu 6.4 - the version is important because
 # different versions of kakadu interpret compression settings differently.
-kdu_compress: kdu_compress
+kdu_compress: /l/local/bin/kdu_compress
 
 jhove: /l/local/bin/jhove
 jhoveconf: /l/local/jhove/conf/jhove.conf
+
 l4p:
   root_logger: 'INFO, file'
-  config: /htapps/babel/feed/etc/config.l4p
+  config: $feed_home/etc/config.l4p
 
-premis_config: /htapps/babel/feed/etc/premis.yaml
+premis_config: $feed_home/etc/premis.yaml
 
-staging:
-  download: /htprep/download
-  fetch: /htprep/mpub_dcu
-  ingest: /ram/feed/ingest
-  zip: /ram/feed/zip
-  zipfile: /ram/feed/zipfile
-  preingest: /ram/feed/preingest
-  disk:
-    ingest: /l/prep/feed/ingest
-    preingest: /l/prep/feed/preingest
-    zipfile: /l/prep/feed/zipfile
-
+# Ram disk and staging directory configuration
 ram_disk: /ram
 ram_fill_limit: 0.8
+ram_disk_max_job_size: 1073741824
+ram_stage: $ram_disk/feed
 
-daemon:
-  release_states:
-  - punted
-  - collated
-  - rights
-  stop_file: /htapps/babel/feed/etc/STOPFEED
-  clean: 1
+disk_stage: DISK_STAGING_DIRECTORY
 
-sample_directory: /htprep/qr
+staging:
+  download: $disk_stage/download
+  ingest: $ram_stage/ingest
+  zip: $ram_stage/zip
+  zipfile: $ram_stage/zipfile
+  preingest: $ram_stage/preingest
+  disk:
+    ingest: $disk_stage/ingest
+    preingest: $disk_stage/preingest
+    zip: $disk_stage/zip
+    zipfile: $disk_stage/zipfile
+  grin: $disk_stage/grin
+  
 repository:
-  # The directory in which symbolic links will be created to each volume
+# The directory in which symbolic links will be created to each volume, and
+# in which volumes can be found that are already in the repository
   link_dir: /sdr1/obj
-  # The directory into which volumes will be loaded 
-  obj_dir: /sdr6/obj
+# The directory into which volumes will be loaded 
+  obj_dir: /sdr11/obj
   datasets: /htprep/datasets/pt/obj
 
-rights:
-  # user barcode deposit must run as (for scp/ssh)
-  user: libadm
-  # Directory in which barcodes list files will be created and rights data files will be deposited
-  staging: /htapps/babel/groove/prep/rights
-  # Archive directory where rights data files will be deposited after they are processed
-  archive: /htapps/babel/groove/prep/rights/archive
-  # Email address of the person who should receive an email notification when new rights files are available
-  email: timothy@umich.edu
-  # SCP user, host, deposit directory
-  # Variables for forming scp/ssh commands.
-  # Ex: scp $barcodes_file $scpuser@scphost:$scp_barcodes_deposit_dir
-  # Ex: scp $scpuser@scphost:/scp_rights_pickup_dir/*.rights $rights_dir
-  scp:
-    user: aleph
-    host: irene
-    deposit_dir: /exlibris/aleph/u18_1/miu50/local/mdp/return
-    pickup_dir: /exlibris/aleph/u18_1/miu50/local/mdp/return
-
-admin_email: aelkiss@umich.edu
-from_email: lit-cs-groove@umich.edu
-
-# Configuration for how to run - how many subprocesses, how many retries, etc
-#
+# feedd configuration
+daemon:
+  release_states:
+    - punted
+    - collated
+    - held
+    - rights
+  stop_file: $feed_home/etc/STOPFEED
+  
 volumes_in_process_limit: 5
-failure_limit: 1
-# true to immediately stop a module when an error is encountered
-stop_on_error: 1
-# true to spawn subprocesses to handle each stage
-fork: 1
+failure_limit: 5
+stop_on_error: 0
+fork: 0
 
-# enable debug
-debug: 0
+# handle server configuration
 
 handle:
   repo_url_base: http://babel.hathitrust.org/cgi/pt?id=
   root_admin: 0.NA/2027
   local_admin: 2027/mdp
   database:
-    datasource: dbi:mysql:handle:mysql-htdev
-    username: USERNAME
+    datasource: dbi:mysql:DATABASE:HOST
+    username: USER
     password: PASSWORD
 
+# metadata (rights & bibliographic records) servers & locations
+metadata_host: USER@HOST
+metadata_dir: METADATA_DIR 
+
+# ssh key to use when depositing or picking up metadata
+ssh_key: RSA_KEY
+
+bibrecords:
+# user & host to pick up from
+  host: $metadata_host 
+# source directory on host to pick up from
+  source: $metadata_dir 
+# glob of files to copy
+  glob: '*meta.txt' 
+# local directory to copy files to
+  dest: $disk_stage/bibrecords 
+# directory on host to move files to after pickup
+  archive: $source/archive 
+
+rights:
+# Database with the rights_current table
+  database: dbi:mysql:mdp:mysql-htdev
+
+# Email address of the person who should receive an email notification when new rights files are available
+  email: TO_EMAIL
+  from_email: FROM_EMAIL
+
+# Location of rights files
+  rights_dir: $disk_stage/rights
+# Where to archive rights files after they are loaded
+  archive: $rights_dir/archive
+
+# Locations to pick up new rights file (keys are same as in bibrecords, above)
+  source:
+    - host: $metadata_host
+      source: $metadata_dir
+      glob: "*.rights"
+      dest: $rights_dir
+      archive: $source/archive
+    - host: USER@HOST2
+      source: SOURCE
+      glob: "*.rights"
+      archive: $source/archive
+      dest: $rights_dir
+    
+# Location to deposit new barcodes for rights determination
+  deposit: 
+# local directory to copy from
+    source: $rights_dir 
+    glob: "barcodes_*_feed"
+# user & host to copy to
+    host: $metadata_host 
+# directory on host to deposit to
+    dest: $metadata_dir 
+# local directory to move files to after deposit
+    archive: $rights_archive 
+    
 jira:
   wsdl: https://wush.net/jira/hathitrust/rpc/soap/jirasoapservice-v2?wsdl
   username: USERNAME
   password: PASSWORD
-  from: aelkiss@umich.edu
-  to: feedback@issues.hathitrust.org
+  from: FROM_EMAIL
+  to: TO_EMAIL
 
 # for grin_reports.pl
 ctools:

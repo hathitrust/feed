@@ -192,7 +192,7 @@ sub remediate_image {
 
 
     my $kdu_munge = get_config('kdu_munge');
-    system("$kdu_munge -i $infile -o $outfile 2>&1 > /dev/null") and
+    system("$kdu_munge -i '$infile' -o '$outfile' 2>&1 > /dev/null") and
         $self->set_error("OperationFailed",file=>$outfile,operation=>"kdu_munge");
 
     $self->update_tags($exifTool,$outfile);

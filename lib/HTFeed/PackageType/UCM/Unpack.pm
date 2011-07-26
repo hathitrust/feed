@@ -27,7 +27,7 @@ sub run{
     my $destdir = get_config('staging' => 'preingest');
 
     # just symlink from 'download' directory to staging directory
-    system("cp -rs $srcdir/ $destdir") and 
+    system("cp -rs '$srcdir/' '$destdir'") and 
         $self->set_error("OperationFailed",operation => "symlink",
             detail => "cp -s returned $?");
 

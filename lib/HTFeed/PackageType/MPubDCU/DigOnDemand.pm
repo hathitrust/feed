@@ -11,6 +11,8 @@ our $identifier = 'DigOnDemand';
 our $config = {
     %{$HTFeed::PackageType::MPubDCU::config},
     description => 'Digitize on Demand',
+
+    capture_agent => 'Digital Conversion Unit',
 };
 
 __END__
