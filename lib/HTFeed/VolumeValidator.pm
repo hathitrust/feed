@@ -134,7 +134,9 @@ sub _validate_consistency {
     my $self   = shift;
     my $volume = $self->{volume};
 
-    my @filegroup_names = keys( %{ $volume->get_file_groups(); } );
+    my $filegroups = $volume->get_file_groups();
+    my @filegroup_names = grep { $filegroups->{$_}->get_required() } keys(%$filegroups);
+
     my $files = $volume->get_file_groups_by_page();
 
     # Make sure there are no gaps in the sequence
