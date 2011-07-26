@@ -196,7 +196,7 @@ sub _validate_checksums {
     my @bad_files = ();
 
     foreach my $file (@tovalidate) {
-        next if $file eq $source_mets_file;
+        next if $source_mets_file and $file eq $source_mets_file;
         next if $checksum_file and $file =~ $checksum_file;
         my $expected = $checksums->{$file};
         if ( not defined $expected ) {
