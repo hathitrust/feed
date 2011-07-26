@@ -47,7 +47,7 @@ sub enqueue_volumes{
             }
 
             push @results, $sth->execute($volume->get_packagetype(), $volume->get_namespace(), $volume->get_objid(), initial_priority($volume), $status);
-        } or print $@ and return \@results;
+        } or get_logger()->error($@) and return \@results;
     }
 
     # set priorities for newly added volumes
