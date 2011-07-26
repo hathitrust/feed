@@ -840,6 +840,36 @@ sub _remediate_marc {
         $leader->appendText($value);
     }
 
+    foreach my $datafield ($xc->findnodes('./marc:datafield')) {
+        # ind1/ind2 might have nbsp or control characters instead of regular space
+        # @i1 => @ind1
+        # @i2 => @ind2
+        my $attrs_to_move = {
+            # clean ind1, ind2; move i{1,2} -> ind{1,2}
+            'ind1' => 'ind1',
+            'ind2' => 'ind2',
+            'i1' => 'ind1',
+            'i2' => 'ind2',
+        };
+        while (my ($old,$new) = each (%$attrs_to_move)) {
+            if($datafield->hasAttribute($old)) {
+
+                my $attrval = $datafield->getAttribute($old);
+                # default to empty if value is invalid
+                if($attrval !~ /^[\da-z ]{1}$/) {
+                    $attrval = " ";
+                }
+                $datafield->removeAttribute($old);
+                $datafield->setAttribute($new,$attrval);
+            }
+        }
+    }
+
+    foreach my $datafield ($xc->findnodes('//marc:datafield[not(marc:subfield)]')) {
+        # remove empty data fields
+        $datafield->parentNode()->removeChild($datafield);
+    }
+
 
 }
 
