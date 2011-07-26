@@ -83,12 +83,6 @@ sub _add_header {
 
     $mets->set_header($header);
 
-    # Google: altRecordID handling - reject if there is an altRecordID in the
-    # source METS. This should only happen if the volume is a duplicate, which
-    # should be detected by looking for condition 31 set and source library
-    # bibkey not null, but it doesn't hurt to check.
-
-    # IA: add an altRecordID with the IA identifier
     return $header;
 }
 
