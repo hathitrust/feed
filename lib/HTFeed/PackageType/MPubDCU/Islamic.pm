@@ -9,6 +9,7 @@ our $identifier = 'islamic_manuscripts';
 our $config = {
     %{$HTFeed::PackageType::MPubDCU::config},
     description => 'DCU-digitized Islamic Manuscripts',
+    capture_agent => 'Digital Conversion Unit',
     volume_module => 'HTFeed::Volume',
     
     # Regular expression that distinguishes valid files in the file package

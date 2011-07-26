@@ -11,6 +11,8 @@ our $identifier = 'faculty_reprints';
 our $config = {
     %{$HTFeed::PackageType::MPubDCU::config},
     description => 'Faculty Reprints',
+
+    capture_agent => 'MPublishing',
 };
 
 __END__
