@@ -544,7 +544,7 @@ sub validate_xml {
     $xerces = $use_caching ? get_config('xerces') : get_config('xerces_nocache');
 
     my $filename       = shift;
-    my $validation_cmd = "$xerces $filename 2>&1";
+    my $validation_cmd = "$xerces '$filename' 2>&1";
     my $val_results    = `$validation_cmd`;
     if ( ($use_caching and $val_results !~ /\Q$filename\E OK/) or
          (!$use_caching and $val_results =~ /Error/) or
