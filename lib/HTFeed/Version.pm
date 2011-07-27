@@ -18,14 +18,18 @@ our @EXPORT = qw(namespace_ids pkgtype_ids get_feed_version_number);
 my $VERSION = 'unknown';
 
 {
-    my $version_file = get_config('feed_app_root') . '/bin/rdist.timestamp';
-    if (-e $version_file){
-        open(my $fh, '<', $version_file);
-        my $version_string = <$fh>;
-        close $fh;
-        chomp $version_string;
-        $version_string =~ /feed_v(\d+\.\d+\.\d+)/;
-        $VERSION = $1;
+    my $feed_root = get_config('feed_app_root');
+    
+    if(defined $feed_root) {
+        my $version_file = $feed_root . '/bin/rdist.timestamp';
+        if (-e $version_file){
+            open(my $fh, '<', $version_file);
+            my $version_string = <$fh>;
+            close $fh;
+            chomp $version_string;
+            $version_string =~ /feed_v(\d+\.\d+\.\d+)/;
+            $VERSION = $1;
+        }
     }
 }
 
