@@ -12,9 +12,6 @@ use HTFeed::Namespace;
 use Exporter;
 use base qw(Exporter);
 
-our @EXPORT_OK = qw(namespace_ids pkgtype_ids);
-our @EXPORT = qw(namespace_ids pkgtype_ids get_feed_version_number);
-
 my $VERSION = 'unknown';
 
 {
