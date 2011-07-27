@@ -14,6 +14,7 @@ use HTFeed::Config qw(get_config);
 use Date::Manip;
 use File::Basename qw(basename dirname);
 use FindBin;
+use HTFeed::Version;
 
 use base qw(HTFeed::Stage);
 
@@ -577,30 +578,6 @@ sub _get_createdate {
     );
 
     return $ts;
-}
-
-# Getting software versions
-
-=item git_revision() 
-
-Returns the git revision of the currently running script
-
-=cut
-
-sub git_revision {
-    my $self = shift;
-    my $gitrev = `cd $FindBin::RealBin; git rev-parse HEAD`;
-    chomp $gitrev if defined $gitrev;
-
-    if ( !$? and defined $gitrev and $gitrev =~ /^[0-9a-f]{40}/ ) {
-        return "$FindBin::Script git rev $gitrev";
-    }
-    else {
-        $self->set_error( 'ToolVersionError',
-            detail => "Can't get git revision for $FindBin::Script: git returned '$gitrev' with status $?");
-        return "$FindBin::Script";
-    }
-
 }
 
 =item perl_mod_version($module)
