@@ -40,7 +40,7 @@ sub init{
 
     # add feed_app_root to config
     unless (defined $config->{feed_app_root}){
-        $config->{feed_app_root} = $feed_app_root;
+        $config->set('feed_app_root',$feed_app_root);
     }
     
     ## TODO: check file validity, can't do this until we establish what the file will look like
