@@ -28,6 +28,7 @@ sub new{
 				status		=> "jhove:status",
 				module		=> "jhove:sigMatch/jhove:module",
 				mimeType	=> "jhove:mimeType",
+                errors      => 'jhove:messages/jhove:message[@severity="error"]'
 			},
 			
 			# tiffMeta children
