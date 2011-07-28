@@ -31,7 +31,7 @@ sub run{
 
         get_logger()->debug("Blanking image $bookplate");
         my $imconvert = get_config('imagemagick');
-        if( system("$imconvert $toblank -threshold -1 +matte $toblank") )  {
+        if( system("$imconvert '$toblank' -threshold -1 +matte '$toblank'") )  {
             $self->set_error("OperationFailed",file=>$toblank,operation=>"blanking",detail=>"ImageMagick returned $?");
             next;
         } 

@@ -134,7 +134,9 @@ sub _validate_consistency {
     my $self   = shift;
     my $volume = $self->{volume};
 
-    my @filegroup_names = keys( %{ $volume->get_file_groups(); } );
+    my $filegroups = $volume->get_file_groups();
+    my @filegroup_names = grep { $filegroups->{$_}->get_required() } keys(%$filegroups);
+
     my $files = $volume->get_file_groups_by_page();
 
     # Make sure there are no gaps in the sequence
@@ -194,7 +196,7 @@ sub _validate_checksums {
     my @bad_files = ();
 
     foreach my $file (@tovalidate) {
-        next if $file eq $source_mets_file;
+        next if $source_mets_file and $file eq $source_mets_file;
         next if $checksum_file and $file =~ $checksum_file;
         my $expected = $checksums->{$file};
         if ( not defined $expected ) {
@@ -307,10 +309,10 @@ sub _validate_metadata {
     }
 
     # prepend directory to each file to validate
-    my $files_for_cmd = join( ' ', map { "$dir/$_" } @$files );
+    my $files_for_cmd = join( "' '", map { "$dir/$_" } @$files );
     my $jhove_path = get_config('jhove');
     my $jhove_conf = get_config('jhoveconf');
-    my $jhove_cmd = "$jhove_path -h XML -c $jhove_conf " . $files_for_cmd;
+    my $jhove_cmd = "$jhove_path -h XML -c $jhove_conf '$files_for_cmd'";
 
     # make a hash of expected files
     my %files_left_to_validate = map { $_ => 1 } @$files;

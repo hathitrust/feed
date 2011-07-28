@@ -11,7 +11,7 @@ use XML::LibXML;
 use HTFeed::Config qw(get_config);
 use HTFeed::DBTools;
 use Time::localtime;
-use File::Pairtree;
+use File::Pairtree qw(id2ppath s2ppchars);
 use Data::UUID;
 use File::Path qw(remove_tree);
 
@@ -621,6 +621,8 @@ sub get_file_groups_by_page {
     while ( my ( $filegroup_name, $filegroup ) =
         each( %{ $filegroups } ) )
     {
+        # ignore this filegroup if it is not 'required'
+        next unless $filegroup->get_required();
         foreach my $file ( @{$filegroup->get_filenames()} ) {
             if ( $file =~ /(\d+)\.(\w+)$/ ) {
                 my $sequence_number = $1;
@@ -875,7 +877,7 @@ sub _clean_vol_path {
 
     foreach my $ondisk (0,1) {
         my $dir = eval "\$self->get_${stagetype}_directory($ondisk)";
-        if(-e $dir) {
+        if(defined $dir and -e $dir) {
             get_logger()->warn("Removing " . $dir);
             remove_tree $dir;
         }

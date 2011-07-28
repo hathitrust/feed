@@ -6,7 +6,7 @@
 # PREMIS events.
 
 premis_tools:
-    GROOVE: $self->git_revision();
+    GROOVE: $FindBin::Script . " " . HTFeed::Version::get_feed_version_number();
     EXIFTOOL: $self->perl_mod_version('Image::ExifTool');
     XERCES: $self->local_directory_version('xerces-c');
     JHOVE: $self->local_directory_version('jhove');

@@ -5,7 +5,8 @@ use strict;
 
 use base qw(HTFeed::Volume);
 use HTFeed::Config;
-use File::Pairtree;
+use File::Pairtree qw(id2ppath s2ppchars);
+
 
 =item get_file_groups 
 

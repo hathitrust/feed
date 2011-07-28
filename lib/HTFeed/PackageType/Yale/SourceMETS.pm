@@ -43,30 +43,6 @@ sub _add_dmdsecs {
     my $marc_xc = new XML::LibXML::XPathContext($marc_node);
     register_namespaces($marc_xc);
     $self->_remediate_marc($marc_xc);
-    foreach my $datafield ($marc_xc->findnodes('./marc:datafield')) {
-        # ind1/ind2 use nbsp instead of regular space
-        # @i1 => @ind1
-        # @i2 => @ind2
-        my $attrs_to_move = {
-            # clean ind1, ind2; move i{1,2} -> ind{1,2}
-            'ind1' => 'ind1',
-            'ind2' => 'ind2',
-            'i1' => 'ind1',
-            'i2' => 'ind2',
-        };
-        while (my ($old,$new) = each (%$attrs_to_move)) {
-            if($datafield->hasAttribute($old)) {
-
-                my $attrval = $datafield->getAttribute($old);
-                # default to empty if value is invalid
-                if($attrval !~ /^[\da-z ]{1}$/) {
-                    $attrval = " ";
-                }
-                $datafield->removeAttribute($old);
-                $datafield->setAttribute($new,$attrval);
-            }
-        }
-    }
 
     my $mods_dmdsec = $self->_add_dmd_sec(
         $self->_get_subsec_id("DMD"), 'MODS',

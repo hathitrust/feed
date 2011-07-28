@@ -14,6 +14,7 @@ use HTFeed::Config qw(get_config);
 use Date::Manip;
 use File::Basename qw(basename dirname);
 use FindBin;
+use HTFeed::Version;
 
 use base qw(HTFeed::Stage);
 
@@ -83,12 +84,6 @@ sub _add_header {
 
     $mets->set_header($header);
 
-    # Google: altRecordID handling - reject if there is an altRecordID in the
-    # source METS. This should only happen if the volume is a duplicate, which
-    # should be detected by looking for condition 31 set and source library
-    # bibkey not null, but it doesn't hurt to check.
-
-    # IA: add an altRecordID with the IA identifier
     return $header;
 }
 
@@ -550,7 +545,7 @@ sub validate_xml {
     $xerces = $use_caching ? get_config('xerces') : get_config('xerces_nocache');
 
     my $filename       = shift;
-    my $validation_cmd = "$xerces $filename 2>&1";
+    my $validation_cmd = "$xerces '$filename' 2>&1";
     my $val_results    = `$validation_cmd`;
     if ( ($use_caching and $val_results !~ /\Q$filename\E OK/) or
          (!$use_caching and $val_results =~ /Error/) or
@@ -583,30 +578,6 @@ sub _get_createdate {
     );
 
     return $ts;
-}
-
-# Getting software versions
-
-=item git_revision() 
-
-Returns the git revision of the currently running script
-
-=cut
-
-sub git_revision {
-    my $self = shift;
-    my $gitrev = `cd $FindBin::RealBin; git rev-parse HEAD`;
-    chomp $gitrev if defined $gitrev;
-
-    if ( !$? and defined $gitrev and $gitrev =~ /^[0-9a-f]{40}/ ) {
-        return "$FindBin::Script git rev $gitrev";
-    }
-    else {
-        $self->set_error( 'ToolVersionError',
-            detail => "Can't get git revision for $FindBin::Script: git returned '$gitrev' with status $?");
-        return "$FindBin::Script";
-    }
-
 }
 
 =item perl_mod_version($module)
@@ -844,6 +815,36 @@ sub _remediate_marc {
 
         $leader->removeChildNodes();
         $leader->appendText($value);
+    }
+
+    foreach my $datafield ($xc->findnodes('./marc:datafield')) {
+        # ind1/ind2 might have nbsp or control characters instead of regular space
+        # @i1 => @ind1
+        # @i2 => @ind2
+        my $attrs_to_move = {
+            # clean ind1, ind2; move i{1,2} -> ind{1,2}
+            'ind1' => 'ind1',
+            'ind2' => 'ind2',
+            'i1' => 'ind1',
+            'i2' => 'ind2',
+        };
+        while (my ($old,$new) = each (%$attrs_to_move)) {
+            if($datafield->hasAttribute($old)) {
+
+                my $attrval = $datafield->getAttribute($old);
+                # default to empty if value is invalid
+                if($attrval !~ /^[\da-z ]{1}$/) {
+                    $attrval = " ";
+                }
+                $datafield->removeAttribute($old);
+                $datafield->setAttribute($new,$attrval);
+            }
+        }
+    }
+
+    foreach my $datafield ($xc->findnodes('//marc:datafield[not(marc:subfield)]')) {
+        # remove empty data fields
+        $datafield->parentNode()->removeChild($datafield);
     }
 
 

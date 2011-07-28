@@ -38,7 +38,7 @@ sub run {
 	$alto_parser->parse_file($alto_xml_file);
 
 	# also retain coordinate-OCR XML file
-	system("dos2unix -q -n $alto_xml_file $stage_path/$alto_newxml")
+	system("dos2unix -q -n '$alto_xml_file' '$stage_path/$alto_newxml'")
 	    and die("Can't copy $alto_xml_file: $?");
 
 	$fh->close();
