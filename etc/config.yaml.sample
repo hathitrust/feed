@@ -54,7 +54,6 @@ repository:
   link_dir: /sdr1/obj
   # The directory into which volumes will be loaded 
   obj_dir: /sdr6/obj
-  datasets: /htprep/datasets/pt/obj
 
 rights:
   # user barcode deposit must run as (for scp/ssh)
@@ -119,3 +118,7 @@ rejected_books:
   host: HOSTNAME
   source_path_name: PATHNAME
   destination_path: PATH
+
+dataset:
+  repository: /htprep/datasets/pt/obj
+  threads: 8
