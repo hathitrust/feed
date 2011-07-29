@@ -309,10 +309,11 @@ sub _validate_metadata {
     }
 
     # prepend directory to each file to validate
-    my $files_for_cmd = join( "' '", map { "$dir/$_" } @$files );
+    my $files_for_cmd = join( "' '", map { "$_" } @$files );
     my $jhove_path = get_config('jhove');
     my $jhove_conf = get_config('jhoveconf');
-    my $jhove_cmd = "$jhove_path -h XML -c $jhove_conf '$files_for_cmd'";
+    my $jhove_cmd = "cd $dir; $jhove_path -h XML -c $jhove_conf '$files_for_cmd'";
+    get_logger()->trace("jhove cmd $jhove_cmd");
 
     # make a hash of expected files
     my %files_left_to_validate = map { $_ => 1 } @$files;

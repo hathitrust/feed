@@ -37,13 +37,15 @@ sub new {
 
     $self->{nspkg} = HTFeed::Namespace->new($self->{namespace},$self->{packagetype});
 
-    $self->{nspkg}->validate_barcode($self->{objid}) 
-        or croak "Invalid barcode $self->{objid} provided for $self->{namespace}";
+    if($self->{nspkg}->validate_barcode($self->{objid})) {
+        my $class = $self->{nspkg}->get('volume_module');
 
-    my $class = $self->{nspkg}->get('volume_module');
-
-    bless( $self, $class );
-    return $self;
+        bless( $self, $class );
+        return $self;
+    } else {
+        get_logger()->error("BadValue",namespace=>$self->{namespace},objid=>$self->{objid},field=>'barcode',detail=>'Invalid barcode');
+        croak("VOLUME_ERROR");
+    }
 }
 
 =item get_identifier
@@ -322,7 +324,7 @@ sub _parse_xpc {
     };
 
     if ($@) {
-        croak("-ERR- Could not read XML file $file: $@");
+        $self->set_error("BadFile",file => $file,detail=>$@->{message});
     } else {
         return $xpc;
     }
@@ -464,7 +466,7 @@ sub get_marc_xml {
     } 
 
     # no metadata found, or metadata node didn't contain anything
-    croak("Could not find MARCXML in source METS");
+    $self->set_error("BadField",field=>"marcxml",file => $self->get_source_mets_file(),detail=>"Could not find MARCXML in source METS");
 
 }
 
@@ -931,8 +933,8 @@ sub ingested{
 
 =item set_error
 For compatibility with HTFeed::Stage - logs an error 
-with the namespace and object ID set, and croaks if
-'stop_on_error' is set.
+with the namespace and object ID set, and croaks no 
+matter what (as that is the expectation with Volume)
 =cut
 
 sub set_error {
@@ -948,9 +950,7 @@ sub set_error {
         @_
     );
 
-    if ( get_config('stop_on_error') ) {
-        croak("STAGE_ERROR");
-    }
+    croak("VOLUME_ERROR");
 }
 
 1;
