@@ -207,19 +207,17 @@ sub _setcontext{
     my $xpc = $arg_hash{xpc};
 
     # check parameters
-    if($cn && ($node || $xpc) ){
-        if (! $xpc){
-            # get root xpc from parent
-            my $parent_name = $self->{qlib}->context_parent($cn);
-            $xpc = $self->{contexts}->{$parent_name}->{xpc};
-        }
-        # set
-        $self->{contexts}->{$cn} = {node => $node, xpc => $xpc};
-        return 1;
-    }
+    croak "_setcontext: context name undef" unless($cn);
+    croak "_setcontext: can't set context to undef" unless(defined($node) or defined($xpc));
 
-    # fail on wrong input;
-    confess("_setcontext: invalid args");
+    if (! $xpc){
+        # get root xpc from parent
+        my $parent_name = $self->{qlib}->context_parent($cn);
+        $xpc = $self->{contexts}->{$parent_name}->{xpc};
+    }
+    # set
+    $self->{contexts}->{$cn} = {node => $node, xpc => $xpc};
+    return 1;
 
 }
 
