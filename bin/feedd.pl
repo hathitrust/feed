@@ -145,8 +145,20 @@ sub fill_queue{
             while(my $job_info = $sth->fetchrow_arrayref()){
                 # instantiate HTFeed::Job
                 my $job = HTFeed::Job->new(@{$job_info},\&update_queue);
-                ## if !can_run_job, $job will never be released
-                push (@jobs, $job) if (! is_locked($job) and $job->runnable);
+                
+                my $locked = is_locked($job);
+                my $runnable = $job->runnable;
+                
+                if (! $locked){
+                    if ($runnable){
+                        # $job ok
+                        push (@jobs, $job);
+                    }else{
+                        # $job has a bad state, release it
+                        get_logger()->warn( 'Bad queue status', objid => $job->id, namespace => $job->namespace, detail => 'Volume found locked in unrunnable status: '. $job->status );
+                        ## TODO: Release it here...
+                    }
+                }
             }
             $sth->finish();
         }
