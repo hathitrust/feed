@@ -330,7 +330,7 @@ sub _validate_metadata {
 
     # start looking for repInfo block
     DOC_READER: while (<$pipe>) {
-        if (m|^\s<repInfo.+>$|) {
+        if (m|^\s*<repInfo.+>$|) {
 
             # save the first line when we find it
             my $xml_block = "$_";
@@ -340,11 +340,11 @@ sub _validate_metadata {
 
                 # save more lines until we get to </repInfo>
                 $xml_block .= $_;
-                last BLOCK_READER if m|^\s</repInfo>$|;
+                last BLOCK_READER if m|^\s*</repInfo>$|;
             }
 
             # get file name from xml_block
-            $xml_block =~ m{\s<repInfo\suri=".*/(.*)"|\s<repInfo\suri="(.*)"};
+            $xml_block =~ m{^\s*<repInfo\suri=".*/(.*)"|^\s*<repInfo\suri="(.*)"};
             my $file;
             $file = $1 or $file = $2;
 
