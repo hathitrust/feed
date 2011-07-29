@@ -247,21 +247,21 @@ sub _setupXMP {
             }
         }
 
-# set the uidBox context to the last uuidBox with xmp
-# if there is more than one xmp we are punting anyhow, so it doesn't matter if this is the wrong one
-        $self->_setcontext(
-            name => 'uuidBox',
-            node => $uuid_context_node_containing_xmp
-        );
-
         if ( $xmps_found != 1 ) {
             $self->set_error(
                 'BadField',
-                detail => "$xmps_found XMPs found, expected 1",
+                detail => "$xmps_found possible XMPs found, expected 1",
                 field  => 'xmp'
             );
             return;
         }
+
+        # set the uidBox context to the last uuidBox with xmp
+        # if there is more than one xmp we already punted
+        $self->_setcontext(
+            name => 'uuidBox',
+            node => $uuid_context_node_containing_xmp
+        );
 
     }
 
