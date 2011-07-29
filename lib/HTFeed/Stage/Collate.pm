@@ -63,11 +63,11 @@ sub run{
     # make sure the operation will succeed
     if (-f $mets_source and -f $zip_source and -d $pairtree_object_path){
         # move mets and zip to repo
-        copy($mets_source,$pairtree_object_path)
-            or $self->set_error('OperationFailed', operation => 'cp', detail => "cp $mets_source $pairtree_object_path failed: $!");
+        system('cp','-f',$mets_source,$pairtree_object_path)
+            and $self->set_error('OperationFailed', operation => 'cp', detail => "cp $mets_source $pairtree_object_path failed with status: $?");
             
-        copy($zip_source,$pairtree_object_path)
-            or $self->set_error('OperationFailed', operation => 'cp', detail => "cp $zip_source $pairtree_object_path failed: $!");
+        system('cp','-f',$zip_source,$pairtree_object_path)
+            and $self->set_error('OperationFailed', operation => 'cp', detail => "cp $zip_source $pairtree_object_path failed with status: $?");
 
         $self->_set_done();
         if($self->succeeded()) {
