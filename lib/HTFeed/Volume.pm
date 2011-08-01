@@ -880,7 +880,7 @@ sub _clean_vol_path {
     foreach my $ondisk (0,1) {
         my $dir = eval "\$self->get_${stagetype}_directory($ondisk)";
         if(defined $dir and -e $dir) {
-            get_logger()->warn("Removing " . $dir);
+            get_logger()->debug("Removing " . $dir);
             remove_tree $dir;
         }
     }
