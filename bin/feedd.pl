@@ -156,7 +156,7 @@ sub fill_queue{
                     }else{
                         # $job has a bad state, release it
                         get_logger()->warn( 'Bad queue status', objid => $job->id, namespace => $job->namespace, detail => 'Volume found locked in unrunnable status: '. $job->status );
-                        ## TODO: Release it here...
+                        update_queue($job->namespace, $job->id, 'punted', 1, 1);
                     }
                 }
             }
