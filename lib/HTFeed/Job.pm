@@ -11,7 +11,8 @@ has [qw(pkg_type namespace id)]         => (is => 'ro', isa => 'Str',     requir
 has 'status'                            => (is => 'ro', isa => 'Str',     required => 1, default => 'ready');
 has 'callback'                          => (is => 'ro', isa => 'CodeRef', required => 1);
 has 'failure_count'                     => (is => 'rw', isa => 'Str',     required => 1, default => 0);
-has [qw(stage_class new_status)]        => (is => 'ro', isa => 'Str',     init_arg => undef, lazy_build => 1);
+has 'stage_class'                       => (is => 'ro', isa => 'Maybe[Str]',     init_arg => undef, lazy_build => 1);
+has 'new_status'                        => (is => 'ro', isa => 'Str',     init_arg => undef, lazy_build => 1);
 has [qw(volume stage)]                  => (is => 'ro', isa => 'Object',  init_arg => undef, lazy_build => 1);
 
 =item new
@@ -123,7 +124,7 @@ sub _build_stage_class{
     my $self = shift;
 
     my $class = $self->volume->next_stage($self->status);
-    
+  
     return $class;
 }
 

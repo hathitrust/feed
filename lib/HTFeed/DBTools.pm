@@ -13,8 +13,6 @@ use base qw(Exporter);
 
 our @EXPORT_OK = qw(get_dbh get_queued lock_volumes update_queue count_locks get_volumes_with_status);
 
-my %release_states = map {$_ => 1} @{get_config('daemon'=>'release_states')};
-
 my $dbh = undef;
 my $pid = undef;
 
@@ -114,17 +112,13 @@ sub ingest_log_success {
 # $fail indicates to incriment failure_count
 # job will be released if $new_status is a release state
 sub update_queue {
-    ## TODO: use release state rather than recalculating it (once this is assured to be safe)
-
     my ($ns, $objid, $new_status, $release, $fail) = @_;
     
     my $syntax = qq(UPDATE queue SET status = '$new_status');
     $syntax .= q(, failure_count=failure_count+1) if ($fail);
-    $syntax .= q(, node = NULL) if (exists $release_states{$new_status});
+    $syntax .= q(, node = NULL) if ($release);
     $syntax .= qq( WHERE namespace = '$ns' AND id = '$objid';);
-    #print '$ns, $objid, $new_status, $fail';
-    #print "\n$ns, $objid, $new_status, $fail\n";
-    #print "$syntax\n\n";
+
     get_dbh()->do($syntax);
 }
 
