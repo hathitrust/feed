@@ -18,7 +18,7 @@ sub run{
     my $objid = $volume->get_objid();
     my $pairtree_objid = s2ppchars($objid);
     my $pairtree_object_path = sprintf('%s/%s/%s%s',get_config('repository'=>'obj_dir'),$namespace,id2ppath($objid),$pairtree_objid);
-    my $is_repeat = 0;
+    $self->{is_repeat} = 0;
 
     # Create link from 'link_dir' area, if needed
     # if link_dir==obj_dir we don't want to use the link_dir
@@ -29,7 +29,7 @@ sub run{
         # this is a re-ingest if the dir already exists, log this
         if (-d $pairtree_link_parent){
             $self->set_info('Collating volume that is already in repo');
-            $is_repeat = 1;
+            $self->{is_repeat} = 1;
             # make sure we have a link
             unless ($pairtree_object_path = readlink($pairtree_link_path)){
                 # there is no good reason we chould have a dir and no link
@@ -51,7 +51,7 @@ sub run{
         if(-d $pairtree_object_path) {
             # this is a re-ingest if the dir already exists, log this
             $self->set_info('Collating volume that is already in repo');
-            $is_repeat = 1;
+            $self->{is_repeat} = 1;
         } else{
             make_path($pairtree_object_path)
                 or $self->set_error('OperationFailed', operation => 'mkdir', detail => "Could not create dir $pairtree_object_path") and return;
@@ -71,9 +71,6 @@ sub run{
             and $self->set_error('OperationFailed', operation => 'cp', detail => "cp $zip_source $pairtree_object_path failed with status: $?");
 
         $self->_set_done();
-        if($self->succeeded()) {
-            HTFeed::DBTools::ingest_log_success($volume,$is_repeat);
-        }
         return $self->succeeded();
     }
     
@@ -85,6 +82,11 @@ sub run{
     
     $self->set_error('OperationFailed', detail => $detail);
     return;
+}
+
+sub success_info {
+    my $self = shift;
+    return "repeat=" . $self->{is_repeat};
 }
 
 sub stage_info{
