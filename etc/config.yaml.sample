@@ -89,6 +89,24 @@ metadata_dir: METADATA_DIR
 # ssh key to use when depositing or picking up metadata
 ssh_key: RSA_KEY
 
+ingest_logs:
+  host: 
+    - libadm@carafe
+    - libadm@growler
+  source: /htapps/aelkiss.babel/stage/log
+  glob: '*.gz'
+  dest: /l1/www.lib/web/sites/www.hathitrust.org/files/ingest_logs/
+  archive: $source/archive
+
+ingest_reports:
+  host:
+    - libadm@carafe
+    - libadm@growler
+  source: /htapps/aelkiss.babel/stage/reports
+  glob: '*.gz'
+  dest: /l1/www.lib/web/sites/www.hathitrust.org/files/ingest_reports/
+  archive: $source/archive
+
 bibrecords:
 # user & host to pick up from
   host: $metadata_host 
