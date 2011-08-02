@@ -19,6 +19,10 @@ use HTFeed::Config qw(get_config set_config);
 set_config('1','debug');
 my $debug = $INC{"perl5db.pl"}; # are we running in a debugger?
 
+# confess croaking in debug
+use Carp;
+$Carp::Verbose = 1 if($debug);
+
 # autoflush STDOUT
 $| = 1;
 
@@ -86,7 +90,7 @@ sub new_job{
     
     if ($release){
         # break before exit (only applies to debugger)
-        print "Last chance to do a postmertem before \$job is gone\n" if($debug);
+        print "Last chance to do a postmortem before \$job is gone\n" if($debug);
         $DB::single = 1;
 
         $job = undef;

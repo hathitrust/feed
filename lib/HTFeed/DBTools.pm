@@ -13,8 +13,6 @@ use base qw(Exporter);
 
 our @EXPORT_OK = qw(get_dbh get_queued lock_volumes update_queue count_locks get_volumes_with_status);
 
-my %release_states = map {$_ => 1} @{get_config('daemon'=>'release_states')};
-
 my $dbh = undef;
 my $pid = undef;
 
@@ -87,44 +85,17 @@ sub count_locks{
     return $sth->fetchrow;
 }
 
-# ingest_log_failure ($volume,$stage,$status)
-sub ingest_log_failure {
-    my ($volume,$stage,$new_status) = @_;
-    my $ns = $volume->get_namespace();
-    my $objid = $volume->get_objid();
-    my $stagename = "Unknown error";
-    if(defined $stage and ref($stage)) {
-        $stagename = "Error in " . ref($stage)
-    }
-    my $fatal = ($new_status eq 'punted');
-    my $sth = get_dbh()->prepare("INSERT INTO ingest_log (namespace,id,status,fatal) VALUES (?,?,?,?)");
-    $sth->execute($ns,$objid,$stagename,$fatal);
-}
-
-sub ingest_log_success {
-    my ($volume,$repeat) = @_;
-    my $ns = $volume->get_namespace();
-    my $objid = $volume->get_objid();
-
-    my $sth = get_dbh()->prepare("INSERT INTO ingest_log (namespace,id,status,isrepeat) VALUES (?,?,'ingested',?)");
-    $sth->execute($ns,$objid,$repeat);
-}
-
 # update_queue($ns, $objid, $new_status, [$release, [$fail]])
 # $fail indicates to incriment failure_count
 # job will be released if $new_status is a release state
 sub update_queue {
-    ## TODO: use release state rather than recalculating it (once this is assured to be safe)
-
     my ($ns, $objid, $new_status, $release, $fail) = @_;
     
     my $syntax = qq(UPDATE queue SET status = '$new_status');
     $syntax .= q(, failure_count=failure_count+1) if ($fail);
-    $syntax .= q(, node = NULL) if (exists $release_states{$new_status});
+    $syntax .= q(, node = NULL) if ($release);
     $syntax .= qq( WHERE namespace = '$ns' AND id = '$objid';);
-    #print '$ns, $objid, $new_status, $fail';
-    #print "\n$ns, $objid, $new_status, $fail\n";
-    #print "$syntax\n\n";
+
     get_dbh()->do($syntax);
 }
 

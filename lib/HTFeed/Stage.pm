@@ -207,6 +207,17 @@ sub force_failed_status{
     return;
 }
 
+=item success_info
+
+returns additional info to log on success.
+
+=cut
+
+sub success_info {
+    my $self = shift;
+    return "";
+}
+
 1;
 
 __END__;
