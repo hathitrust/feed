@@ -29,16 +29,16 @@ my $default_namespace = undef; # -n
 # read flags
 GetOptions(
     '1' => \$one_line,
-    'reset' => \$reset,
-    'R|force-reset' => \$force_reset,
-    'i|insert' => \$insert,
-    'verbose' => \$verbose,
-    'quiet' => \$quiet,
-    'state=s' => \$state,
+    'reset|r' => \$reset,
+    'force-reset|R' => \$force_reset,
+    'insert|i' => \$insert,
+    'verbose|v' => \$verbose,
+    'quiet|q' => \$quiet,
+    'state|s=s' => \$state,
     'help|?' => \$help,
-    'dot-packagetype=s' => \$dot_packagetype,    
-    'pkgtype=s' => \$default_packagetype,
-    'namespace=s' => \$default_namespace,
+    'dot-packagetype|d=s' => \$dot_packagetype,    
+    'pkgtype|p=s' => \$default_packagetype,
+    'namespace|n=s' => \$default_namespace,
 )  or pod2usage(2);
 
 pod2usage(1) if $help;
@@ -77,7 +77,7 @@ else{
             }
 
             push @volumes, HTFeed::Volume->new(packagetype => $dot_packagetype, namespace => $namespace, objid => $objid);
-            print "found: $default_packagetype $namespace $objid\n" if ($verbose);
+            print "found: $dot_packagetype $namespace $objid\n" if ($verbose);
         }
     }
 
