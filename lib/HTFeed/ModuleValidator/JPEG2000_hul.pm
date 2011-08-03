@@ -99,17 +99,16 @@ sub _set_validators {
                 $self->set_error(
                     "NotMatchedValue",
                     field  => 'colorspace',
-                    actual => {
-                        "xmp_colorSpace"          => $xmp_colorSpace,
-                        "xmp_samplesPerPixel"     => $xmp_samplesPerPixel,
-                        "mix_samplesPerPixel"     => $mix_samplesPerPixel,
-                        "jp2Meta_colorSpace"      => $meta_colorSpace,
-                        "mix_bitsPerSample"       => $mix_bitsPerSample,
-                        "xmp_bitsPerSample_grey"  => $xmp_bitsPerSample_grey,
-                        "xmp_bitsPerSample_color" => $xmp_bitsPerSample_color,
-                    }
-                )
-                and return
+                    actual => <<END
+xmp_colorSpace\t$xmp_colorSpace
+xmp_samplesPerPixel\t$xmp_samplesPerPixel
+mix_samplesPerPixel\t$mix_samplesPerPixel
+jp2Meta_colorSpace\t$meta_colorSpace
+mix_bitsPerSample\t$mix_bitsPerSample
+xmp_bitsPerSample_grey\t$xmp_bitsPerSample_grey
+xmp_bitsPerSample_color\t$xmp_bitsPerSample_color
+END
+                ) and return
               );
         },
         'dimensions' => sub {
@@ -125,13 +124,14 @@ sub _set_validators {
                   && ( $y1 == $y2 ) )
               or $self->set_error(
                 "NotMatchedValue",
-                field  => 'dimensions',
-                actual => {
-                    "mix_width"  => $x1,
-                    "mix_length" => $y1,
-                    "xmp_width"  => $x2,
-                    "xmp_length" => $y2
-                }
+                field    => 'dimensions',
+                expected => 'must be consistant and nonzero',
+                actual   => <<END
+mix_width\t$x1
+mix_length\t$y1
+xmp_width\t$x2
+xmp_length\t$y2
+END
               );
         },
         'extract_info' => sub {

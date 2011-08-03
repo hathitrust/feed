@@ -102,7 +102,8 @@ sub _setdatetime {
         $self->set_error(
             "BadValue",
             field  => 'datetime',
-            actual => $datetime
+            actual => $datetime,
+            expected => 'yyyy-mm-ddThh:mm:ss[+-]hh:mm'
         );
         return 0;
     }
