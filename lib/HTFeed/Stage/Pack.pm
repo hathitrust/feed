@@ -48,25 +48,40 @@ sub run{
     }
 
     my $zip_path = $volume->get_zip_path();
-    my $zipret = system("cd '$zip_stage'; zip -q -r $uncompressed_extensions '$zip_path' '$pt_objid'");
 
-    if($zipret) {
-        $self->set_error('OperationFailed',operation=>'zip',detail=>'Creating zip file',exitstatus=>$zipret,file=>$zip_path);
-    } else {
-
-        $zipret = system("unzip -q -t '$zip_path'");
-
-        if($zipret) {
-            $self->set_error('OperationFailed',operation=>'unzip',exitstatus=>$zipret,file=>$zip_path,detail=>'Verifying zip file');
-        }
-
-    }
-
-
+    $self->zip($zip_stage,$uncompressed_extensions,$zip_path,$pt_objid) or return;
 
     $self->_set_done();
     $volume->record_premis_event('zip_compression');
     return $self->succeeded();
+}
+
+=item zip
+    $self->zip($zip_staging_dir,$other_options,$zip_file_path,$pt_objid)
+=cut
+sub zip{
+    my $self = shift;
+    my ($zip_stage,$other_options,$zip_path,$pt_objid) = @_;
+
+    get_logger()->trace("Packing $zip_stage/$pt_objid to $zip_path");
+    my $zipret = system("cd '$zip_stage'; zip -q -r $other_options '$zip_path' '$pt_objid'");
+
+    if($zipret) {
+        $self->set_error('OperationFailed',operation=>'zip',detail=>'Creating zip file',exitstatus=>$zipret,file=>$zip_path);
+        return;
+    } else {
+
+        $zipret = system("unzip -qq -t '$zip_path'");
+
+        if($zipret) {
+            $self->set_error('OperationFailed',operation=>'unzip',exitstatus=>$zipret,file=>$zip_path,detail=>'Verifying zip file');
+            return;
+        }        
+    }
+
+    # success
+    get_logger()->trace("Packing $zip_stage/$pt_objid to $zip_path succeeded");
+    return 1;
 }
 
 sub stage_info{
@@ -80,6 +95,15 @@ sub clean_always{
     
     get_logger()->trace("Removing $zip_stage/$pt_objid");
     remove_tree "$zip_stage/$pt_objid";
+}
+
+sub clean_failure{
+    my $self = shift;
+    my $pt_objid = $self->{volume}->get_pt_objid();
+    my $zipfile_stage = get_config('staging'=>'zipfile');
+    
+    get_logger()->trace("Removing $zipfile_stage/$pt_objid");
+    remove_tree "$zipfile_stage/$pt_objid";    
 }
 
 1;
