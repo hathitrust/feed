@@ -53,6 +53,12 @@ $SIG{'HUP'} =
         $clean = get_config('daemon'=>'clean');
     };
 
+# run end block on SIGINT
+$SIG{'INT'} =
+    sub {
+        exit;
+    };
+
 # exit right away if stop file is set
 if( ! exit_condition() ) {
     HTFeed::StagingSetup::make_stage($clean);
@@ -194,19 +200,21 @@ END{
     # clean up on exit of original pid (i.e. don't clean on END of fork()ed pid)
     if($$ eq $process_id){
         # parent kills kids
+        print "killing child procs...\n";
         kill 2, keys %locks_by_pid;
         
         # delete staging dirs
         if ($clean){
-
+            print "cleaning staging dirs...\n";
             # delete everything in staging, except download
             HTFeed::StagingSetup::clear_stage();
 
             # release all locks
+            print "releasing db locks...\n";
             HTFeed::DBTools::reset_in_flight_locks();   
         }
         
-        # what it says; if we exiting with a non zero status (i.e. we died)
+        # wait before exiting if we're exiting with a non zero status (i.e. we died)
         # this prevents waiting to exit when we are sent SIGINT
         if ($?){
             print "Waiting 30 seconds (so we don't respawn too fast out of inittab)\n";
