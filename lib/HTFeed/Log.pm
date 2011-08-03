@@ -9,7 +9,7 @@ use strict;
 use HTFeed::Config qw(get_config);
 use Carp;
 
-use Getopt::Long qw(:config pass_through no_ignore_case);
+use Getopt::Long qw(:config pass_through no_ignore_case no_auto_abbrev);
 
 use Data::Dumper;
 #$Data::Dumper::Indent = 0;

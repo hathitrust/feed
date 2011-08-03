@@ -6,6 +6,7 @@ use lib "$FindBin::Bin/../lib";
 use warnings;
 use strict;
 use HTFeed::Log { root_logger => 'INFO, dbi' };
+use HTFeed::Version;
 use Log::Log4perl qw(get_logger);
 use HTFeed::DBTools::Queue;
 use HTFeed::Volume;
@@ -28,17 +29,16 @@ my $default_namespace = undef; # -n
 # read flags
 GetOptions(
     '1' => \$one_line,
-    'r' => \$reset,
-    'R' => \$force_reset,
-    'i' => \$insert,
-    'v' => \$verbose,
-    'q' => \$quiet,
-    's' => \$state,
+    'reset' => \$reset,
+    'R|force-reset' => \$force_reset,
+    'i|insert' => \$insert,
+    'verbose' => \$verbose,
+    'quiet' => \$quiet,
+    'state=s' => \$state,
     'help|?' => \$help,
-
-    'd=s' => \$dot_packagetype,    
-    'p=s' => \$default_packagetype,
-    'n=s' => \$default_namespace,
+    'dot-packagetype=s' => \$dot_packagetype,    
+    'pkgtype=s' => \$default_packagetype,
+    'namespace=s' => \$default_namespace,
 )  or pod2usage(2);
 
 pod2usage(1) if $help;
@@ -167,6 +167,8 @@ enqueue.pl [-v|-q] [-r|-R|-i] -1 packagetype namespace objid]
     -v verbose - verbose output for file parsing - overrides quiet
 
     -q quiet - skip report
+    
+    -s state - set initial state to state (e.g. ready, available, etc)
 
     INFILE - input read fron last arg on command line or stdin
     
