@@ -5,6 +5,8 @@ use lib "$FindBin::Bin/../lib";
 
 use warnings;
 use strict;
+use HTFeed::Log { root_logger => 'INFO, dbi' };
+use Log::Log4perl qw(get_logger);
 use HTFeed::DBTools::Queue;
 use HTFeed::Volume;
 use Getopt::Long qw(:config no_ignore_case);

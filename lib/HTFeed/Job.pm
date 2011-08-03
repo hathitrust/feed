@@ -56,12 +56,10 @@ sub update{
     my $release = 0;
     $release = 1 if (defined $release_states{$new_status});
 
-    get_logger()->info( 'StageSucceeded', objid => $self->id, namespace => $self->namespace, stage => $self->stage_class )
+    get_logger()->info( 'StageSucceeded', objid => $self->id, namespace => $self->namespace, stage => $self->stage_class, detail => $stage->success_info() )
         if (!$fail);
-    get_logger()->info( 'StageFailed', objid => $self->id, namespace => $self->namespace, stage => $self->stage_class )
+    get_logger()->info( 'StageFailed', objid => $self->id, namespace => $self->namespace, stage => $self->stage_class, detail => 'fatal=' . ($new_status eq 'punted') )
         if ($fail);
-    get_logger()->info( 'VolumePunted', objid => $self->id, namespace => $self->namespace )
-        if ($new_status eq 'punted');
     
     &{$self->{callback}}($self->namespace, $self->id, $new_status, $release, $fail);
 
