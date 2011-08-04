@@ -26,12 +26,18 @@ my $volumes = get_volumes(
 # wipe staging directories
 HTFeed::StagingSetup::make_stage(1);
 
+my $volume_count = @{$volumes};
+my $volumes_processed = 0;
+print "Processing $volume_count volumes...\n";
 
 my $kids = 0;
 my $max_kids = get_config('dataset'=>'threads');
 
 foreach (my ($ns,$id) = @{$volumes}){
-    
+    $volumes_processed++;
+    print "Processing volume $volumes_processed of $volume_count...\n"
+        unless ($volumes_processed % 1000);
+
     eval{
         my $volume = HTFeed::Volume->new(
             objid       => $id,
