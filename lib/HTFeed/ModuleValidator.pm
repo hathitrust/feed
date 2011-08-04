@@ -192,11 +192,12 @@ sub _setdocumentname {
     my $pattern = "$id/$file";
     #$pattern =~ s/[-_]/\[-_\]/g;
 
-    unless ( $documentname =~ m|\Q$pattern\E|i ) {
+    unless ( $documentname =~ m|^\Q$pattern\E$|i ) {
         $self->set_error(
             "BadValue",
-            field  => 'documentname',
-            actual => $documentname
+            field    => 'documentname',
+            expected => $pattern,
+            actual   => $documentname
         );
         return 0;
     }
