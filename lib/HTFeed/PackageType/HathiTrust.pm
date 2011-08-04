@@ -41,12 +41,11 @@ our $config = {
    # source_mets_mets_path =>
 
     # what stage to run given the current state
-#    stage_map => {
-#        ready_for_validation 	=> 'HTFeed::PackageType::HathiTrust::MoveToRAM',
-#        on_ramdisk				=> 'HTFeed::PackageType::HathiTrust::VolumeValidator',
-#		 ready_for_???
-#    },
-
+    stage_map => {
+        ready 	 => 'HTFeed::Dataset::Stage::UnpackText',
+        unpacked => 'HTFeed::Dataset::Stage::Pack',
+		packed   => 'HTFeed::Dataset::Stage::Collate'
+    },
 };
 
 __END__
