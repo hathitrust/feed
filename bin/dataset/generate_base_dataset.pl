@@ -1,3 +1,5 @@
+#!/usr/bin/perl
+
 use warnings;
 use strict;
 
@@ -5,6 +7,8 @@ use FindBin;
 use lib "$FindBin::Bin/../../lib";
 
 use HTFeed::Log { root_logger => 'INFO, dbi' };
+use Log::Log4perl qw(get_logger);
+
 use HTFeed::StagingSetup;
 use HTFeed::Version;
 
@@ -33,13 +37,16 @@ print "Processing $volume_count volumes...\n";
 my $kids = 0;
 my $max_kids = get_config('dataset'=>'threads');
 
-foreach (my ($ns,$id) = @{$volumes}){
+while (my $nsid = shift @{$volumes}){
+    my ($ns,$id) = @{$nsid};
+    
     $volumes_processed++;
     print "Processing volume $volumes_processed of $volume_count...\n"
         unless ($volumes_processed % 1000);
-
+    
+    my $volume;
     eval{
-        my $volume = HTFeed::Volume->new(
+        $volume = HTFeed::Volume->new(
             objid       => $id,
             namespace   => $ns,
             packagetype => 'ht',
@@ -47,6 +54,7 @@ foreach (my ($ns,$id) = @{$volumes}){
     };
     if($@){
         # bad barcode
+        warn "skipped $ns.$id, could not instantiate volume";
         next;
     }
     
