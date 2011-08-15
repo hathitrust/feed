@@ -192,7 +192,9 @@ sub _setdocumentname {
     my $pattern = "$id/$file";
     #$pattern =~ s/[-_]/\[-_\]/g;
 
-    unless ( $documentname =~ m|^\Q$pattern\E$|i ) {
+    # $documentname should look like "$id/$file", but "UOM_$id/$file" is allowed
+    # so don't use m|^\Q$pattern\E$|i
+    unless ( $documentname =~ m|\Q$pattern\E|i ) {
         $self->set_error(
             "BadValue",
             field    => 'documentname',
