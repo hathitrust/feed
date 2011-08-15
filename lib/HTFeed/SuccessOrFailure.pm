@@ -7,7 +7,7 @@ use Carp;
 # return somthing true on failure, somthing false on success
 # abstract
 sub failed{
-	croak "this is an abstract method";
+	croak 'subclass must impliment failed()';
 }
 
 # return false on failure, 1 on success

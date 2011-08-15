@@ -33,7 +33,7 @@ sub get_dbh {
 
     # Reconnect to server if necessary
     unless($dbh and $pid eq $$ and $dbh->ping) {
-	_init();
+        _init();
     }
 
     return($dbh);
