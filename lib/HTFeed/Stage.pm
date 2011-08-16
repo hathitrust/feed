@@ -89,8 +89,8 @@ sub failed {
     my $self = shift;
     return $self->{failed} if $self->{has_run};
     
-    $self->set_error('IncompleteStage');    
-    return $self->{failed};
+    # stage didn't finish running.
+    return 1;
 }
 
 # set fail, log errors
