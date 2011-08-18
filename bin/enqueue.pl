@@ -21,6 +21,7 @@ my $verbose = 0; # -v
 my $quiet = 0; # -q
 my $state = 'ready'; # -s
 my $help = 0; # -help,-?
+my $use_blacklist = 1;
 
 my $dot_packagetype = undef; # -d
 my $default_packagetype = undef; # -p
@@ -39,6 +40,7 @@ GetOptions(
     'dot-packagetype|d=s' => \$dot_packagetype,    
     'pkgtype|p=s' => \$default_packagetype,
     'namespace|n=s' => \$default_namespace,
+    'use-blacklist|b!' => \$use_blacklist,
 )  or pod2usage(2);
 
 pod2usage(1) if $help;
@@ -110,7 +112,7 @@ if($reset or $force_reset){
     $results = reset_volumes(\@volumes, $state, $force_reset);
 }
 else{
-    $results = enqueue_volumes(\@volumes, $state, $insert);
+    $results = enqueue_volumes(\@volumes, $state, $insert, $use_blacklist);
 }
 
 if ($verbose or !$quiet){
@@ -169,6 +171,8 @@ enqueue.pl [-v|-q] [-r|-R|-i] -1 packagetype namespace objid]
     -q quiet - skip report
     
     -s state - set initial state to state (e.g. ready, available, etc)
+
+    --no-use-blacklist - ignore the blacklist and force enqueueing of the given volumes
 
     INFILE - input read fron last arg on command line or stdin
     
