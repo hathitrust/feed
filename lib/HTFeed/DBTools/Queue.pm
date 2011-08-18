@@ -22,6 +22,8 @@ sub enqueue_volumes{
     my $volumes = shift;
     my $status = (shift or "available");
     my $ignore = shift;
+    my $use_blacklist = shift;
+    $use_blacklist = 1 if not defined $use_blacklist;
     
     my $dbh = HTFeed::DBTools::get_dbh();
     my $sth;
@@ -39,11 +41,13 @@ sub enqueue_volumes{
             my $namespace = $volume->get_namespace();
             my $objid = $volume->get_objid();
 
-            $blacklist_sth->execute($namespace,$objid);
-            if($blacklist_sth->fetchrow_array()) {
-                get_logger()->warn("Blacklisted",namespace=>$namespace,objid=>$objid);
-                push(@results,0);
-                return;
+            if($use_blacklist) {
+                $blacklist_sth->execute($namespace,$objid);
+                if($blacklist_sth->fetchrow_array()) {
+                    get_logger()->warn("Blacklisted",namespace=>$namespace,objid=>$objid);
+                    push(@results,0);
+                    return;
+                }
             }
 
             my $res = $sth->execute($volume->get_packagetype(), $volume->get_namespace(), $volume->get_objid(), initial_priority($volume), $status);

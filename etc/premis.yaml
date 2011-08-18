@@ -1,22 +1,6 @@
 ###### PREMIS configuration ######################################################
 #
 #
-# A perl snippet returning the software name and version for each 'tool' code
-# in the PREMIS events below. $self is the HTFeed::METS stage generating the
-# PREMIS events.
-
-premis_tools:
-    GROOVE: $FindBin::Script . " " . HTFeed::Version::get_feed_version_number();
-    EXIFTOOL: $self->perl_mod_version('Image::ExifTool');
-    XERCES: $self->local_directory_version('xerces-c');
-    JHOVE: $self->local_directory_version('jhove');
-    DIGEST_MD5: $self->perl_mod_version('Digest::MD5');
-    GPG: $self->system_version('gnupg');
-    ZIP: $self->local_directory_version('zip');
-    KDU_COMPRESS: $self->local_directory_version('kakadu');
-
-# Location of the symlinks for 'local directory version'
-premis_tool_local: /l/local
 
 # For each possible kind of PREMIS event, list the PREMIS eventType, the
 # eventDetail, the executor linkingAgent VOLUME_ARTIST), and any tool

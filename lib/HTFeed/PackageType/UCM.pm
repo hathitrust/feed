@@ -44,8 +44,8 @@ our $config = {
         src_metsed        => 'HTFeed::VolumeValidator',
         validated         => 'HTFeed::Stage::Pack',
         packed            => 'HTFeed::METS',
-#        metsed            => 'HTFeed::Stage::Handle',
-#        handled           => 'HTFeed::Stage::Collate',
+        metsed            => 'HTFeed::Stage::Handle',
+        handled           => 'HTFeed::Stage::Collate',
     },
 
 
