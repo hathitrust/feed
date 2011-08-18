@@ -59,12 +59,14 @@ on $self->ram_disk_size()
 
 =cut
 
+# Functionality is not useful with current ingest machines and in some cases causes conflicts.
 sub stage_on_disk{
-    my $self = shift;
-    my $ram_size = df(get_config('ram_disk'));
-    my $max_job_size = ($ram_size->{blocks}*1024 * get_config('ram_fill_limit')) / get_config('volumes_in_process_limit');
-    return 1 if ($self->ram_disk_size() > $max_job_size);
-    return;
+#    my $self = shift;
+#    my $ram_size = df(get_config('ram_disk'));
+#    my $max_job_size = ($ram_size->{blocks}*1024 * get_config('ram_fill_limit')) / get_config('volumes_in_process_limit');
+#    return 1 if ($self->ram_disk_size() > $max_job_size);
+#    return;
+    return 0;
 }
 
 1;
