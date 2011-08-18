@@ -26,7 +26,7 @@ sub run{
         my $pairtree_link_path = $pairtree_link_parent . $pairtree_objid;
 
         # this is a re-ingest if the dir already exists, log this
-        if (-d $pairtree_link_parent){
+        if (-l $pairtree_link_path){
             $self->set_info('Collating volume that is already in repo');
             $self->{is_repeat} = 1;
             # make sure we have a link
