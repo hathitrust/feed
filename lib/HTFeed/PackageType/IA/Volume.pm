@@ -7,6 +7,7 @@ use HTFeed::DBTools qw(get_dbh);
 use HTFeed::Config qw(get_config);
 use File::Pairtree qw(id2ppath s2ppchars);
 use File::Path qw(make_path);
+use Carp qw(croak);
 
 my $pagetag_mapping = {
     'Blank Tissue' => 'BLANK',
