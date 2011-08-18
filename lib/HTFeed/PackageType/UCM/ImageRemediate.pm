@@ -99,6 +99,7 @@ sub run{
         $self->set_new_if_undefined("XMP-dc:source","$staging_dir/$outfile");
         $self->set_new_if_undefined("XMP-tiff:Compression","JPEG 2000");
         $self->set_new_if_undefined("XMP-tiff:Artist","Universidad Complutense de Madrid");
+        $self->set_new_if_undefined("XMP-tiff:Orientation","normal");
 
         my $exifTool = new Image::ExifTool;
         while ( ( $field, $val ) = each(%{$self->{newFields}}) ) {
