@@ -385,7 +385,7 @@ sub _validate_metadata {
             }
 
         }
-        elsif (m|^</jhove>$|) {
+        elsif (m|^\s*</jhove>$|) {
             last DOC_READER;
         }
         elsif (m|<app>|) {
@@ -396,7 +396,7 @@ sub _validate_metadata {
         else {
 
             # this should never happen
-            die "jhove output bad";
+            die "could not parse jhove output";
         }
     }
 
