@@ -14,10 +14,10 @@ our $config = {
 
     # Regular expression that distinguishes valid files in the file package
     # HTML OCR is valid for the package type but only expected/required for UC1
+
     valid_file_pattern => qr/^( 
 	\w+\.(mets.xml) |
     [ap]m\d{2,8}.(wav) |
-	\w+\.(jp2) |
 	checksum\.md5 |
 	notes\.txt
     )/x,
@@ -43,16 +43,6 @@ our $config = {
         	    jhove => 1,
         	    utf8 => 0
 			},
-
-			image => {
-				use => 'image',
-				file_pattern => qr/\w+\.(jp2)$/,
-				required => 0,
-				content => 1,
-				jhove => 1,
-				utf8 => 0
-			},
-
     },
 	
 	validation_run_stages => [
