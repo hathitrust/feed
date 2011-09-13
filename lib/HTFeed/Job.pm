@@ -58,7 +58,7 @@ sub update{
 
     get_logger()->info( 'StageSucceeded', objid => $self->id, namespace => $self->namespace, stage => $self->stage_class, detail => $stage->success_info() )
         if (!$fail);
-    get_logger()->info( 'StageFailed', objid => $self->id, namespace => $self->namespace, stage => $self->stage_class, detail => 'fatal=' . ($new_status eq 'punted') )
+    get_logger()->info( 'StageFailed', objid => $self->id, namespace => $self->namespace, stage => $self->stage_class, detail => 'fatal=' . ($new_status eq 'punted' ? '1' : '0') )
         if ($fail);
     
     &{$self->{callback}}($self->namespace, $self->id, $new_status, $release, $fail);
