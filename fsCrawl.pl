@@ -6,7 +6,7 @@ use DBI;
 use HTFeed::Config qw(get_config);
 use HTFeed::DBTools qw(get_dbh);
 use File::Basename;
-use File::Pairtree;
+use File::Pairtree qw(ppath2id s2ppchars);
 use HTFeed::Volume;
 use HTFeed::Namespace;
 use HTFeed::PackageType;
@@ -23,7 +23,7 @@ my $base= shift @ARGV or die("Missing base directory..");
 my $filesProcessed = 0;
 my $prevpath;
 my $do_md5 = 1;
-my $do_mets = 0;
+my $do_mets = 1;
 open(RUN, "find $base -follow -type f|") or die ("Can't open pipe to find: $!");
 
 while(my $line = <RUN>) {
@@ -47,12 +47,17 @@ while(my $line = <RUN>) {
 
         # remove base & any empty components 
         @pathcomp = grep { $_ ne '' } @pathcomp;  
-        shift @pathcomp; 
+        my $first_path = shift @pathcomp; 
+        my $last_path = pop @pathcomp;
         my $namespace = $pathcomp[1];
 
-        my $objid = ppath2id($path);
+        my $objid = ppath2id(join("/",@pathcomp));
         if($pt_objid ne s2ppchars($objid)) {
             set_status($namespace,$objid,$path,"BAD_PAIRTREE", "$objid $pt_objid");
+        }
+
+        if($last_path ne $pt_objid) {
+            set_status($namespace,$objid,$path,"BAD_PAIRTREE", "$last_path $pt_objid");
         }
 
         #get last modified date
@@ -63,12 +68,14 @@ while(my $line = <RUN>) {
         my $zipsize = -s $zipfile;
         my $metssize = -s $metsfile;
 
-        #test symlinks
-        my $link_path = join("/","/sdr1",@pathcomp);
-        my $link_target = readlink $link_path or set_status($namespace,$objid,$path,"CANT_LSTAT", "$link_path $!");
+        #test symlinks unless we're traversing sdr1
+        if($first_path ne 'sdr1') {
+            my $link_path = join("/","/sdr1",@pathcomp,$last_path);
+            my $link_target = readlink $link_path or set_status($namespace,$objid,$path,"CANT_LSTAT", "$link_path $!");
 
-        if($link_target ne $path) {
-            set_status($namespace,$objid,$path,"SYMLINK_INVALID",$link_target);
+            if($link_target ne $path) {
+                set_status($namespace,$objid,$path,"SYMLINK_INVALID",$link_target);
+            }
         }
 
         #insert
@@ -260,7 +267,7 @@ sub zipcheck {
         }
 
         { # METS valid
-            my ($mets_valid, $error) = HTFeed::METS::validate_xml($volume,$volume->get_repository_mets_path());
+            my ($mets_valid, $error) = HTFeed::METS::validate_xml({ volume => $volume },$volume->get_repository_mets_path());
             if(!$mets_valid) {
                 $error =~ s/\n/ /mg;
             }
@@ -321,7 +328,7 @@ sub extract_source_mets {
     while(<$zipinfo>) {
         chomp;
         my @zipfields = split /\s+/;
-        if($zipfields[4] and $zipfields[4] =~ /^$pt_objid\/\w+_$pt_objid.xml/i) {
+        if($zipfields[4] and $zipfields[4] =~ /^\Q$pt_objid\E\/\w+_\Q$pt_objid\E.xml/i) {
             push(@srcmets,$zipfields[4]);
         }
     }
