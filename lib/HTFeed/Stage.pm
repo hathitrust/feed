@@ -183,6 +183,7 @@ sub clean_punt{
     $volume->clean_zip();
     $volume->clean_unpacked_object();
     $volume->clean_preingest();
+    $volume->clean_download();
     
     return;
 }

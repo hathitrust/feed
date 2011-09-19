@@ -14,7 +14,7 @@ use HTFeed::Run;
 
 use HTFeed::Config;
 use HTFeed::Volume;
-use HTFeed::DBTools qw(get_queued lock_volumes count_locks update_queue);
+use HTFeed::DBTools qw(get_queued lock_volumes count_locks update_queue disconnect);
 use Log::Log4perl qw(get_logger);
 use Filesys::Df;
 use HTFeed::Job;
@@ -87,11 +87,12 @@ while ($subprocesses){
 # fork, lock job, increment $subprocess
 sub spawn{
     my $job = shift;
+    # make sure DBI is disconnected before fork
+    disconnect();
     my $pid = fork();
     if ($pid){
         # parent
         lock_job($pid, $job);
-        get_logger()->trace("spawned $pid")
     }
     elsif ( defined $pid ) {
         # child
@@ -168,6 +169,7 @@ sub fill_queue{
             }
             $sth->finish();
         }
+        disconnect();
     };
     if($@){
         get_logger()->warn("daemon db operation failed: $@");
