@@ -23,8 +23,8 @@ sub run{
         if( ($anum) = ($a =~ /\((\d+)\)/)
                 and ($bnum) = ($b =~ /\((\d+)\)/)) { 
             return $anum <=> $bnum;
-        } elsif ( ($anum,$asub) = ($a =~ /_(\d+)_?(\d+)?/) and
-            ($bnum,$bsub) = ($b =~ /_(\d+)_?(\d+)?/) ) {
+        } elsif ( ($anum,$asub) = ($a =~ /_?(\d+)_?(\d+)?/) and
+            ($bnum,$bsub) = ($b =~ /_?(\d+)_?(\d+)?/) ) {
 
             if($anum == $bnum) {
                 if(not defined $asub) {
@@ -59,17 +59,14 @@ sub run{
 
         # From Roger:
         #
-        # $levels would be derived from the largest dimension:
+        # $levels would be derived from the largest dimension; minimum is 5.
         #
-        # - 0     < x <= 800   : nlev=2
-        # - 800   < x <= 1600  : nlev=3
-        # - 1600  < x <= 3200  : nlev=4
-        # - 3200  < x <= 6400  : nlev=5
+        # - 0     < x <= 6400  : nlev=5
         # - 6400  < x <= 12800 : nlev=6
         # - 12800 < x <= 25600 : nlev=7
         my $maxdim = max($self->{oldFields}->{'IFD0:ImageWidth'},
             $self->{oldFields}->{'IFD0:ImageHeight'});
-        my $levels = max(2,ceil(log($maxdim/100)/log(2)) - 1);
+        my $levels = max(5,ceil(log($maxdim/100)/log(2)) - 1);
         
         # try to compress the TIFF -> JPEG2000
         get_logger()->info("Compressing $infile to $outfile");
@@ -79,8 +76,11 @@ sub run{
         # is a VBR compression mode; the value of 42988 corresponds to pre-6.4
         # slope of 51180, the current (as of 5/6/2011) recommended setting for
         # Google digifeeds.
+        #
+        # 43300 corresponds to the old recommendation of 51492 for general material.
 
-        system(qq($kdu_compress -quiet -i '$infile' -o '$staging_dir/$outfile' Clevels=$levels Clayers=8 Corder=RLCP Cuse_sop=yes Cuse_eph=yes "Cmodes=RESET|RESTART|CAUSAL|ERTERM|SEGMARK" -no_weights -slope 42988))
+#        system(qq($kdu_compress -quiet -i '$infile' -o '$staging_dir/$outfile' Clevels=$levels Clayers=8 Corder=RLCP Cuse_sop=yes Cuse_eph=yes "Cmodes=RESET|RESTART|CAUSAL|ERTERM|SEGMARK" -no_weights -slope 42988))
+        system(qq($kdu_compress -quiet -i '$infile' -o '$staging_dir/$outfile' Clevels=$levels Clayers=8 Corder=RLCP Cuse_sop=yes Cuse_eph=yes "Cmodes=RESET|RESTART|CAUSAL|ERTERM|SEGMARK" -no_weights -slope 43300))
 
           and $self->set_error("OperationFailed",
             operation=>"kdu_compress",
