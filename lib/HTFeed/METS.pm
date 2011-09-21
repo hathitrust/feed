@@ -63,7 +63,6 @@ sub _add_schemas {
     my $mets = $self->{mets};
 
     $mets->add_schema( "PREMIS", NS_PREMIS, SCHEMA_PREMIS );
-    $mets->add_schema( "MARC",   NS_MARC,   SCHEMA_MARC );
 
 }
 
@@ -92,7 +91,6 @@ sub _add_dmdsecs {
     my $volume = $self->{volume};
     my $mets   = $self->{mets};
 
-    # TODO: validate/remediate MARC
     my $dmdsec =
       new METS::MetadataSection( 'dmdSec',
         'id' => $self->_get_subsec_id("DMD") );
@@ -104,18 +102,6 @@ sub _add_dmdsecs {
     );
     $mets->add_dmd_sec($dmdsec);
 
-    $dmdsec =
-      new METS::MetadataSection( 'dmdSec',
-        'id' => $self->_get_subsec_id("DMD") );
-    $dmdsec->set_data(
-        $volume->get_marc_xml(),    # will throw an exception if no MARC found
-        mdtype => 'MARC',
-        label  => 'Physical volume MARC record',
-        mimetype => 'text/xml'
-    );
-    $mets->add_dmd_sec($dmdsec);
-
-    # MIU: add TEIHDR; do not add second call number??
 }
 
 # no techmds by default
