@@ -8,12 +8,6 @@ use HTFeed::Log {root_logger => 'INFO, screen'};
 use Test::More tests => 11;
 use HTFeed::Config qw(set_config);
 
-# check for legacy environment vars
-unless (defined $ENV{GROOVE_WORKING_DIRECTORY} and defined $ENV{GROOVE_CONFIG}){
-    print "GROOVE_WORKING_DIRECTORY and GROOVE_CONFIG must be set\n";
-    exit 0;
-}
-
 
 BEGIN {
     use_ok('HTFeed::Volume');
