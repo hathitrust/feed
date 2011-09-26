@@ -8,12 +8,6 @@ use HTFeed::Log {root_logger => 'INFO, screen'};
 use Test::More tests => 11;
 use HTFeed::Config qw(set_config);
 
-# check for legacy environment vars
-unless (defined $ENV{GROOVE_WORKING_DIRECTORY} and defined $ENV{GROOVE_CONFIG}){
-    print "GROOVE_WORKING_DIRECTORY and GROOVE_CONFIG must be set\n";
-    exit 0;
-}
-
 
 BEGIN {
     use_ok('HTFeed::Volume');
@@ -31,7 +25,7 @@ my $mets = new HTFeed::METS(
     )
 );
 like( $mets->get_tool_version("GROOVE"),
-    qr/$0 git rev [a-z0-f]{40}/, "toolver_groove" );
+    qr/$0 \d+\.\d+\.\d+/, "toolver_groove" );
 like( $mets->get_tool_version("EXIFTOOL"),
     qr/Image::ExifTool \d\.\d+/, "toolver_exiftool" );
 like( $mets->get_tool_version("XERCES"), qr/xerces-c \d\.\d+/, "toolver_xerces" );
