@@ -25,7 +25,7 @@ my $mets = new HTFeed::METS(
     )
 );
 like( $mets->get_tool_version("GROOVE"),
-    qr/$0 git rev [a-z0-f]{40}/, "toolver_groove" );
+    qr/$0 \d+\.\d+\.\d+/, "toolver_groove" );
 like( $mets->get_tool_version("EXIFTOOL"),
     qr/Image::ExifTool \d\.\d+/, "toolver_exiftool" );
 like( $mets->get_tool_version("XERCES"), qr/xerces-c \d\.\d+/, "toolver_xerces" );
