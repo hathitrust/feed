@@ -31,7 +31,7 @@ sub _set_validators {
 		'profile2'			=> v_in( 'repInfo', 'profile2', ['Broadcast Wave Version 0', 'Broadcast Wave Version 1'] ),
 		'codingHistory'		=> v_exists( 'waveMeta', 'codingHistory'),
 		'description'		=> v_exists( 'waveMeta', 'description'),
-		'originator' 		=> v_eq( 'waveMeta', 'originator', 'University of Michigan'),
+		'originator' 		=> v_eq( 'waveMeta', 'originator', 'University of Michigan Library'),
 		'originationDate'	=> sub{
 			my $self = shift;
 			my $date = $self->_findone( "waveMeta", "originationDate" );
