@@ -11,7 +11,7 @@ use Log::Log4perl qw(get_logger);
 
 use base qw(Exporter);
 
-our @EXPORT_OK = qw(get_dbh get_queued lock_volumes update_queue count_locks get_volumes_with_status);
+our @EXPORT_OK = qw(get_dbh get_queued lock_volumes update_queue count_locks get_volumes_with_status disconnect);
 
 my $dbh = undef;
 my $pid = undef;
@@ -27,6 +27,13 @@ sub _init {
     $pid = $$;
 
     return($dbh);
+}
+
+sub disconnect {
+    if($dbh and $pid eq $$) {
+        $dbh->disconnect();
+    }
+    $dbh = undef;
 }
 
 sub get_dbh {

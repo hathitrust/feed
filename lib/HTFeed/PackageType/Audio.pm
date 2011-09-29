@@ -16,7 +16,7 @@ our $config = {
     # HTML OCR is valid for the package type but only expected/required for UC1
 
     valid_file_pattern => qr/^( 
-	\w+\.(mets.xml) |
+	\w+\.(mets\.xml) |
     [ap]m\d{2,8}.(wav) |
 	checksum\.md5 |
 	notes\.txt
