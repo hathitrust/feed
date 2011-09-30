@@ -15,15 +15,52 @@ use Log::Log4perl qw(get_logger);
 
 our @EXPORT = qw(enqueue_volumes reset_volumes);
 
-# enqueue(\@volumes)
+=item enqueue_volumes
+enqueue volumes
+=synopsis
+enqueue_volumes($volume)
+enqueue_volumes([$volume,...])
+enqueue_volumes(
+        (volume => $volume | volumes => ($volume,...),),
+        status        => $status_string,
+        ignore        => 1,
+        use_blacklist => 0,
+        priority      => $priority_modifier, # see Priority.pm for valid priority modifiers
+)
+=cut
 # 
 # add volumes to queue
 sub enqueue_volumes{
-    my $volumes = shift;
-    my $status = (shift or "available");
-    my $ignore = shift;
-    my $use_blacklist = shift;
-    $use_blacklist = 1 if not defined $use_blacklist;
+    # accept hashless args
+    if($#_ == 0){
+       if ($_[0]->isa('HTFeed::Volume')){
+           unshift(@_, 'volume');
+       }
+       else{
+           unshift(@_, 'volumes');
+       }
+    }
+    
+    my %args = (
+        volume        => undef,
+        volumes       => undef,
+        status        => 'available',
+        ignore        => undef,
+        use_blacklist => 1,
+        priority      => undef,
+        @_
+    );
+    
+    die q{Use 'volume' or 'volumes' arg, not both}
+        if (defined $args{volume} and defined $args{volumes});
+    
+    my $volumes             = $args{volumes};
+    $volumes = [$args{volume}]
+        if (defined $args{volume});
+    my $status              = $args{status};
+    my $ignore              = $args{ignore};
+    my $use_blacklist       = $args{use_blacklist};
+    my $priority_modifier   = $args{priority};
     
     my $dbh = HTFeed::DBTools::get_dbh();
     my $sth;
@@ -50,7 +87,7 @@ sub enqueue_volumes{
                 }
             }
 
-            my $res = $sth->execute($volume->get_packagetype(), $volume->get_namespace(), $volume->get_objid(), initial_priority($volume), $status);
+            my $res = $sth->execute($volume->get_packagetype(), $volume->get_namespace(), $volume->get_objid(), initial_priority($volume,$priority_modifier), $status);
             push @results, $res;
         } or get_logger()->error($@) and return \@results;
     }
@@ -61,13 +98,48 @@ sub enqueue_volumes{
     return \@results;
 }
 
-# reset(\@volumes, $force)
+# reset_volumes(\@volumes, $force)
 # 
 # reset punted volumes, reset all volumes if $force
+=item reset
+reset volumes
+=synopsis
+reset_volumes($volume);
+reset_volumes([$volume,...]);
+reset_volumes(
+        (volume => $volume | volumes => ($volume,...),),
+        [force => 1]
+        [status => $status]
+);
+=cut
 sub reset_volumes {
-    my $volumes = shift;
-    my $status = (shift or "ready");
-    my $force = shift;
+    # accept hashless args
+    if($#_ == 0){
+       if ($_[0]->isa('HTFeed::Volume')){
+           unshift(@_, 'volume');
+       }
+       else{
+           unshift(@_, 'volumes');
+       }
+    }
+    
+    my %args = (
+        volume  => undef,
+        volumes => undef,
+        force   => undef,
+        status  => "ready",
+        @_
+    );
+    
+    die q{Use 'volume' or 'volumes' arg, not both}
+        if (defined $args{volume} and defined $args{volumes});
+    
+    my $volumes = $args{volumes};
+    $volumes = [$args{volume}]
+        if (defined $args{volume});
+
+    my $force = $args{force};
+    my $status = $args{status};
     
     my $dbh = HTFeed::DBTools::get_dbh();
     my $sth;
