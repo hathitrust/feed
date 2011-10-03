@@ -53,7 +53,7 @@ sub run_jhove {
     get_logger()->trace("jhove cmd $jhove_cmd");
 
     # make a hash of expected files
-    my %files_left_to_validate = map { $_ => 1 } @$files;
+    my %files_left_to_process = map { $_ => 1 } @$files;
 
     # open pipe to jhove
     my $pipe = IO::Pipe->new();
@@ -117,7 +117,7 @@ sub run_jhove {
         }
     }
 
-    if ( keys %files_left_to_proces ) {
+    if ( keys %files_left_to_process ) {
 
         # this should never happen
         die "missing a block in jhove output";
@@ -125,3 +125,7 @@ sub run_jhove {
 
     return;
 }
+
+1;
+
+__END__
