@@ -34,7 +34,6 @@ sub _add_schemas {
 
     # add PREMIS1 namespace but don't worry about validating it
     $mets->add_schema( "PREMIS", NS_PREMIS1);
-    $mets->add_schema( "MARC",   NS_MARC,   SCHEMA_MARC );
 
 }
 

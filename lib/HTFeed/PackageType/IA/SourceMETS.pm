@@ -49,7 +49,7 @@ sub _add_dmdsecs {
     my $metaxml = $parser->parse_file("$download_directory/${ia_id}_meta.xml");
     my $meta_arkid = $metaxml->findvalue("//identifier-ark");
     if($meta_arkid ne $volume->get_objid()) {
-        $self->_set_error("NotEqualValues",field=>"identifier-ark",expected=>$objid,actual=>$meta_arkid);
+        $self->set_error("NotEqualValues",field=>"identifier-ark",expected=>$objid,actual=>$meta_arkid);
     }
 
     my $dmdsec = new METS::MetadataSection( 'dmdSec', 'id' => $self->_get_subsec_id("DMD"));

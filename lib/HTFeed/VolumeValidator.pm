@@ -14,7 +14,7 @@ use IO::Pipe;
 use PREMIS::Outcome;
 use HTFeed::Config qw(get_config);
 
-use base qw(HTFeed::Stage);
+use base qw(HTFeed::Stage::JHOVE_Runner);
 
 
 sub new {
@@ -294,117 +294,37 @@ sub _validate_metadata {
     my $self   = shift;
     my $volume = $self->{volume};
 
+
     # get files
     my $dir   = $volume->get_staging_directory();
     my $files = $volume->get_jhove_files();
 
-    # make sure we have >0 files
-    if ( !@$files ) {
-        $self->set_error(
-            "BadFile",
-            file   => "all",
-            detail => "Zero files found to validate"
+
+    $self->run_jhove($volume,$dir,$files, sub {
+        my ($volume,$file,$node) = @_;
+
+        my $xpc = XML::LibXML::XPathContext->new($node);
+        register_namespaces($xpc);
+
+        get_logger()->trace("validating $file");
+        my $mod_val = HTFeed::ModuleValidator->new(
+            xpc => $xpc,
+
+            #node    => $node,
+            volume   => $volume,
+            filename => $file
         );
-        return;
-    }
+        $mod_val->run();
 
-    # prepend directory to each file to validate
-    my $files_for_cmd = join( "' '", map { "$_" } @$files );
-    my $jhove_path = get_config('jhove');
-    my $jhove_conf = get_config('jhoveconf');
-    my $jhove_cmd = "cd '$dir'; $jhove_path -h XML -c $jhove_conf '$files_for_cmd'";
-    get_logger()->trace("jhove cmd $jhove_cmd");
-
-    # make a hash of expected files
-    my %files_left_to_validate = map { $_ => 1 } @$files;
-
-    # open pipe to jhove
-    my $pipe = IO::Pipe->new();
-    $pipe->reader($jhove_cmd);
-
-    # get the header
-    my $control_line = <$pipe>;
-    my $head         = <$pipe>;
-    my $date_line    = <$pipe>;
-    my $tail         = '</jhove>';
-
-    # start looking for repInfo block
-    DOC_READER: while (<$pipe>) {
-        if (m|^\s*<repInfo.+>$|) {
-
-            # save the first line when we find it
-            my $xml_block = "$_";
-
-            # get the rest of the lines for this repInfo block
-            BLOCK_READER: while (<$pipe>) {
-
-                # save more lines until we get to </repInfo>
-                $xml_block .= $_;
-                last BLOCK_READER if m|^\s*</repInfo>$|;
-            }
-
-            # get file name from xml_block
-            $xml_block =~ m{^\s*<repInfo\suri=".*/(.*)"|^\s*<repInfo\suri="(.*)"};
-            my $file;
-            $file = $1 or $file = $2;
-
-            # remove file from our list
-            delete $files_left_to_validate{$file};
-
-            # validate file
-            {
-
-                # put the headers on xml_block, parse it as a doc
-                $xml_block =
-                $control_line . $head . $date_line . $xml_block . $tail;
-
-                #                print $xml_block;
-                my $parser = XML::LibXML->new();
-                $xml_block = $parser->parse_string($xml_block);
-                my $xpc = XML::LibXML::XPathContext->new($xml_block);
-                register_namespaces($xpc);
-
-                get_logger()->trace("validating $file");
-                my $mod_val = HTFeed::ModuleValidator->new(
-                    xpc => $xpc,
-
-                    #node    => $node,
-                    volume   => $volume,
-                    filename => $file
-                );
-                $mod_val->run();
-
-                # check, log success
-                if ( $mod_val->succeeded() ) {
-                    get_logger()->debug( "File validation succeeded",
-                        file => $file );
-                }
-                else {
-                    $self->set_error( "BadFile", file => $file );
-                }
-            }
-
-        }
-        elsif (m|^\s*</jhove>$|) {
-            last DOC_READER;
-        }
-        elsif (m|<app>|) {
-
-            # jhove was run on zero files, that should never happen
-            croak "jhove was run on zero files";
+        # check, log success
+        if ( $mod_val->succeeded() ) {
+            get_logger()->debug( "File validation succeeded",
+                file => $file );
         }
         else {
-
-            # this should never happen
-            die "could not parse jhove output";
+            $self->set_error( "BadFile", file => $file );
         }
-    }
-
-    if ( keys %files_left_to_validate ) {
-
-        # this should never happen
-        die "missing a block in jhove output";
-    }
+    });
 
     return;
 }
