@@ -20,6 +20,7 @@ my $insert = 0; # -i
 my $verbose = 0; # -v
 my $quiet = 0; # -q
 my $state = 'ready'; # -s
+my $priority = undef; # -y
 my $help = 0; # -help,-?
 my $use_blacklist = 1;
 
@@ -36,6 +37,7 @@ GetOptions(
     'verbose|v' => \$verbose,
     'quiet|q' => \$quiet,
     'state|s=s' => \$state,
+    'priority|y=s' => \$priority,
     'help|?' => \$help,
     'dot-packagetype|d=s' => \$dot_packagetype,    
     'pkgtype|p=s' => \$default_packagetype,
@@ -109,10 +111,15 @@ else{
 # add volumes to queue
 my $results;
 if($reset or $force_reset){
-    $results = reset_volumes(\@volumes, $state, $force_reset);
+    $results = reset_volumes(volumes => \@volumes, status => $state, force => $force_reset);
 }
 else{
-    $results = enqueue_volumes(\@volumes, $state, $insert, $use_blacklist);
+    if(defined $priority){
+        $results = enqueue_volumes(volumes=>\@volumes,status=>$state,ignore=>$insert,priority=>$priority,use_blacklist=>$use_blacklist);        
+    }
+    else{
+        $results = enqueue_volumes(volumes=>\@volumes,status=>$state,ignore=>$insert,use_blacklist=>$use_blacklist);
+    }
 }
 
 if ($verbose or !$quiet){
@@ -144,11 +151,11 @@ __END__
 
 =head1 SYNOPSIS
 
-enqueue.pl [-v|-q] [-r|-R|-i] [-p packagetype [-n namespace]] [infile]
+enqueue.pl [-v|-q] [-r|-R|-i] [-y priority] [-p packagetype [-n namespace]] [infile]
 
-enqueue.pl [-v|-q] [-r|-R|-i] -d packagetype [infile]
+enqueue.pl [-v|-q] [-r|-R|-i] [-y priority] -d packagetype [infile]
 
-enqueue.pl [-v|-q] [-r|-R|-i] -1 packagetype namespace objid]
+enqueue.pl [-v|-q] [-r|-R|-i] [-y priority] -1 packagetype namespace objid
 
     INPUT OPTIONS
     -d dot format infile - follow with packagetype
@@ -171,6 +178,8 @@ enqueue.pl [-v|-q] [-r|-R|-i] -1 packagetype namespace objid]
     -q quiet - skip report
     
     -s state - set initial state to state (e.g. ready, available, etc)
+    
+    -y priority - set initial priority, valid choices are: first, last, group_first, group_last
 
     --no-use-blacklist - ignore the blacklist and force enqueueing of the given volumes
 
