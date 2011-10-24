@@ -58,6 +58,8 @@ sub set_item_priority{
     my $id = $volume->get_objid();
 
     my $priority_modifier = shift;
+    $priority_modifier = 'default' if not defined $priority_modifier;
+
 
     my $priority = 0;
     switch ($priority_modifier){
