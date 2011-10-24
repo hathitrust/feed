@@ -140,6 +140,9 @@ initial_priority($modifier);
 sub initial_priority{
     my $volume = shift;
     my $priority_modifier = shift;
+    $priority_modifier = 'default' if not defined $priority_modifier;
+
+    
 
     # default bin is 1
     my $bin = 1;
