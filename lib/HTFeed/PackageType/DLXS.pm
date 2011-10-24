@@ -1,4 +1,4 @@
-package HTFeed::PackageType::DLPS;
+package HTFeed::PackageType::DLXS;
 
 #legacy DLPS content
 
@@ -6,13 +6,12 @@ use strict;
 use warnings;
 use base qw(HTFeed::PackageType);
 
-our $identifier = 'legacy';
+our $identifier = 'dlxs';
 
 our $config = {
 	%{$HTFeed::PackageType::config},
-	description => 'DLPS legacy content',
-#	volume_module => 'HTFeed::PackageType::DLPS::Volume',
-#	queue_module => 'HTFeed::PackageType::DLPS::Enqueue',
+	description => 'DLXS legacy content',
+	volume_module => 'HTFeed::PackageType::DLXS::Volume',
 
 	#Regular expression that distinguished valid files in the file package
 	#TODO Determine correct file types

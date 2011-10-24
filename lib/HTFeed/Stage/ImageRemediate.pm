@@ -2,7 +2,7 @@ package HTFeed::Stage::ImageRemediate;
 
 use strict;
 use warnings;
-use base qw(HTFeed::Stage);
+use base qw(HTFeed::Stage::JHOVE_Runner);
 use HTFeed::Config qw(get_config);
 use Log::Log4perl qw(get_logger);
 use Carp;
@@ -55,7 +55,7 @@ sub get_exiftool_fields {
 
     For example,
 
-    remediate_image($oldfile,$newfile,['XMP-dc:source' => 'Internet Archive'],['XMP-tiff:Make' => 'Canon'])
+    remediate_jpeg2000($oldfile,$newfile,['XMP-dc:source' => 'Internet Archive'],['XMP-tiff:Make' => 'Canon'])
 
     will force the XMP-dc:source field to 'Internet Archive' whether or not it is already present,
     and set XMP-tiff:Make to Canon if XMP-tiff:Make is not otherwise defined.
@@ -66,6 +66,197 @@ sub get_exiftool_fields {
 =cut
 
 sub remediate_image {
+    my $self = shift;
+    my $oldfile = shift;
+
+    # dispatch to appropriate remediator
+    return $self->_remediate_jpeg2000($oldfile,@_) if($oldfile =~ /\.jp2$/);
+    return $self->_remediate_tiff($oldfile,@_) if($oldfile =~ /\.tif$/);
+
+    # something else..
+    $self->set_error("BadFile",file=>$oldfile,detail=>"Unknown image format; can't remediate");
+}
+
+
+=item $self->update_tags($exifTool,$outfile)
+
+Updates the tags in outfile with the parameters set in the given exiftool
+
+=cut
+
+sub update_tags {
+    my $self = shift;
+    my $exifTool = shift;
+    my $outfile = shift;
+
+    if ( !$exifTool->WriteInfo($outfile) ) {
+        $self->set_error("OperationFailed",
+            operation=>"exiftool write",
+            file=>"$outfile",
+            detail => $exifTool->GetValue('Error'));
+    }
+}
+
+=item $self->copy_old_to_new($oldFieldName, $newFieldName)
+
+Copies old field value to the new field value, but only if the old value is defined
+and the new one isn't.
+
+=cut 
+
+sub copy_old_to_new($$$) {
+    my $self = shift;
+    my ( $oldFieldName, $newFieldName ) = @_;
+    my $oldValue = $self->{oldFields}->{$oldFieldName};
+
+    if ( defined $self->{oldFields}->{$oldFieldName}
+        and not defined $self->{newFields}->{$newFieldName} )
+    {
+        $self->{newFields}->{$newFieldName} = $oldValue;
+    }
+}
+
+=item $self->set_new_if_undefined($newFieldName,$newFieldVal)
+
+Copies old field value to the new field value, but only if the old value is defined
+and the new one isn't.
+
+=cut 
+
+sub set_new_if_undefined($$$) {
+    my $self = shift;
+    my ( $newFieldName, $newFieldVal ) = @_;
+
+    if ( not defined $self->{oldFields}->{$newFieldName} ) {
+        $self->{newFields}->{$newFieldName} = $newFieldVal;
+    }
+}
+
+sub stage_info {
+    return { success_state => 'images_remediated', failure_state => '' };
+}
+
+sub _remediate_tiff {
+    my $self = shift;
+    my $infile                   = shift;
+    my $outfile                  = shift;
+    my $force_headers            = ( shift or {} );
+    my $set_if_undefined_headers = shift;
+
+    my $bad = 0;
+    my $remediate_exiftool = 0; #fix with exiftool is sufficient
+    my $remediate_imagemagick = 0; #needs imagemagick fix
+    $self->{oldFields} = $self->get_exiftool_fields($infile);
+    my $fields = $self->{oldFields};
+
+    my $status = $self->{jhoveStatus};
+    if (not defined $status) {
+        warn("PREVALIDATE_ERR: No Status field for $infile, not remediable (did JHOVE run properly?)\n");
+        $bad = 1;
+    }
+    elsif($status ne 'Well-Formed and valid') {
+        foreach my $error ($self->{jhoveErrors}) {
+            # Is the error remediable?
+            my @exiftool_remediable_errs = ('IFD offset not word-aligned','Value offset not word-aligned','Tag 269 out of sequence','Invalid DateTime separator','PhotometricInterpretation not defined');
+            my @imagemagick_remediable_errs = ();
+            if(grep {$error =~ /^$_/} @imagemagick_remediable_errs) {
+                warn("PREVALIDATE_REMEDIATE: $infile has remediable error '$error'\n");
+                $remediate_imagemagick = 1;
+            }
+            if(grep {$error =~ /^$_/} @exiftool_remediable_errs) {
+                warn("PREVALIDATE_REMEDIATE: $infile has remediable error '$error'\n");
+                $remediate_exiftool = 1;
+            } else {
+                warn("PREVALIDATE_ERR: $infile has nonremediable error '$error'\n");
+                $bad = 1;
+            }
+
+            if($error =~ '^Invalid DateTime separator') {
+                # get existing DateTime field, normalize to TIFF 6.0 spec "YYYY:MM:DD HH:MM:SS"
+                my $datetime = $self->{oldFields}{ModifyDate};
+                if($datetime =~ /^(\d{4}).(\d{2}).(\d{2}).(\d{2}).(\d{2}).(\d{2})/) {
+                    $self->{newFields}{ModifyDate} = "$1:$2:$3 $4:$5:$6";
+                }
+                $remediate_exiftool = 1;
+            }
+        }
+
+    }
+
+    # Prevalidate other fields -- don't bother checking unless there is not some other error
+
+    if(!$remediate_imagemagick and !$remediate_exiftool and !$bad) {
+        $remediate_imagemagick = 1 unless $self->prevalidate_field('IFD0:PhotometricInterpretation','WhiteIsZero',1);
+        $remediate_imagemagick = 1 unless $self->prevalidate_field('IFD0:Compression','T6/Group 4 Fax',1);
+        $bad = 1 unless $self->prevalidate_field('File:FileType','TIFF',0);
+        if (!$self->prevalidate_field('IFD0:Orientation','Horizontal (normal)',1)) {
+            $remediate_exiftool = 1;
+            $self->{newFields}{'IFD0:Orientation'} = 'Horizontal (normal)';
+        }
+        $bad = 1 unless $self->prevalidate_field('IFD0:BitsPerSample','1',0);
+        $bad = 1 unless $self->prevalidate_field('IFD0:SamplesPerPixel','1',0);
+
+    }
+
+    my $ret = !$bad;
+
+    if($remediate_imagemagick and !$bad) {
+        # return true if remediation succeeds
+        $ret = $self->repair_tiff_imagemagick($infile);
+    } 
+    # FIXME: use existing code.
+    if($remediate_exiftool and !$bad) {
+        $ret = $ret && $self->repair_tiff_exiftool($infile,$self->{newFields})
+    }
+
+    else {
+        # don't need to remediate -- return true if not bad
+        return !$bad;
+    }
+
+}
+
+sub repair_tiff_exiftool {
+    my $self = shift;
+    my $infile = shift;
+    my $outfile = shift;
+    my $fields = shift;
+    # fix the DateTime
+    my $exifTool = new Image::ExifTool;
+    while(my($field,$val) = each(%$fields)) {
+        my($success,$errStr) = $exifTool->SetNewValue($field,$val);
+        if(defined $errStr) {
+            warn("PREVALIDATE_ERR: Error setting new tag $field => $val: $errStr\n");
+            return 0;
+        }
+    }
+    # make sure we have /something/ to write. All files should have
+    # Orientation=normal, so this won't break anything.
+    $exifTool->SetNewValue("Orientation","normal");
+
+    if(!$exifTool->WriteInfo($infile)) {
+        warn("PREVALIDATE_ERR: Couldn't remediate $infile: " . $exifTool->GetValue('Error') . "\n") ;
+        return 0;
+    }
+}
+
+sub repair_tiff_imagemagick {
+    my $self = shift;
+    my $infile = shift;
+    my $outfile = shift;
+    # try running IM on the TIFF file
+    warn("TIFF_REPAIR: attempting to repair $infile to $outfile\n");
+
+    # convert returns 0 on success, 1 on failure
+    my $rval = system("convert -compress Group4 $infile $outfile");
+    warn("TIFF_REPAIR_ERR: failed repairing $infile\n") if $rval;
+
+
+    return !$rval;
+
+}
+
+sub _remediate_jpeg2000 {
     my $self = shift;
     my $infile                   = shift;
     my $outfile                  = shift;
@@ -199,63 +390,35 @@ sub remediate_image {
 
 }
 
-=item $self->update_tags($exifTool,$outfile)
-
-Updates the tags in outfile with the parameters set in the given exiftool
-
-=cut
-
-sub update_tags {
+sub prevalidate_field {
     my $self = shift;
-    my $exifTool = shift;
-    my $outfile = shift;
+    my $fieldname = shift;
+    my $expected = shift; # can be a scalar or an array ref, if there are multiple permissible values
+    my $remediable = shift;
+    my $ok = 0;
 
-    if ( !$exifTool->WriteInfo($outfile) ) {
-        $self->set_error("OperationFailed",
-            operation=>"exiftool write",
-            file=>"$outfile",
-            detail => $exifTool->GetValue('Error'));
+    my $actual = $self->{oldFields}{$fieldname};
+    my $error_class = $remediable ? 'PREVALIDATE_REMEDIATE' : 'PREVALIDATE_ERR';
+
+    if (not defined $actual) {
+        # missing value
+        warn("$error_class: missing $fieldname\n");
+        $ok = 0;
+    } elsif(not defined $expected) {
+        # any value is OK
+        $ok = 1;
+    } elsif ((!ref($expected) and $actual eq $expected)
+        # OK value
+            or (ref($expected) eq 'ARRAY' and (grep {$_ eq $actual} @$expected))) {
+        $ok = 1;
+    } else {
+        # otherwise: unexpected/invalid value
+        $ok = 0;
+        warn("$error_class: invalid $fieldname '$actual'\n");
     }
+
+    return $ok;
+
 }
-
-=item $self->copy_old_to_new($oldFieldName, $newFieldName)
-
-Copies old field value to the new field value, but only if the old value is defined
-and the new one isn't.
-
-=cut 
-
-sub copy_old_to_new($$$) {
-    my $self = shift;
-    my ( $oldFieldName, $newFieldName ) = @_;
-    my $oldValue = $self->{oldFields}->{$oldFieldName};
-
-    if ( defined $self->{oldFields}->{$oldFieldName}
-        and not defined $self->{newFields}->{$newFieldName} )
-    {
-        $self->{newFields}->{$newFieldName} = $oldValue;
-    }
-}
-
-=item $self->set_new_if_undefined($newFieldName,$newFieldVal)
-
-Copies old field value to the new field value, but only if the old value is defined
-and the new one isn't.
-
-=cut 
-
-sub set_new_if_undefined($$$) {
-    my $self = shift;
-    my ( $newFieldName, $newFieldVal ) = @_;
-
-    if ( not defined $self->{oldFields}->{$newFieldName} ) {
-        $self->{newFields}->{$newFieldName} = $newFieldVal;
-    }
-}
-
-sub stage_info {
-    return { success_state => 'images_remediated', failure_state => '' };
-}
-
 
 1;
