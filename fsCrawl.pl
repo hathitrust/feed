@@ -22,8 +22,8 @@ my $mets_ins = "insert into audit_detail (namespace, id, path, status, detail) v
 my $base= shift @ARGV or die("Missing base directory..");
 my $filesProcessed = 0;
 my $prevpath;
-my $do_md5 = 1;
-my $do_mets = 1;
+my $do_md5 = 0;
+my $do_mets = 0;
 open(RUN, "find $base -follow -type f|") or die ("Can't open pipe to find: $!");
 
 while(my $line = <RUN>) {
