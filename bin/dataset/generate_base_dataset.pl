@@ -25,6 +25,7 @@ my $pid = $$;
 my $volumes = get_volumes(
     source => 'text',
     attributes => 'pd_us',
+    reasons_not => 'google_full_view'
 );
 
 # wipe staging directories
@@ -98,12 +99,16 @@ sub spawn_volume_adder{
 
 sub add_volume{
     my $volume = shift;
+    my $success = 0;
     eval{
-        HTFeed::Dataset::add_volume($volume);        
+        $success = HTFeed::Dataset::add_volume($volume);        
     };
     if($@){
         # record error
         get_logger('HTFeed::Dataset')->error( 'UnexpectedError', objid => $volume->get_objid, namespace => $volume->get_namespace, detail => $@ );
+    }
+    elsif(!$success){
+        get_logger('HTFeed::Dataset')->error( 'UnexpectedError', objid => $volume->get_objid, namespace => $volume->get_namespace, detail => 'did not complete, error unknown' );
     }
 }
 

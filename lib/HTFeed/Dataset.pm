@@ -12,12 +12,13 @@ use File::Pairtree qw(id2ppath s2ppchars);
 use HTFeed::Dataset::Stage::UnpackText;
 use HTFeed::Dataset::Stage::Pack;
 use HTFeed::Dataset::Stage::Collate;
+use HTFeed::Dataset::Tracking;
 
 use Log::Log4perl qw(get_logger);
 
 =item add_volume
 
-=cut
+=cut 
 sub add_volume{
     my $volume = shift;
     my $htid = $volume->get_identifier;
@@ -39,6 +40,9 @@ sub add_volume{
     $collate->run();
     $collate->clean();
     return if ($collate->failed);
+
+    # update tracking table
+    tracking_add($volume);
     
     # success
     return 1;
@@ -50,6 +54,16 @@ sub add_volume{
 #sub remove_volume{
 #    my $volume = shift;
 #    
+#    my @datasets = get_all_set_paths();
+#    $volume->get_dataset_path();
+#    remove_tree($set_path/$obj_path);
+#    tracking_delete($volume);
+#}
+
+#sub add_subset_volume{
+#    # create subset dir
+#
+# 
 #}
 
 1;
