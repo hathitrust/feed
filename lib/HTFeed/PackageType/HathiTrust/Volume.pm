@@ -61,7 +61,9 @@ sub get_dataset_path {
     my $self = shift;
 
     if(not defined $self->{dataset_path}) {
-        my $dataset_repo = get_config('dataset'=>'repository');
+        my $datasets_path = get_config('dataset'=>'path');
+        my $full_set_name = get_config('dataset'=>'full_set');
+
         my $namespace = $self->get_namespace();
 
         my $objid = $self->get_objid();
@@ -70,7 +72,7 @@ sub get_dataset_path {
 
         my $pt_objid = $self->get_pt_objid();
 
-        my $path = "$dataset_repo/$namespace/$pairtree_path/$pt_objid";
+        my $path = "$datasets_path/$full_set_name/obj/$namespace/$pairtree_path/$pt_objid";
         $self->{dataset_path} = $path;
     }
 
