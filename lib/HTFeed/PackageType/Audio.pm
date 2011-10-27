@@ -17,8 +17,9 @@ our $config = {
 
     valid_file_pattern => qr/^( 
 	\w+\.(mets\.xml) |
-    [ap]m\d{2,8}.(wav) |
+	mets\.xml |
 	checksum\.md5 |
+    [ap]m\d{2,8}.(wav) |
 	notes\.txt
     )/x,
 
@@ -54,7 +55,8 @@ our $config = {
 	validate_metadata)
 	],
 
-    source_mets_file => qr/\w+.xml$/,
+    source_mets_file => qr/\w+\.xml$/,
+	checksum_file => qr/checksum\.md5$/,
 
     stage_map => {
 #        ready             => 'HTFeed::PackageType::Audio::Unpack',

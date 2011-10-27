@@ -49,7 +49,7 @@ our $config = {
 
     # What stage to run given the current state.
     stage_map => {
-        ready		=> 'HTFeed::PackageType::MPubDCU::Fetch',
+        ready		=> 'HTFeed::Stage::Fetch',
         fetched		=> 'HTFeed::VolumeValidator',
 		validated	=> 'HTFeed::Stage::Pack',
 		packed		=> 'HTFeed::PackageType::MPubDCU::METS',
