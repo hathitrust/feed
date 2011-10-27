@@ -77,6 +77,29 @@ sub get_dataset_path {
     return $self->{dataset_path};
 }
 
+sub get_last_ingest_date{
+    my $self = shift;
+
+    my $mets = $self->get_repos_mets_xpc();
+    unless($mets){
+        ##warn "no mets!";
+        return;
+    }
+
+    my $ingest_date;
+    { # Ingest date
+        my @dates;
+        foreach my $event ($mets->findnodes('//premis:event[premis:eventType="ingestion"] | //premis1:event[premis1:eventType="ingestion"]')) {
+            my $date = $mets->findvalue('./premis:eventDateTime | ./premis1:eventDateTime',$event);
+            push @dates, $date;
+        }
+        @dates = sort @dates;
+        $ingest_date = pop @dates;
+    }
+
+    return $ingest_date;
+}
+
 1;
 
 __END__
