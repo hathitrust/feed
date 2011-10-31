@@ -10,18 +10,26 @@ use HTFeed::Config;
 
 use File::Pairtree;
 use File::Path qw(make_path);
+use File::Copy;
 
 my $datasets_location = get_config('dataset'=>'path');
 my $target_tree_name  = get_config('dataset'=>'full_set');
+my $trash_dir = get_config('dataset'=>'trash_dir');
 my $link_tree_name    = shift;
+my $id_list = "$datasets_location/$link_tree_name/id";
+
+my $time = time;
 
 my $target_tree = "$datasets_location/$target_tree_name/obj";
-my $link_tree   = "$datasets_location/$link_tree_name/obj";
+my $link_tree   = "$datasets_location/$link_tree_name/obj.new.$time";
+my $link_tree_final = "$datasets_location/$link_tree_name/obj";
+my $old_link_tree_final = "$datasets_location/$trash_dir/$link_tree_name.old.$time";
 
 my $volumes_processed = 0;
-print "$volumes_processed volumes processed...\n";
 
-while(<>){
+open(my $id_handle, '<', $id_list) or die "cannot open $id_list";
+
+while(<$id_handle>){
     chomp;
     my ($ns,$objid) = split /\./,$_,2;
     
@@ -34,8 +42,20 @@ while(<>){
         warn qq(Error on input "$_": $@);
     }
 }
+close $id_handle;
 
 print "$volumes_processed volumes processed\n";
+
+## move id list to new link tree
+## TODO: consider this workflow more
+move($id_list, "$link_tree/id");
+
+if(-e $link_tree_final){
+    print "moving old link tree out\n";
+    move($link_tree_final,$old_link_tree_final);
+}
+print "moving new link tree in\n";
+move($link_tree,$link_tree_final);
 
 =item make_symlink($ns,$objid,$target_tree,$link_tree)
 
