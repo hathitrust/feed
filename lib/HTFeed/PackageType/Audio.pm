@@ -59,8 +59,7 @@ our $config = {
 	checksum_file => qr/checksum\.md5$/,
 
     stage_map => {
-#        ready             => 'HTFeed::PackageType::Audio::Unpack',
-        unpacked          => 'HTFeed::PackageType::Audio::VolumeValidator',
+        ready             => 'HTFeed::PackageType::Audio::VolumeValidator',
         validated         => 'HTFeed::Stage::Pack',
         packed            => 'HTFeed::PackageType::Audio::METS',
         metsed            => 'HTFeed::Stage::Handle',
