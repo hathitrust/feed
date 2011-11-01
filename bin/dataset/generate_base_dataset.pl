@@ -21,12 +21,54 @@ use Getopt::Long;
 
 my $pid = $$;
 
-# get volume list 
-my $volumes = get_volumes(
-    source => 'text',
-    attributes => 'pd_us',
-    reasons_not => 'google_full_view'
-);
+# get options
+my $load_file;
+my $dump_file;
+#my $add_missing = 1;
+#my $add_outdated = 1;
+
+GetOptions ( 
+    "load=s"         => \$load_file, 
+    "dump=s"         => \$dump_file,
+#    "skip-missing!"  => \$add_missing,
+#    "skip-outdated!" => \$add_outdated
+) or usage();
+
+# get volume list
+my $volumes;
+
+if($load_file){
+    $volumes = [];
+    
+    open(my $id_load, '<', $load_file) or die "cannot open $load_file";
+    
+    while(<$id_load>){
+        chomp;
+        my $nsid = $_;
+        $nsid =~ /^([^\.]+)\.(.+)$/;
+        my $ns = $1;
+        my $id = $2;
+        push @{$volumes}, [$ns,$id];
+    }
+}
+else{
+    $volumes = get_volumes(
+    ##    source => 'text',
+        source => 'non_google_text',
+        attributes => 'pd_us',
+        reasons_not => 'google_full_view'
+    );
+}
+
+if($dump_file){
+    open(my $id_dump, '>', $dump_file) or die "cannot open $dump_file";
+    
+    while (my $nsid = shift @{$volumes}){
+        my ($ns,$id) = @{$nsid};
+        print $id_dump "$ns.$id\n";
+    }
+    exit 0;
+}
 
 # wipe staging directories
 HTFeed::StagingSetup::make_stage(1);
@@ -116,3 +158,22 @@ END{
     HTFeed::StagingSetup::clear_stage()
         if ($$ eq $pid);
 }
+
+__END__
+
+=head1 NAME
+
+    update_base_set.pl - upadate base dataset
+
+=head1 Usage
+
+update_base_set.pl [-load id_file] [-dump id_file]
+
+=head1 Synopsis
+# ingest ids from list
+update_base_set.pl -load id_file
+
+# dump list of ids to ingest
+update_base_set.pl -dump id_file
+=cut
+
