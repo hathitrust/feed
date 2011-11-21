@@ -398,6 +398,9 @@ sub next_stage{
     my $stage_map = $self->get_nspkg()->get('stage_map');
     my $stage_name = shift;
     $stage_name = 'ready' if not defined $stage_name;
+    if(not defined $stage_map->{$stage_name}) {
+        $self->set_error("UnexpectedError",detail => "Action for stage $stage_name not defined");
+    }
     return $stage_map->{$stage_name};
 }
 
