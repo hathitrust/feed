@@ -48,23 +48,20 @@ sub add_volume{
     return 1;
 }
 
-#=item remove_volume
+#=item delete_volume
 #
 #=cut
-#sub remove_volume{
-#    my $volume = shift;
-#    
-#    my @datasets = get_all_set_paths();
-#    $volume->get_dataset_path();
-#    remove_tree($set_path/$obj_path);
-#    tracking_delete($volume);
-#}
+sub remove_volume{
+    my $volume = shift;
 
-#sub add_subset_volume{
-#    # create subset dir
-#
-# 
-#}
+    $volume->get_dataset_path();
+    eval{
+        remove_tree($volume->get_dataset_path());
+        ... ## TODO: error here
+    }
+
+    tracking_delete($volume);
+}
 
 1;
 
