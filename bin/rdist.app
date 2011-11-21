@@ -22,7 +22,7 @@ APP_dest = ( /htapps/babel/feed )
 #       dry run
 #        install -overify ${APP_dest};
         install ${APP_dest};
-        except_pat ( \\.git );
+        except_pat ( \\.git config.yaml );
 ### with remove flag
 #       dry run
 #        install -overify -oremove ${APP_dest};
