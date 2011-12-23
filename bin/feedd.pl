@@ -53,8 +53,13 @@ $SIG{'HUP'} =
         $clean = get_config('daemon'=>'clean');
     };
 
-# run end block on SIGINT
+# run end block on SIGINT and SIGTERM
 $SIG{'INT'} =
+    sub {
+        exit;
+    };
+
+$SIG{'TERM'} = 
     sub {
         exit;
     };
@@ -84,6 +89,8 @@ print "Stop file found; finishing work on locked volumes...\n";
 while ($subprocesses){
     wait_kid();
 }
+exit(1);
+
 # fork, lock job, increment $subprocess
 sub spawn{
     my $job = shift;
