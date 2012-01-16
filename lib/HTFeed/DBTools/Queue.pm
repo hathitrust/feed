@@ -100,7 +100,7 @@ sub enqueue_volumes{
 
 # reset_volumes(\@volumes, $force)
 # 
-# reset punted volumes, reset all volumes if $force
+# reset punted and done volumes, reset all volumes if $force
 =item reset
 reset volumes
 =synopsis
@@ -147,7 +147,7 @@ sub reset_volumes {
         $sth = $dbh->prepare(q(UPDATE queue SET node = NULL, status = ?, failure_count = 0 WHERE namespace = ? and id = ?;));
     }
     else{
-        $sth = $dbh->prepare(q(UPDATE queue SET node = NULL, status = ?, failure_count = 0 WHERE status = 'punted' and namespace = ? and id = ?;));
+        $sth = $dbh->prepare(q(UPDATE queue SET node = NULL, status = ?, failure_count = 0 WHERE status in ('punted','done') and namespace = ? and id = ?;));
     }
     
     my @results;
