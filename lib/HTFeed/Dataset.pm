@@ -55,10 +55,7 @@ sub remove_volume{
     my $volume = shift;
 
     $volume->get_dataset_path();
-    eval{
-        remove_tree($volume->get_dataset_path());
-        ... ## TODO: error here
-    }
+    remove_tree($volume->get_dataset_path());
 
     tracking_delete($volume);
 }

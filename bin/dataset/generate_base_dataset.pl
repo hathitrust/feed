@@ -54,7 +54,7 @@ if($load_file){
 else{
     $volumes = get_volumes(
     ##    source => 'text',
-        source => 'non_google_text',
+        source => 'text',
         attributes => 'pd_us',
         reasons_not => 'google_full_view'
     );
