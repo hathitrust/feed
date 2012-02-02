@@ -44,7 +44,7 @@ sub enqueue_volumes{
     my %args = (
         volume        => undef,
         volumes       => undef,
-        status        => 'available',
+        status        => 'ready',
         ignore        => undef,
         use_blacklist => 1,
         priority      => undef,
@@ -147,7 +147,7 @@ sub reset_volumes {
         $sth = $dbh->prepare(q(UPDATE queue SET node = NULL, status = ?, failure_count = 0 WHERE namespace = ? and id = ?;));
     }
     else{
-        $sth = $dbh->prepare(q(UPDATE queue SET node = NULL, status = ?, failure_count = 0 WHERE status in ('punted','done') and namespace = ? and id = ?;));
+        $sth = $dbh->prepare(q(UPDATE queue SET node = NULL, status = ?, failure_count = 0 WHERE status in ('punted','rights','done') and namespace = ? and id = ?;));
     }
     
     my @results;
