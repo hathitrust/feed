@@ -8,13 +8,14 @@ use HTFeed::Config qw(get_config);
 
 sub run {
     my $self = shift;
+
     my $volume = $self->{volume};
     my $packagetype = $volume->get_packagetype();
     my $objid = $volume->get_objid();
 
     my $fetch_dir = get_config('staging'=>'fetch');
     my $source = "$fetch_dir/$packagetype/forHT/$objid";
-    my $dest = get_config('staging' => 'preingest');
+    my $dest = get_config('staging' => 'ingest');
 
     $self->fetch_from_source($source,$dest);
     $self->fix_line_endings($dest);
