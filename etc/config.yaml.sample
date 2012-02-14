@@ -71,6 +71,10 @@ failure_limit: 5
 stop_on_error: 0
 fork: 0
 
+# how many volumes to queue for reingest at a time
+reingest_count: 8000
+
+
 # handle server configuration
 
 handle:
