@@ -17,6 +17,9 @@ my $dbh = undef;
 my $pid = undef;
 
 sub _init {
+    my $condition = -e get_config('daemon'=>'stop_file');
+    return undef if $condition;
+
     my $dsn = get_config('database','datasource');
     my $user = get_config('database','username');
     my $passwd = get_config('database','password');
