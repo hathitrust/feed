@@ -14,6 +14,7 @@ sub run {
     my $objid = $volume->get_objid();
 
     my $fetch_dir = get_config('staging'=>'fetch');
+
     my $source = "$fetch_dir/$packagetype/forHT/$objid";
     my $dest = get_config('staging' => 'ingest');
 
