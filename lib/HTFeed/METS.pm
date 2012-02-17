@@ -527,8 +527,16 @@ sub _validate_mets {
 sub validate_xml {
     my $self   = shift;
     my $use_caching = $self->{volume}->get_nspkg()->get('use_schema_caching');
-    my $xerces;
-    $xerces = $use_caching ? get_config('xerces') : get_config('xerces_nocache');
+    my $schema_cache = get_config('xerces_cache');
+    my $xerces = get_config('xerces');
+
+    if($use_caching) {
+        if(! -e $schema_cache) {
+            $xerces .= " -save $schema_cache";
+        } else {
+            $xerces .= " $schema_cache";
+        }
+    }
 
     my $filename       = shift;
     my $validation_cmd = "$xerces '$filename' 2>&1";

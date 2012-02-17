@@ -14,7 +14,8 @@ database:
 
 imagemagick: /l/local/ImageMagick-6.6.9-8/bin/convert
 
-xerces: "$feed_home/bin/validateCache /ram/schema.cache"
+xerces: "$feed_home/bin/validateCache"
+xerces_cache: "/ram/schema.cache"
 kdu_munge: /l/local/bin/kdu_munge
 # path to kdu_compress from kakadu 6.4 - the version is important because
 # different versions of kakadu interpret compression settings differently.
