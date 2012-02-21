@@ -8,6 +8,7 @@ use lib "$FindBin::Bin/../../lib";
 
 use HTFeed::Config;
 use HTFeed::Dataset::RightsDB;
+use HTFeed::Dataset;
 
 my $volumes = get_bad_volumes(@{get_config('dataset'=>'full_set_rights_query')});
 
@@ -28,8 +29,8 @@ while (my $nsid = shift @{$volumes}){
         next;
     }
     eval{
-        Dataset::remove_volume($volume);
-    }
+        HTFeed::Dataset::remove_volume($volume);
+    };
     if($@){
         warn "$ns.$id delete failed $@";
     }

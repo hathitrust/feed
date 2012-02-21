@@ -110,30 +110,46 @@ class ValidateCacheHandlers : public DefaultHandler
 
 int main(int argc, char** argv) {
     bool errorOccurred = false;
-    if(argc != 3) {
-        cout << "Usage: validateCache schema.cache file.xml" << endl;
+    if(argc < 2) {
+        cout << "Usage: validateCache [-save] schema.cache file.xml" << endl;
         exit(255);
     }
 
     XMLPlatformUtils::Initialize();
 
-    BinInputStream* grammarIn = new BinFileInputStream(argv[1]);
-    Janitor<BinInputStream> janIn(grammarIn);
-
-    XMLGrammarPool* grammarPool = new XMLGrammarPoolImpl(XMLPlatformUtils::fgMemoryManager);
-
-    try {
-        grammarPool->deserializeGrammars(grammarIn);
-    } 
-    catch (const XSerializationException& e) {
-        cerr << "Error reading cached grammar (nonfatal): " << StrX(e.getMessage()) << endl;
-    }
-    catch (const XMLPlatformUtilsException& e) {
-        cerr << "Error reading cached grammar (nonfatal): " << StrX(e.getMessage()) << endl;
+    int argidx = 1;
+    bool save = 0;
+    if(!strncmp(argv[argidx],"-save",5)) {
+        save = 1;
+        argidx++;
     }
 
-    SAX2XMLReader* parser = XMLReaderFactory::createXMLReader(XMLPlatformUtils::fgMemoryManager, grammarPool);
-    parser->setFeature(XMLUni::fgXercesCacheGrammarFromParse, true);
+    SAX2XMLReader* parser = NULL;
+    XMLGrammarPool* grammarPool = NULL;
+    char* grammarFile = NULL;
+    char* toParse = NULL;
+    if(argc > 2) {
+        grammarFile = argv[argidx++];
+        BinInputStream* grammarIn = new BinFileInputStream(grammarFile);
+        Janitor<BinInputStream> janIn(grammarIn);
+
+        grammarPool = new XMLGrammarPoolImpl(XMLPlatformUtils::fgMemoryManager);
+
+        try {
+            grammarPool->deserializeGrammars(grammarIn);
+        } 
+        catch (const XSerializationException& e) {
+            cerr << "Error reading cached grammar (nonfatal): " << StrX(e.getMessage()) << endl;
+        }
+        catch (const XMLPlatformUtilsException& e) {
+            cerr << "Error reading cached grammar (nonfatal): " << StrX(e.getMessage()) << endl;
+        }
+
+        parser = XMLReaderFactory::createXMLReader(XMLPlatformUtils::fgMemoryManager, grammarPool);
+        parser->setFeature(XMLUni::fgXercesCacheGrammarFromParse, true);
+    } else {
+        parser = XMLReaderFactory::createXMLReader(XMLPlatformUtils::fgMemoryManager);
+    }
     parser->setFeature(XMLUni::fgSAX2CoreNameSpaces, true);
     parser->setFeature(XMLUni::fgXercesSchema, true);
     parser->setFeature(XMLUni::fgXercesHandleMultipleImports, true);
@@ -146,30 +162,34 @@ int main(int argc, char** argv) {
     parser->setErrorHandler(&handler);
     parser->setContentHandler(&handler);
 
+    toParse = argv[argidx++];
+
     try {
-        parser->parse(argv[2]);
+        parser->parse(toParse);
     } catch (const XMLException& e) {
         errorOccurred = true;
         cout << StrX(e.getMessage()) << endl;
     }
 
     if(!handler.getSawError() && !errorOccurred) {
-        cout << argv[2] << " OK" << endl;
+        cout << toParse << " OK" << endl;
     } else {
         errorOccurred = true;
     }
 
-    BinOutputStream* grammarOut = new BinFileOutputStream(argv[1]);
-    Janitor<BinOutputStream> janOut(grammarOut);
+    if(save && grammarPool != NULL && grammarFile != NULL) {
+        BinOutputStream* grammarOut = new BinFileOutputStream(grammarFile);
+        Janitor<BinOutputStream> janOut(grammarOut);
 
-    try {
-        grammarPool->serializeGrammars(grammarOut);
-    }
-    catch (const XSerializationException& e) {
-        cerr << "Error saving cached grammar (nonfatal): " << StrX(e.getMessage()) << endl;
-    }
-    catch (const XMLPlatformUtilsException& e) {
-        cerr << "Error saving cached grammar (nonfatal): " << StrX(e.getMessage()) << endl;
+        try {
+            grammarPool->serializeGrammars(grammarOut);
+        }
+        catch (const XSerializationException& e) {
+            cerr << "Error saving cached grammar (nonfatal): " << StrX(e.getMessage()) << endl;
+        }
+        catch (const XMLPlatformUtilsException& e) {
+            cerr << "Error saving cached grammar (nonfatal): " << StrX(e.getMessage()) << endl;
+        }
     }
 
     if(errorOccurred)

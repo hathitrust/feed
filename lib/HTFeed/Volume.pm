@@ -324,7 +324,11 @@ sub _parse_xpc {
     };
 
     if ($@) {
-        $self->set_error("BadFile",file => $file,detail=>$@->{message});
+        if(ref($@ eq 'HASH')) {
+            $self->set_error("BadFile",file => $file,detail=>$@->{message});
+        } else {
+            $self->set_error("BadFile",file => $file,detail=>$@);
+        }
     } else {
         return $xpc;
     }
