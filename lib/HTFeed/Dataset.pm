@@ -48,7 +48,7 @@ sub add_volume{
     return 1;
 }
 
-#=item delete_volume
+#=item remove_volume
 #
 #=cut
 sub remove_volume{
