@@ -530,13 +530,7 @@ sub validate_xml {
     my $schema_cache = get_config('xerces_cache');
     my $xerces = get_config('xerces');
 
-    if($use_caching) {
-        if(! -e $schema_cache) {
-            $xerces .= " -save $schema_cache";
-        } else {
-            $xerces .= " $schema_cache";
-        }
-    }
+    $xerces .= " $schema_cache" if($use_caching);
 
     my $filename       = shift;
     my $validation_cmd = "$xerces '$filename' 2>&1";
