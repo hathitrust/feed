@@ -162,18 +162,13 @@ sub _validate_consistency {
                 . join( q{,}, keys %{$files} )
                 . '; expected '
                 . join( q{,}, @filegroup_names ) );
-        }
-
-		my $groups = keys( %{$files});
-
-		my %fileList = %$files;
-		while ( my ($type, $list) = each %fileList){
-			my $count = 0;
-			foreach my $file(@$list){
-				$count++;
-			}
-			if($count ne 1){
-				$self->set_error("BadFile", detail=>"Multiple files found: @$list");
+        } else {
+			while ( my ($type, $list) = each %{$files}){
+				if(scalar(@$list) ne 1){
+					$self->set_error("BadFile", detail=>"Extraneous files for $sequence_number: have "
+					. join( q{,}, @$list)
+					. '; expected only one file' );
+				}
 			}
 		}
 	}
