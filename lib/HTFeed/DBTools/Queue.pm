@@ -44,7 +44,7 @@ sub enqueue_volumes{
     my %args = (
         volume        => undef,
         volumes       => undef,
-        status        => 'ready',
+        status        => undef,
         ignore        => undef,
         use_blacklist => 1,
         priority      => undef,
@@ -77,6 +77,10 @@ sub enqueue_volumes{
             # First make sure volume is not on the blacklist.
             my $namespace = $volume->get_namespace();
             my $objid = $volume->get_objid();
+            # use default first state from pkgtype def if not given one
+            if(not defined $status) {
+                $status = $volume->get_nspkg()->get('default_queue_state');
+            }
 
             if($use_blacklist) {
                 $blacklist_sth->execute($namespace,$objid);
@@ -127,7 +131,7 @@ sub reset_volumes {
         volume  => undef,
         volumes => undef,
         force   => undef,
-        status  => "ready",
+        status  => undef,
         @_
     );
     
@@ -152,6 +156,10 @@ sub reset_volumes {
     
     my @results;
     foreach my $volume (@{$volumes}){
+        # use default initial state from pkgtype def if not given one
+        if(not defined $status) {
+            $status = $volume->get_nspkg()->get('default_queue_state');
+        }
         push @results, $sth->execute($status,$volume->get_namespace(), $volume->get_objid());
     }
     return \@results;

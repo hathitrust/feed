@@ -4,7 +4,7 @@ package HTFeed::PackageType::Audio::VolumeValidator;
 
 use strict;
 use base qw(HTFeed::VolumeValidator);
-use HTFeed::PackageType::Audio::Volume;
+use HTFeed::Volume;
 use List::MoreUtils qw(uniq);
 use Carp;
 use Digest::MD5;

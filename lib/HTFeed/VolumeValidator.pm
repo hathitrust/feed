@@ -125,8 +125,8 @@ sub _validate_filegroups {
 
 =item _validate_consistency
 
-Make sure every listed file in each file group (ocr, text, etc.) has a corresponding file in 
-each other file group and that there are no sequence skips.
+Make sure every listed file in each file group (ocr, text, etc.) has exactly one
+corresponding file in each other file group, that there are no sequence skips
 
 =cut
 
@@ -154,7 +154,7 @@ sub _validate_consistency {
         }
     }
 
-    # Make sure each filegroup has an object for each sequence number
+    # Make sure each filegroup has exactly one object for each sequence number
     while ( my ( $sequence_number, $files ) = each( %{$files} ) ) {
         if ( keys( %{$files} ) != @filegroup_names ) {
             $self->set_error( "MissingFile",
@@ -162,12 +162,18 @@ sub _validate_consistency {
                 . join( q{,}, keys %{$files} )
                 . '; expected '
                 . join( q{,}, @filegroup_names ) );
-        }
-    }
-
-    return;
-
+        } else {
+			while ( my ($type, $list) = each %{$files}){
+				if(scalar(@$list) ne 1){
+					$self->set_error("BadFile", detail=>"Extraneous files for $sequence_number: have "
+					. join( q{,}, @$list)
+					. '; expected only one file' );
+				}
+			}
+		}
+	}
 }
+
 
 =item _validate_checksums
 

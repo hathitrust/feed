@@ -15,7 +15,7 @@ sub run {
 
     my $fetch_dir = get_config('staging'=>'fetch');
 
-    my $source = "$fetch_dir/$packagetype/forHT/$objid";
+    my $source = "$fetch_dir/mpub_dcu/$packagetype/forHT/$objid";
     my $dest = get_config('staging' => 'ingest');
 
     $self->fetch_from_source($source,$dest);

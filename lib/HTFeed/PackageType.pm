@@ -39,6 +39,9 @@ BEGIN {
         # Default: no separate checksum file
         checksum_file => 0,
 
+        # initial state with which a volume should be added to the queue
+        default_queue_state => 'ready',
+
         # The HTFeed::ModuleValidator subclass to use for validating
         # files with the given extensions
         module_validators => {
