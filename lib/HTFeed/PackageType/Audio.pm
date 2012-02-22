@@ -10,7 +10,7 @@ our $config = {
     %{$HTFeed::PackageType::config},
     description => 'Voice of America audio content',
 
-    volume_module => 'HTFeed::PackageType::Audio::Volume',
+    volume_module => 'HTFeed::Volume',
 
     # Regular expression that distinguishes valid files in the file package
     # HTML OCR is valid for the package type but only expected/required for UC1
@@ -26,24 +26,24 @@ our $config = {
     # A set of regular expressions mapping files to the filegroups they belong
     # in
     filegroups => {
-        	archival => { 
-        	    prefix => 'AM',
-        	    use => 'preservation',
-        	    file_pattern => qr/am.*\.wav$/,
-        	    required => 1,
-        	    content => 1,
-        	    jhove => 1,
-        	    utf8 => 0
-			},
-        	production => { 
-        	    prefix => 'PM',
-        	    use => 'production',
-        	    file_pattern => qr/pm.*\.wav$/,
-        	    required => 1,
-        	    content => 1,
-        	    jhove => 1,
-        	    utf8 => 0
-			},
+		archival => { 
+        	prefix => 'AM',
+        	use => 'preservation',
+        	file_pattern => qr/am.*\.wav$/,
+        	required => 1,
+        	content => 1,
+        	jhove => 1,
+        	utf8 => 0
+		},
+        production => { 
+			prefix => 'PM',
+        	use => 'production',
+        	file_pattern => qr/pm.*\.wav$/,
+        	required => 1,
+        	content => 1,
+        	jhove => 1,
+        	utf8 => 0
+		},
     },
 	
 	validation_run_stages => [
@@ -99,6 +99,8 @@ our $config = {
         },
     
     },
+
+	SIP_filename_pattern => '%s.zip',
 
 };
 
