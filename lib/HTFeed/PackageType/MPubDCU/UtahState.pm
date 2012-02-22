@@ -13,18 +13,17 @@ our $config = {
     
     # utah state missing checksums
     validation_run_stages => [
-        qw(validate_file_names
-        validate_filegroups_nonempty
-        validate_image_consistency
-	    validate_consistency
-        validate_utf8
-        validate_metadata)
+       qw(validate_file_names
+       validate_filegroups_nonempty
+	   validate_consistency
+       validate_utf8
+       validate_metadata)
     ],
 
 	# What stage to run given the current state.
     stage_map => {
         ready       => 'HTFeed::PackageType::MPubDCU::Fetch',
-        fetched     => 'HTFeed::PackageType::MPubDCU::UtahState::VolumeValidator',
+        fetched     => 'HTFeed::VolumeValidator',
         validated   => 'HTFeed::Stage::Pack',
         packed      => 'HTFeed::PackageType::MPubDCU::METS',
         metsed      => 'HTFeed::Stage::Handle',
