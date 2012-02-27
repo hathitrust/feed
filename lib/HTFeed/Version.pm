@@ -9,12 +9,12 @@ use Getopt::Long qw(:config pass_through no_ignore_case);
 use HTFeed::Config qw(get_config);
 use HTFeed::PackageType;
 use HTFeed::Namespace;
-use Exporter;
-use base qw(Exporter);
 
-my $VERSION = 'unknown';
+my $VERSION = 'Unknown';
 
 {
+	my $found_version;
+
     my $feed_root = get_config('feed_app_root');
     
     if(defined $feed_root) {
@@ -25,9 +25,11 @@ my $VERSION = 'unknown';
             close $fh;
             chomp $version_string;
             $version_string =~ /feed_v(\d+\.\d+\.\d+)/;
-            $VERSION = $1;
+            $found_version = $1;
         }
     }
+	$VERSION = $found_version
+		if (defined $found_version);
 }
 
 sub import{
@@ -83,6 +85,25 @@ sub nspkg {
     #print join("\n",map {id_desc_info($_)} ( sort( find_subclasses("HTFeed::Namespace") )));
     
     return map {$_ => {id_desc_info($_)}} HTFeed::Version::find_subclasses("HTFeed::Namespace");
+}
+
+sub pkg_by_ns {
+	my %hsh = map {${$_ . "::identifier"}=>${$_ . "::config"}->{packagetypes}} (sort(HTFeed::Version::find_subclasses("HTFeed::Namespace")));
+	return \%hsh;
+}
+
+sub ns_by_pkg {
+    my $pkg_by_ns = pkg_by_ns();
+    my %ns_by_pkg;
+    foreach my $ns (keys %{$pkg_by_ns}){
+        foreach my $pkg (@{$pkg_by_ns->{$ns}}){
+            $ns_by_pkg{$pkg} = []
+                unless (defined $ns_by_pkg{$pkg});
+            push @{$ns_by_pkg{$pkg}}, $ns;
+        }
+    }
+    
+    return \%ns_by_pkg;
 }
 
 sub get_feed_version_number{

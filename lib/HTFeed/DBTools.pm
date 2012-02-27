@@ -9,6 +9,8 @@ use Sys::Hostname;
 use DBD::mysql;
 use Log::Log4perl qw(get_logger);
 
+use HTFeed::ServerStatus;
+
 use base qw(Exporter);
 
 our @EXPORT_OK = qw(get_dbh get_queued lock_volumes update_queue count_locks get_volumes_with_status disconnect);
@@ -17,8 +19,8 @@ my $dbh = undef;
 my $pid = undef;
 
 sub _init {
-    my $condition = -e get_config('daemon'=>'stop_file');
-    return undef if $condition;
+	# do not make new db connections if are trying to exit
+	continue_running_server or return undef;
 
     my $dsn = get_config('database','datasource');
     my $user = get_config('database','username');
