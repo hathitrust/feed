@@ -11,7 +11,7 @@ our $config = {
     description => 'Special Collections',
     capture_agent => 'MPublishing',
     
-    # utah state missing checksums
+    # no checksums
     validation_run_stages => [
         qw(validate_file_names
           validate_filegroups_nonempty
