@@ -10,14 +10,13 @@ use HTFeed::Log { root_logger => 'INFO, dbi' };
 use HTFeed::Version;
 
 use HTFeed::StagingSetup;
-use HTFeed::Run;
+use HTFeed::Job;
 
 use HTFeed::Config;
 use HTFeed::Volume;
 use HTFeed::DBTools qw(get_queued lock_volumes count_locks update_queue disconnect);
 use Log::Log4perl qw(get_logger);
 use Filesys::Df;
-use HTFeed::Job;
 
 use HTFeed::ServerStatus;
 use Sys::Hostname;
@@ -68,11 +67,6 @@ $SIG{'TERM'} =
         exit;
     };
 
-# exit right away if stop file is set
-if( ! continue_running_server() ) {
-	warn 'feedd connot run when locked';
-	exit 1;
-}
 
 HTFeed::StagingSetup::make_stage($clean);
 
@@ -110,7 +104,7 @@ sub spawn{
     }
     elsif ( defined $pid ) {
         # child
-        run_job($job, $clean);
+        $job->run_job($clean);
         exit(0);
     }
     else{

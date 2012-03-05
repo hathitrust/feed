@@ -106,6 +106,40 @@ sub ns_by_pkg {
     return \%ns_by_pkg;
 }
 
+sub tags_by_ns {
+    # ignore missing tags fields
+    no warnings;
+	my %hsh = map { ${$_ . "::identifier"} => [ @{${$_ . "::config"}->{packagetypes}}, @{${$_ . "::config"}->{tags}} ]  }
+        HTFeed::Version::find_subclasses("HTFeed::Namespace");
+    return \%hsh;
+}
+
+sub search_ns_by_tags {
+    my $search_tags = shift;
+    my @results;
+    my $tags_by_ns = tags_by_ns();
+    foreach my $ns (keys %{$tags_by_ns}){
+        push (@results, $ns)
+            if(_tagmatch($tags_by_ns->{$ns},$search_tags));
+    }
+    return @results;
+}
+
+sub _tagmatch {
+    my $actual = shift;
+    my $expected = shift;
+
+    my $ok = 1;
+    foreach my $tag (@$expected) {
+        if(!grep { $_ eq $tag } @$actual) {
+            $ok = 0;
+            last;
+        }
+    }
+
+    return $ok;
+}
+
 sub get_feed_version_number{
     return $VERSION;
 }
