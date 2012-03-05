@@ -122,7 +122,7 @@ sub search_ns_by_tags {
         push (@results, $ns)
             if(_tagmatch($tags_by_ns->{$ns},$search_tags));
     }
-    return @results;
+    return \@results;
 }
 
 sub _tagmatch {
