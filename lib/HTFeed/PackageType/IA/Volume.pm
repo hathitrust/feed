@@ -123,6 +123,19 @@ sub get_scandata_xpc {
     return $self->{scandata_xpc};
 }
 
+sub get_meta_xpc {
+    my $self = shift;
+    if(not defined $self->{meta_xpc}) {
+        my $path = $self->get_download_directory();
+        my $ia_id = $self->get_ia_id();
+
+        my $xpc = $self->_parse_xpc("$path/${ia_id}_meta.xml");
+        $self->{meta_xpc} = $xpc;
+
+    }
+    return $self->{meta_xpc};
+}
+
 sub get_download_location {
     my $self = shift;
     # IA has multiple files in SIP

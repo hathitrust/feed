@@ -4,55 +4,16 @@ use warnings;
 use strict;
 use base qw(HTFeed::PackageType::MPubDCU);
 
-#base case for MPubDCU (UM Press)
+# base case for UM Press
+# faculty_reprints, ump2ht, speccoll, utah state university
 
-our $identifier = 'ump2ht';
+our $identifier = 'ump';
 
 our $config = {
     %{$HTFeed::PackageType::MPubDCU::config},
     description => 'University of Michigan Press',
     capture_agent => 'MPublishing',
     
-    # Regular expression that distinguishes valid files in the file package
-    # UM Press material may include a PDF. TBD how to represent this.
-    valid_file_pattern => qr/^( 
-		checksum\.md5 |
-		pageview\.dat |
-		\w+\.pdf |
-		\d{8}.(jp2|tif|txt)
-		)/x,
-
-    # See HTFeed::PackageType for documentation
-    filegroups => {
-        image => {
-            prefix => 'IMG',
-            use => 'image',
-            file_pattern => qr/\d{8}\.(jp2|tif)$/,
-            required => 1,
-            content => 1,
-            jhove => 1,
-            utf8 => 0
-        },
-        ocr => {
-            prefix => 'OCR',
-            use => 'ocr',
-            file_pattern => qr/\d{8}\.txt$/,
-            required => 1,
-            content => 1,
-            jhove => 0,
-            utf8 => 1
-        },
-        pdf => {
-            prefix => 'PDF',
-            use => 'pdf',
-            file_pattern => qr/\d{8}\.pdf$/,
-            required => 0,
-            content => 1,
-            jhove => 0,
-            utf8 => 0
-        },
-    },
-
     # Validation overrides - make/model not expected
     validation => {
         'HTFeed::ModuleValidator::JPEG2000_hul' => {
@@ -60,14 +21,24 @@ our $config = {
         }
     },
 
+	# no checksums
+    validation_run_stages => [
+        qw(validate_file_names
+          validate_filegroups_nonempty
+          validate_consistency
+          validate_utf8
+          validate_metadata)
+    ],
+
+
 };
 
 __END__
 
 =pod
 
-This is the package type configuration file for base case MPubDCU materials
-Specifically UM Press
+This is the package type configuration file for UM Press material
+specifically faculty_reprints, ump2ht, speccoll, utah state university
 
 =head1 SYNOPSIS
 

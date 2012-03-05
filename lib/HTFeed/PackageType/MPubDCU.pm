@@ -4,7 +4,6 @@ use warnings;
 use strict;
 use base qw(HTFeed::PackageType);
 
-
 #base case for MPub DCU
 
 our $identifier = 'mpub';
@@ -19,6 +18,7 @@ our $config = {
 		checksum\.md5 |
 		pageview\.dat |
 		\w+\.(xml) |
+		\w+\.(pdf) |
 		\d{8}.(html|jp2|tif|txt)
 		)/x,
 
@@ -41,6 +41,15 @@ our $config = {
             content => 1,
             jhove => 0,
             utf8 => 1
+        },
+		pdf => {
+            prefix => 'PDF',
+            use => 'pdf',
+            file_pattern => qr/\d{8}\.pdf$/,
+            required => 0,
+            content => 1,
+            jhove => 0,
+            utf8 => 0
         },
     },
 
@@ -76,7 +85,7 @@ __END__
 
 =pod
 
-This is the package type configuration file for base case MPub materials
+This is the package type configuration file for base case MPub / DCU materials
 
 =head1 SYNOPSIS
 

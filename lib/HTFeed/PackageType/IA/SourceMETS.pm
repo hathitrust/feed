@@ -98,6 +98,11 @@ sub _add_capture_event {
     my $eventdate = $xpc->findvalue("//scribe:scanLog/scribe:scanEvent[1]/scribe:endTimeStamp | //scanLog/scanEvent[1]/endTimeStamp");
     my $scribe = $xpc->findvalue("//scribe:scanLog/scribe:scanEvent[1]/scribe:scribe | //scanLog/scanEvent[1]/scribe");
 
+    if(not defined $eventdate or $eventdate eq '') {
+        my $meta_xpc = $volume->get_meta_xpc();
+        $eventdate = $meta_xpc->findvalue("//scandate");
+    }
+
     if( $eventdate =~ /^(\d\d\d\d)(\d\d)(\d\d)(\d\d)(\d\d)(\d\d)$/ ) {
 
         my $capture_date

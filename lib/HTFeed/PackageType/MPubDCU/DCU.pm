@@ -1,12 +1,12 @@
-package HTFeed::PackageType::MPubDCU::DigOnDemand;
+package HTFeed::PackageType::MPubDCU::DCU;
 
 use warnings;
 use strict;
 use base qw(HTFeed::PackageType::MPubDCU);
 
-#base case for MPubDCU DigOnDemand
+#base case for DCU (DigOnDemand)
 
-our $identifier = 'DigOnDemand';
+our $identifier = 'dcu';
 
 our $config = {
     %{$HTFeed::PackageType::MPubDCU::config},
@@ -19,8 +19,7 @@ __END__
 
 =pod
 
-This is the package type configuration file for base case MPubDCU materials
-Specifically DigOnDemand
+This is the main package type configuration for DCU projects (DigOnDemand)
 
 =head1 SYNOPSIS
 

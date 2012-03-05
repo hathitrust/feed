@@ -68,6 +68,11 @@ sub get_capture_time {
         $gmtTimeStamp = $xpc->findvalue('//scribe:scanLog/scribe:scanEvent/scribe:endTimeStamp | //scanLog/scanEvent/endTimeStamp');
     }
 
+    if( not defined $gmtTimeStamp or $gmtTimeStamp eq '') {
+        my $meta_xpc = $self->{volume}->get_meta_xpc();
+        $gmtTimeStamp = $meta_xpc->findvalue('//scandate');
+    }
+
     # Format is YYYYMMDDHHmmss
     if ( defined $gmtTimeStamp
             and $gmtTimeStamp =~ /^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})$/ )
