@@ -202,7 +202,10 @@ END{
     # clean up on exit of original pid (i.e. don't clean on END of fork()ed pid)
     if($$ eq $process_id){
         my @kid_pids = keys %locks_by_pid;
-        
+
+        # automatically reap zombies 
+        $SIG{CHLD} = 'IGNORE';
+
         # parent kills kids
         print "killing child procs...\n";
         kill 2, keys %locks_by_pid;
@@ -211,10 +214,13 @@ END{
 		# make sure kids are really gone
         my $kill9s = 0;
         while(_kids_remaining()){
-            # send email evey 3 minutes
+            # announce each kill -9 attempt, send email evey 3 minutes
             $kill9s++;
             unless($kill9s % 9){
                 _will_not_die_message($kill9s * 20);
+            }
+            else {
+                print "Child processes stuck, trying kill -9...\n";
             }
 
             kill 9, keys %locks_by_pid;
@@ -252,7 +258,7 @@ sub _will_not_die_message{
     my $seconds = shift;
     my $host = hostname;
     my $kid_cnt = _kids_remaining();
-    my $message = "Feedd process $$ unable to exit for $seconds seconds. Unable to kill $kid_cnt children.\n" . 
+    my $message = "Feedd process $$ has been unable to exit for $seconds seconds. Unable to kill $kid_cnt children.\n" . 
                 'Child pids: ' . join(q(, ),(keys %locks_by_pid));
     
     warn $message;
