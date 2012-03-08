@@ -14,7 +14,9 @@ our $config = {
     volume_module => 'HTFeed::PackageType::MPubDCU::Volume',
     
     # Regular expression that distinguishes valid files in the file package
-    valid_file_pattern => qr/^( 
+    valid_file_pattern => qr/^(
+		checksum\.md5 |
+		pageview\.dat | 
 		\w+\.(xml) |
 		\w+\.(pdf) |
 		\d{8}.(html|jp2|tif|txt)
