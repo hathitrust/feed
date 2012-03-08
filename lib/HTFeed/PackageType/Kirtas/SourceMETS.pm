@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-package HTFeed::PackageType::Yale::SourceMETS;
+package HTFeed::PackageType::Kirtas::SourceMETS;
 use strict;
 use warnings;
 use HTFeed::SourceMETS;
@@ -17,7 +17,7 @@ sub new {
     my $volume = $self->{volume};
     my $stage_path = $volume->get_staging_directory();
     my $pt_objid = $volume->get_pt_objid();
-    $self->{outfile} = "$stage_path/Yale_" . $pt_objid . ".xml";
+    $self->{outfile} = "$stage_path/Kirtas_" . $pt_objid . ".xml";
 
     return $self;
 }
@@ -34,7 +34,7 @@ sub _add_dmdsecs {
 
     my $marc_mdsec = $self->_add_dmd_sec(
         $self->_get_subsec_id("DMD"), 'MARC',
-        'Yale MARC record',
+        'Institution MARC record',
         "$metadata_dir/${objid}_mrc.xml"
     );
 
@@ -54,11 +54,13 @@ sub _add_dmdsecs {
 
     my $mods_xc = new XML::LibXML::XPathContext($mods_dmdsec->{'mdwrap'});
     register_namespaces($mods_xc);
-    foreach my $mods ($mods_xc->findnodes('.//mods:mods')) {
+    foreach my $mods ($mods_xc->findnodes('.//mods:mods'), $mods_xc->findnodes('.//mods:modsCollection')) {
         my $schema = $mods->getAttribute('xsi:schemaLocation');
         # force use of latest MODS schema
-        $schema =~ s/mods-3-[01234].xsd/mods.xsd/; 
-        $mods->setAttribute('xsi:schemaLocation',$schema);
+        if(defined $schema) {
+            $schema =~ s/mods-3-[01234].xsd/mods.xsd/; 
+            $mods->setAttribute('xsi:schemaLocation',$schema);
+        }
     }
 
     $self->_add_dmd_sec(
@@ -92,7 +94,7 @@ sub _add_capture_event {
     my $self = shift;
     my $premis = $self->{premis};
     my $volume = $self->{volume};
-    # Add the custom capture event, extracting info from the Yale METS
+    # Add the custom capture event, extracting info from the Kirtas METS
     my $eventcode = 'capture';
     my $eventconfig = $volume->get_nspkg()->get_event_configuration($eventcode);
     $eventconfig->{'executor'} = 'Kirtas';
@@ -103,7 +105,7 @@ sub _add_capture_event {
 
     # get the first processingSoftwareName and Version, if it exists -- the JPG
     # MIX data won't have it but the JP2 will.
-    my $mets_xc = $volume->get_yale_mets_xpc();
+    my $mets_xc = $volume->get_kirtas_mets_xpc();
     my $capture_tool = $mets_xc->findvalue(
 	'concat(/descendant::mix:processingSoftwareName[1]," ",/descendant::mix:processingSoftwareVersion[1])'
     );
@@ -122,12 +124,12 @@ sub _add_struct_map {
     my $volume = $self->{volume};
     my $stage_path = $volume->get_staging_directory();
 
-    my $mets_xc = $volume->get_yale_mets_xpc();
-    # create map from file IDs in provided Yale METS to our IDs
+    my $mets_xc = $volume->get_kirtas_mets_xpc();
+    # create map from file IDs in provided Kirtas METS to our IDs
 
     # Generate maps needed to create new structmap:
-    #   Map from old Yale METS file ID => filename
-    my %files_by_yalefileid;
+    #   Map from old Kirtas METS file ID => filename
+    my %files_by_kirtasfileid;
 
     foreach my $file ( $mets_xc->findnodes('//mets:file') ) {
 
@@ -139,20 +141,20 @@ sub _add_struct_map {
         $newname =~ s/jpg$/jp2/;
         $newname =~ s/_alto//;
 
-	my $yale_fileid = $file->findvalue('./@ID');
+	my $kirtas_fileid = $file->findvalue('./@ID');
 
 	$self->set_error("MissingField",field => 'ID',
 	    file=>$oldname,detail=>'Missing @ID on mets:FLocat')
-	    unless defined $yale_fileid and $yale_fileid;
+	    unless defined $kirtas_fileid and $kirtas_fileid;
 
-        $files_by_yalefileid{$yale_fileid} = $newname;
+        $files_by_kirtasfileid{$kirtas_fileid} = $newname;
 
     }
 
     # Generate maps needed to create new structmap
     #   Map from filename => other files in page for structmap
-    #   (The Yale METS doesn't always include the XML in the structmap, so we
-    #   just use a single file from the Yale structMap to find the appopriate
+    #   (The Kirtas METS doesn't always include the XML in the structmap, so we
+    #   just use a single file from the Kirtas structMap to find the appopriate
     #   page)
     my %pagefiles_by_file;
     foreach my $page (values( %{ $volume->get_file_groups_by_page() })) {
@@ -193,14 +195,14 @@ sub _add_struct_map {
         foreach my $fp_div (
             $structmap->findnodes('.//mets:div[mets:fptr[@FILEID]]') )
         {
-            my $yale_fileid = $fp_div->findvalue('./mets:fptr[1]/@FILEID');
+            my $kirtas_fileid = $fp_div->findvalue('./mets:fptr[1]/@FILEID');
 
             # remove any existing children and add all three filegrp children
             $fp_div->removeChildNodes();
 
-            my $filename = $files_by_yalefileid{$yale_fileid};
+            my $filename = $files_by_kirtasfileid{$kirtas_fileid};
 	    if(not defined $filename) {
-		$self->set_error("BadFilename",file=>$filename,detail=>"Can't find file in Yale fileSec");
+		$self->set_error("BadFilename",file=>$filename,detail=>"Can't find file in Kirtas fileSec");
 		next;
 	    }
 
@@ -232,7 +234,7 @@ sub _add_struct_map {
 
 =item _add_dmd_sec($mets,$id,$type,$desc,$path)
 
-Extracts a metadata section from Yale METS (if it exists) or creates a new
+Extracts a metadata section from Kirtas METS (if it exists) or creates a new
 one from an XML file on the filesystem. Returns true if an appropriate metadata
 section was found and false if it does not.
 
@@ -248,7 +250,7 @@ sub _add_dmd_sec {
 
 =item _metadata_section($sectype,$id,$type,$desc,$path)
 
-Extracts a metadata section from Yale METS (if it exists) or creates a new
+Extracts a metadata section from Kirtas METS (if it exists) or creates a new
 one from an XML file on the filesystem. Returns the METS::MetadataSection
 object if an appropriate metadata section was found and undef if it does not.
 
@@ -257,7 +259,7 @@ object if an appropriate metadata section was found and undef if it does not.
 sub _metadata_section {
 
     my $self = shift;
-    my $mets_xc = $self->{volume}->get_yale_mets_xpc();
+    my $mets_xc = $self->{volume}->get_kirtas_mets_xpc();
 
     # TODO: validate sections
     my $sectype = shift;
