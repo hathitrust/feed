@@ -6,7 +6,6 @@ use base qw(HTFeed::Stage::ImageRemediate);
 
 use Log::Log4perl qw(get_logger);
 use File::Basename;
-use HTFeed::XMLNamespaces qw(register_namespaces);
 
 sub run{
     my $self = shift;
@@ -15,24 +14,9 @@ sub run{
     my $stage_path = $volume->get_staging_directory();
     
 
-    my $repStatus_xp = XML::LibXML::XPathExpression->new('/jhove:jhove/jhove:repInfo/jhove:status');
-    my $error_xp = XML::LibXML::XPathExpression->new('/jhove:jhove/jhove:repInfo/jhove:messages/jhove:message[@severity="error"]');
-
     # remediate TIFFs
-    my @tiffs = glob("$preingest_path/*.tif");
-    my $directory = $preingest_path;
-    @tiffs = map { basename($_) } @tiffs;
-
-    $self->run_jhove($volume,$directory,\@tiffs, sub {
-        my ($volume,$file,$node) = @_;
-        my $xpc = XML::LibXML::XPathContext->new($node);
-        register_namespaces($xpc);
-        
-        $self->{jhoveStatus} = $xpc->findvalue($repStatus_xp);
-        $self->{jhoveErrors} = [map { $_->textContent } $xpc->findnodes($error_xp)];
-
-        $self->remediate_image("$preingest_path/$file","$stage_path/$file");
-    });
+    my @tiffs = map { basename($_) } glob("$preingest_path/*.tif");
+    $self->remediate_tiffs($volume,$preingest_path,\@tiffs);
 
     # remediate JP2s
 

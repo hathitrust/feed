@@ -7,6 +7,7 @@ use HTFeed::Config qw(get_config);
 use Log::Log4perl qw(get_logger);
 use File::Copy;
 use Carp;
+use HTFeed::XMLNamespaces qw(register_namespaces);
 
 sub run {
     die("Subclass must implement run.");
@@ -46,8 +47,8 @@ sub get_exiftool_fields {
     Prevalidates and remediates the image headers in $oldfile and writes the results as $newfile.
 
     $force_headers and $set_if_undefined_headers are references to hashes:
-	{ header => $value, 
-	  header2 => $value, ...}
+    { header => $value, 
+      header2 => $value, ...}
 
     Additional parameters can be passed to set the value for particular fields.
     $force_headers lists headers to force whether or not they are present, and
@@ -111,7 +112,7 @@ sub copy_old_to_new($$$) {
     my $oldValue = $self->{oldFields}->{$oldFieldName};
 
     if ( defined $self->{oldFields}->{$oldFieldName}
-        and not defined $self->{newFields}->{$newFieldName} )
+            and not defined $self->{newFields}->{$newFieldName} )
     {
         $self->{newFields}->{$newFieldName} = $oldValue;
     }
@@ -147,12 +148,13 @@ sub _remediate_tiff {
     my $bad = 0;
     my $remediate_exiftool = 0; #fix with exiftool is sufficient
     my $remediate_imagemagick = 0; #needs imagemagick fix
+    $self->{newFields} = $force_headers;
     $self->{oldFields} = $self->get_exiftool_fields($infile);
     my $fields = $self->{oldFields};
 
     my $status = $self->{jhoveStatus};
     if (not defined $status) {
-        warn("PREVALIDATE_ERR: No Status field for $infile, not remediable (did JHOVE run properly?)\n");
+        croak("No Status field for $infile, not remediable (did JHOVE run properly?)\n");
         $bad = 1;
     }
     elsif($status ne 'Well-Formed and valid') {
@@ -161,14 +163,14 @@ sub _remediate_tiff {
             my @exiftool_remediable_errs = ('IFD offset not word-aligned','Value offset not word-aligned','Tag 269 out of sequence','Invalid DateTime separator','PhotometricInterpretation not defined');
             my @imagemagick_remediable_errs = ();
             if(grep {$error =~ /^$_/} @imagemagick_remediable_errs) {
-                warn("PREVALIDATE_REMEDIATE: $infile has remediable error '$error'\n");
+                get_logger()->trace("PREVALIDATE_REMEDIATE: $infile has remediable error '$error'\n");
                 $remediate_imagemagick = 1;
             }
             if(grep {$error =~ /^$_/} @exiftool_remediable_errs) {
-                warn("PREVALIDATE_REMEDIATE: $infile has remediable error '$error'\n");
+                get_logger()->trace("PREVALIDATE_REMEDIATE: $infile has remediable error '$error'\n");
                 $remediate_exiftool = 1;
             } else {
-                warn("PREVALIDATE_ERR: $infile has nonremediable error '$error'\n");
+                get_logger()->trace("PREVALIDATE_ERR: $infile has nonremediable error '$error'\n");
                 $bad = 1;
             }
 
@@ -206,18 +208,13 @@ sub _remediate_tiff {
         $ret = $self->repair_tiff_imagemagick($infile,$outfile);
         my $infile = $outfile;
     } 
-    # FIXME: use existing code.
-    if($remediate_exiftool and !$bad) {
-        $ret = $ret && $self->repair_tiff_exiftool($infile,$outfile,$self->{newFields})
-    }
 
-    else {
-        # don't need to remediate -- return true if not bad
-        if($infile ne $outfile) {
-            copy($infile,$outfile) or $self->set_error("OperationFailed",operation => 'copy',file => $infile, detail => "Can't copy to $outfile: $!");
-        }
-        return !$bad;
+    while( my ( $field, $val ) = each (%$set_if_undefined_headers) ) {
+        $self->set_new_if_undefined( $field, $val );
     }
+    $ret = $ret && $self->repair_tiff_exiftool($infile,$outfile,$self->{newFields});
+
+    return $ret;
 
 }
 
@@ -231,7 +228,7 @@ sub repair_tiff_exiftool {
     while(my($field,$val) = each(%$fields)) {
         my($success,$errStr) = $exifTool->SetNewValue($field,$val);
         if(defined $errStr) {
-            warn("PREVALIDATE_ERR: Error setting new tag $field => $val: $errStr\n");
+            croak("Error setting new tag $field => $val: $errStr\n");
             return 0;
         }
     }
@@ -239,8 +236,8 @@ sub repair_tiff_exiftool {
     # Orientation=normal, so this won't break anything.
     $exifTool->SetNewValue("Orientation","normal");
 
-    if(!$exifTool->WriteInfo($infile)) {
-        warn("PREVALIDATE_ERR: Couldn't remediate $infile: " . $exifTool->GetValue('Error') . "\n") ;
+    if(!$exifTool->WriteInfo($infile,$outfile)) {
+        croak("Couldn't remediate $infile: " . $exifTool->GetValue('Error') . "\n") ;
         return 0;
     }
 }
@@ -250,11 +247,11 @@ sub repair_tiff_imagemagick {
     my $infile = shift;
     my $outfile = shift;
     # try running IM on the TIFF file
-    warn("TIFF_REPAIR: attempting to repair $infile to $outfile\n");
+    get_logger()->trace("TIFF_REPAIR: attempting to repair $infile to $outfile\n");
 
     # convert returns 0 on success, 1 on failure
     my $rval = system("convert -compress Group4 $infile $outfile");
-    warn("TIFF_REPAIR_ERR: failed repairing $infile\n") if $rval;
+    croak("failed repairing $infile\n") if $rval;
 
 
     return !$rval;
@@ -311,26 +308,26 @@ sub _remediate_jpeg2000 {
         my $xres = $self->{oldFields}->{'Jpeg2000:CaptureXResolution'};
         my $yres = $self->{oldFields}->{'Jpeg2000:CaptureYResolution'};
         get_logger()->warn("Non-square pixels??! XRes $xres YRes $yres")
-          if ( ( $xres or $yres ) and $xres != $yres );
+        if ( ( $xres or $yres ) and $xres != $yres );
 
         if ($xres) {
             my $xresunit = $self->{oldFields}->{'Jpeg2000:CaptureXResolutionUnit'};
             my $yresunit = $self->{oldFields}->{'Jpeg2000:CaptureXResolutionUnit'};
 
             get_logger()->warn("Resolution unit awry")
-              if ( not $xresunit or not $yresunit or $xresunit ne $yresunit );
+            if ( not $xresunit or not $yresunit or $xresunit ne $yresunit );
 
             $xresunit eq 'um'
-              and $force_headers->{'Resolution'} =
-              sprintf( "%.0f", $xres * 25400 );
+                and $force_headers->{'Resolution'} =
+            sprintf( "%.0f", $xres * 25400 );
             $xresunit eq 'mm'
-              and $force_headers->{'Resolution'} =
-              sprintf( "%.0f", $xres * 25.4 );
+                and $force_headers->{'Resolution'} =
+            sprintf( "%.0f", $xres * 25.4 );
             $xresunit eq 'cm'
-              and $force_headers->{'Resolution'} =
-              sprintf( "%.0f", $xres * 2.54 );
+                and $force_headers->{'Resolution'} =
+            sprintf( "%.0f", $xres * 2.54 );
             $xresunit eq 'in'
-              and $force_headers->{'Resolution'} = sprintf( "%.0f", $xres );
+                and $force_headers->{'Resolution'} = sprintf( "%.0f", $xres );
         }
 
     }
@@ -341,8 +338,8 @@ sub _remediate_jpeg2000 {
             defined( $resolution = $force_headers->{'Resolution'} )
             && ( $force_res = 1 )
         )    # force resolution change if field is set in $force_headers
-        or defined( $resolution = $set_if_undefined_headers->{'Resolution'} )
-      )
+            or defined( $resolution = $set_if_undefined_headers->{'Resolution'} )
+    )
     {
         if ($force_res) {
             $self->{newFields}->{'XMP-tiff:XResolution'}    = $resolution;
@@ -389,7 +386,7 @@ sub _remediate_jpeg2000 {
 
     my $kdu_munge = get_config('kdu_munge');
     system("$kdu_munge -i '$infile' -o '$outfile' 2>&1 > /dev/null") and
-        $self->set_error("OperationFailed",file=>$outfile,operation=>"kdu_munge");
+    $self->set_error("OperationFailed",file=>$outfile,operation=>"kdu_munge");
 
     $self->update_tags($exifTool,$outfile);
 
@@ -406,8 +403,6 @@ sub prevalidate_field {
     my $error_class = $remediable ? 'PREVALIDATE_REMEDIATE' : 'PREVALIDATE_ERR';
 
     if (not defined $actual) {
-        # missing value
-        warn("$error_class: missing $fieldname\n");
         $ok = 0;
     } elsif(not defined $expected) {
         # any value is OK
@@ -419,11 +414,44 @@ sub prevalidate_field {
     } else {
         # otherwise: unexpected/invalid value
         $ok = 0;
-        warn("$error_class: invalid $fieldname '$actual'\n");
     }
 
     return $ok;
 
+}
+
+=item $self->remediate_tiffs($volume,$path,$tiffs,$force_headers,$set_if_undefined_headers)
+
+Runs jhove and calls image_remediate for all tiffs in $tiffs. 
+$tiffs is a reference to an array of filenames.
+$path is the base directory containing all the files in $tiffs.
+
+see remediate_image for the other parameters.
+
+=cut
+sub remediate_tiffs {
+
+    my ($self,$volume,$tiffpath,$files,$force_headers,$set_if_undefined_headers) = @_;
+
+    my $repStatus_xp = XML::LibXML::XPathExpression->new('/jhove:jhove/jhove:repInfo/jhove:status');
+    my $error_xp = XML::LibXML::XPathExpression->new('/jhove:jhove/jhove:repInfo/jhove:messages/jhove:message[@severity="error"]');
+    my $stage_path = $volume->get_staging_directory();
+    my $objid = $volume->get_objid();
+
+
+    $self->run_jhove($volume,$tiffpath,$files, sub {
+            my ($volume,$file,$node) = @_;
+            my $xpc = XML::LibXML::XPathContext->new($node);
+            register_namespaces($xpc);
+
+            $self->{jhoveStatus} = $xpc->findvalue($repStatus_xp);
+            $self->{jhoveErrors} = [map { $_->textContent } $xpc->findnodes($error_xp)];
+
+            $self->remediate_image("$tiffpath/$file",
+                "$stage_path/$file",
+                {%$force_headers, 'IFD0:DocumentName' => "$objid/$file"},
+                    $set_if_undefined_headers);
+        });
 }
 
 1;
