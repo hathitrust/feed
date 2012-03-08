@@ -830,7 +830,7 @@ sub _remediate_marc {
         }
     }
 
-    foreach my $datafield ($xc->findnodes('//marc:datafield[not(marc:subfield)]')) {
+    foreach my $datafield ($xc->findnodes('.//marc:datafield[not(marc:subfield)]')) {
         # remove empty data fields
         $datafield->parentNode()->removeChild($datafield);
     }
