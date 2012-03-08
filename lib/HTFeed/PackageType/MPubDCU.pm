@@ -16,8 +16,6 @@ our $config = {
     
     # Regular expression that distinguishes valid files in the file package
     valid_file_pattern => qr/^( 
-		checksum\.md5 |
-		pageview\.dat |
 		\w+\.(xml) |
 		\d{8}.(html|jp2|tif|txt)
 		)/x,

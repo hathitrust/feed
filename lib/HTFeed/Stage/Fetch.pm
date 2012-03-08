@@ -2,7 +2,7 @@ package HTFeed::Stage::Fetch;
 
 use strict;
 use warnings;
-use base qw(HTFeed::Stage);
+use base qw(HTFeed::Stage::DirectoryMaker);
 use Log::Log4perl qw(get_logger);
 use HTFeed::Config qw(get_config);
 
