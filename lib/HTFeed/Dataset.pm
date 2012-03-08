@@ -12,7 +12,7 @@ use File::Pairtree qw(id2ppath s2ppchars);
 use HTFeed::Dataset::Stage::UnpackText;
 use HTFeed::Dataset::Stage::Pack;
 use HTFeed::Dataset::Stage::Collate;
-use HTFeed::Dataset::Tracking;
+use HTFeed::Dataset::Tracking qw(tracking_add tracking_delete);
 
 use Log::Log4perl qw(get_logger);
 
@@ -63,4 +63,3 @@ sub remove_volume{
 1;
 
 __END__
-

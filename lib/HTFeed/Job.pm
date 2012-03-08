@@ -4,16 +4,18 @@ package HTFeed::Job;
 use Any::Moose;
 use HTFeed::Volume;
 use HTFeed::Config;
+use Carp;
 
 use Log::Log4perl qw(get_logger);
 
-has [qw(pkg_type namespace id)]         => (is => 'ro', isa => 'Str',     required => 1);
+has [qw(pkg_type namespace id)]         => (is => 'ro', isa => 'Str',     lazy_build => 1);
 has 'status'                            => (is => 'ro', isa => 'Str',     required => 1, default => 'ready');
 has 'callback'                          => (is => 'ro', isa => 'CodeRef', required => 1);
 has 'failure_count'                     => (is => 'rw', isa => 'Str',     required => 1, default => 0);
 has 'stage_class'                       => (is => 'ro', isa => 'Maybe[Str]',     init_arg => undef, lazy_build => 1);
 has 'new_status'                        => (is => 'ro', isa => 'Str',     init_arg => undef, lazy_build => 1);
-has [qw(volume stage)]                  => (is => 'ro', isa => 'Object',  init_arg => undef, lazy_build => 1);
+has 'volume'                            => (is => 'ro', isa => 'Object',  init_arg => undef, lazy_build => 1);
+has 'stage'                             => (is => 'ro', isa => 'Object',  init_arg => undef, lazy_build => 1);
 
 =item new
 
@@ -27,6 +29,10 @@ HTFeed::Job->new($pkg_type, $namespace, $id, $status, $failure_count, \&callback
 HTFeed::Job->new(   pkg_type => $pkg_type,
                     namespace => $namespace,
                     id => $id,
+                    [status => $status,] # defaults to ready
+                    [failure_count => $failure_count,] # defaults to 0
+                    callback => \&callback)
+HTFeed::Job->new(   volume => $volume,
                     [status => $status,] # defaults to ready
                     [failure_count => $failure_count,] # defaults to 0
                     callback => \&callback)
@@ -108,6 +114,17 @@ around BUILDARGS => sub {
     }
 };
 
+sub BUILD{
+    my $self = shift;
+    my $args = shift;
+    
+    return
+        if( (!$self->has_pkg_type && !$self->has_namespace && !$self->has_id and $self->has_volume) or
+            ($self->has_pkg_type && $self->has_namespace && $self->has_id and !$self->has_volume) );
+
+    croak 'Error instantiating Job: Must specify namespace, id, and packagetype, OR specify volume object. Must not specify both.';
+}
+
 sub _build_volume{
     my $self = shift;
     #warn "building volume";
@@ -116,6 +133,19 @@ sub _build_volume{
         namespace   => $self->namespace,
         packagetype => $self->pkg_type,
     );
+}
+
+sub _build_namespace {
+	my $self = shift;
+    return $self->volume->get_objid;
+}
+sub _build_pkg_type {
+	my $self = shift;
+    return $self->volume->get_packagetype;
+}
+sub _build_id {
+	my $self = shift;
+    return $self->volume->get_objid;
 }
 
 sub _build_stage_class{
@@ -146,7 +176,7 @@ sub _build_new_status{
     $new_status = 'punted'
         if((! $success) and ($self->failure_count >= get_config('failure_limit')));
 
-    # punt if we next status is undefined
+    # punt if next status is undefined
     $new_status = 'punted' unless $new_status;
 
     return $new_status;
@@ -159,6 +189,77 @@ sub runnable{
     my $self = shift;
     return unless $self->stage_class;
     return 1;
+}
+
+=synopsis
+
+All options:
+ $self->run( [$clean], [$force_failed_status]);
+Ususal:
+ $self->run( 1 );
+Force success:
+ $self->run( $clean, 0 );
+Force failure:
+ $self->job( $clean, 1 );
+
+=cut
+sub run_job {
+    my $job = shift;
+    my $clean = shift;
+    my $force_failed_status = shift;
+
+    my $stage;
+
+    eval {
+        $stage = $job->stage;
+        
+        get_logger()->info( 'RunStage', objid => $job->id, namespace => $job->namespace, stage => $job->stage_class );
+
+        $stage->run();
+    };
+
+    my $err = $@;
+    if ( $err and $err !~ /STAGE_ERROR/ and $err !~ /VOLUME_ERROR/) {
+        get_logger()->error( 'UnexpectedError', objid => $job->id, namespace => $job->namespace, stage => $job->stage_class, detail => $@ );
+    }
+
+    # handle fake status set in unit tests
+    if (defined $force_failed_status){
+        my $real_failure = $stage->failed;
+        my $fake_fail_word = $force_failed_status ? 'FAILURE' : 'SUCCESS';
+        my $real_fail_word = $real_failure ? 'FAILURE' : 'SUCCESS';
+        my $warning = "Forced stage staus: $fake_fail_word Real stage status: $real_fail_word";
+        warn $warning;
+        $stage->force_failed_status($force_failed_status);
+    }
+
+    if ($stage and $clean) {
+        eval { $job->clean(); };
+        if ($@) {
+            get_logger()->error( 'UnexpectedError', objid => $job->id, namespace => $job->namespace, stage => $job->stage_class, detail => $@ );
+        }
+    }
+
+    # update queue table with new status and failure_count
+    $job->update();
+
+}
+
+=item successor
+returns a new Job object to execute next stage
+
+returns false if we have reached a release state
+=cut
+sub successor {
+    my $self = shift;
+
+    my $failure_count = $self->failure_count + $self->stage->failed;
+    my $status = $self->new_status;
+
+    my $successor = __CLASS__->new(volume => $self->volume,
+                    status => $self->new_status,
+                    failure_count => ($failure_count),
+                    callback => \&callback)
 }
 
 1;

@@ -3,13 +3,14 @@
 use warnings;
 use strict;
 
+use Pod::Usage;
+
 use FindBin;
 use lib "$FindBin::Bin/../lib";
 
 use HTFeed::Log {root_logger => 'INFO, screen'};
 use HTFeed::Version;
 use HTFeed::Job;
-use HTFeed::Run;
 
 use Getopt::Long;
 use HTFeed::StagingSetup;
@@ -29,12 +30,15 @@ $| = 1;
 my $ignore_errors = 0;
 my $clean = 1;
 my $always_fail = 0;
+my $help = 0;
 
 GetOptions ( 
     "ignore_errors!" => \$ignore_errors, 
     "clean!"         => \$clean,
     "fail"           => \$always_fail,
-) or usage();
+)  or pod2usage(2);
+
+pod2usage(1) if $help;
 
 # read args
 my $packagetype = shift;
@@ -42,12 +46,12 @@ my $namespace = shift;
 my $objid = shift;
 my $startstate = (shift or 'ready');
 
-usage() unless ($objid and $namespace and $packagetype);
+pod2usage(2) unless ($objid and $namespace and $packagetype);
 
-sub usage {
-    print "usage: ingest_test.pl [ -i | --ignore_errors ] [ -f | --fail ] [ --no-clean ] packagetype namespace objid [ state ]\n";
-    exit 0;
-}
+#sub usage {
+#    print "usage: ingest_test.pl [ -i | --ignore_errors ] [ -f | --fail ] [ --no-clean ] packagetype namespace objid [ state ]\n";
+#    exit 0;
+#}
 
 # make staging dirs
 HTFeed::StagingSetup::make_stage();
@@ -62,19 +66,19 @@ $job = HTFeed::Job->new(pkg_type => $packagetype, namespace => $namespace, id =>
 if ($ignore_errors){
     while($job){
         # force success
-        run_job($job,$clean,0);
+        $job->run_job($clean,0);
     }
 }
 elsif ($always_fail){
     while($job){
         # force failure
-        run_job($job,$clean,1);    
+        $job->run_job($clean,1);    
     }
 }
 else{
     while($job){
         # use actual failure or success
-        run_job($job,$clean);
+        $job->run_job($clean);
     }
 }
 

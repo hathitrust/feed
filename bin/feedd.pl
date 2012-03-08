@@ -10,14 +10,17 @@ use HTFeed::Log { root_logger => 'INFO, dbi' };
 use HTFeed::Version;
 
 use HTFeed::StagingSetup;
-use HTFeed::Run;
+use HTFeed::Job;
 
 use HTFeed::Config;
 use HTFeed::Volume;
 use HTFeed::DBTools qw(get_queued lock_volumes count_locks update_queue disconnect);
 use Log::Log4perl qw(get_logger);
 use Filesys::Df;
-use HTFeed::Job;
+
+use HTFeed::ServerStatus;
+use Sys::Hostname;
+use Mail::Mailer;
 
 print("feedd running, waiting for something to ingest, pid = $$\n");
 
@@ -64,13 +67,11 @@ $SIG{'TERM'} =
         exit;
     };
 
-# exit right away if stop file is set
-if( ! exit_condition() ) {
-    HTFeed::StagingSetup::make_stage($clean);
-}
+
+HTFeed::StagingSetup::make_stage($clean);
 
 my $i = 0;
-while(! exit_condition()){
+while( continue_running_server() ){
     my $df = df(get_config('ram_disk'));
 #    warn("Iteration $i: RAM disk has $bfree blocks free\n");$i++;
     my $pctused = df(get_config('ram_disk'))->{per};
@@ -103,7 +104,7 @@ sub spawn{
     }
     elsif ( defined $pid ) {
         # child
-        run_job($job, $clean);
+        $job->run_job($clean);
         exit(0);
     }
     else{
@@ -111,8 +112,7 @@ sub spawn{
     }
 }
 
-# wait, spawns refreshed job for kid's volume if possible
-# else decrement $subprocess and release lock
+# wait, decrement subprocess count and release lock
 sub wait_kid{
     my $pid = wait();
     if ($pid > 0){
@@ -122,13 +122,6 @@ sub wait_kid{
         return $pid;
     }
     return;
-}
-
-# determine if we are done
-sub exit_condition{
-    my $condition = -e get_config('daemon'=>'stop_file');
-
-    return $condition;
 }
 
 sub get_next_job{
@@ -208,9 +201,31 @@ sub release_job{
 END{
     # clean up on exit of original pid (i.e. don't clean on END of fork()ed pid)
     if($$ eq $process_id){
+        my @kid_pids = keys %locks_by_pid;
+
+        # automatically reap zombies 
+        $SIG{CHLD} = 'IGNORE';
+
         # parent kills kids
         print "killing child procs...\n";
         kill 2, keys %locks_by_pid;
+		sleep 20;
+
+		# make sure kids are really gone
+        my $kill9s = 0;
+        while(_kids_remaining()){
+            # announce each kill -9 attempt, send email evey 3 minutes
+            $kill9s++;
+            unless($kill9s % 9){
+                _will_not_die_message($kill9s * 20);
+            }
+            else {
+                print "Child processes stuck, trying kill -9...\n";
+            }
+
+            kill 9, keys %locks_by_pid;
+            sleep 20;
+        }
         
         # delete staging dirs
         if ($clean){
@@ -230,8 +245,31 @@ END{
             sleep 30;            
         }
     }
-    
+
     warn("feedd process $$ terminating");
+}
+
+sub _kids_remaining{
+    my $count = kill 0, keys %locks_by_pid;
+    return $count;
+}
+
+sub _will_not_die_message{
+    my $seconds = shift;
+    my $host = hostname;
+    my $kid_cnt = _kids_remaining();
+    my $message = "Feedd process $$ has been unable to exit for $seconds seconds. Unable to kill $kid_cnt children.\n" . 
+                'Child pids: ' . join(q(, ),(keys %locks_by_pid));
+    
+    warn $message;
+    
+    # send email
+    my $mailer = new Mail::Mailer;
+    $mailer->open({ 'Subject' => "feedd zombie on $host",
+                    'To' => get_config('admin_email')});
+    
+    print $mailer $message;
+    $mailer->close() or warn("Couldn't send message: $!");    
 }
 
 1;

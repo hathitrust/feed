@@ -9,8 +9,9 @@ use lib "$FindBin::Bin/../../lib";
 use HTFeed::Config;
 use HTFeed::Dataset::RightsDB;
 use HTFeed::Dataset;
+use HTFeed::Volume;
 
-my $volumes = get_bad_volumes(@{get_config('dataset'=>'full_set_rights_query')});
+my $volumes = get_bad_volumes(get_config('dataset'=>'full_set_rights_query'));
 
 while (my $nsid = shift @{$volumes}){
     my ($ns,$id) = @{$nsid};
