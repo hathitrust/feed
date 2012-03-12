@@ -10,6 +10,8 @@ use File::Find;
 sub run {
 	my $self = shift;
 
+    $self->SUPER::run();
+
 	my $volume = $self->{volume};
 	my $packagetype = $volume->get_packagetype();
 	my $objid = $volume->get_objid();

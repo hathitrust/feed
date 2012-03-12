@@ -7,3 +7,8 @@ gpg
 web/
 rdist.timestamp
 config.yaml
+bin/get_book.sh
+bin/validateCache
+etc/libadm*
+etc/mysqlparams
+t/cover*

@@ -7,6 +7,8 @@ use base qw(HTFeed::Volume);
 use HTFeed::Config;
 use File::Pairtree qw(id2ppath s2ppchars);
 
+# singleton stage_map override
+my $stage_map = undef;
 
 =item get_file_groups 
 
@@ -42,15 +44,14 @@ sub get_file_groups {
     return $self->{filegroups};
 }
 
-## TODO: this
-#sub extract_source_mets {
-#    die "!"
-#}
-
 ## TODO: find source mets
 sub get_source_mets_file{
-    return;
+   return;
 }
+
+#sub extract_source_mets {
+#    
+#}
 
 # Don't record any premis events for dataset generation
 sub record_premis_event {
@@ -81,25 +82,41 @@ sub get_dataset_path {
 
 sub get_last_ingest_date{
     my $self = shift;
+    
+    if(not defined $self->{ingest_date}) {
 
-    my $mets = $self->get_repos_mets_xpc();
-    unless($mets){
-        ##warn "no mets!";
-        return;
-    }
+        my $mets = $self->get_repos_mets_xpc();
+        unless($mets){
+            ##warn "no mets!";
+            return;
+        }
 
-    my $ingest_date;
-    { # Ingest date
         my @dates;
         foreach my $event ($mets->findnodes('//premis:event[premis:eventType="ingestion"] | //premis1:event[premis1:eventType="ingestion"]')) {
             my $date = $mets->findvalue('./premis:eventDateTime | ./premis1:eventDateTime',$event);
             push @dates, $date;
         }
         @dates = sort @dates;
-        $ingest_date = pop @dates;
+        $self->{ingest_date} = pop @dates;
     }
 
-    return $ingest_date;
+    return $self->{ingest_date};
+}
+
+# override nspkg stage map FOR ALL VOLUME OBJECTS OF THIS PackageType
+sub set_stage_map{
+    $stage_map = shift;
+}
+
+sub next_stage{
+    my $self = shift;
+    my $stage_map = ($stage_map or $self->get_nspkg()->get('stage_map'));
+    my $stage_name = shift;
+    $stage_name = 'ready' if not defined $stage_name;
+    if(not defined $stage_map->{$stage_name}) {
+        $self->set_error("UnexpectedError",detail => "Action for stage $stage_name not defined");
+    }
+    return $stage_map->{$stage_name};
 }
 
 1;

@@ -5,6 +5,7 @@ use warnings;
 use base qw(HTFeed::Stage::JHOVE_Runner);
 use HTFeed::Config qw(get_config);
 use Log::Log4perl qw(get_logger);
+use File::Copy;
 use Carp;
 
 sub run {
@@ -202,15 +203,19 @@ sub _remediate_tiff {
 
     if($remediate_imagemagick and !$bad) {
         # return true if remediation succeeds
-        $ret = $self->repair_tiff_imagemagick($infile);
+        $ret = $self->repair_tiff_imagemagick($infile,$outfile);
+        my $infile = $outfile;
     } 
     # FIXME: use existing code.
     if($remediate_exiftool and !$bad) {
-        $ret = $ret && $self->repair_tiff_exiftool($infile,$self->{newFields})
+        $ret = $ret && $self->repair_tiff_exiftool($infile,$outfile,$self->{newFields})
     }
 
     else {
         # don't need to remediate -- return true if not bad
+        if($infile ne $outfile) {
+            copy($infile,$outfile) or $self->set_error("OperationFailed",operation => 'copy',file => $infile, detail => "Can't copy to $outfile: $!");
+        }
         return !$bad;
     }
 

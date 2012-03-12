@@ -3,6 +3,7 @@ package HTFeed::Stage::Download;
 use warnings;
 use strict;
 use LWP::UserAgent;
+use HTFeed::Version;
 
 use base qw(HTFeed::Stage);
 
@@ -30,7 +31,8 @@ sub download{
     return 1 if -e "$path/$filename";
 
     my $ua = LWP::UserAgent->new;
-    $ua->agent('HTFeedBot/0.1 '); # space causes LWP to append its ua
+	my $version = HTFeed::Version::get_feed_version_number();
+    $ua->agent('HTFeedBot/$version  '); # space causes LWP to append its ua
 
     get_logger()->trace("Requesting $url");
     my $request = HTTP::Request->new('GET', $url);

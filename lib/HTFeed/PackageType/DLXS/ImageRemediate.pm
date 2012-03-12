@@ -41,7 +41,7 @@ sub run{
         my $jp2_remediated = basename($jp2_submitted);
         # change to form 0000010.jp2 instead of p0000010.jp2
         $jp2_remediated =~ s/^p/0/;
-        $jp2_remediated = "$stage_path/$1_$2.jp2";
+        $jp2_remediated = "$stage_path/$jp2_remediated.jp2";
 
         $self->remediate_image( $jp2_submitted, $jp2_remediated );
     }
