@@ -102,7 +102,7 @@ sub _add_struct_map {
     my $voldiv = new METS::StructMap::Div( type => 'volume' );
     $struct_map->add_div($voldiv);
     my $order               = 1;
-    my $file_groups_by_page = $volume->get_file_groups_by_page();
+    my $file_groups_by_page = $volume->get_structmap_file_groups_by_page();
     foreach my $seqnum ( sort( keys(%$file_groups_by_page) ) ) {
         my $pagefiles   = $file_groups_by_page->{$seqnum};
         my $pagediv_ids = [];

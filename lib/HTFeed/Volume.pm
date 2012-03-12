@@ -614,15 +614,28 @@ physical page, e.g.:
 { '0001' => { txt => ['0001.txt'], 
           img => ['0001.jp2'] },
   '0002' => { txt => ['0002.txt'],
-          img => ['0002.tif'] },
-  '0003' => { txt => ['0003.txt'],
+          img => ['0002.tif'] }, '0003' => { txt => ['0003.txt'],
           img => ['0003.jp2','0003.tif'] }
   };
 
 =cut
 
+sub get_required_file_groups_by_page {
+    my $self = shift;
+
+    return $self->get_file_groups_by_page( sub { return $_[0]->get_required(); } )
+
+}
+
+sub get_structmap_file_groups_by_page {
+    my $self = shift;
+
+    return $self->get_file_groups_by_page( sub { return $_[0]->in_structmap(); } )
+}
+
 sub get_file_groups_by_page {
     my $self = shift;
+    my $condition = shift;
     my $filegroups      = $self->get_file_groups();
     my $files           = {};
 
@@ -630,8 +643,9 @@ sub get_file_groups_by_page {
     while ( my ( $filegroup_name, $filegroup ) =
         each( %{ $filegroups } ) )
     {
-        # ignore this filegroup if it is not 'required'
-        next unless $filegroup->get_required();
+        # ignore this filegroup if there is a condition given and the filegroup
+        # doesn't meet the condition (see other get_*_file_groups_by_pagE)
+        next if defined($condition) and not &$condition($filegroup);
         foreach my $file ( @{$filegroup->get_filenames()} ) {
             if ( $file =~ /(\d+)\.(\w+)$/ ) {
                 my $sequence_number = $1;
@@ -648,7 +662,6 @@ sub get_file_groups_by_page {
     }
 
     return $files;
-
 }
 
 # TODO: altRecordID
