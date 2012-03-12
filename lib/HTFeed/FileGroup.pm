@@ -70,6 +70,19 @@ sub get_required {
     return $self->{required};
 }
 
+=item in_structmap()
+
+Returns whether files in this filegroup should be used in the METS structMap.
+The default is that files are used in a structMap. Override this by setting
+structmap => 0.
+
+=cut
+
+sub in_structmap {
+    my $self = shift;
+    return (not defined $self->{structmap} or $self->{structmap})
+}
+
 
 1;
 

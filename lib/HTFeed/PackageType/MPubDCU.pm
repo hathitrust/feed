@@ -49,7 +49,11 @@ our $config = {
             required => 0,
             content => 1,
             jhove => 0,
-            utf8 => 0
+            utf8 => 0,
+            # set to 0 to omit filegroup from structmap
+            # (there is not a PDF file for every page, so including it in the
+            # physical structmap wouldn't make much sense.)
+            structmap => 0
         },
     },
 
