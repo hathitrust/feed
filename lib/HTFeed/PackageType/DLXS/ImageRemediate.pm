@@ -16,7 +16,30 @@ sub run{
 
     # remediate TIFFs
     my @tiffs = map { basename($_) } glob("$preingest_path/*.tif");
-    $self->remediate_tiffs($volume,$preingest_path,\@tiffs);
+    $self->remediate_tiffs($volume,$preingest_path,\@tiffs,
+
+        # return extra fields to set that depend on the file
+        sub {
+            # three fields to remediate: docname, datetime, artist.
+            # docname: remediate only if missing; set to $barcode/$filename.
+            # datetime: remediate from docname if possible. otherwise use loadcd.log
+            # artist: remediate from docname if possible, otherwise use loadcd.log
+            my $file = shift;
+            my $fields = $self->get_exiftool_fields("$preingest_path/$file");
+
+            my $set_if_undefined = {};
+            my $force_fields = {'IFD0:DocumentName' => join('/',$volume->get_objid(),$file) };
+            # old DocumentName may contain some valuable information!
+            my $docname = $fields->{'IFD0:DocumentName'};
+
+            if($docname =~ qr#^(\d{2})/(\d{2})/(\d{4}),(\d{2}):(\d{2}):(\d{2}),"(.*)"#) {
+                $set_if_undefined->{'IFD0:ModifyDate'} = "$3:$1:$2 $4:$5:$6";
+                $set_if_undefined->{'IFD0:Artist'} = $7;
+            }
+
+            return ( $force_fields, $set_if_undefined);
+        }
+    );
 
     # remediate JP2s
 
@@ -25,7 +48,7 @@ sub run{
         my $jp2_remediated = basename($jp2_submitted);
         # change to form 0000010.jp2 instead of p0000010.jp2
         $jp2_remediated =~ s/^p/0/;
-        $jp2_remediated = "$stage_path/$jp2_remediated.jp2";
+        $jp2_remediated = "$stage_path/$jp2_remediated";
 
         $self->remediate_image( $jp2_submitted, $jp2_remediated );
     }

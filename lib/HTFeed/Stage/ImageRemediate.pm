@@ -158,9 +158,13 @@ sub _remediate_tiff {
         $bad = 1;
     }
     elsif($status ne 'Well-Formed and valid') {
-        foreach my $error ($self->{jhoveErrors}) {
+        foreach my $error ( @{$self->{jhoveErrors}} ) {
             # Is the error remediable?
-            my @exiftool_remediable_errs = ('IFD offset not word-aligned','Value offset not word-aligned','Tag 269 out of sequence','Invalid DateTime separator','PhotometricInterpretation not defined');
+            my @exiftool_remediable_errs = ('IFD offset not word-aligned',
+                                            'Value offset not word-aligned',
+                                            'Tag 269 out of sequence',
+                                            'Invalid DateTime separator',
+                                            'PhotometricInterpretation not defined');
             my @imagemagick_remediable_errs = ();
             if(grep {$error =~ /^$_/} @imagemagick_remediable_errs) {
                 get_logger()->trace("PREVALIDATE_REMEDIATE: $infile has remediable error '$error'\n");
@@ -174,16 +178,16 @@ sub _remediate_tiff {
                 $bad = 1;
             }
 
-            if($error =~ '^Invalid DateTime separator') {
-                # get existing DateTime field, normalize to TIFF 6.0 spec "YYYY:MM:DD HH:MM:SS"
-                my $datetime = $self->{oldFields}{ModifyDate};
-                if($datetime =~ /^(\d{4}).(\d{2}).(\d{2}).(\d{2}).(\d{2}).(\d{2})/) {
-                    $self->{newFields}{ModifyDate} = "$1:$2:$3 $4:$5:$6";
-                }
-                $remediate_exiftool = 1;
-            }
         }
 
+    }
+
+    # get existing DateTime field, normalize to TIFF 6.0 spec "YYYY:MM:DD HH:MM:SS"
+    my $datetime = $self->{oldFields}{'IFD0:ModifyDate'};
+    if(defined $datetime and $datetime =~ /^(\d{4}).(\d{2}).(\d{2}).(\d{2}).(\d{2}).(\d{2})/
+     and $datetime !~ /^(\d{4}):(\d{2}):(\d{2}) (\d{2}):(\d{2}):(\d{2})/) {
+        $self->{newFields}{'IFD0:ModifyDate'} = "$1:$2:$3 $4:$5:$6";
+        $remediate_exiftool = 1;
     }
 
     # Prevalidate other fields -- don't bother checking unless there is not some other error
@@ -420,18 +424,21 @@ sub prevalidate_field {
 
 }
 
-=item $self->remediate_tiffs($volume,$path,$tiffs,$force_headers,$set_if_undefined_headers)
+=item $self->remediate_tiffs($volume,$path,$tiffs,$headers_sub)
 
 Runs jhove and calls image_remediate for all tiffs in $tiffs. 
 $tiffs is a reference to an array of filenames.
 $path is the base directory containing all the files in $tiffs.
 
-see remediate_image for the other parameters.
+$headers_sub is a callback taking the filename as a parameter
+and returning the force_headers and set_if_undefined_headers parameters for
+remediate_image (qv)
 
 =cut
 sub remediate_tiffs {
 
-    my ($self,$volume,$tiffpath,$files,$force_headers,$set_if_undefined_headers) = @_;
+    my ($self,$volume,$tiffpath,$files,$headers_sub) = @_;
+
 
     my $repStatus_xp = XML::LibXML::XPathExpression->new('/jhove:jhove/jhove:repInfo/jhove:status');
     my $error_xp = XML::LibXML::XPathExpression->new('/jhove:jhove/jhove:repInfo/jhove:messages/jhove:message[@severity="error"]');
@@ -442,16 +449,23 @@ sub remediate_tiffs {
     $self->run_jhove($volume,$tiffpath,$files, sub {
             my ($volume,$file,$node) = @_;
             my $xpc = XML::LibXML::XPathContext->new($node);
+            my ($force_headers,$set_if_undefined_headers) = (undef,undef);
             register_namespaces($xpc);
 
             $self->{jhoveStatus} = $xpc->findvalue($repStatus_xp);
             $self->{jhoveErrors} = [map { $_->textContent } $xpc->findnodes($error_xp)];
 
+            # get headers that may depend on the individual file
+            if($headers_sub) {
+                ($force_headers,$set_if_undefined_headers) = 
+                &$headers_sub($file);
+            }
+
             $self->remediate_image("$tiffpath/$file",
                 "$stage_path/$file",
-                {%$force_headers, 'IFD0:DocumentName' => "$objid/$file"},
+                $force_headers,
                     $set_if_undefined_headers);
-        });
+        },"-m TIFF-hul");
 }
 
 1;

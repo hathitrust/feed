@@ -26,7 +26,6 @@ sub run{
     )
     {
 
-
         my $img_dospath = $image_node->nodeValue();
         $img_dospath =~ s/JPG$/JP2/;
         my $img_submitted_path = $volume->dospath_to_path($img_dospath);
@@ -56,8 +55,10 @@ sub run{
 
     # remediate tiffs
     $self->remediate_tiffs($volume,$tiffpath,\@tiffs,
-        { 'IFD0:Artist' => 'Kirtas Technologies, Inc.',
-            'IFD0:ModifyDate' => $capture_time}, {} );
+        sub { my $file = shift; return
+        {   'IFD0:DocumentName' => "$objid/$file", 
+            'IFD0:Artist' => 'Kirtas Technologies, Inc.',
+            'IFD0:ModifyDate' => $capture_time}, {}} );
 
     $volume->record_premis_event('image_header_modification');
 
