@@ -5,47 +5,37 @@ use warnings;
 use base qw(HTFeed::Stage::Fetch);
 use Log::Log4perl qw(get_logger);
 use HTFeed::Config qw(get_config);
-use File::Find;
 
 sub run {
-	my $self = shift;
+    my $self = shift;
 
     $self->SUPER::run();
 
-	my $volume = $self->{volume};
-	my $objid = $volume->get_objid();
-	my $packagetype = $volume->get_packagetype();
+    my $volume = $self->{volume};
+    my $packagetype = $volume->get_packagetype();
+    my $objid = $volume->get_objid();
 
-	my $fetch_base = get_config('staging'=>'fetch');
+    my $fetch_base = get_config('staging'=>'fetch');
 
-	my $source;
-	my @paths;
+    my $source = undef;
 
-	my $base="$fetch_base/mpub_dcu";
+    my $base="$fetch_base/mpub_dcu";
+    my @paths = grep { -d $_ } glob("$base/*");
 
-	# traverse dirs & symlinks
-	# to find the fetch path
-	my %options = (
-		wanted 	=> 	sub {$source = "$File::Find::name"
-					if (defined($File::Find::name) && ($File::Find::name =~ /forHT\/$objid$/));},
-		follow => 1,
-		follow_skip => 1,
-	);
+    foreach my $path(@paths){
+        if(-d  "$path/forHT/$objid" ){
+            $self->set_error("BadFile",file => "$path/forHT/$objid", detail => "Duplicate submission $source") if defined $source;
+            $source = "$path/forHT/$objid";
+        }
+    }
 
-	find(\%options, $base);
+    my $dest = get_config('staging' => 'ingest');
 
-	unless($source){
-		$self->set_error('OperationFailed', operation => 'get fetch dir', detail => 'Path not found' );
-		return;
-	}
+    $self->fetch_from_source($source,$dest);
+    $self->fix_line_endings($dest);
 
-	my $dest = get_config('staging' => 'ingest');
-
-	$self->fetch_from_source($source,$dest);
-	$self->fix_line_endings($dest);
-
-	$self->_set_done();
-	return $self->succeeded();
+    $self->_set_done();
+    return $self->succeeded();
 }
 
 1;
