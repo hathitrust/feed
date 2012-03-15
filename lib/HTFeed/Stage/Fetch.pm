@@ -16,6 +16,7 @@ sub fetch_from_source {
 		mkdir $dest or die("Can't mkdir $dest $!");
 	}
 	
+    get_logger()->trace("Fetching from source: cp -rs '$source' '$dest'");
 	system("cp -rs '$source' '$dest'")
         and $self->set_error('OperationFailed', operation=>'copy', detail=>"copy $source $dest failed with status: $?");
 }
@@ -29,13 +30,15 @@ sub fix_line_endings {
 	my $dir = "$base/$objid";
 
     foreach my $filename (glob("$dir/*.txt"), "$dir/checksum.md5", "$dir/pageview.dat") {
+        next unless -e $filename;
 
-        next if( -e "$filename.bak" );
-        next if(!( -f $filename && -r $filename && -w $filename  ));
-
-        rename("$filename","$filename.bak");
-        open INPUT, "$filename.bak";
-        open OUTPUT, ">$filename";
+        if( -e "$filename.bak" ) {
+            $self->set_error("UnexpectedError","$filename.bak exists");
+        }
+        
+        rename("$filename","$filename.bak") or $self->set_error("OperationFailed",operation => "rename",file => $filename,detail => $!);
+        open INPUT, "$filename.bak" or $self->set_error("OperationFailed",operation => "open", file => "$filename.bak", detail => $!);
+        open OUTPUT, ">$filename" or $self->set_error("OperationFailed",operation => "open", file => "$filename", detail => $!);
 
         while( <INPUT> ) {
             s/\r\n$/\n/;     # convert CR LF to LF
@@ -44,7 +47,7 @@ sub fix_line_endings {
 
         close INPUT;
         close OUTPUT;
-        unlink("$filename.bak");
+        unlink("$filename.bak") or $self->set_error("OperationFailed",operation => "unlink", file => "$filename.bak", detail => $!);
         get_logger()->trace("Cleaned line endings for $filename");
 
     }
