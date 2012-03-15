@@ -15,7 +15,7 @@ sub run{
     
 
     # remediate TIFFs
-    my @tiffs = map { basename($_) } glob("$preingest_path/*.tif");
+    my @tiffs = map { basename($_) } glob("$preingest_path/[0-9]*.tif");
     $self->remediate_tiffs($volume,$preingest_path,\@tiffs,
 
         # return extra fields to set that depend on the file
