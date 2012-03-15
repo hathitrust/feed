@@ -19,9 +19,7 @@ sub run {
 
     my $source = undef;
 
-
     my $base="$fetch_base/mpub_dcu";
-
     my @paths = grep { -d $_ } glob("$base/*");
 
     foreach my $path(@paths){
