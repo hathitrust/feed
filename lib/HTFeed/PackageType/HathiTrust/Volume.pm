@@ -85,7 +85,7 @@ sub get_last_ingest_date{
     
     if(not defined $self->{ingest_date}) {
 
-        my $mets = $self->get_repos_mets_xpc();
+        my $mets = $self->get_repository_mets_xpc();
         unless($mets){
             ##warn "no mets!";
             return;

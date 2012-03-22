@@ -334,25 +334,27 @@ sub _parse_xpc {
     }
 }
 
-=item get_repos_mets_xpc
+=item get_repository_mets_xpc
 
 Returns an XML::LibXML::XPathContext with namespaces set up 
-and the context node positioned at the document root of the source METS.
+and the context node positioned at the document root of the repository METS, if
+the object is already in the repository. Returns false if the object is not
+already in the repository.
 
 =cut
 
-sub get_repos_mets_xpc {
+sub get_repository_mets_xpc {
     my $self = shift;
 
-    if (not defined $self->{repos_mets_xpc}) {
+    if (not defined $self->{repository_mets_xpc}) {
 
         my $mets = $self->get_repository_mets_path();
         return unless defined $mets;
 
-        $self->{repos_mets_xpc} = $self->_parse_xpc($mets);
+        $self->{repository_mets_xpc} = $self->_parse_xpc($mets);
     }
 
-    return $self->{repos_mets_xpc};
+    return $self->{repository_mets_xpc};
 
 }
 
@@ -547,37 +549,6 @@ sub get_repository_zip_path {
 
     return unless (-f $zip_in_repository_file);
     return $zip_in_repository_file;
-}
-
-=item get_repository_mets_xpc
-
-Returns an XML::LibXML::XPathContext with namespaces set up 
-and the context node positioned at the document root of the repository METS, if
-the object is already in the repository. Returns false if the object is not
-already in the repository.
-
-=cut
-
-sub get_repository_mets_xpc  {
-    my $self = shift;
-
-    my $mets_in_repository_file = $self->get_repository_mets_path();
-    return if not defined $mets_in_repository_file;
-
-    my $xpc;
-
-    eval {
-        my $parser = XML::LibXML->new();
-        my $doc    = $parser->parse_file($mets_in_repository_file);
-        $xpc = XML::LibXML::XPathContext->new($doc);
-        register_namespaces($xpc);
-    };
-
-    if ($@) {
-        croak("Could not read METS file $mets_in_repository_file: $@");
-    }
-    return $xpc;
-
 }
 
 =item get_filecount

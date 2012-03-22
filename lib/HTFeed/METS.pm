@@ -123,7 +123,7 @@ sub _extract_old_premis {
         my ( $mets_in_rep_valid, $val_results ) =
           $self->validate_xml($mets_in_repos);
         if ($mets_in_rep_valid) {
-            my $xc = $volume->get_repos_mets_xpc();
+            my $xc = $volume->get_repository_mets_xpc();
 
             foreach my $event ( $xc->findnodes('//premis:event') ) {
 
