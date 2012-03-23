@@ -190,7 +190,8 @@ sub new{
 	my $self = {
 		contexts => {
 		    repInfo     => ["/jhove:jhove/jhove:repInfo","root"],
-			tiffMeta	=> ["jhove:properties/jhove:property[jhove:name='TIFFMetadata']/descendant::jhove:property[jhove:name='Entries']/jhove:values", "repInfo"],
+            # finds the TIFF IFD
+			tiffMeta	=> ["jhove:properties/jhove:property[jhove:name='TIFFMetadata']//jhove:property[jhove:name='IFD']/jhove:values[jhove:property/jhove:values/jhove:value='TIFF']/jhove:property[jhove:name='Entries']/jhove:values", "repInfo"],
 			mix			=> ["jhove:property[jhove:name='NisoImageMetadata']/jhove:values/jhove:value/mix:mix", "tiffMeta"],
             # xmp is a custom context set up in modulevalidator
 		},
