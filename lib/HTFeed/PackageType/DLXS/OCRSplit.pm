@@ -19,10 +19,10 @@ sub run {
     my $objid = $volume->get_objid();
     my $preingest_directory = $volume->get_preingest_directory();
 
-    if(-e "$preingest_directory/$objid.xml") {
-        $self->splinter_xml("$preingest_directory/$objid.xml");
-    } elsif(-e "$preingest_directory/$objid.txt") {
+    if(-e "$preingest_directory/$objid.txt") {
         $self->splinter("$preingest_directory/$objid.txt");
+    elsif(-e "$preingest_directory/$objid.xml") {
+        $self->splinter_xml("$preingest_directory/$objid.xml");
     }  else {
         $self->set_error("MissingFile", file => "$preingest_directory/$objid.txt");
     }
