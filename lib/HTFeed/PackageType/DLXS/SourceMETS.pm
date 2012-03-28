@@ -24,22 +24,28 @@ sub new {
     return $self;
 }
 
-
-
-# TODO: get capture time from image ModifyDate or from 
-# loadcd
 sub _add_capture_event {
     my $self = shift;
     my $volume = $self->{volume};
     my $premis = $self->{premis};
+    
+    # first try to get the capture date for the first image
+    my $exifTool = new Image::ExifTool;
+    $exifTool->ExtractInfo($volume->get_staging_directory() . "/00000001.tif");
+    my $capture_date = $exifTool->GetValue('ModifyDate','IFD0');
+    if(not defined $capture_date or !$capture_date) {
+        $capture_date = $volume->get_loadcd_info()->{load_date};
+    }
+        
+    $capture_date =~ s/(\d{4}).(\d{2}).(\d{2}).(\d{2}).(\d{2}).(\d{2})(.*)/$1-$2-$3T$4:$5:$6$7/; # fix separator
 
     my $eventcode = 'capture';
     my $eventconfig = $volume->get_nspkg()->get_event_configuration($eventcode);
-    $eventconfig->{'eventid'} = $volume->make_premis_uuid($eventconfig->{'type'},"1970-01-01T00:00:00");
+    $eventconfig->{'eventid'} = $volume->make_premis_uuid($eventconfig->{'type'},$capture_date);
     $eventconfig->{'executor'} = 'MiU';
     $eventconfig->{'executor_type'} = 'MARC21 Code';
     # FOR TESTING ONLY
-    $eventconfig->{'date'} = "1970-01-01T00:00:00";
+    $eventconfig->{'date'} = $capture_date;
     my $event = $self->add_premis_event($eventconfig);
 }
 
