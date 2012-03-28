@@ -154,24 +154,26 @@ sub _validate_consistency {
         }
     }
 
-    # Make sure each filegroup has exactly one object for each sequence number
-    while ( my ( $sequence_number, $files ) = each( %{$files} ) ) {
-        if ( keys( %{$files} ) != @filegroup_names ) {
-            $self->set_error( "MissingFile",
-                detail => "File missing for $sequence_number: have "
-                . join( q{,}, keys %{$files} )
-                . '; expected '
-                . join( q{,}, @filegroup_names ) );
-        } else {
-			while ( my ($type, $list) = each %{$files}){
-				if(scalar(@$list) ne 1){
-					$self->set_error("BadFile", detail=>"Extraneous files for $sequence_number: have "
-					. join( q{,}, @$list)
-					. '; expected only one file' );
-				}
-			}
-		}
-	}
+    if( !$volume->get_nspkg->get('allow_multiple_pageimage_formats')) {
+        # Make sure each filegroup has exactly one object for each sequence number
+        while ( my ( $sequence_number, $files ) = each( %{$files} ) ) {
+            if ( keys( %{$files} ) != @filegroup_names ) {
+                $self->set_error( "MissingFile",
+                    detail => "File missing for $sequence_number: have "
+                    . join( q{,}, keys %{$files} )
+                    . '; expected '
+                    . join( q{,}, @filegroup_names ) );
+            } else {
+                while ( my ($type, $list) = each %{$files}){
+                    if(scalar(@$list) ne 1){
+                        $self->set_error("BadFile", detail=>"Extraneous files for $sequence_number: have "
+                        . join( q{,}, @$list)
+                        . '; expected only one file' );
+                    }
+                }
+            }
+        }
+    }
 }
 
 
