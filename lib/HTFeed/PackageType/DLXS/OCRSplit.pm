@@ -8,6 +8,7 @@ use base qw(HTFeed::Stage);
 use HTFeed::Config qw(get_config);
 
 use Log::Log4perl qw(get_logger);
+use Carp qw(croak);
 
 #
 # Split the OCR file (_djvu.xml) into a TXT and an XML file for each page
@@ -20,8 +21,8 @@ sub run {
     my $preingest_directory = $volume->get_preingest_directory();
 
     if(-e "$preingest_directory/$objid.txt") {
-        $self->splinter("$preingest_directory/$objid.txt");
-    elsif(-e "$preingest_directory/$objid.xml") {
+        $self->splinter("$preingest_directory/$objid.txt") 
+    } elsif(-e "$preingest_directory/$objid.xml") {
         $self->splinter_xml("$preingest_directory/$objid.xml");
     }  else {
         $self->set_error("MissingFile", file => "$preingest_directory/$objid.txt");
@@ -43,6 +44,7 @@ sub ncr2utf8 {
     my $line = shift;
     $line =~ s|\&\#x([0-9a-fA-F]{1,4});|hex2utf8($1)|ges;
     $line =~ s|\&\#([0-9]{1,5});|num2utf8($1)|ges;
+    return $line;
 }
 
 sub hex2utf8 
@@ -82,7 +84,7 @@ sub num2utf8
     elsif ($t<0x04000000) { $firstbits=0xF8; $trail=4; }
     elsif ($t<0x80000000) { $firstbits=0xFC; $trail=5; }
     else {
-        die "Too large scalar value, cannot be converted to UTF-8.\n";
+        croak "Too large scalar value, cannot be converted to UTF-8.\n";
     }
     for (1 .. $trail) 
     {
@@ -90,7 +92,7 @@ sub num2utf8
         $t >>= 6;         # slight danger of non-portability
     }
     unshift (@result, $t | $firstbits);
-    pack ("C*", @result);
+    return pack ("C*", @result);
 }
 
 sub splinter_xml {
@@ -100,6 +102,15 @@ sub splinter_xml {
     my $staging_directory = $volume->get_staging_directory();
 
     my $parser = XML::LibXML->new();
+#    open(my $xml_in,"<",$infile) or croak("Can't open $xml_in: $!");
+#    while(my $line = <$xml_in>) {
+#        # ignore processing instructions??
+#        $line =~ s/\Q<?xml version="1.0" encoding="iso-8859-1"?>\E/;
+#         $parser->parse_chunk($line);
+#    }
+#    # finish parsing
+#   my $doc = $parser->parse_chunk("",1);
+    
     my $doc = $parser->parse_file("$infile");
 
     my $start = 0;
@@ -121,13 +132,10 @@ sub splinter_xml {
 
         my $outfile_txt = sprintf( "%s/%08d.txt", $staging_directory, $seq );
 
-        open(my $out, ">", $outfile_txt ) or croak ( "Can't open $outfile_txt: $!");
-        binmode($out,":utf8");
-
+        open(my $out_fh, ">:utf8", $outfile_txt ) or croak ( "Can't open $outfile_txt: $!");
         # If there was no OCR for this page, we'll just end up with a 0-byte file
-        print $out join( " ", @objtext );
-
-        close($out);
+        print $out_fh join( " ", @objtext );
+        close($out_fh);
 
     }
 }
@@ -141,20 +149,21 @@ sub splinter {
     my $volume = $self->{volume};
     my $staging_directory = $self->{volume}->get_staging_directory();
     my $text;
-    open("<$infile") or $self->set_error("OperationFailed",operation=>"open",file=>$infile,detail => "Could not open file: $!");
-    while(my $line = <$infile>) {
+    open(my $in_fh, "<", $infile) or $self->set_error("OperationFailed",operation=>"open",file=>$infile,detail => "Could not open file: $!");
+    while(my $line = <$in_fh>) {
         $text .= ncr2utf8($line);
     }
-    while ($text =~ m,<P><PB.*?SEQ="(.*?)"[^>]+>(.*?)</P>\n?,gis)
+    close($in_fh);
+    while ($text =~ m,<P>\s*<PB.*?SEQ="(.*?)"[^>]+>(.*?)</P>\n?,gis)
     {
         my $seq = $1;
         my $page = $2;
         
         my $outfile = "$staging_directory/$seq.txt";
 
-        open( OUTFILE, '>:utf8', "$outfile" ) or $self->set_error("OperationFailed",file => $outfile,operation => "write",detail => "Could not open file: $!");
-        print OUTFILE $page;
-        close( OUTFILE );
+        open( my $out_fh, '>:utf8', "$outfile" ) or $self->set_error("OperationFailed",file => $outfile,operation => "write",detail => "Could not open file: $!");
+        print $out_fh $page;
+        close( $out_fh);
     }
 }
 1;
