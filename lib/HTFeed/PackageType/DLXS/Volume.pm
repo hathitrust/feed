@@ -26,7 +26,7 @@ sub get_page_data {
     if(not defined $self->{'page_data'}) {
         my $pagedata = {};
 
-        my $pageview = $self->get_staging_directory() . "/pageview.dat";
+        my $pageview = $self->get_preingest_directory() . "/pageview.dat";
         if(-e $pageview) {
             open(my $pageview_fh,"<$pageview") or croak("Can't open pageview.dat: $!");
             <$pageview_fh>; # skip first line - column headers
@@ -51,10 +51,26 @@ sub get_page_data {
     return $self->{page_data}{$seqnum};
 }
 
+
 # no download location to clean for this material
 
 sub get_download_location {
     return;
+}
+
+sub get_loadcd_info {
+    my $self = shift;
+    my $loadcd_file = join('/',$self->get_preingest_directory(),"loadcd.log");
+    open(my $loadcd_fh, "<", $loadcd_file) or $self->set_error("UnexpectedError", file=>$loadcd_file, detail => "Can't open file: $!");
+
+    my $header = <$loadcd_fh>;
+    chomp $header;
+    if($header =~ /loaded from volume ID (\w+) on (\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})/) {
+        return { volume_id => $1,
+                 load_date => $2 };
+    } else {
+        $self->set_error("BadFile",file=>$loadcd_file,detail=>"Can't parse header",actual=>$header);
+    }
 }
 
 
