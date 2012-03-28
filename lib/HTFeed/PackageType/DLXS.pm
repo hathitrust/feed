@@ -5,6 +5,7 @@ package HTFeed::PackageType::DLXS;
 use strict;
 use warnings;
 use base qw(HTFeed::PackageType);
+use HTFeed::XPathValidator qw(:closures);
 
 our $identifier = 'dlxs';
 
@@ -97,5 +98,19 @@ our $config = {
     },
 
     source_mets_file => qr/^DLXS_[\w,]+\.xml$/,
+
+    # Validation overrides - make/model not expected
+    validation => {
+        'HTFeed::ModuleValidator::JPEG2000_hul' => {
+            'camera'               => undef,
+             'resolution'      => v_and(
+                 v_ge( 'xmp', 'xRes', 300 ), # should work even though resolution is specified as NNN/1
+                 v_same( 'xmp', 'xRes', 'xmp', 'yRes' )
+             ),
+        }
+    },
+
+    # Allow (but do not require) both a .tif and .jp2 image for a given sequence number
+    allow_multiple_pageimage_formats => 1
 
 };
