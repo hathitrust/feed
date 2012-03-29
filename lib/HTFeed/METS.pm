@@ -30,6 +30,8 @@ sub new {
         #		mets_xml		=> undef,
     );
     $self->{outfile} = $self->{volume}->get_mets_path();
+    # by default use volume "get_pagedata" to apply pagedata
+    $self->{pagedata} = sub { $self->{volume}->get_page_data(@_); };
 
     return $self;
 }
@@ -426,10 +428,12 @@ sub _add_filesecs {
 
 }
 
+# Basic structMap with optional page labels.
 sub _add_struct_map {
     my $self   = shift;
     my $mets   = $self->{mets};
     my $volume = $self->{volume};
+    my $get_pagedata = $self->{pagedata};
 
     my $struct_map = new METS::StructMap( id => 'SM1', type => 'physical' );
     my $voldiv = new METS::StructMap::Div( type => 'volume' );
@@ -456,25 +460,27 @@ sub _add_struct_map {
                     next;
                 }
 
-                # try to find page number & page tags for this page
-                if ( not defined $pagedata ) {
-                    $pagedata = $volume->get_page_data($file);
-                    @pagedata = %$pagedata if defined $pagedata;
-                }
-                else {
-                    my $other_pagedata = $volume->get_page_data($file);
-                    while ( my ( $key, $val ) = each(%$pagedata) ) {
-                        my $val1 = $other_pagedata->{$key};
-                        $self->set_error(
-                            "NotEqualValues",
-                            actual => "other=$val ,$fileid=$val1",
-                            detail =>
-"Mismatched page data for different files in pagefiles"
-                          )
-                          unless ( not defined $val and not defined $val1 )
-                          or ( $val eq $val1 );
+                if(defined $get_pagedata) {
+                    # try to find page number & page tags for this page
+                    if ( not defined $pagedata ) {
+                        $pagedata = &$get_pagedata($file);
+                        @pagedata = %$pagedata if defined $pagedata;
                     }
+                    else {
+                        my $other_pagedata = &$get_pagedata($file);
+                        while ( my ( $key, $val ) = each(%$pagedata) ) {
+                            my $val1 = $other_pagedata->{$key};
+                            $self->set_error(
+                                "NotEqualValues",
+                                actual => "other=$val ,$fileid=$val1",
+                                detail =>
+    "Mismatched page data for different files in pagefiles"
+                              )
+                              unless ( not defined $val and not defined $val1 )
+                              or ( $val eq $val1 );
+                        }
 
+                    }
                 }
 
                 push( @$pagediv_ids, $fileid );

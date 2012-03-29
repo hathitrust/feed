@@ -7,6 +7,7 @@ use Log::Log4perl qw(get_logger);
 use HTFeed::SourceMETS;
 use HTFeed::XMLNamespaces qw(:namespaces :schemas register_namespaces);
 use base qw(HTFeed::SourceMETS);
+use HTFeed::METS;
 
 
 sub new {
@@ -20,6 +21,7 @@ sub new {
     my $stage_path = $volume->get_staging_directory();
     my $pt_objid = $volume->get_pt_objid();
     $self->{outfile} = "$stage_path/DLXS_" . $pt_objid . ".xml";
+    $self->{pagedata} = sub { $volume->get_srcmets_page_data(@_); };
 
     return $self;
 }
@@ -48,5 +50,6 @@ sub _add_capture_event {
     $eventconfig->{'date'} = $capture_date;
     my $event = $self->add_premis_event($eventconfig);
 }
+
 
 1;
