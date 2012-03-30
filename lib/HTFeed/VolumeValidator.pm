@@ -154,21 +154,21 @@ sub _validate_consistency {
         }
     }
 
-    if( !$volume->get_nspkg->get('allow_multiple_pageimage_formats')) {
-        # Make sure each filegroup has exactly one object for each sequence number
-        while ( my ( $sequence_number, $files ) = each( %{$files} ) ) {
-            if ( keys( %{$files} ) != @filegroup_names ) {
-                $self->set_error( "MissingFile",
-                    detail => "File missing for $sequence_number: have "
-                    . join( q{,}, keys %{$files} )
-                    . '; expected '
-                    . join( q{,}, @filegroup_names ) );
-            } else {
+    # Make sure each filegroup has exactly one object for each sequence number
+    while ( my ( $sequence_number, $files ) = each( %{$files} ) ) {
+        if ( keys( %{$files} ) != @filegroup_names ) {
+            $self->set_error( "MissingFile",
+                detail => "File missing for $sequence_number: have "
+                . join( q{,}, keys %{$files} )
+                . '; expected '
+                . join( q{,}, @filegroup_names ) );
+        } else {
+            if( !$volume->get_nspkg->get('allow_multiple_pageimage_formats')) {
                 while ( my ($type, $list) = each %{$files}){
                     if(scalar(@$list) ne 1){
                         $self->set_error("BadFile", detail=>"Extraneous files for $sequence_number: have "
-                        . join( q{,}, @$list)
-                        . '; expected only one file' );
+                            . join( q{,}, @$list)
+                            . '; expected only one file' );
                     }
                 }
             }
@@ -309,30 +309,30 @@ sub _validate_metadata {
 
 
     $self->run_jhove($volume,$dir,$files, sub {
-        my ($volume,$file,$node) = @_;
+            my ($volume,$file,$node) = @_;
 
-        my $xpc = XML::LibXML::XPathContext->new($node);
-        register_namespaces($xpc);
+            my $xpc = XML::LibXML::XPathContext->new($node);
+            register_namespaces($xpc);
 
-        get_logger()->trace("validating $file");
-        my $mod_val = HTFeed::ModuleValidator->new(
-            xpc => $xpc,
+            get_logger()->trace("validating $file");
+            my $mod_val = HTFeed::ModuleValidator->new(
+                xpc => $xpc,
 
-            #node    => $node,
-            volume   => $volume,
-            filename => $file
-        );
-        $mod_val->run();
+                #node    => $node,
+                volume   => $volume,
+                filename => $file
+            );
+            $mod_val->run();
 
-        # check, log success
-        if ( $mod_val->succeeded() ) {
-            get_logger()->debug( "File validation succeeded",
-                file => $file );
-        }
-        else {
-            $self->set_error( "BadFile", file => $file );
-        }
-    });
+            # check, log success
+            if ( $mod_val->succeeded() ) {
+                get_logger()->debug( "File validation succeeded",
+                    file => $file );
+            }
+            else {
+                $self->set_error( "BadFile", file => $file );
+            }
+        });
 
     return;
 }
