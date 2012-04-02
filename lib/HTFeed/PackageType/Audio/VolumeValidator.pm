@@ -15,7 +15,6 @@ sub new {
     my $class = shift;
     my $self = $class->SUPER::new(@_);
 	$self->{stages}{validate_mets_consistency} = \&_validate_mets_consistency;
-	$self->{stages}{validate_consistency} = \&_validate_consistency;
 	return $self;
 }
 
@@ -134,43 +133,6 @@ sub _validate_mets_consistency {
     return;
 }
 
-sub _validate_consistency {
-    my $self   = shift;
-    my $volume = $self->{volume};
-
-    my @filegroup_names = keys( %{ $volume->get_file_groups(); } );
-    my $files = $volume->get_file_groups_by_page();
-
-    # Make sure there are no gaps in the sequence
-    if ( !$volume->get_nspkg->get('allow_sequence_gaps') ) {
-        my $prev_sequence_number = 0;
-        my @sequence_numbers     = sort( keys(%$files) );
-        foreach my $sequence_number (@sequence_numbers) {
-            if ( $sequence_number > $prev_sequence_number + 1 ) {
-                $self->set_error( "MissingFile",
-                    detail =>
-                    "Skip sequence number from $prev_sequence_number to $sequence_number"
-                );
-            }
-            $prev_sequence_number = $sequence_number;
-        }
-    }
-
-	# TODO only look for matches in am/pm
-    # Make sure each filegroup has an object for each sequence number
-    while ( my ( $sequence_number, $files ) = each( %{$files} ) ) {
-        if ( keys( %{$files} ) != @filegroup_names ) {
-            $self->set_error( "MissingFile",
-                detail => "File missing for $sequence_number: have "
-                . join( q{,}, keys %{$files} )
-                . '; expected '
-                . join( q{,}, @filegroup_names ) );
-        }
-    }
-
-    return;
-
-}
 
 
 1;

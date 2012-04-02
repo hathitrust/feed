@@ -14,7 +14,9 @@ our $config = {
     volume_module => 'HTFeed::PackageType::MPubDCU::Volume',
     
     # Regular expression that distinguishes valid files in the file package
-    valid_file_pattern => qr/^( 
+    valid_file_pattern => qr/^(
+		checksum\.md5 |
+		pageview\.dat | 
 		\w+\.(xml) |
 		\w+\.(pdf) |
 		\d{8}.(html|jp2|tif|txt)
@@ -47,7 +49,11 @@ our $config = {
             required => 0,
             content => 1,
             jhove => 0,
-            utf8 => 0
+            utf8 => 0,
+            # set to 0 to omit filegroup from structmap
+            # (there is not a PDF file for every page, so including it in the
+            # physical structmap wouldn't make much sense.)
+            structmap => 0
         },
     },
 
