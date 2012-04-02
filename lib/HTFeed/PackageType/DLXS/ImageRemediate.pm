@@ -101,14 +101,15 @@ sub get_tiff_info {
 
     if(-e $tiff) {
         $tiff_fields = $self->get_exiftool_fields($tiff);
-        my $docname = $tiff_fields->{'IFD0:DocumentName'};
+        $artist = $tiff_fields->{'IFD0:Artist'};
+        $load_date = $tiff_fields->{'IFD0:ModifyDate'};
         if(defined $docname and $docname =~ qr#^(\d{2})/(\d{2})/(\d{4}),(\d{2}):(\d{2}):(\d{2}),"(.*)"#) {
             if($fmt eq 'tiff') {
-                $load_date = "$3:$1:$2 $4:$5:$6";
+                $load_date = "$3:$1:$2 $4:$5:$6" if not defined $load_date;
             } else {
-                $load_date = "$3-$1-$2T$4$5$6";
+                $load_date = "$3-$1-$2T$4$5$6" if not defined $load_date;
             }
-            $artist = $7;
+            $artist = $7 if not defined $artist;
         }
     }
 

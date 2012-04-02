@@ -254,7 +254,8 @@ sub repair_tiff_imagemagick {
     get_logger()->trace("TIFF_REPAIR: attempting to repair $infile to $outfile\n");
 
     # convert returns 0 on success, 1 on failure
-    my $rval = system("convert -compress Group4 $infile $outfile");
+    my $imagemagick = get_config('imagemagick');
+    my $rval = system("$imagemagick -compress Group4 '$infile' '$outfile'");
     croak("failed repairing $infile\n") if $rval;
 
 

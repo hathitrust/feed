@@ -79,7 +79,6 @@ sub get_page_data {
             my $order = sprintf("%08d",$page->getAttribute('ORDER'));
             my $detected_pagenum = $page->getAttribute('ORDERLABEL');
             my $tag = $page->getAttribute('LABEL');
-            # Google tags are space delimited; we want comma-delimited
             if (defined $tag) {
                 $tag = $pagetag_map{$tag};
             }
