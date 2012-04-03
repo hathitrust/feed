@@ -12,6 +12,7 @@ use HTFeed::Log;
 use Log::Log4perl qw( get_logger );
 
 use HTFeed::Job;
+use Data::Dumper;
 
 use base qw( Exporter );
 our @EXPORT_OK = qw( runlite );
@@ -46,9 +47,9 @@ my %volume_input_types = (
 sub _mk_vol{
     my ($packagetype, $namespace, $id) = @_;
     return HTFeed::Volume->new(
-        objid       => $packagetype,
+        objid       => $id, 
         namespace   => $namespace,
-        packagetype => $id,
+        packagetype => $packagetype,
     );
 }
 
@@ -184,14 +185,15 @@ sub _do_work {
         $volume = &{$mk_volume}($volume_info);
     };
     if($@ or !$volume) {
-        get_logger($logger)->error( 'Volume instantiation failed', detail => $@ . 'Input: ' . dumper($volume_info) );
+        get_logger($logger)->error( 'Volume instantiation failed', detail => $@ . 'Input: ' . Dumper($volume_info) );
         return;
     }
     
     my $job = HTFeed::Job->new(volume => $volume, callback => sub{return});
     
     while($job){
-        $job->run($clean);
+        $job->run_job($clean);
+        $job = $job->successor;
     }
 
     return;
