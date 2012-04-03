@@ -103,6 +103,7 @@ sub get_tiff_info {
         $tiff_fields = $self->get_exiftool_fields($tiff);
         $artist = $tiff_fields->{'IFD0:Artist'};
         $load_date = $tiff_fields->{'IFD0:ModifyDate'};
+        my $docname = $tiff_fields->{'IFD0:DocumentName'};
         if(defined $docname and $docname =~ qr#^(\d{2})/(\d{2})/(\d{4}),(\d{2}):(\d{2}):(\d{2}),"(.*)"#) {
             if($fmt eq 'tiff') {
                 $load_date = "$3:$1:$2 $4:$5:$6" if not defined $load_date;
