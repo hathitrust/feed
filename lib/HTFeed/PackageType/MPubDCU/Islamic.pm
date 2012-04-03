@@ -10,7 +10,6 @@ our $config = {
     %{$HTFeed::PackageType::MPubDCU::config},
     description => 'DCU-digitized Islamic Manuscripts',
     capture_agent => 'Digital Conversion Unit',
-    volume_module => 'HTFeed::Volume',
     
     # Regular expression that distinguishes valid files in the file package
 	# jp2 only; no OCR
@@ -33,6 +32,15 @@ our $config = {
 	   		utf8 => 0
 		},
     },
+
+	# no checksums
+    validation_run_stages => [
+        qw(validate_file_names
+          validate_filegroups_nonempty
+          validate_consistency
+          validate_utf8
+          validate_metadata)
+    ],
 
     # The HTFeed::ModuleValidator subclass to use for validating
     # files with the given extensions
