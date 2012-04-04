@@ -7,6 +7,7 @@ use Carp;
 use HTFeed::StagingSetup;
 use HTFeed::Version;
 use HTFeed::ServerStatus;
+use HTFeed::Stage::Done;
 
 use HTFeed::Log;
 use Log::Log4perl qw( get_logger );

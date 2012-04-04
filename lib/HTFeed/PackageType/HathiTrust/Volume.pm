@@ -7,9 +7,6 @@ use base qw(HTFeed::Volume);
 use HTFeed::Config;
 use File::Pairtree qw(id2ppath s2ppchars);
 
-# singleton stage_map override
-my $stage_map = undef;
-
 =item get_file_groups 
 
 Returns a hash of HTFeed::FileGroup objects containing info about the logical groups
@@ -103,21 +100,6 @@ sub get_last_ingest_date{
     return $self->{ingest_date};
 }
 
-# override nspkg stage map FOR ALL VOLUME OBJECTS OF THIS PackageType
-sub set_stage_map{
-    $stage_map = shift;
-}
-
-sub next_stage{
-    my $self = shift;
-    my $stage_map = ($stage_map or $self->get_nspkg()->get('stage_map'));
-    my $stage_name = shift;
-    $stage_name = 'ready' if not defined $stage_name;
-    if(not defined $stage_map->{$stage_name}) {
-        $self->set_error("UnexpectedError",detail => "Action for stage $stage_name not defined");
-    }
-    return $stage_map->{$stage_name};
-}
 
 1;
 
