@@ -6,6 +6,9 @@ use strict;
 use base qw(HTFeed::Volume);
 use HTFeed::Config;
 use File::Pairtree qw(id2ppath s2ppchars);
+use IO::Uncompress::Unzip qw(unzip $UnzipError);
+## possibly move to a require for packaging
+use HTFeed::XMLNamespaces qw(register_namespaces);
 
 # singleton stage_map override
 my $stage_map = undef;
@@ -44,14 +47,83 @@ sub get_file_groups {
     return $self->{filegroups};
 }
 
-## TODO: find source mets
-sub get_source_mets_file{
-   return;
+# checksums for repo volume should come from repo mets
+sub _checksum_mets_xpc {
+    my $self = shift;
+    return $self->get_repository_mets_xpc();
 }
 
-#sub extract_source_mets {
-#    
-#}
+=item get_source_mets_file
+
+Return false, because we can't establish a useful path for this without
+extracting to a stating directory. This override is only here to prevent
+unexpected behavior and may change in the future. Do not rely on the
+current behavior.
+
+=cut
+sub get_source_mets_file{
+    return;
+}
+
+=item get_source_mets_xpc
+
+Return source_mets_xpc if possible. Returns false if file is not found.
+
+=cut
+sub get_source_mets_xpc {
+    my $self = shift;
+    my $mets_content = $self->get_source_mets_string() or return;
+    my $xpc;
+
+    eval {
+        my $parser = XML::LibXML->new();
+        my $doc = $parser->parse_string($mets_content);
+        $xpc = XML::LibXML::XPathContext->new($doc);
+        register_namespaces($xpc);
+    };
+    if ($@) {
+        warn "source mets xml parsing failed";
+    } else {
+        return $xpc;
+    }
+
+    return;
+}
+
+=item get_source_mets_string
+
+Attempt to extract source METS to a temp string and return.
+Returns false if file is not found.
+
+=cut
+sub get_source_mets_string {
+    my $self = shift;
+    my $zip = $self->get_repository_zip_path();
+
+    my $mets_xpc_filestream_name;
+    # shell out to get streamname, because Archive::Zip because it doesn't handle
+    # ZIP64 and IO::Uncompress::Unzip handling of uncompressed streams is broken
+    # until IO-Compress-2.030
+    foreach my $line (split '\n', `unzip -j -qq -l $zip '*.xml'`) {
+        chomp $line;
+        my @fields = split '\s+', $line;
+        my $pathname = pop @fields;
+        $pathname =~ /\/([^\/]*)$/;
+        my $filename = $1;
+        # look for a filename that looks like a mets
+        if ($filename =~ /\.xml$/ and $filename !~ /^\d{8}\./){
+            $mets_xpc_filestream_name = $pathname;
+            last;
+        }
+    }
+
+    return unless($mets_xpc_filestream_name);
+    my $mets_content;
+    unzip $zip => \$mets_content, Name => $mets_xpc_filestream_name;
+
+    return $mets_content if($mets_content);
+    return;
+}
 
 # Don't record any premis events for dataset generation
 sub record_premis_event {

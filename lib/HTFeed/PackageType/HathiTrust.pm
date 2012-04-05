@@ -30,6 +30,7 @@ our $config = {
             content => 1
         },
         hocr => { 
+            prefix => 'HTML',
             use => 'coordOCR',
             required => 0,
             jhove => 0,

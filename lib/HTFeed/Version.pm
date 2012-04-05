@@ -10,10 +10,10 @@ use HTFeed::Config qw(get_config);
 use HTFeed::PackageType;
 use HTFeed::Namespace;
 
-my $VERSION = 'Unknown';
+our $VERSION = 'Unknown';
 
 {
-	my $found_version;
+    my $found_version;
 
     my $feed_root = get_config('feed_app_root');
     
@@ -28,8 +28,8 @@ my $VERSION = 'Unknown';
             $found_version = $1;
         }
     }
-	$VERSION = $found_version
-		if (defined $found_version);
+    $VERSION = $found_version
+        if (defined $found_version);
 }
 
 sub import{
@@ -47,7 +47,7 @@ sub short_version{
 sub find_subclasses {
     my $class = shift;
 
-    return grep { eval "$_->isa('$class')" }
+    return grep { eval "$_->isa('$class') and '$_' ne '$class'" }
         (map { s/\//::/g; s/\.pm//g; $_} 
             ( grep { /.pm$/ } (keys %INC)));
 }
@@ -82,14 +82,12 @@ sub id_desc_info {
 }
 
 sub nspkg {
-    #print join("\n",map {id_desc_info($_)} ( sort( find_subclasses("HTFeed::Namespace") )));
-    
-    return map {$_ => {id_desc_info($_)}} HTFeed::Version::find_subclasses("HTFeed::Namespace");
+    return map {$_ => {id_desc_info($_)}} find_subclasses("HTFeed::Namespace");
 }
 
 sub pkg_by_ns {
-	my %hsh = map {${$_ . "::identifier"}=>${$_ . "::config"}->{packagetypes}} (sort(HTFeed::Version::find_subclasses("HTFeed::Namespace")));
-	return \%hsh;
+    my %hsh = map {${$_ . "::identifier"}=>${$_ . "::config"}->{packagetypes}} (sort(find_subclasses("HTFeed::Namespace")));
+    return \%hsh;
 }
 
 sub ns_by_pkg {
@@ -109,7 +107,7 @@ sub ns_by_pkg {
 sub tags_by_ns {
     # ignore missing tags fields
     no warnings;
-	my %hsh = map { ${$_ . "::identifier"} => [ @{${$_ . "::config"}->{packagetypes}}, @{${$_ . "::config"}->{tags}} ]  }
+    my %hsh = map { ${$_ . "::identifier"} => [ @{${$_ . "::config"}->{packagetypes}}, @{${$_ . "::config"}->{tags}} ]  }
         HTFeed::Version::find_subclasses("HTFeed::Namespace");
     return \%hsh;
 }
