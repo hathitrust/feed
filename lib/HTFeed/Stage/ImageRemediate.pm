@@ -163,14 +163,13 @@ sub _remediate_tiff {
             my @exiftool_remediable_errs = ('IFD offset not word-aligned',
                                             'Value offset not word-aligned',
                                             'Tag 269 out of sequence',
-                                            'Invalid DateTime separator',
-                                            'PhotometricInterpretation not defined');
-            my @imagemagick_remediable_errs = ();
+                                            'Invalid DateTime separator');
+            my @imagemagick_remediable_errs = ('PhotometricInterpretation not defined');
             if(grep {$error =~ /^$_/} @imagemagick_remediable_errs) {
                 get_logger()->trace("PREVALIDATE_REMEDIATE: $infile has remediable error '$error'\n");
                 $remediate_imagemagick = 1;
             }
-            if(grep {$error =~ /^$_/} @exiftool_remediable_errs) {
+            elsif(grep {$error =~ /^$_/} @exiftool_remediable_errs) {
                 get_logger()->trace("PREVALIDATE_REMEDIATE: $infile has remediable error '$error'\n");
                 $remediate_exiftool = 1;
             } else {
@@ -192,7 +191,7 @@ sub _remediate_tiff {
 
     # Prevalidate other fields -- don't bother checking unless there is not some other error
 
-    if(!$remediate_imagemagick and !$remediate_exiftool and !$bad) {
+    if(!$bad) {
         $remediate_imagemagick = 1 unless $self->prevalidate_field('IFD0:PhotometricInterpretation','WhiteIsZero',1);
         $remediate_imagemagick = 1 unless $self->prevalidate_field('IFD0:Compression','T6/Group 4 Fax',1);
         $bad = 1 unless $self->prevalidate_field('File:FileType','TIFF',0);
@@ -200,8 +199,8 @@ sub _remediate_tiff {
             $remediate_exiftool = 1;
             $self->{newFields}{'IFD0:Orientation'} = 'Horizontal (normal)';
         }
-        $bad = 1 unless $self->prevalidate_field('IFD0:BitsPerSample','1',0);
-        $bad = 1 unless $self->prevalidate_field('IFD0:SamplesPerPixel','1',0);
+        $remediate_imagemagick = 1 unless $self->prevalidate_field('IFD0:BitsPerSample','1',0);
+        $remediate_imagemagick = 1 unless $self->prevalidate_field('IFD0:SamplesPerPixel','1',0);
 
     }
 
@@ -210,7 +209,8 @@ sub _remediate_tiff {
     if($remediate_imagemagick and !$bad) {
         # return true if remediation succeeds
         $ret = $self->repair_tiff_imagemagick($infile,$outfile);
-        my $infile = $outfile;
+        # repair the correct one when setting new headers
+        $infile = $outfile;
     } 
 
     while( my ( $field, $val ) = each (%$set_if_undefined_headers) ) {
@@ -240,7 +240,11 @@ sub repair_tiff_exiftool {
     # Orientation=normal, so this won't break anything.
     $exifTool->SetNewValue("Orientation","normal");
 
-    if(!$exifTool->WriteInfo($infile,$outfile)) {
+    # whines if infile is same as outfile
+    my @file_params = ($infile);
+    push(@file_params, $outfile) if($outfile ne $infile);
+
+    if(!$exifTool->WriteInfo(@file_params)) {
         croak("Couldn't remediate $infile: " . $exifTool->GetValue('Error') . "\n") ;
         return 0;
     }
