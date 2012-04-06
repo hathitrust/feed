@@ -195,6 +195,8 @@ sub _do_work {
     while($job){
         $job->run_job($clean);
         $job = $job->successor;
+        # reap any children
+        while(wait()) { last if $? == -1};
     }
 
     return;
