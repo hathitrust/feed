@@ -26,6 +26,7 @@ sub stage_info{
 
 sub clean_always{
     my $self = shift;
+    $self->{volume}->clean_unpacked_object();
     $self->{volume}->clean_mets();
     $self->{volume}->clean_zip();
     $self->{volume}->clear_premis_events();
