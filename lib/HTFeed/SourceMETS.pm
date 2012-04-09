@@ -22,6 +22,9 @@ sub new {
 	#		mets_xml		=> undef,
     );
 
+    # override default pagedata source
+    delete $self->{pagedata};
+
     return $self;
 }
 
@@ -90,48 +93,6 @@ sub clean_failure{
     # remove partially constructed source METS file, if any
     my $self = shift;
     unlink($self->{outfile}) if defined $self->{outfile};
-}
-
-# Basic structMap with no page labels.
-sub _add_struct_map {
-    my $self   = shift;
-    my $mets   = $self->{mets};
-    my $volume = $self->{volume};
-
-    my $struct_map = new METS::StructMap( id => 'SM1', type => 'physical' );
-    my $voldiv = new METS::StructMap::Div( type => 'volume' );
-    $struct_map->add_div($voldiv);
-    my $order               = 1;
-    my $file_groups_by_page = $volume->get_structmap_file_groups_by_page();
-    foreach my $seqnum ( sort( keys(%$file_groups_by_page) ) ) {
-        my $pagefiles   = $file_groups_by_page->{$seqnum};
-        my $pagediv_ids = [];
-        while ( my ( $filegroup_name, $files ) = each(%$pagefiles) ) {
-            foreach my $file (@$files) {
-                my $fileid =
-                  $self->{filegroups}{$filegroup_name}->get_file_id($file);
-                if ( not defined $fileid ) {
-                    $self->set_error(
-                        "MissingField",
-                        field     => "fileid",
-                        file      => $file,
-                        filegroup => $filegroup_name,
-                        detail    => "Can't find ID for file in file group"
-                    );
-                    next;
-                }
-
-                push( @$pagediv_ids, $fileid );
-            }
-        }
-        $voldiv->add_file_div(
-            $pagediv_ids,
-            order => $order++,
-            type  => 'page',
-        );
-    }
-    $mets->add_struct_map($struct_map);
-
 }
 
 sub _add_marc_from_file {

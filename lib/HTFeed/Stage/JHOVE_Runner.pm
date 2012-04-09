@@ -34,6 +34,7 @@ sub run_jhove {
     my $dir   = shift;
     my $files = shift;
     my $callback = shift;
+    my $add_args = (shift or '');
 
     # make sure we have >0 files
     if ( !@$files ) {
@@ -49,7 +50,7 @@ sub run_jhove {
     my $files_for_cmd = join( "' '", map { "$_" } @$files );
     my $jhove_path = get_config('jhove');
     my $jhove_conf = get_config('jhoveconf');
-    my $jhove_cmd = "cd '$dir'; $jhove_path -h XML -c $jhove_conf '$files_for_cmd'";
+    my $jhove_cmd = "cd '$dir'; $jhove_path -h XML -c $jhove_conf $add_args '$files_for_cmd'";
     get_logger()->trace("jhove cmd $jhove_cmd");
 
     # make a hash of expected files

@@ -36,6 +36,10 @@ BEGIN {
         # Allow gaps in numerical sequence of filename?
         allow_sequence_gaps => 0,
 
+        # If 0, allow only one image per page (i.e. .tif or .jp2).
+        # If 1, allow (but do not require) both a .tif and .jp2 image for a given sequence number
+        allow_multiple_pageimage_formats => 0,
+
         # Default: no separate checksum file
         checksum_file => 0,
 

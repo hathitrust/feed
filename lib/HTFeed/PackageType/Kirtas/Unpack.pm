@@ -1,4 +1,4 @@
-package HTFeed::PackageType::Yale::Unpack;
+package HTFeed::PackageType::Kirtas::Unpack;
 
 use warnings;
 use strict;

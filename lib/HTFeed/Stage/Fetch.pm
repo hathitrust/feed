@@ -16,8 +16,8 @@ sub fetch_from_source {
 		mkdir $dest or die("Can't mkdir $dest $!");
 	}
 	
-    get_logger()->trace("Fetching from source: cp -rs '$source' '$dest'");
-	system("cp -rs '$source' '$dest'")
+    get_logger()->trace("Fetching from source: cp -Lrs '$source' '$dest'");
+	system("cp -Lrs '$source' '$dest'")
         and $self->set_error('OperationFailed', operation=>'copy', detail=>"copy $source $dest failed with status: $?");
 }
 

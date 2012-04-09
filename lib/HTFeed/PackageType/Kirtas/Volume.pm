@@ -1,4 +1,4 @@
-package HTFeed::PackageType::Yale::Volume;
+package HTFeed::PackageType::Kirtas::Volume;
 
 use warnings;
 use strict;
@@ -338,7 +338,7 @@ sub dospath_to_path($) {
     # METS file may have inconsistent case w.r.t filesystem
     my $preingest_path = $self->get_preingest_directory();
 
-    if ( $dospath =~ /^\.\.\.\\$objid\\(.*)/ ) {
+    if ( $dospath =~ /^\.\.\.\\$objid\\(.*)/i ) {
         my $relpath = $1;
 
         # convert DOS-style paths to Unix-style and lowercase (as we did for unzip)
@@ -362,26 +362,26 @@ sub dospath_to_path($) {
 
 }
 
-=item $obj->get_yale_mets_xpc()
+=item $obj->get_kirtas_mets_xpc()
 
 Returns an XPath context for the originally submitted METS file
 
 =cut
 
-sub get_yale_mets_xpc {
+sub get_kirtas_mets_xpc {
     my $self = shift;
 
     my $directory = $self->get_preingest_directory();
     my $objid = $self->get_objid();
-    if(not defined $self->{yale_mets_xc}) {
+    if(not defined $self->{kirtas_mets_xc}) {
         my $mets = "$directory/metadata/${objid}_mets.xml";
 
-        $self->{yale_mets_xc} = $self->_parse_xpc($mets);
+        $self->{kirtas_mets_xc} = $self->_parse_xpc($mets);
 
 
     }
 
-    return $self->{yale_mets_xc};
+    return $self->{kirtas_mets_xc};
 
 }
 
@@ -397,7 +397,7 @@ sub get_capture_time {
 
     if(not defined $self->{capture_time}) {
 
-        my $mets_xc = $self->get_yale_mets_xpc();
+        my $mets_xc = $self->get_kirtas_mets_xpc();
         my $capture_time = $mets_xc->findvalue(
             '//mets:techMD[@ID="TM_ScanJob"]//dateTimeCreated[last()]');
 
