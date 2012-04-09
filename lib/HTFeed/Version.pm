@@ -10,21 +10,24 @@ use HTFeed::Config qw(get_config);
 use HTFeed::PackageType;
 use HTFeed::Namespace;
 
+use base qw( Exporter );
+our @EXPORT_OK = qw( get_feed_version_number tagmatch search_ns_by_tags );
+
 our $VERSION = 'Unknown';
 
 {
     my $found_version;
 
-    my $feed_root = get_config('feed_app_root');
+    my $feed_home = get_config('feed_home');
     
-    if(defined $feed_root) {
-        my $version_file = $feed_root . '/bin/rdist.timestamp';
+    if(defined $feed_home) {
+        my $version_file = $feed_home . '/bin/rdist.timestamp';
         if (-e $version_file){
             open(my $fh, '<', $version_file);
             my $version_string = <$fh>;
             close $fh;
             chomp $version_string;
-            $version_string =~ /feed_v(\d+\.\d+\.\d+)/;
+            $version_string =~ /^feed_v(.+)$/;
             $found_version = $1;
         }
     }
@@ -33,6 +36,9 @@ our $VERSION = 'Unknown';
 }
 
 sub import{
+    my $self = shift;
+    $self->SUPER::export_to_level(1, $self, @_);
+
     my ($short, $long);
     GetOptions ( "version" => \$short, "Version" => \$long );
     long_version() and exit 0 if ($long);
@@ -40,7 +46,7 @@ sub import{
 }
 
 sub short_version{
-    print "Feedr, The HathiTrust Ingest System. Feeding the Elephant since 2010.\n";
+    print "Feed, the HathiTrust Ingest System. Feeding the Elephant since 2010.\n";
     print "v$VERSION\n";
 }
 
@@ -85,12 +91,34 @@ sub nspkg {
     return map {$_ => {id_desc_info($_)}} find_subclasses("HTFeed::Namespace");
 }
 
+=item pkg_by_ns
+
+pkg_by_ns()
+
+return hashref of namespaces mapped to their packagetypes
+
+=cut
+my $namespace_to_packagetype_hash;
 sub pkg_by_ns {
+	return $namespace_to_packagetype_hash if(defined $namespace_to_packagetype_hash);
+
     my %hsh = map {${$_ . "::identifier"}=>${$_ . "::config"}->{packagetypes}} (sort(find_subclasses("HTFeed::Namespace")));
-    return \%hsh;
+
+	$namespace_to_packagetype_hash = \%hsh;
+    return $namespace_to_packagetype_hash;
 }
 
+=item ns_by_pkg
+
+ns_by_pkg()
+
+return hashref of packagetypes mapped to their namespaces
+
+=cut
+my $packagetype_to_namespace_hash;
 sub ns_by_pkg {
+	return $packagetype_to_namespace_hash if(defined $packagetype_to_namespace_hash);
+
     my $pkg_by_ns = pkg_by_ns();
     my %ns_by_pkg;
     foreach my $ns (keys %{$pkg_by_ns}){
@@ -101,17 +129,37 @@ sub ns_by_pkg {
         }
     }
     
-    return \%ns_by_pkg;
+	$packagetype_to_namespace_hash = \%ns_by_pkg;
+    return $packagetype_to_namespace_hash;
 }
 
+=item tags_by_ns
+
+tags_by_ns()
+
+return hashref of namespaces mapped to their tags
+
+=cut
+my $namespace_to_tag_hash;
 sub tags_by_ns {
+	return $namespace_to_tag_hash if(defined $namespace_to_tag_hash);
+	
     # ignore missing tags fields
     no warnings;
     my %hsh = map { ${$_ . "::identifier"} => [ @{${$_ . "::config"}->{packagetypes}}, @{${$_ . "::config"}->{tags}} ]  }
         HTFeed::Version::find_subclasses("HTFeed::Namespace");
-    return \%hsh;
+
+	$namespace_to_tag_hash = \%hsh;
+    return $namespace_to_tag_hash;
 }
 
+=item search_ns_by_tags
+
+search_ns_by_tags(@tags)
+
+return arrayref of namespaces matching all tags in @tags
+
+=cut
 sub search_ns_by_tags {
     my $search_tags = shift;
     my @results;
@@ -121,6 +169,22 @@ sub search_ns_by_tags {
             if(_tagmatch($tags_by_ns->{$ns},$search_tags));
     }
     return \@results;
+}
+
+=item tagmatch
+
+tagmatch($namespace,\@tags)
+
+return true if $namespace matches \@tags
+
+=cut
+sub tagmatch {
+    my $namespace = shift;
+    my $search_tags = shift;
+
+    my $tags_by_ns = tags_by_ns();
+    return 1 if(_tagmatch($tags_by_ns->{$namespace},$search_tags));
+    return;
 }
 
 sub _tagmatch {
