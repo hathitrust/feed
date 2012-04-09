@@ -4,7 +4,7 @@
 use warnings;
 use strict;
 
-use YAML::XS ();
+use YAML::Any ();
 use File::Temp ();
 use File::Copy;
 use HTFeed::Config qw(set_config);
@@ -17,7 +17,7 @@ use Test::More;
 
 # get test config
 my $config_file = "$FindBin::Bin/etc/package.yaml";
-my $config_data = YAML::XS::LoadFile($config_file);
+my $config_data = YAML::Any::LoadFile($config_file);
 
 my $setup_mode;
 GetOptions ( "s" => \$setup_mode );
@@ -76,7 +76,7 @@ else{
     done_testing( $config_data->{volume_count} * 2 );
     
     # save yaml file, newly populated with error counts
-    YAML::XS::DumpFile($config_file,$config_data);
+    YAML::Any::DumpFile($config_file,$config_data);
 }
 
 # test_package($package_type,$namespace,$objid,$damaged_pkg_path,$undamaged_pkg_path)

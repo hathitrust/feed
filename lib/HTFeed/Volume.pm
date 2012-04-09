@@ -16,6 +16,9 @@ use Data::UUID;
 use File::Path qw(remove_tree);
 
 
+# singleton stage_map override
+my $stage_map = undef;
+
 # The namespace UUID for HathiTrust
 use constant HT_UUID => '09A5DAD6-3484-11E0-9D45-077BD5215A96';
 
@@ -141,7 +144,7 @@ Returns a list of all files in the staging directory for the volume's AIP
 sub get_all_directory_files {
     my $self = shift;
 
-    if(not defined $self->{directory_files}) {
+#    if(not defined $self->{directory_files}) {
         $self->{directory_files} = [];
         my $stagedir = $self->get_staging_directory();
         opendir(my $dh,$stagedir) or croak("Can't opendir $stagedir: $!");
@@ -151,7 +154,7 @@ sub get_all_directory_files {
         }
         closedir($dh) or croak("Can't closedir $stagedir: $!");
         @{ $self->{directory_files} } = sort( @{ $self->{directory_files} } );
-    }
+#    }
 
     return $self->{directory_files};
 }
@@ -336,25 +339,27 @@ sub _parse_xpc {
     }
 }
 
-=item get_repos_mets_xpc
+=item get_repository_mets_xpc
 
 Returns an XML::LibXML::XPathContext with namespaces set up 
-and the context node positioned at the document root of the source METS.
+and the context node positioned at the document root of the repository METS, if
+the object is already in the repository. Returns false if the object is not
+already in the repository.
 
 =cut
 
-sub get_repos_mets_xpc {
+sub get_repository_mets_xpc {
     my $self = shift;
 
-    if (not defined $self->{repos_mets_xpc}) {
+    if (not defined $self->{repository_mets_xpc}) {
 
         my $mets = $self->get_repository_mets_path();
         return unless defined $mets;
 
-        $self->{repos_mets_xpc} = $self->_parse_xpc($mets);
+        $self->{repository_mets_xpc} = $self->_parse_xpc($mets);
     }
 
-    return $self->{repos_mets_xpc};
+    return $self->{repository_mets_xpc};
 
 }
 
@@ -393,22 +398,6 @@ sub get_stages{
     return $stages;
 }
 
-=item get_stage($start_state)
-
-Returns string containing the name of the next stage this Volume needs for ingest
-
-=cut
-
-sub next_stage{
-    my $self = shift;
-    my $stage_map = $self->get_nspkg()->get('stage_map');
-    my $stage_name = shift;
-    $stage_name = 'ready' if not defined $stage_name;
-    if(not defined $stage_map->{$stage_name}) {
-        $self->set_error("UnexpectedError",detail => "Action for stage $stage_name not defined");
-    }
-    return $stage_map->{$stage_name};
-}
 
 =item get_jhove_files
 
@@ -551,37 +540,6 @@ sub get_repository_zip_path {
     return $zip_in_repository_file;
 }
 
-=item get_repository_mets_xpc
-
-Returns an XML::LibXML::XPathContext with namespaces set up 
-and the context node positioned at the document root of the repository METS, if
-the object is already in the repository. Returns false if the object is not
-already in the repository.
-
-=cut
-
-sub get_repository_mets_xpc  {
-    my $self = shift;
-
-    my $mets_in_repository_file = $self->get_repository_mets_path();
-    return if not defined $mets_in_repository_file;
-
-    my $xpc;
-
-    eval {
-        my $parser = XML::LibXML->new();
-        my $doc    = $parser->parse_file($mets_in_repository_file);
-        $xpc = XML::LibXML::XPathContext->new($doc);
-        register_namespaces($xpc);
-    };
-
-    if ($@) {
-        croak("Could not read METS file $mets_in_repository_file: $@");
-    }
-    return $xpc;
-
-}
-
 =item get_filecount
 
 Returns the total number of content files
@@ -616,15 +574,28 @@ physical page, e.g.:
 { '0001' => { txt => ['0001.txt'], 
           img => ['0001.jp2'] },
   '0002' => { txt => ['0002.txt'],
-          img => ['0002.tif'] },
-  '0003' => { txt => ['0003.txt'],
+          img => ['0002.tif'] }, '0003' => { txt => ['0003.txt'],
           img => ['0003.jp2','0003.tif'] }
   };
 
 =cut
 
+sub get_required_file_groups_by_page {
+    my $self = shift;
+
+    return $self->get_file_groups_by_page( sub { return $_[0]->get_required(); } )
+
+}
+
+sub get_structmap_file_groups_by_page {
+    my $self = shift;
+
+    return $self->get_file_groups_by_page( sub { return $_[0]->in_structmap(); } )
+}
+
 sub get_file_groups_by_page {
     my $self = shift;
+    my $condition = shift;
     my $filegroups      = $self->get_file_groups();
     my $files           = {};
 
@@ -632,8 +603,9 @@ sub get_file_groups_by_page {
     while ( my ( $filegroup_name, $filegroup ) =
         each( %{ $filegroups } ) )
     {
-        # ignore this filegroup if it is not 'required'
-        next unless $filegroup->get_required();
+        # ignore this filegroup if there is a condition given and the filegroup
+        # doesn't meet the condition (see other get_*_file_groups_by_pagE)
+        next if defined($condition) and not &$condition($filegroup);
         foreach my $file ( @{$filegroup->get_filenames()} ) {
             if ( $file =~ /(\d+)\.(\w+)$/ ) {
                 my $sequence_number = $1;
@@ -650,7 +622,6 @@ sub get_file_groups_by_page {
     }
 
     return $files;
-
 }
 
 # TODO: altRecordID
@@ -959,6 +930,28 @@ sub set_error {
     );
 
     croak("VOLUME_ERROR");
+}
+
+# override nspkg stage map FOR ALL VOLUME OBJECTS
+sub set_stage_map{
+    $stage_map = shift;
+}
+
+=item get_stage($start_state)
+
+Returns string containing the name of the next stage this Volume needs for ingest
+
+=cut
+
+sub next_stage{
+    my $self = shift;
+    my $stage_map = ($stage_map or $self->get_nspkg()->get('stage_map'));
+    my $stage_name = shift;
+    $stage_name = 'ready' if not defined $stage_name;
+    if(not defined $stage_map->{$stage_name}) {
+        $self->set_error("UnexpectedError",detail => "Action for stage $stage_name not defined");
+    }
+    return $stage_map->{$stage_name};
 }
 
 1;

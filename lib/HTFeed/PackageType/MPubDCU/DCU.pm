@@ -13,7 +13,19 @@ our $config = {
     description => 'Digitize on Demand',
 
     capture_agent => 'Digital Conversion Unit',
+
+	# no checksums
+    validation_run_stages => [
+        qw(validate_file_names
+          validate_filegroups_nonempty
+          validate_consistency
+          validate_utf8
+          validate_metadata)
+    ],
+
 };
+
+
 
 __END__
 

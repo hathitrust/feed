@@ -137,7 +137,7 @@ sub _validate_consistency {
     my $filegroups = $volume->get_file_groups();
     my @filegroup_names = grep { $filegroups->{$_}->get_required() } keys(%$filegroups);
 
-    my $files = $volume->get_file_groups_by_page();
+    my $files = $volume->get_required_file_groups_by_page();
 
     # Make sure there are no gaps in the sequence
     if ( !$volume->get_nspkg->get('allow_sequence_gaps') ) {
@@ -163,15 +163,17 @@ sub _validate_consistency {
                 . '; expected '
                 . join( q{,}, @filegroup_names ) );
         } else {
-			while ( my ($type, $list) = each %{$files}){
-				if(scalar(@$list) ne 1){
-					$self->set_error("BadFile", detail=>"Extraneous files for $sequence_number: have "
-					. join( q{,}, @$list)
-					. '; expected only one file' );
-				}
-			}
-		}
-	}
+            if( !$volume->get_nspkg->get('allow_multiple_pageimage_formats')) {
+                while ( my ($type, $list) = each %{$files}){
+                    if(scalar(@$list) ne 1){
+                        $self->set_error("BadFile", detail=>"Extraneous files for $sequence_number: have "
+                            . join( q{,}, @$list)
+                            . '; expected only one file' );
+                    }
+                }
+            }
+        }
+    }
 }
 
 
@@ -307,30 +309,30 @@ sub _validate_metadata {
 
 
     $self->run_jhove($volume,$dir,$files, sub {
-        my ($volume,$file,$node) = @_;
+            my ($volume,$file,$node) = @_;
 
-        my $xpc = XML::LibXML::XPathContext->new($node);
-        register_namespaces($xpc);
+            my $xpc = XML::LibXML::XPathContext->new($node);
+            register_namespaces($xpc);
 
-        get_logger()->trace("validating $file");
-        my $mod_val = HTFeed::ModuleValidator->new(
-            xpc => $xpc,
+            get_logger()->trace("validating $file");
+            my $mod_val = HTFeed::ModuleValidator->new(
+                xpc => $xpc,
 
-            #node    => $node,
-            volume   => $volume,
-            filename => $file
-        );
-        $mod_val->run();
+                #node    => $node,
+                volume   => $volume,
+                filename => $file
+            );
+            $mod_val->run();
 
-        # check, log success
-        if ( $mod_val->succeeded() ) {
-            get_logger()->debug( "File validation succeeded",
-                file => $file );
-        }
-        else {
-            $self->set_error( "BadFile", file => $file );
-        }
-    });
+            # check, log success
+            if ( $mod_val->succeeded() ) {
+                get_logger()->debug( "File validation succeeded",
+                    file => $file );
+            }
+            else {
+                $self->set_error( "BadFile", file => $file );
+            }
+        });
 
     return;
 }

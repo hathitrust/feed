@@ -5,40 +5,37 @@ use warnings;
 use base qw(HTFeed::Stage::Fetch);
 use Log::Log4perl qw(get_logger);
 use HTFeed::Config qw(get_config);
-use File::Find;
 
 sub run {
-	my $self = shift;
+    my $self = shift;
 
-	my $volume = $self->{volume};
-	my $packagetype = $volume->get_packagetype();
-	my $objid = $volume->get_objid();
+    $self->SUPER::run();
 
-	my $fetch_base = get_config('staging'=>'fetch');
+    my $volume = $self->{volume};
+    my $packagetype = $volume->get_packagetype();
+    my $objid = $volume->get_objid();
 
-	my $source;
+    my $fetch_base = get_config('staging'=>'fetch');
 
+    my $source = undef;
 
-	my @paths;
-	my $base="$fetch_base/mpub_dcu";
-	
-	find sub{
-		push @paths, "$File::Find::name" if (-d $File::Find::name);
-	},$base;
-	
-	foreach my $path(@paths){
-		if($path =~ /forHT\/$objid$/){
-			$source = $path;
-		}
-	}
+    my $base="$fetch_base/mpub_dcu";
+    my @paths = grep { -d $_ } glob("$base/*");
 
-	my $dest = get_config('staging' => 'ingest');
+    foreach my $path(@paths){
+        if(-d  "$path/forHT/$objid" ){
+            $self->set_error("BadFile",file => "$path/forHT/$objid", detail => "Duplicate submission $source") if defined $source;
+            $source = "$path/forHT/$objid";
+        }
+    }
 
-	$self->fetch_from_source($source,$dest);
-	$self->fix_line_endings($dest);
+    my $dest = get_config('staging' => 'ingest');
 
-	$self->_set_done();
-	return $self->succeeded();
+    $self->fetch_from_source($source,$dest);
+    $self->fix_line_endings($dest);
+
+    $self->_set_done();
+    return $self->succeeded();
 }
 
 1;

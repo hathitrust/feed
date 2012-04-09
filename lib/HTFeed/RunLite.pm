@@ -7,6 +7,7 @@ use Carp;
 use HTFeed::StagingSetup;
 use HTFeed::Version;
 use HTFeed::ServerStatus;
+use HTFeed::Stage::Done;
 
 use HTFeed::Log;
 use Log::Log4perl qw( get_logger );
@@ -193,11 +194,14 @@ sub _do_work {
     
     while($job){
         $job->run_job($clean);
-		$job = $job->successor;
+        $job = $job->successor;
+        # reap any children
+        while(wait()) { last if $? == -1};
     }
 
     return;
 }
 
-__END__
+1;
 
+__END__

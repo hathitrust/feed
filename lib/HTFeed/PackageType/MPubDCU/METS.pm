@@ -190,6 +190,7 @@ sub _get_capture_time {
     }
     # try to get the capture date for the first image
     my $exifTool = new Image::ExifTool;
+	$exifTool->Options("ScanForXMP" => 1);
     $exifTool->ExtractInfo($firstimage);
     my $capture_date = $exifTool->GetValue('DateTime','XMP-tiff');
     if(not defined $capture_date) {

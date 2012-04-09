@@ -1,4 +1,4 @@
-package HTFeed::PackageType::Yale::VerifyManifest;
+package HTFeed::PackageType::Kirtas::VerifyManifest;
 
 use warnings;
 use strict;
@@ -41,7 +41,7 @@ sub run {
     }
     else {
 
-        my $mets_xc = $volume->get_yale_mets_xpc();
+        my $mets_xc = $volume->get_kirtas_mets_xpc();
 
         # check the METS file
         foreach my $file ( $mets_xc->findnodes("//mets:file") ) {

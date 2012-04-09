@@ -30,6 +30,8 @@ sub new {
         #		mets_xml		=> undef,
     );
     $self->{outfile} = $self->{volume}->get_mets_path();
+    # by default use volume "get_pagedata" to apply pagedata
+    $self->{pagedata} = sub { $self->{volume}->get_page_data(@_); };
 
     return $self;
 }
@@ -123,7 +125,7 @@ sub _extract_old_premis {
         my ( $mets_in_rep_valid, $val_results ) =
           $self->validate_xml($mets_in_repos);
         if ($mets_in_rep_valid) {
-            my $xc = $volume->get_repos_mets_xpc();
+            my $xc = $volume->get_repository_mets_xpc();
 
             foreach my $event ( $xc->findnodes('//premis:event') ) {
 
@@ -426,16 +428,18 @@ sub _add_filesecs {
 
 }
 
+# Basic structMap with optional page labels.
 sub _add_struct_map {
     my $self   = shift;
     my $mets   = $self->{mets};
     my $volume = $self->{volume};
+    my $get_pagedata = $self->{pagedata};
 
     my $struct_map = new METS::StructMap( id => 'SM1', type => 'physical' );
     my $voldiv = new METS::StructMap::Div( type => 'volume' );
     $struct_map->add_div($voldiv);
     my $order               = 1;
-    my $file_groups_by_page = $volume->get_file_groups_by_page();
+    my $file_groups_by_page = $volume->get_structmap_file_groups_by_page();
     foreach my $seqnum ( sort( keys(%$file_groups_by_page) ) ) {
         my $pagefiles   = $file_groups_by_page->{$seqnum};
         my $pagediv_ids = [];
@@ -456,25 +460,27 @@ sub _add_struct_map {
                     next;
                 }
 
-                # try to find page number & page tags for this page
-                if ( not defined $pagedata ) {
-                    $pagedata = $volume->get_page_data($file);
-                    @pagedata = %$pagedata if defined $pagedata;
-                }
-                else {
-                    my $other_pagedata = $volume->get_page_data($file);
-                    while ( my ( $key, $val ) = each(%$pagedata) ) {
-                        my $val1 = $other_pagedata->{$key};
-                        $self->set_error(
-                            "NotEqualValues",
-                            actual => "other=$val ,$fileid=$val1",
-                            detail =>
-"Mismatched page data for different files in pagefiles"
-                          )
-                          unless ( not defined $val and not defined $val1 )
-                          or ( $val eq $val1 );
+                if(defined $get_pagedata) {
+                    # try to find page number & page tags for this page
+                    if ( not defined $pagedata ) {
+                        $pagedata = &$get_pagedata($file);
+                        @pagedata = %$pagedata if defined $pagedata;
                     }
+                    else {
+                        my $other_pagedata = &$get_pagedata($file);
+                        while ( my ( $key, $val ) = each(%$pagedata) ) {
+                            my $val1 = $other_pagedata->{$key};
+                            $self->set_error(
+                                "NotEqualValues",
+                                actual => "other=$val ,$fileid=$val1",
+                                detail =>
+    "Mismatched page data for different files in pagefiles"
+                              )
+                              unless ( not defined $val and not defined $val1 )
+                              or ( $val eq $val1 );
+                        }
 
+                    }
                 }
 
                 push( @$pagediv_ids, $fileid );
@@ -830,7 +836,7 @@ sub _remediate_marc {
         }
     }
 
-    foreach my $datafield ($xc->findnodes('//marc:datafield[not(marc:subfield)]')) {
+    foreach my $datafield ($xc->findnodes('.//marc:datafield[not(marc:subfield)]')) {
         # remove empty data fields
         $datafield->parentNode()->removeChild($datafield);
     }

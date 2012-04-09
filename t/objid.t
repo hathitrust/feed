@@ -4,7 +4,7 @@
 use warnings;
 use strict;
 
-use YAML::XS ();
+use YAML::Any ();
 use FindBin;
 use HTFeed::Volume;
 
@@ -12,7 +12,7 @@ use Test::Most;
 
 # get test config
 my $config_file = "$FindBin::Bin/etc/objid.yaml";
-my $config_data = YAML::XS::LoadFile($config_file);
+my $config_data = YAML::Any::LoadFile($config_file);
 
 my $damaged_count = $config_data->{damaged}->{count};
 my $undamaged_count = $config_data->{undamaged}->{count};
