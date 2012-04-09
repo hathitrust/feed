@@ -159,7 +159,7 @@ sub zipcheck {
 
     # use google as a 'default' namespace for now
     my $volume = new HTFeed::Volume(packagetype => "pkgtype",namespace => $namespace,objid => $objid);
-    my $mets = $volume->get_repos_mets_xpc();
+    my $mets = $volume->get_repository_mets_xpc();
     my $rval = undef;
 
     # Extract the checksum for the zip file that looks kind of like this:
