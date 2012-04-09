@@ -4,8 +4,10 @@ use warnings;
 use strict;
 
 use HTFeed::Config;
+use Filesys::Df;
+
 use base qw(Exporter);
-our @EXPORT = qw(continue_running_server);
+our @EXPORT_OK = qw(continue_running_server check_disk_usage);
 
 my $stop_file = get_config('daemon'=>'stop_file');
 my $locked = _locked();
@@ -21,7 +23,9 @@ sub _locked {
 }
 
 =item continue_running_server
+
 return true is exit condition in _locked() has not been met, indicating it is permissable to continue into a critical code section
+
 =cut
 sub continue_running_server {
 	# once stop condition is met once, always return false
@@ -29,6 +33,19 @@ sub continue_running_server {
     $locked = _locked();
     return if($locked);
     return 1;
+}
+
+=item check_disk_usage
+
+die if staging area is overfilled
+
+=cut
+sub check_disk_usage {
+    my $pctused = df(get_config('staging_root'))->{per};
+    if( $pctused > get_config('staging_root_usage_limit') ) {
+        die("RAM disk is $pctused% full!\n");
+    }
+	return;
 }
 
 1;

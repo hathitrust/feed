@@ -316,10 +316,8 @@ sub _set_pagenumber {
 
 sub get_preingest_directory {
     my $self = shift;
-    my $ondisk = shift;
 
     my $objid = $self->get_objid();
-    return sprintf("%s/%s", get_config('staging'=>'disk'=>'preingest'), $objid) if $ondisk;
     return sprintf("%s/%s", get_config('staging'=>'preingest'), $objid);
 }
 

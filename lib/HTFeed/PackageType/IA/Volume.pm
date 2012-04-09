@@ -102,10 +102,8 @@ sub get_download_directory {
 
 sub get_preingest_directory {
     my $self = shift;
-    my $ondisk = shift;
 
     my $arkid = $self->get_objid();
-    return sprintf("%s/%s", get_config('staging'=>'disk'=>'preingest'), s2ppchars($arkid)) if $ondisk;
     return sprintf("%s/%s", get_config('staging'=>'preingest'), s2ppchars($arkid));
 }
 

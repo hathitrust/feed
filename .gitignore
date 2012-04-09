@@ -7,3 +7,4 @@ gpg
 web/
 rdist.timestamp
 config.yaml
+*local_config.yml

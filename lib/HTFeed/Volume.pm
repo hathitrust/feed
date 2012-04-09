@@ -165,9 +165,7 @@ returns path to staging directory on disk if $ondisk
 
 sub get_staging_directory {
     my $self = shift;
-    my $ondisk = shift;
     my $pt_objid = $self->get_pt_objid();
-    return get_config('staging'=>'disk'=>'ingest') . q(/) . $pt_objid if $ondisk;
     return get_config('staging'=>'ingest') . q(/) . $pt_objid;
 }
 
@@ -181,9 +179,7 @@ on disk rather than in RAM.
 
 sub get_zip_directory {
     my $self = shift;
-    my $ondisk = shift;
     my $pt_objid = $self->get_pt_objid();
-    return get_config('staging'=>'disk'=>'zipfile') . q(/) . $pt_objid if $ondisk;
     return get_config('staging'=>'zipfile') . q(/) . $pt_objid;
 }
 
@@ -241,7 +237,7 @@ sub get_checksums {
 
         my $checksums = {};
         # try to extract from source METS
-        my $xpc = $self->get_source_mets_xpc();
+        my $xpc = $self->_checksum_mets_xpc();
         foreach my $node ( $xpc->findnodes('//mets:file') ) {
             my $checksum = $xpc->findvalue( './@CHECKSUM', $node );
             my $filename =
@@ -253,6 +249,12 @@ sub get_checksums {
     }
 
     return $self->{checksums};
+}
+
+# override in Volume subclass to fetch checksums from a different METS file
+sub _checksum_mets_xpc {
+    my $self = shift;
+    return $self->get_source_mets_xpc();
 }
 
 =item get_source_mets_file
@@ -833,7 +835,6 @@ Returns the directory where the raw submitted object is staged.
 Returns undef by default; package type subclasses must define.
 
 should use get_config('staging'=>'preingest') as a base dir
-or use get_config('staging'=>'disk'=>'preingest') if $flag
 
 =cut
 

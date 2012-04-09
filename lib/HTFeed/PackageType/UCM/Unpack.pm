@@ -8,15 +8,6 @@ use HTFeed::Config qw(get_config);
 
 use Log::Log4perl qw(get_logger);
 
-# return estimated space needed on ramdisk
-sub ram_disk_size{
-    my $self = shift;
-    my $volume = $self->{volume};
-
-    # wild guess of 256M for now
-    return 256*1048576;
-}
-
 sub run{
     my $self = shift;
     # make staging directories

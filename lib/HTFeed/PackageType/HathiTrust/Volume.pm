@@ -92,7 +92,7 @@ sub get_source_mets_xpc {
 
 =item get_source_mets_string
 
-Attempt to extract source METS to a temp string and return.
+Attempt to extract source METS to a string and return.
 Returns false if file is not found.
 
 =cut
