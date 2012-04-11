@@ -5,6 +5,7 @@ package HTFeed::PackageType::DLXS;
 use strict;
 use warnings;
 use base qw(HTFeed::PackageType);
+use HTFeed::XPathValidator qw(:closures);
 
 our $identifier = 'dlxs';
 
@@ -19,6 +20,7 @@ our $config = {
 		checksum\.md5 |
 		pageview\.dat |
 		\w+\.(xml) |
+        DLXS_[\w,]+\.(xml) |
 		\d{8}.(html|jp2|tif|txt)
 		)/x,
 
@@ -48,18 +50,67 @@ our $config = {
 	stage_map => {
         ready       => 'HTFeed::PackageType::DLXS::Fetch',
         fetched     => 'HTFeed::PackageType::DLXS::ImageRemediate',
-#        images_remediated => 'HTFeed::PackageType::DLXS::SourceMETS',
-#        src_metsed		=> 'HTFeed::VolumeValidator',
-#		validated	=> 'HTFeed::Stage::Pack',
-#		packed		=> 'HTFeed::PackageType::MPubDCU::METS',
-#        metsed		=> 'HTFeed::Stage::Handle',
-#        handled		=> 'HTFeed::Stage::Collate',
+        images_remediated    => 'HTFeed::PackageType::DLXS::OCRSplit',
+        ocr_extracted => 'HTFeed::PackageType::DLXS::SourceMETS',
+        src_metsed		=> 'HTFeed::VolumeValidator',
+		validated	=> 'HTFeed::Stage::Pack',
+		packed		=> 'HTFeed::METS',
+        metsed		=> 'HTFeed::Stage::Handle',
+        handled		=> 'HTFeed::Stage::Collate',
     },
 
-	#PREMIS EVENTS to include
-	premis_events => {},
+    # What PREMIS events to include in the source METS file
+    source_premis_events => [
+        # capture - included manually
+#        'file_rename',
+#        'source_md5_fixity',
+        'image_header_modification',
+        'ocr_normalize',
+        'page_md5_create',
+        'source_mets_creation',
+        'mets_validation',
+    ],
 
-	#PREMIS overrides
-	premis_overrides => {},
+    # What PREMIS event types  to extract from the source METS and include in the HT METS
+    source_premis_events_extract => [
+        'capture',
+#        'file_rename',
+        'image_header_modification',
+        'ocr_normalize',
+        'page_md5_create',
+        'source_mets_creation',
+    ],
+
+    premis_events => [
+        'page_md5_fixity',
+        'package_validation',
+        
+#        'page_feature_mapping', TODO
+        'zip_compression',
+        'zip_md5_create',
+        'ingestion',
+    ],
+
+    # Overrides for the basic PREMIS event configuration
+    premis_overrides => {
+        'ocr_normalize' =>
+          { detail => 'Split OCR into one plain text OCR file per page', }
+    },
+
+    source_mets_file => qr/^DLXS_[\w,]+\.xml$/,
+
+    # Validation overrides - make/model not expected
+    validation => {
+        'HTFeed::ModuleValidator::JPEG2000_hul' => {
+            'camera'               => undef,
+             'resolution'      => v_and(
+                 v_ge( 'xmp', 'xRes', 300 ), # should work even though resolution is specified as NNN/1
+                 v_same( 'xmp', 'xRes', 'xmp', 'yRes' )
+             ),
+        }
+    },
+
+    # Allow (but do not require) both a .tif and .jp2 image for a given sequence number
+    allow_multiple_pageimage_formats => 1
 
 };

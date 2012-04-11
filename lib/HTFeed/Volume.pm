@@ -16,6 +16,9 @@ use Data::UUID;
 use File::Path qw(remove_tree);
 
 
+# singleton stage_map override
+my $stage_map = undef;
+
 # The namespace UUID for HathiTrust
 use constant HT_UUID => '09A5DAD6-3484-11E0-9D45-077BD5215A96';
 
@@ -141,7 +144,7 @@ Returns a list of all files in the staging directory for the volume's AIP
 sub get_all_directory_files {
     my $self = shift;
 
-    if(not defined $self->{directory_files}) {
+#    if(not defined $self->{directory_files}) {
         $self->{directory_files} = [];
         my $stagedir = $self->get_staging_directory();
         opendir(my $dh,$stagedir) or croak("Can't opendir $stagedir: $!");
@@ -151,7 +154,7 @@ sub get_all_directory_files {
         }
         closedir($dh) or croak("Can't closedir $stagedir: $!");
         @{ $self->{directory_files} } = sort( @{ $self->{directory_files} } );
-    }
+#    }
 
     return $self->{directory_files};
 }
@@ -165,9 +168,7 @@ returns path to staging directory on disk if $ondisk
 
 sub get_staging_directory {
     my $self = shift;
-    my $ondisk = shift;
     my $pt_objid = $self->get_pt_objid();
-    return get_config('staging'=>'disk'=>'ingest') . q(/) . $pt_objid if $ondisk;
     return get_config('staging'=>'ingest') . q(/) . $pt_objid;
 }
 
@@ -181,9 +182,7 @@ on disk rather than in RAM.
 
 sub get_zip_directory {
     my $self = shift;
-    my $ondisk = shift;
     my $pt_objid = $self->get_pt_objid();
-    return get_config('staging'=>'disk'=>'zipfile') . q(/) . $pt_objid if $ondisk;
     return get_config('staging'=>'zipfile') . q(/) . $pt_objid;
 }
 
@@ -241,7 +240,7 @@ sub get_checksums {
 
         my $checksums = {};
         # try to extract from source METS
-        my $xpc = $self->get_source_mets_xpc();
+        my $xpc = $self->_checksum_mets_xpc();
         foreach my $node ( $xpc->findnodes('//mets:file') ) {
             my $checksum = $xpc->findvalue( './@CHECKSUM', $node );
             my $filename =
@@ -253,6 +252,12 @@ sub get_checksums {
     }
 
     return $self->{checksums};
+}
+
+# override in Volume subclass to fetch checksums from a different METS file
+sub _checksum_mets_xpc {
+    my $self = shift;
+    return $self->get_source_mets_xpc();
 }
 
 =item get_source_mets_file
@@ -393,22 +398,6 @@ sub get_stages{
     return $stages;
 }
 
-=item get_stage($start_state)
-
-Returns string containing the name of the next stage this Volume needs for ingest
-
-=cut
-
-sub next_stage{
-    my $self = shift;
-    my $stage_map = $self->get_nspkg()->get('stage_map');
-    my $stage_name = shift;
-    $stage_name = 'ready' if not defined $stage_name;
-    if(not defined $stage_map->{$stage_name}) {
-        $self->set_error("UnexpectedError",detail => "Action for stage $stage_name not defined");
-    }
-    return $stage_map->{$stage_name};
-}
 
 =item get_jhove_files
 
@@ -817,7 +806,6 @@ Returns the directory where the raw submitted object is staged.
 Returns undef by default; package type subclasses must define.
 
 should use get_config('staging'=>'preingest') as a base dir
-or use get_config('staging'=>'disk'=>'preingest') if $flag
 
 =cut
 
@@ -942,6 +930,28 @@ sub set_error {
     );
 
     croak("VOLUME_ERROR");
+}
+
+# override nspkg stage map FOR ALL VOLUME OBJECTS
+sub set_stage_map{
+    $stage_map = shift;
+}
+
+=item get_stage($start_state)
+
+Returns string containing the name of the next stage this Volume needs for ingest
+
+=cut
+
+sub next_stage{
+    my $self = shift;
+    my $stage_map = ($stage_map or $self->get_nspkg()->get('stage_map'));
+    my $stage_name = shift;
+    $stage_name = 'ready' if not defined $stage_name;
+    if(not defined $stage_map->{$stage_name}) {
+        $self->set_error("UnexpectedError",detail => "Action for stage $stage_name not defined");
+    }
+    return $stage_map->{$stage_name};
 }
 
 1;

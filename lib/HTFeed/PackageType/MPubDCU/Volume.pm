@@ -15,6 +15,7 @@ sub get_source_mets_file {
     return;
 }
 
+# use checksum.md5 instead of source METS
 sub get_checksums{
 
 	my $self = shift;
@@ -77,11 +78,17 @@ sub get_page_data {
     return $self->{page_data}{$seqnum};
 }
 
+# no preingest/remediation for this content
+sub get_preingest_directory {
+    return;
+}
+
 # no download location to clean for this material
 
 sub get_download_location {
     return;
 }
+
 
 1;
 

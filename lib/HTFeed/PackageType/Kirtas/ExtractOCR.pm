@@ -1,4 +1,4 @@
-package HTFeed::PackageType::Yale::ExtractOCR;
+package HTFeed::PackageType::Kirtas::ExtractOCR;
 
 use warnings;
 use strict;
@@ -15,8 +15,8 @@ Extracts the OCR from the ALTO coordinate OCR into text files in the target stag
 sub run {
     my $self = shift;
     my $volume = $self->{volume};
-    my $alto_parser = new HTFeed::PackageType::Yale::AltoParse();
-    my $mets_xc = $volume->get_yale_mets_xpc();
+    my $alto_parser = new HTFeed::PackageType::Kirtas::AltoParse();
+    my $mets_xc = $volume->get_kirtas_mets_xpc();
     my $objid = $volume->get_objid();
     my $stage_path = $volume->get_staging_directory();
     get_logger()->trace("Extracting OCR..");
@@ -27,9 +27,9 @@ sub run {
     {
 	my $alto_dospath  = $alto_xml_node->nodeValue();
 	my $alto_xml_file = $volume->dospath_to_path($alto_dospath);
-	$alto_dospath =~ /($objid)_(\d+)_ALTO\.xml/;
-	my $alto_txt    = "$1_$2.txt";
-	my $alto_newxml = "$1_$2.xml";
+	$alto_dospath =~ /($objid)_(\d+)_ALTO\.xml/i;
+	my $alto_txt    = lc("$1_$2.txt");
+	my $alto_newxml = lc("$1_$2.xml");
 	get_logger()->trace("Normalizing OCR file $alto_xml_file");
 
 	my $fh = new IO::File(">$stage_path/$alto_txt")
@@ -53,7 +53,7 @@ sub stage_info{
     return {success_state => 'ocr_extracted', failure_state => ''};
 }
 
-package HTFeed::PackageType::Yale::AltoParse;
+package HTFeed::PackageType::Kirtas::AltoParse;
 use XML::LibXML::SAX;
 use base qw(XML::LibXML::SAX);
 

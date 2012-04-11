@@ -1,21 +1,24 @@
-package HTFeed::PackageType::Yale;
+package HTFeed::PackageType::Kirtas;
 
 use HTFeed::PackageType;
-use base qw(HTFeed::PackageType::Kirtas);
+use base qw(HTFeed::PackageType);
 use strict;
 
 use HTFeed::XPathValidator qw(:closures);
 
-our $identifier = 'yale';
+our $identifier = 'kirtas';
 
 our $config = {
-    %{$HTFeed::PackageType::Kirtas::config},
-    description => 'Yale University-digitized book material',
+    %{$HTFeed::PackageType::config},
+    description => 'Kirtas-digitized book material',
+
+    # Kirtas volumes will be cached on disk
+    volume_module => 'HTFeed::PackageType::Kirtas::Volume',
 
     # Regular expression that distinguishes valid files in the file package
     valid_file_pattern => qr/^( 
     Kirtas_\w+\.(xml) |
-    39002\d{9}_\d{6}\.(xml|jp2|txt)$
+    \w+.(xml|jp2|tif|txt)$
     )/x,
 
 # Configuration for each filegroup.
@@ -30,7 +33,7 @@ our $config = {
         image => {
             prefix       => 'IMG',
             use          => 'image',
-            file_pattern => qr/39002\d{9}_\d{6}\.(jp2)$/,
+            file_pattern => qr/\w+_\d+.(jp2|tif)$/,
             required     => 1,
             content      => 1,
             jhove        => 1,
@@ -39,7 +42,7 @@ our $config = {
         ocr => {
             prefix       => 'OCR',
             use          => 'ocr',
-            file_pattern => qr/39002\d{9}_\d{6}\.txt$/,
+            file_pattern => qr/\w+_\d+.txt$/,
             required     => 1,
             content      => 1,
             jhove        => 0,
@@ -48,7 +51,7 @@ our $config = {
         hocr => {
             prefix       => 'XML',
             use          => 'coordOCR',
-            file_pattern => qr/39002\d{9}_\d{6}\.xml$/,
+            file_pattern => qr/\w+_\d+.xml$/,
             required     => 1,
             content      => 1,
             jhove        => 0,
@@ -59,19 +62,28 @@ our $config = {
     source_mets_file => qr/^Kirtas_\w+\.xml$/,
 
     # The list of stages to run to successfully ingest a volume.
-    # The list of stages to run to successfully ingest a volume
     stage_map => {
         ready             => 'HTFeed::PackageType::Kirtas::Unpack',
         unpacked          => 'HTFeed::PackageType::Kirtas::VerifyManifest',
         manifest_verified => 'HTFeed::PackageType::Kirtas::ExtractOCR',
-        ocr_extracted     => 'HTFeed::PackageType::Yale::BoilerplateRemove',
-        boilerplate_removed => 'HTFeed::PackageType::Kirtas::ImageRemediate',
+        ocr_extracted     => 'HTFeed::PackageType::Kirtas::ImageRemediate',
         images_remediated => 'HTFeed::PackageType::Kirtas::SourceMETS',
         src_metsed        => 'HTFeed::VolumeValidator',
         validated         => 'HTFeed::Stage::Pack',
         packed            => 'HTFeed::METS',
         metsed            => 'HTFeed::Stage::Handle',
         handled           => 'HTFeed::Stage::Collate',
+    },
+
+
+    # Validation overrides
+    validation => {
+        'HTFeed::ModuleValidator::JPEG2000_hul' => {
+            'camera'               => undef,
+            'decomposition_levels' => v_between(
+                'codingStyleDefault', 'decompositionLevels', '2', '32'
+            ),
+        },
     },
 
     # What PREMIS events to include in the source METS file
@@ -84,7 +96,6 @@ our $config = {
         'source_mets_creation',
         'page_md5_create',
         'mets_validation',
-        'boilerplate_remove',
     ],
 
      # What PREMIS event types  to extract from the source METS and include in the HT METS
@@ -94,7 +105,6 @@ our $config = {
         'ocr_normalize', 
         'source_mets_creation',
         'page_md5_create',
-        'boilerplate_remove',
     ],
 
     # What PREMIS events to include (by internal PREMIS identifier,
@@ -112,14 +122,10 @@ our $config = {
     premis_overrides => {
         'ocr_normalize' =>
           { detail => 'Extraction of plain-text OCR from ALTO XML', },
-        'boilerplate_remove' => 
-          { type => 'image modification',
-            detail => 'Replace boilerplate images with blank images' ,
-            executor => 'MiU',
-            executor_type => 'MARC21 Code',
-            tools => ['GROOVE']
-          },
     },
+
+    SIP_filename_pattern => '%s.zip',
+
 
 };
 
@@ -127,13 +133,13 @@ __END__
 
 =pod
 
-This is the package type configuration file for Yale.
+This is the package type configuration file for Kirtas.
 
 =head1 SYNOPSIS
 
 use HTFeed::PackageType;
 
-my $pkgtype = new HTFeed::PackageType('yale');
+my $pkgtype = new HTFeed::PackageType('kirtas');
 
 =head1 AUTHOR
 

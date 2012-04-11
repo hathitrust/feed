@@ -16,9 +16,8 @@ use HTFeed::Config;
 use HTFeed::Volume;
 use HTFeed::DBTools qw(get_queued lock_volumes count_locks update_queue disconnect);
 use Log::Log4perl qw(get_logger);
-use Filesys::Df;
 
-use HTFeed::ServerStatus;
+use HTFeed::ServerStatus qw(continue_running_server check_disk_usage);
 use Sys::Hostname;
 use Mail::Mailer;
 
@@ -72,12 +71,7 @@ HTFeed::StagingSetup::make_stage($clean);
 
 my $i = 0;
 while( continue_running_server() ){
-    my $df = df(get_config('ram_disk'));
-#    warn("Iteration $i: RAM disk has $bfree blocks free\n");$i++;
-    my $pctused = df(get_config('ram_disk'))->{per};
-    if( $pctused > get_config('ram_fill_limit') * 100) {
-        die("RAM disk is $pctused% full!\n");
-    }
+	check_disk_usage();
     while (($subprocesses < get_config('volumes_in_process_limit')) 
             and (my $job = get_next_job())){
         spawn($job);

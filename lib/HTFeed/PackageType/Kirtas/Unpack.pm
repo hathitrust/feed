@@ -1,4 +1,4 @@
-package HTFeed::PackageType::Yale::Unpack;
+package HTFeed::PackageType::Kirtas::Unpack;
 
 use warnings;
 use strict;
@@ -7,17 +7,6 @@ use base qw(HTFeed::Stage::Unpack);
 use HTFeed::Config qw(get_config);
 
 use Log::Log4perl qw(get_logger);
-
-# return estimated space needed on ramdisk
-sub ram_disk_size{
-    my $self = shift;
-    my $volume = $self->{volume};
-
-    # zip file may be compressed by a relatively significant factor. Be conservative in space usage.
-    my $multiplier = 3.10;
-
-    return HTFeed::Stage::estimate_space($volume->get_download_location(), $multiplier);
-}
 
 sub run{
     my $self = shift;

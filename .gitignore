@@ -7,6 +7,7 @@ gpg
 web/
 rdist.timestamp
 config.yaml
+*local_config.yml
 bin/get_book.sh
 bin/validateCache
 etc/libadm*

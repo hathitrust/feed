@@ -17,30 +17,33 @@ my $config;
 init();
 
 sub init{
+    # get app root and config dir
     my $feed_app_root;
-    
-    # get config file
-    my $config_file;
-    if (defined $ENV{HTFEED_CONFIG}){
-        $config_file = $ENV{HTFEED_CONFIG};
-    }
-    else{
-        my $this_module = 'HTFeed/Config.pm';
+    my $config_dir;
+    {
+        my $this_module = __PACKAGE__ . '.pm';
+		$this_module =~ s/::/\//g;
         my $path_to_this_module = dirname($INC{$this_module});
         $feed_app_root = realpath "$path_to_this_module/../..";
-        $config_file = "$feed_app_root/etc/config.yaml";
+        $config_dir = "$feed_app_root/etc/config";
     }
-
-    # load config file
+    
+    # load config files
+    my $config_file;
     eval{
-        $config = YAML::AppConfig->new(file => $config_file);
-        $config->merge(file => get_config('premis_config'));
+        foreach $config_file (sort(glob("$config_dir/*.yml"))){
+            if($config){
+                $config->merge(file => $config_file);
+            } else {
+                $config = YAML::AppConfig->new(file => $config_file);
+            }
+        }
     };
     if ($@){ die ("loading $config_file failed: $@"); }
 
     # add feed_app_root to config
     unless (defined $config->{feed_app_root}){
-        $config->set('feed_app_root',$feed_app_root);
+        $config->set('feed_home',$feed_app_root);
     }
     
     ## TODO: check file validity, can't do this until we establish what the file will look like

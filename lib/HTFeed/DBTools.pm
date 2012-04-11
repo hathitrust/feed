@@ -9,7 +9,7 @@ use Sys::Hostname;
 use DBD::mysql;
 use Log::Log4perl qw(get_logger);
 
-use HTFeed::ServerStatus;
+use HTFeed::ServerStatus qw(continue_running_server);
 
 use base qw(Exporter);
 

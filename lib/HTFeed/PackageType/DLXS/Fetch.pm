@@ -32,6 +32,7 @@ sub run {
     
     if(not defined $source) {
         $self->set_error("MissingFile",file => "$base/$path_prefix/$objid", detail=>"Can't fetch $objid from $fetch_base");
+        return;
     }
 
 	my $dest = get_config('staging' => 'preingest');
