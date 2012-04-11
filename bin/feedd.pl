@@ -20,6 +20,8 @@ use Log::Log4perl qw(get_logger);
 use HTFeed::ServerStatus qw(continue_running_server check_disk_usage);
 use Sys::Hostname;
 use Mail::Mailer;
+use POSIX ":sys_wait_h";
+
 
 print("feedd running, waiting for something to ingest, pid = $$\n");
 
@@ -197,9 +199,6 @@ END{
     if($$ eq $process_id){
         my @kid_pids = keys %locks_by_pid;
 
-        # automatically reap zombies 
-        $SIG{CHLD} = 'IGNORE';
-
         # parent kills kids
         print "killing child procs...\n";
         kill 2, keys %locks_by_pid;
@@ -218,6 +217,12 @@ END{
             }
 
             kill 9, keys %locks_by_pid;
+
+            # reap
+	    my $kid;
+            do {
+                $kid = waitpid(-1, WNOHANG);
+            } while $kid > 0;
             sleep 20;
         }
         
@@ -245,6 +250,12 @@ END{
 
 sub _kids_remaining{
     my $count = kill 0, keys %locks_by_pid;
+    # reap
+    my $kid;
+    do {
+	$kid = waitpid(-1, WNOHANG);
+    } while $kid > 0;
+
     return $count;
 }
 

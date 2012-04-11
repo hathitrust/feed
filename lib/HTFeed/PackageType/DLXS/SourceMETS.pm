@@ -8,6 +8,7 @@ use HTFeed::SourceMETS;
 use HTFeed::XMLNamespaces qw(:namespaces :schemas register_namespaces);
 use base qw(HTFeed::SourceMETS);
 use HTFeed::METS;
+use Image::ExifTool;
 
 
 sub new {
