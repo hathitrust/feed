@@ -8,14 +8,20 @@ use HTFeed::Config;
 
 my %pagetag_map = (
     APP => 'APPENDIX',
-    BIB => 'REFERENCES',
-    BLP => 'BLANK',
+    BIB => 'BIBLIOGRAPHY',
+    CTP => 'TITLE',
     IND => 'INDEX',
+    LOI => 'LIST_OF_ILLUSTRATION',
+    LOT => 'LIST_OF_MAPS',
+    NOT => 'NOTES',
     PRE => 'PREFACE',
     PRF => 'PREFACE',
+    REF => 'REFERENCES',
     TOC => 'TABLE_OF_CONTENTS',
-    FNT => 'PREFACE',
     TPG => 'TITLE',
+    VLI => 'LIST_OF_ILLUSTRATION',
+    VTP => 'TITLE',
+    VTV => 'TITLE',
 
 );
 
