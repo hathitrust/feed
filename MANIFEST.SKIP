@@ -1,0 +1,17 @@
+#!include_default
+
+# comment out following directive to include MLibrary internal scripts in distro
+# (HASHBANG IS NOT A COMMENT!)
+#!include internal_code_MANIFEST.SKIP
+
+# version control and Makemaker files that #!include_default misses
+^\.git
+MANIFEST\.
+
+# local files
+^gpg$
+^web$
+local_config.yml$
+^get_book.sh$
+^validateCache$
+^rdist.app$

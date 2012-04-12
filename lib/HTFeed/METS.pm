@@ -9,7 +9,6 @@ use HTFeed::XMLNamespaces qw(:namespaces :schemas);
 use Carp;
 use Log::Log4perl qw(get_logger);
 use Time::localtime;
-use Cwd qw(cwd abs_path);
 use HTFeed::Config qw(get_config);
 use Date::Manip;
 use File::Basename qw(basename dirname);

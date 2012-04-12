@@ -27,7 +27,7 @@ our $VERSION = 'Unknown';
             my $version_string = <$fh>;
             close $fh;
             chomp $version_string;
-            $version_string =~ /^feed_v(.+)$/;
+            $version_string =~ /^feed_(v.+)$/;
             $found_version = $1;
         }
     }
