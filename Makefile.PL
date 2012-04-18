@@ -1,4 +1,9 @@
 use ExtUtils::MakeMaker;
+
+use FindBin;
+use lib "$FindBin::Bin/lib";
+use HTFeed::Version qw(:no_getopt);
+
 # See lib/ExtUtils/MakeMaker.pm for details of how to influence
 # the contents of the Makefile that is written.
 WriteMakefile(
@@ -71,6 +76,7 @@ WriteMakefile(
         'Test::Class'             => 0,
     },
     CONFIGURE_REQUIRES => { "ExtUtils::MakeMaker" => 0 },
-    DESTDIR => '/usr/local/feed',
-    
+    INSTALLDIRS => 'site',
+    INSTALL_BASE => '/usr/local/feed',
+    EXE_FILES => [ split(/\s+/,qx!cat MANIFEST | grep ^bin.*pl\$!) ],
 );

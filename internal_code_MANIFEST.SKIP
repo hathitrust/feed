@@ -3,17 +3,17 @@
 ^Dataset.pm$
 
 # skip internal/local scripts
-^audit$
-^dataset$
-^delete.pl$
-^feed.daily$
-^feed.hourly$
-^feed.monthly$
-^feed.weekly$
+\baudit\b
+\bdataset\b
+\bdelete.pl$
+\bfeed.daily\b
+\bfeed.hourly\b
+\bfeed.monthly\b
+\bfeed.weekly\b
 
 # skip MySQL based ingest scripts
-^enqueue.pl$
-^feedd.pl$
-^reprioritize.pl$
+\benqueue.pl$
+\bfeedd.pl$
+\breprioritize.pl$
 
 ## possibly list some unwanted tests here

@@ -9,9 +9,9 @@
 MANIFEST\.
 
 # local files
-^gpg$
-^web$
+\bgpg$
+\bweb$
 local_config.yml$
-^get_book.sh$
-^validateCache$
-^rdist.app$
+\bget_book.sh$
+\bvalidateCache$
+\brdist.app$
