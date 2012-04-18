@@ -1,6 +1,6 @@
 package HTFeed::Stage;
 
-# abstract class, children must impliment following methods:
+# abstract class, children must implement following methods:
 # run
 # children may also override clean_* methods as needed
 
@@ -39,14 +39,12 @@ sub new {
 }
 
 
-# estimate_space($file, $multiplier)
 sub estimate_space{
     my ($file, $multiplier) = @_;
     my $size = -s $file;
     return ceil($size * $multiplier);
 }
 
-# return the size of a directory
 sub dir_size{
     shift if (ref $_[0]);
     my $dir = shift;
@@ -60,10 +58,6 @@ sub dir_size{
 #   {success_state => 'validated', failure_state => 'punted'};
 #
 # (note: this odd implimentation is to support inheritance nicely)
-#
-# synopsis
-# my $info_hash = $stage->get_stage_info();
-# my $info_item = $stage->get_stage_info('item_name');
 sub get_stage_info {
     my $self  = shift;
     my $field = shift;
@@ -83,8 +77,6 @@ sub _set_done {
     return $self->{has_run};
 }
 
-# Return true if failed, false if succeeded
-# Set error and return true if ! $self->{has_run}
 sub failed {
     my $self = shift;
     return $self->{failed} if $self->{has_run};
@@ -93,7 +85,6 @@ sub failed {
     return 1;
 }
 
-# set fail, log errors
 sub set_error {
     my $self  = shift;
     my $error = shift;
@@ -114,7 +105,6 @@ sub set_error {
     }
 }
 
-# log info message
 sub set_info {
     my $self    = shift;
     my $message = shift;
@@ -130,17 +120,6 @@ sub set_info {
     );
 }
 
-=item clean
-
-run this to do appropriate cleaning after run()
-this generally should not be overriden,
-instead override clean_success() and clean_failure()
-
-=synopsis
-
-$stage->clean();
-
-=cut
 sub clean {
     my $self    = shift;
     my $success = $self->succeeded();
@@ -155,26 +134,18 @@ sub clean {
     $self->clean_always();
 }
 
-# do cleaning that is appropriate after success
-# run automatically by clean() when needed
 sub clean_success {
     return;
 }
 
-# do cleaning that is appropriate after failure
-# run automatically by clean() when needed
 sub clean_failure {
     return;
 }
 
-# do cleaning independent of success
-# run automatically by clean() when needed
 sub clean_always {
     return;
 }
 
-# cleaning to do on punt
-# NOT run by clean(), because clean() doesn't know you punted
 sub clean_punt{
     my $self = shift;
     my $volume = $self->{volume};
@@ -188,16 +159,6 @@ sub clean_punt{
     return;
 }
 
-=item force_failed_status
-
-force stage to report success/failure
-
-=synopsis
-
-$stage->force_failed_status($failed)
-
-=cut
-
 sub force_failed_status{
     my $self = shift;
     my $failed = shift;
@@ -210,12 +171,6 @@ sub force_failed_status{
     return;
 }
 
-=item success_info
-
-returns additional info to log on success.
-
-=cut
-
 sub success_info {
     my $self = shift;
     return "";
@@ -223,4 +178,99 @@ sub success_info {
 
 1;
 
-__END__;
+__END__
+
+=head1 NAME
+
+HTFeed::Stage - Manage Feed ingest stages
+
+=head1 SYNOPSIS
+
+Main class for Feed stage management
+
+=head1 DESCRIPTION
+
+Stage.pm provides the main methods for running the ingest process stages defined in a PackageType configuration file.
+The main stages classses are defined under HTFeed/Stage, and a given PackageType may have its own stages, as well.
+
+=head2 METHODS
+
+=over 4
+
+=item new()
+
+Instantiate the class...
+
+=item clean_success()
+
+Do cleaning that is appropriate after success
+Run automatically by clean() when needed
+
+=item estimate_space()
+
+estimate_space($file, $multiplier);
+
+=item get_stage_info()
+
+Returns information about a stage
+
+my $info_hash = $stage->get_stage_info();
+my $info_item = $stage->get_stage_info('item_name');
+
+=item clean()
+
+run this to do appropriate cleaning after run()
+this generally should not be overriden,
+instead override clean_success() and clean_failure()
+
+$stage->clean();
+
+=item force_failed_status()
+
+force stage to report success/failure
+
+$stage->force_failed_status($failed)
+
+=item success_info()
+
+returns additional info to log on success.
+
+=item dir_size()
+
+Return the size of a directory
+
+=item clean_punt()
+
+Cleaning to do on punt
+NOT run by clean(), because clean() doesn't know you punted
+
+=item failed()
+
+Return true if failed, false if succeeded
+Set error and return true if ! $self->{has_run}
+
+=item clean_always()
+
+Do cleaning independent of success
+Run automatically by clean() when needed
+
+=item set_error()
+
+Set fail, log errors
+
+=item set_info()
+
+Log info message
+
+=item clean_failure()
+
+Do cleaning that is appropriate after failure
+Run automatically by clean() when needed
+
+=back
+
+=AUTHOR
+
+=COPYRIGHT
+
+=cut
