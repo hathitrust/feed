@@ -1,21 +1,13 @@
 package HTFeed::Log;
 
-# Loads HTFeed log support classes,
-# initializes logging,
-# contains logging helper methods
-
 use warnings;
 use strict;
 use HTFeed::Config qw(get_config);
 use Carp;
-
 use Getopt::Long qw(:config pass_through no_ignore_case no_auto_abbrev);
-
 use Data::Dumper;
 #$Data::Dumper::Indent = 0;
-
 use Log::Log4perl;
-
 use HTFeed::Log::Warp;
 use HTFeed::Log::Layout::PrettyPrint;
 use Sys::Hostname;
@@ -120,11 +112,9 @@ sub _init{
     return;
 }
 
-=item set_logfile
-set_logfile($filename)
-change out file for file logger
-if this isn't set and we use the file logger everything is logged to /dev/null as per config.l4p
-=cut
+# set_logfile($filename)
+# change out file for file logger
+# if this isn't set and we use the file logger everything is logged to /dev/null as per config.l4p
 sub set_logfile{
     my $file_name = shift;
     my $appender = Log::Log4perl::appender_by_name('file');
@@ -193,12 +183,23 @@ HTFeed::Log - Logging for HTFeed
 
 =head1 SYNOPSIS
 
-# Initialize Log4perl with default config (from config.yaml)
+Loads HTFeed log support classes and initializes logging.
+HTFeed::Log contains various logging helper methods.
+
+=head1 DESCRIPTION
+
+Initialize Log4perl with default config (from config.yaml)
 use HTFeed::Log;
 
-# Initialize Log4perl with custom root logger (use)
+Initialize Log4perl with custom root logger (use)
 use HTFeed::Log {root_logger => 'INFO, screen'};
 
-# Initialize Log4perl with custom root logger (command line)
-# while executing any script that uses Log.pm (even indirectly)
+Initialize Log4perl with custom root logger (command line)
+while executing any script that uses Log.pm (even indirectly)
 myscript.pl [-screen] [-dbi] [-file FILENAME] [-level (TRACE|DEBUG|INFO|WARN|ERROR|FATAL|OFF)]
+
+=head1 AUTHOR
+
+=head1 COPYRIGHT
+
+=cut

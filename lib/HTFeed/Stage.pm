@@ -269,8 +269,8 @@ Run automatically by clean() when needed
 
 =back
 
-=AUTHOR
+=head1 AUTHOR
 
-=COPYRIGHT
+=head1 COPYRIGHT
 
 =cut
