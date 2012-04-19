@@ -81,9 +81,6 @@ sub run{
         $self->remediate_image( $jp2_submitted, $jp2_remediated, $force_fields, $set_if_undefined );
     }
 
-
-
-
     $volume->record_premis_event('image_header_modification');
     
     $self->_set_done();

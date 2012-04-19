@@ -802,15 +802,21 @@ sub get_SIP_filename {
 
 =item get_preingest_directory
 
-Returns the directory where the raw submitted object is staged. 
-Returns undef by default; package type subclasses must define.
-
-should use get_config('staging'=>'preingest') as a base dir
+Returns the directory where the raw submitted object is staged.  By default, if
+use_preingest is defined and true in the package type configuration, returns
+get_config('staging'=>'preingest')/$objid, and undef if use_preingest is false
+or not defined. Note that by default the name of the preingest directory
+is NOT pairtree-encoded.
 
 =cut
 
 sub get_preingest_directory {
-    return;
+    my $self = shift;
+
+    if($self->{nspkg}->get('use_preingest')) {
+        my $objid = $self->get_objid();
+        return sprintf("%s/%s", get_config('staging'=>'preingest'), $objid);
+    } else { return; }
 }
 
 =item get_download_location

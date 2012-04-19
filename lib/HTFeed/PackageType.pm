@@ -76,13 +76,17 @@ BEGIN {
 
         uncompressed_extensions => [qw(tif jp2)],
 
+        # use a preingest directory
+        use_preingest => 0,
+
         # by default use XML schema caching. Breaks for some package types where
         # the same namespace is used for metadata that might have different 
         # schemas in different packages.
         use_schema_caching => 1,
 
         # use default volume module
-        volume_module => 'HTFeed::Volume',
+        volume_module => 'HTFeed::Volume'
+
     };
 }
 
