@@ -157,18 +157,6 @@ sub _tagmatch {
 
 __END__
 
-=Synopsys
-# in script.pl
-use HTFeed::Version;
-
-# at command line
-script.pl -version
-=Description
-use in a pl to enable -version and -Version flags
-=cut
-
-
-
 #======
 
 
@@ -217,7 +205,7 @@ Blah blah blah.
     Library IT - Core Services
     University of Michigan
     lit-cs-ingest@umich.edu
-    http://lib.umich.edu/
+    http://www.lib.umich.edu/
 
 =head1 COPYRIGHT
 

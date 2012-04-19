@@ -7,6 +7,7 @@
 # version control and Makemaker files that #!include_default misses
 ^\.git
 MANIFEST\.
+HTFeed-v
 
 # local files
 \bgpg$

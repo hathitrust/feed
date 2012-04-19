@@ -11,23 +11,18 @@ my $directive = shift;
 given( $directive ) {
     when ('brand_version')     { brand_version(@ARGV); }
     when ('write_path_config') { write_path_config(@ARGV); }
+    when ('inject_copyright')  { write_copyright(@ARGV); }
     when ('install_dir')       { install_dir(@ARGV); }
 }
 
 # brand Version.pm in blib with found version information (usualy from git)
 sub brand_version {
-    my $version_pm = "blib/lib/HTFeed/Version.pm";
+    my $version_pm = "lib/HTFeed/Version.pm";
     croak ("could not find Version.pm at $version_pm")
         unless(-f $version_pm);
 
     my $version_block = _generate_version_block();
 
-    ##my $cmd = q!perl -pe 'if ($_ =~ /HTFEED_VERSION_STRINGS$/){$_ = q+%s+.qq+\n+}' -i %s!;
-    ##$cmd = sprintf($cmd,$version_block,$version_pm);
-    ##
-    ##my $result = system($cmd);
-    ##croak ("branding Version.pm failed")
-    ##    if($result);
     _replace($version_pm,'HTFEED_VERSION_STRINGS',$version_block,'branding Version.pm');
 
     return;
@@ -60,6 +55,16 @@ sub install_dir {
     return;
 }
 
+sub write_copyright {
+    my $copyright_source_file = 'lib/HTFeed.pm';
+    my $copyright_text = `perl -MPod::Select -e 'podselect({-sections => ["AUTHOR|COPYRIGHT"]}, "lib/HTFeed.pm")'`;
+    my @files = @_;
+
+    foreach my $file (@files) {
+        _replace($file,'INSERT_UNIVERSITY_OF_MICHIGAN_COPYRIGHT_INFO_HERE',$copyright_text);
+    }
+}
+
 sub _generate_version_block {
 	my $syntax = 'my ($vstring,$full_version_string,$production_ok) = ("%s","%s","%s"); # HTFEED_VERSION_STRINGS';
 
@@ -84,7 +89,7 @@ sub _replace {
     my $result = system($cmd);
     croak ("$action_name failed")
         if($result);
-    
+
     return;
 }
 

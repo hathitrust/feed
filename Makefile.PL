@@ -1,7 +1,14 @@
+use warnings;
+use strict;
+use v5.10;
+
 use ExtUtils::MakeMaker;
 
 use FindBin;
 use lib "$FindBin::Bin/lib";
+
+# use --make-dist flag to build makefile for making a distributable package rather than actually installing
+my ($make_dist) = grep(/^--make-dist$/,@ARGV);
 
 # See lib/ExtUtils/MakeMaker.pm for details of how to influence
 # the contents of the Makefile that is written.
@@ -62,10 +69,10 @@ WriteMakefile(
 		'YAML::Any'				=> 0,
 		'YAML::AppConfig'		=> 0,
 		## site specific, possibly rework this ##
-		'HTTP::DAV'				=> 0,
-		'JSON::XS'				=> 0,
-		'Spreadsheet::WriteExcel'	=> 0,
-		'SOAP::Lite'			=> 0,
+#		'HTTP::DAV'				=> 0,
+#		'JSON::XS'				=> 0,
+#		'Spreadsheet::WriteExcel'	=> 0,
+#		'SOAP::Lite'			=> 0,
 	},
 	BUILD_REQUIRES => {
 		'Test::DatabaseRow'		=> 0,
@@ -91,11 +98,37 @@ MAKE_CONSTANTS
 sub MY::postamble {
 	## TODO: remove hard coded paths, use $(PERL), et al
 
-	return <<'MAKE_FRAG';
-pure_all :: etc_to_blib brand_version write_path_config
+	return <<'DIST_MAKE_FRAG' if($make_dist);
+pure_all :: etc_to_blib brand_version
 	$(NOECHO) $(NOOP)
 
-install :: install_etc
+# disable install target
+install ::
+	false
+
+etc_to_blib ::
+	perl InstallerTools.PL install_dir etc blib/etc
+
+distdir : inject_copyright brand_version
+
+# remove generated MANIFEST.SKIP
+clean_manifest :
+	mv MANIFEST.SKIP.bak MANIFEST.SKIP
+
+# write version info to Version.pm
+brand_version ::
+	perl InstallerTools.PL brand_version
+
+inject_copyright :
+	perl InstallerTools.PL inject_copyright 
+
+DIST_MAKE_FRAG
+
+	return <<'INSTALL_MAKE_FRAG'
+pure_all :: etc_to_blib
+	$(NOECHO) $(NOOP)
+
+install :: write_path_config install_etc
 	$(NOECHO) $(NOOP)
 
 etc_to_blib ::
@@ -103,10 +136,6 @@ etc_to_blib ::
 
 install_etc ::
 	perl InstallerTools.PL install_dir blib/etc /usr/local/etc/feed
-
-# write version info to Version.pm
-brand_version ::
-	perl InstallerTools.PL brand_version
 
 # write file paths to Config.pm
 write_path_config ::
@@ -116,10 +145,10 @@ write_path_config ::
 clean_manifest :
 	mv MANIFEST.SKIP.bak MANIFEST.SKIP
 
-MAKE_FRAG
+INSTALL_MAKE_FRAG
+
 }
 
 1;
 
 __END__
-	
