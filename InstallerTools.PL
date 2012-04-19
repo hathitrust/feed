@@ -28,7 +28,7 @@ sub brand_version {
     ##my $result = system($cmd);
     ##croak ("branding Version.pm failed")
     ##    if($result);
-    _replace($version_pm,'HTFEED_VERSION_STRINGS',$version_block,'branding Version.pm')
+    _replace($version_pm,'HTFEED_VERSION_STRINGS',$version_block,'branding Version.pm');
 
     return;
 }
@@ -62,7 +62,11 @@ sub install_dir {
 
 sub _generate_version_block {
 	my $syntax = 'my ($vstring,$full_version_string,$production_ok) = ("%s","%s","%s"); # HTFEED_VERSION_STRINGS';
-	$syntax = sprintf($syntax,get_vstring(),get_full_version_string(),get_production_ok());
+
+	my $full_version_string = get_full_version_string();
+	croak "I will not make from a dirty git repo. Commit or stash." if ($full_version_string =~ /dirty/);
+
+	$syntax = sprintf($syntax,get_vstring(),$full_version_string,get_production_ok());
 
 	# test syntax
 	eval $syntax;

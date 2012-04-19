@@ -112,6 +112,10 @@ brand_version ::
 write_path_config ::
 	perl InstallerTools.PL write_path_config
 
+# remove generated MANIFEST.SKIP
+clean_manifest :
+	mv MANIFEST.SKIP.bak MANIFEST.SKIP
+
 MAKE_FRAG
 }
 
