@@ -29,6 +29,12 @@ sub make_staging_directories{
     }
 }
 
+=item run
+
+Run the stage
+
+=cut
+
 sub run {
     my $self = shift;
     $self->make_staging_directories();
