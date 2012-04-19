@@ -15,3 +15,4 @@ local_config.yml$
 \bget_book.sh$
 \bvalidateCache$
 \brdist.app$
+\bmetslib\b
