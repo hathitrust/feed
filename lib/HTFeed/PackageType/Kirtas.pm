@@ -126,6 +126,8 @@ our $config = {
 
     SIP_filename_pattern => '%s.zip',
 
+    use_preingest => 1,
+
 
 };
 

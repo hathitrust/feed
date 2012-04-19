@@ -86,7 +86,9 @@ our $config = {
               v_same( 'xmp', 'xRes', 'xmp', 'yRes' )
           ),
       }
-    }
+    },
+
+    use_preingest => 1,
 
 };
 
