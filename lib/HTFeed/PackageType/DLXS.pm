@@ -51,7 +51,8 @@ our $config = {
         ready       => 'HTFeed::PackageType::DLXS::Fetch',
         fetched     => 'HTFeed::PackageType::DLXS::ImageRemediate',
         images_remediated    => 'HTFeed::PackageType::DLXS::OCRSplit',
-        ocr_extracted => 'HTFeed::PackageType::DLXS::SourceMETS',
+        ocr_extracted => 'HTFeed::PackageType::DLXS::BibTargetRemove',
+        target_removed => 'HTFeed::PackageType::DLXS::SourceMETS',
         src_metsed		=> 'HTFeed::VolumeValidator',
 		validated	=> 'HTFeed::Stage::Pack',
 		packed		=> 'HTFeed::METS',
@@ -94,7 +95,14 @@ our $config = {
     # Overrides for the basic PREMIS event configuration
     premis_overrides => {
         'ocr_normalize' =>
-          { detail => 'Split OCR into one plain text OCR file per page', }
+          { detail => 'Split OCR into one plain text OCR file per page', },
+        'target_remove' => 
+          { type => 'file deletion',
+            detail => 'Remove bibliographic record targets' ,
+            executor => 'MiU',
+            executor_type => 'MARC21 Code',
+            tools => ['GROOVE']
+          },
     },
 
     source_mets_file => qr/^DLXS_[\w,]+\.xml$/,
