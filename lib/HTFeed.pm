@@ -1,12 +1,175 @@
 package HTFeed;
+
 use warnings;
 use strict;
+no strict 'refs';
+
+use version 0.77; use HTFeed::Version qw(:no_getopt); our $VERSION = version->declare(HTFeed::Version::get_vstring());
 
 use HTFeed::Volume;
-use
+use HTFeed::Config qw(get_config);
+use HTFeed::Volume;
+use HTFeed::PackageType;
+use HTFeed::Namespace;
 
+use base qw( Exporter );
+our @EXPORT_OK = qw( tagmatch search_ns_by_tags );
+
+sub find_subclasses {
+    my $class = shift;
+
+    return grep { eval "$_->isa('$class') and '$_' ne '$class'" }
+        (map { s/\//::/g; s/\.pm//g; $_} 
+            ( grep { /.pm$/ } (keys %INC)));
+}
+
+sub namespace_ids {
+    return map {${$_ . "::identifier"}} (sort(find_subclasses("HTFeed::Namespace")));
+}
+
+sub pkgtype_ids {
+    return map {${$_ . "::identifier"}} (sort(find_subclasses("HTFeed::PackageType")));
+}
+
+sub id_desc_info {
+    my $class = shift;
+    my $key = ${$class . "::identifier"};
+    my $desc = ${$class . "::config"}->{description};
+    return "$class - $key - $desc";
+}
+
+sub nspkg {
+    return map {$_ => {id_desc_info($_)}} find_subclasses("HTFeed::Namespace");
+}
+
+=item pkg_by_ns
+
+pkg_by_ns()
+
+return hashref of namespaces mapped to their packagetypes
+
+=cut
+my $namespace_to_packagetype_hash;
+sub pkg_by_ns {
+	return $namespace_to_packagetype_hash if(defined $namespace_to_packagetype_hash);
+
+    my %hsh = map {${$_ . "::identifier"}=>${$_ . "::config"}->{packagetypes}} (sort(find_subclasses("HTFeed::Namespace")));
+
+	$namespace_to_packagetype_hash = \%hsh;
+    return $namespace_to_packagetype_hash;
+}
+
+=item ns_by_pkg
+
+ns_by_pkg()
+
+return hashref of packagetypes mapped to their namespaces
+
+=cut
+my $packagetype_to_namespace_hash;
+sub ns_by_pkg {
+	return $packagetype_to_namespace_hash if(defined $packagetype_to_namespace_hash);
+
+    my $pkg_by_ns = pkg_by_ns();
+    my %ns_by_pkg;
+    foreach my $ns (keys %{$pkg_by_ns}){
+        foreach my $pkg (@{$pkg_by_ns->{$ns}}){
+            $ns_by_pkg{$pkg} = []
+                unless (defined $ns_by_pkg{$pkg});
+            push @{$ns_by_pkg{$pkg}}, $ns;
+        }
+    }
+    
+	$packagetype_to_namespace_hash = \%ns_by_pkg;
+    return $packagetype_to_namespace_hash;
+}
+
+=item tags_by_ns
+
+tags_by_ns()
+
+return hashref of namespaces mapped to their tags
+
+=cut
+my $namespace_to_tag_hash;
+sub tags_by_ns {
+	return $namespace_to_tag_hash if(defined $namespace_to_tag_hash);
+	
+    # ignore missing tags fields
+    no warnings;
+    my %hsh = map { ${$_ . "::identifier"} => [ @{${$_ . "::config"}->{packagetypes}}, @{${$_ . "::config"}->{tags}} ]  }
+        HTFeed::Version::find_subclasses("HTFeed::Namespace");
+
+	$namespace_to_tag_hash = \%hsh;
+    return $namespace_to_tag_hash;
+}
+
+=item search_ns_by_tags
+
+search_ns_by_tags(@tags)
+
+return arrayref of namespaces matching all tags in @tags
+
+=cut
+sub search_ns_by_tags {
+    my $search_tags = shift;
+    my @results;
+    my $tags_by_ns = tags_by_ns();
+    foreach my $ns (keys %{$tags_by_ns}){
+        push (@results, $ns)
+            if(_tagmatch($tags_by_ns->{$ns},$search_tags));
+    }
+    return \@results;
+}
+
+=item tagmatch
+
+tagmatch($namespace,\@tags)
+
+return true if $namespace matches \@tags
+
+=cut
+sub tagmatch {
+    my $namespace = shift;
+    my $search_tags = shift;
+
+    my $tags_by_ns = tags_by_ns();
+    return 1 if(_tagmatch($tags_by_ns->{$namespace},$search_tags));
+    return;
+}
+
+sub _tagmatch {
+    my $actual = shift;
+    my $expected = shift;
+
+    my $ok = 1;
+    foreach my $tag (@$expected) {
+        if(!grep { $_ eq $tag } @$actual) {
+            $ok = 0;
+            last;
+        }
+    }
+
+    return $ok;
+}
+
+1;
+
+__END__
+
+=Synopsys
+# in script.pl
 use HTFeed::Version;
-our $VERSION = 'v0.11.0';
+
+# at command line
+script.pl -version
+=Description
+use in a pl to enable -version and -Version flags
+=cut
+
+
+
+#======
 
 
 #################### main pod documentation begin ###################
@@ -27,8 +190,7 @@ HTFeed - HathiTrust repository toolkit
 =head1 DESCRIPTION
 
 Stub documentation for this module was created by ExtUtils::ModuleMaker.
-It looks like the author of the extension was negligent enough
-to leave the stub unedited.
+I you are reading this, the real docs have not been added here yet
 
 Blah blah blah.
 
@@ -47,9 +209,8 @@ Blah blah blah.
 
 =head1 HISTORY
 
-0.01 Wed Apr 11 18:33:22 2012
-    - original version; created by ExtUtils::ModuleMaker 0.51
-
+1.0.0 Some Future Data
+    - first public release
 
 =head1 AUTHOR
 
@@ -60,12 +221,12 @@ Blah blah blah.
 
 =head1 COPYRIGHT
 
-This program is free software; you can redistribute
-it and/or modify it under the same terms as Perl itself.
+Copyright (c) 2010-2012 The Regents of the University of Michigan. All rights
+reserved. This program is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself.
 
 The full text of the license can be found in the
 LICENSE file included with this module.
-
 
 =head1 SEE ALSO
 
