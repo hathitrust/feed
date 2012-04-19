@@ -116,21 +116,6 @@ write_path_config ::
 clean_manifest :
 	mv MANIFEST.SKIP.bak MANIFEST.SKIP
 
-# remove generated MANIFEST.SKIP
-clean_manifest :
-	mv MANIFEST.SKIP.bak MANIFEST.SKIP
-
-# make distributable packages
-external_dist : manifest clean_manifest dist
-
-internal_dist : _hide_internal_code_MANIFEST manifest clean_manifest _replace_internal_code_MANIFEST dist
-
-_hide_internal_code_MANIFEST :
-	mv internal_code_MANIFEST.SKIP internal_code_MANIFEST.SKIP.bak
-
-_replace_internal_code_MANIFEST :
-	mv internal_code_MANIFEST.SKIP.bak internal_code_MANIFEST.SKIP
-
 MAKE_FRAG
 }
 
