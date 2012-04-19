@@ -13,14 +13,6 @@ sub run {
     die("Subclass must implement run.");
 }
 
-=item get_exiftool_fields($file)
-
-    Returns a hash of all the tags found by ExifTool in the specified file.
-    The keys are in the format GroupName:TagName in the same format as the
-    tag names returned by exiftool -X $file
-
-=cut
-
 sub get_exiftool_fields {
     require Image::ExifTool;
 
@@ -42,31 +34,6 @@ sub get_exiftool_fields {
     return $fields;
 }
 
-=item $self->remediate_image($oldfile,$newfile,$force_headers,$set_if_undefined_headers)
-
-    Prevalidates and remediates the image headers in $oldfile and writes the results as $newfile.
-
-    $force_headers and $set_if_undefined_headers are references to hashes:
-    { header => $value, 
-      header2 => $value, ...}
-
-    Additional parameters can be passed to set the value for particular fields.
-    $force_headers lists headers to force whether or not they are present, and
-    $set_if_undefined_heaeders gives headers to set if they are not already
-    defined.
-
-    For example,
-
-    remediate_jpeg2000($oldfile,$newfile,['XMP-dc:source' => 'Internet Archive'],['XMP-tiff:Make' => 'Canon'])
-
-    will force the XMP-dc:source field to 'Internet Archive' whether or not it is already present,
-    and set XMP-tiff:Make to Canon if XMP-tiff:Make is not otherwise defined.
-
-    The special header 'Resolution' can be set to set X/Y resolution related fields; it should be 
-    specified in pixels per inch.
-
-=cut
-
 sub remediate_image {
     my $self = shift;
     my $oldfile = shift;
@@ -79,12 +46,6 @@ sub remediate_image {
     $self->set_error("BadFile",file=>$oldfile,detail=>"Unknown image format; can't remediate");
 }
 
-
-=item $self->update_tags($exifTool,$outfile)
-
-Updates the tags in outfile with the parameters set in the given exiftool
-
-=cut
 
 sub update_tags {
     my $self = shift;
@@ -99,13 +60,6 @@ sub update_tags {
     }
 }
 
-=item $self->copy_old_to_new($oldFieldName, $newFieldName)
-
-Copies old field value to the new field value, but only if the old value is defined
-and the new one isn't.
-
-=cut 
-
 sub copy_old_to_new($$$) {
     my $self = shift;
     my ( $oldFieldName, $newFieldName ) = @_;
@@ -117,13 +71,6 @@ sub copy_old_to_new($$$) {
         $self->{newFields}->{$newFieldName} = $oldValue;
     }
 }
-
-=item $self->set_new_if_undefined($newFieldName,$newFieldVal)
-
-Copies old field value to the new field value, but only if the old value is defined
-and the new one isn't.
-
-=cut 
 
 sub set_new_if_undefined($$$) {
     my $self = shift;
@@ -429,17 +376,6 @@ sub prevalidate_field {
 
 }
 
-=item $self->remediate_tiffs($volume,$path,$tiffs,$headers_sub)
-
-Runs jhove and calls image_remediate for all tiffs in $tiffs. 
-$tiffs is a reference to an array of filenames.
-$path is the base directory containing all the files in $tiffs.
-
-$headers_sub is a callback taking the filename as a parameter
-and returning the force_headers and set_if_undefined_headers parameters for
-remediate_image (qv)
-
-=cut
 sub remediate_tiffs {
 
     my ($self,$volume,$tiffpath,$files,$headers_sub) = @_;
@@ -474,3 +410,91 @@ sub remediate_tiffs {
 }
 
 1;
+
+__END__
+
+=head1 NAME
+
+HTFeed::Stage::ImageRemediate - Image file processing
+
+=head1 DESCRIPTION
+
+ImageRemediate.pm is the main class for image file remediation.
+The class provides methods for cleaning up image files prior to ingest.
+
+=head2 METHODS
+
+=over 4
+
+=item get_exiftool_fields()
+
+Returns a hash of all the tags found by ExifTool in the specified file.
+The keys are in the format GroupName:TagName in the same format as the
+tag names returned by exiftool -X $file
+
+$fields_ref = get_exiftool_fields($file)
+
+=item remediate_image()
+
+Prevalidates and remediates the image headers in $oldfile and writes the results as $newfile.
+
+usage: $self->remediate_image($oldfile,$newfile,$force_headers,$set_if_undefined_headers)
+
+$force_headers and $set_if_undefined_headers are references to hashes:
+{ header => $value, 
+header2 => $value, ...}
+
+Additional parameters can be passed to set the value for particular fields.
+$force_headers lists headers to force whether or not they are present, and
+$set_if_undefined_heaeders gives headers to set if they are not already
+defined.
+
+For example,
+
+remediate_jpeg2000($oldfile,$newfile,['XMP-dc:source' => 'Internet Archive'],['XMP-tiff:Make' => 'Canon'])
+
+will force the XMP-dc:source field to 'Internet Archive' whether or not it is already present,
+and set XMP-tiff:Make to Canon if XMP-tiff:Make is not otherwise defined.
+
+The special header 'Resolution' can be set to set X/Y resolution related fields; it should be 
+specified in pixels per inch.
+
+=item update_tags()
+
+Updates the tags in outfile with the parameters set in the given exiftool
+
+$self->update_tags($exifTool,$outfile);
+
+=item copy+old_to_new()
+
+Copies old field value to the new field value, but only if the old value is defined
+and the new one isn't.
+
+$self->copy_old_to_new($oldFieldName, $newFieldName);
+
+=item set_new_if_undefined()
+
+Copies old field value to the new field value, but only if the old value is defined
+and the new one isn't.
+
+$self->set_new_if_undefined($newFieldName,$newFieldVal);
+
+=item remediate_tiffs()
+
+$self->remediate_tiffs($volume,$path,$tiffs,$headers_sub);
+
+Runs jhove and calls image_remediate for all tiffs in $tiffs. 
+$tiffs is a reference to an array of filenames.
+$path is the base directory containing all the files in $tiffs.
+
+$headers_sub is a callback taking the filename as a parameter
+and returning the force_headers and set_if_undefined_headers parameters for
+remediate_image (qv)
+	
+=back
+
+=head1 AUTHOR
+
+=head1 COPYRIGHT
+
+=cut

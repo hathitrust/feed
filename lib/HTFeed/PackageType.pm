@@ -93,14 +93,6 @@ BEGIN {
 use HTFeed::FactoryLoader 'load_subclasses';
 use base qw(HTFeed::FactoryLoader);
 
-=item get($config)
-
-Returns a given configuration variable. First searches the packagetype override
-for a given configuration variable. If not found there, uses the namespace base
-configuration, and if not there, the package type base configuration.
-
-=cut
-
 sub get {
     my $self = shift;
     my $config_var = shift;
@@ -124,11 +116,9 @@ sub get {
 1;
 __END__
 
-=pod
+=head1 NAME
 
-This is the superclass for all package types. It provides an interface to get configuration 
-variables and overrides for package types. Typically it would be used in conjunction with 
-a namespace (see HTFeed::Namespace)
+HTFeed::PackageType - Main class for PackageType management
 
 =head1 SYNOPSIS
 
@@ -136,6 +126,30 @@ use HTFeed::PackageType;
 
 $namespace = new HTFeed::PackageType('google');
 $module_validators = $namespace->get('module_validators');
+
+=head1 DESCRIPTION
+
+This is the superclass for all package types. It provides an interface to get configuration 
+variables and overrides for package types. Typically it would be used in conjunction with 
+a namespace (see HTFeed::Namespace)
+
+=head2 MODULES
+
+=over 4
+
+=item get()
+
+Returns a given configuration variable. First searches the packagetype override
+for a given configuration variable. If not found there, uses the namespace base
+configuration, and if not there, the package type base configuration.
+
+$variable = get($config);
+
+=item require_modules()
+
+=item on_factory_load()
+
+=back
 
 =head1 AUTHOR
 

@@ -22,11 +22,6 @@ sub _locked {
     -e $stop_file ? return 1 : return 0;
 }
 
-=item continue_running_server
-
-return true is exit condition in _locked() has not been met, indicating it is permissable to continue into a critical code section
-
-=cut
 sub continue_running_server {
 	# once stop condition is met once, always return false
     return if($locked);
@@ -35,11 +30,6 @@ sub continue_running_server {
     return 1;
 }
 
-=item check_disk_usage
-
-die if staging area is overfilled
-
-=cut
 sub check_disk_usage {
     my $pctused = df(get_config('staging_root'))->{per};
     if( $pctused > get_config('staging_root_usage_limit') ) {
@@ -53,9 +43,13 @@ __END__
 
 =head1 NAME
 
-HTFeed::ServerStatus
+HTFeed::ServerStatus - Feed server management 
 
 =head1 SYNOPSIS
+
+HTFeed::ServerStatus contains methods to control basic server functions
+
+=head1 DESCRIPTION
 
  use HTFeed::ServerStatus;
  if(continue_running_server) {
@@ -65,5 +59,24 @@ HTFeed::ServerStatus
  else {
      # exit or die here
  }
+
+=head2 METHODS
+
+=over 4
+
+=item continue_running_server()
+
+Return true is exit condition in _locked() has not been met,
+indicating it is permissable to continue into a critical code section
+
+=item check_disk_usage()
+
+Die if staging area is overfilled
+
+=back
+
+=head1 AUTHOR
+
+=head1 COPYRIGHT
 
 =cut
