@@ -99,10 +99,10 @@ install :: install_etc
 	$(NOECHO) $(NOOP)
 
 etc_to_blib ::
-	perl InstallerTools.PL etc blib/etc
+	perl InstallerTools.PL install_dir etc blib/etc
 
 install_etc ::
-	perl InstallerTools.PL blib/etc /usr/local/etc/feed
+	perl InstallerTools.PL install_dir blib/etc /usr/local/etc/feed
 
 # write version info to Version.pm
 brand_version ::

@@ -13,3 +13,7 @@ bin/validateCache
 etc/libadm*
 etc/mysqlparams
 t/cover*
+Makefile
+MANIFEST
+MANIFEST.bak
+MANIFEST.SKIP.bak
