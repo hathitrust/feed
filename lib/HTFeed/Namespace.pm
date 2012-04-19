@@ -359,14 +359,6 @@ luhn_is_valid($systemid, $barcode);
 
 =back
 
-=head1 AUTHOR
-
-Aaron Elkiss, University of Michigan, aelkiss@umich.edu
-
-=head1 COPYRIGHT
-
-Copyright (c) 2010 University of Michigan. All rights reserved.  This program
-is free software; you can redistribute it and/or modify it under the same terms
-as Perl itself.
+INSERT_UNIVERSITY_OF_MICHIGAN_COPYRIGHT_INFO_HERE
 
 =cut

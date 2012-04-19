@@ -91,8 +91,6 @@ structmap => 0.
 
 =back
 
-=head1 AUTHOR
-
-=head1 COPYRIGHT
+INSERT_UNIVERSITY_OF_MICHIGAN_COPYRIGHT_INFO_HERE
 
 =cut

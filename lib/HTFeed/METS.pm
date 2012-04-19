@@ -908,12 +908,6 @@ Do the cleaning that is appropriate on stage failure.
 
 =back
 
-=head1 AUTHOR
-
-=head1 COPYRIGHT
-
-=head1 SEE ALSO
-
-METS, PREMIS
+INSERT_UNIVERSITY_OF_MICHIGAN_COPYRIGHT_INFO_HERE
 
 =cut
