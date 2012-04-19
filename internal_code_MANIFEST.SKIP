@@ -1,6 +1,6 @@
 # skip dataset pm's
-^Dataset$
-^Dataset.pm$
+\bDataset\b
+\bDataset.pm$
 
 # skip internal/local scripts
 \baudit\b
