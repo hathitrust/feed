@@ -9,9 +9,25 @@ use base qw(HTFeed::Stage);
 
 use Log::Log4perl qw(get_logger);
 
-# $self->download(url => $url, path => $path, filename => $filename, not_found_ok => 1);
-# downloads file at $url to $path/$filename
-# not_found_of suppresses errors on 404, defaults to false
+=head1 NAME
+
+HTFeed::Stage::Download
+
+=item DESCRIPTIONS
+
+Base class for HTFeed Download stage
+Manages download of material to ingest from remote location
+
+=cut
+
+=item download()
+
+$self->download(url => $url, path => $path, filename => $filename, not_found_ok => 1);
+downloads file at $url to $path/$filename
+not_found_of suppresses errors on 404, defaults to false
+
+=cut
+
 sub download{
     my $self = shift;
     my $arguments = {
@@ -60,11 +76,22 @@ sub download{
     }
 }
 
+=item stage_info()
+
+Returns stage outcome based on success/failure
+
+=cut
+
 sub stage_info{
     return {success_state => 'downloaded', failure_state => 'ready'};
 }
 
-# do cleaning that is appropriate after failure
+=item clean_failure()
+
+Do cleaning that is appropriate after failure
+
+=cut
+
 sub clean_failure{
     my $self = shift;
     $self->{volume}->clean_download();
@@ -73,3 +100,9 @@ sub clean_failure{
 1;
 
 __END__
+
+=pod
+
+    INSERT_UNIVERSITY_OF_MICHIGAN_COPYRIGHT_INFO_HERE
+
+=cut

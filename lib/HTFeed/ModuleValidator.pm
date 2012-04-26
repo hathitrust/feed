@@ -11,15 +11,22 @@ use base qw(HTFeed::XPathValidator);
 use HTFeed::XMLNamespaces qw(register_namespaces);
 use HTFeed::Config qw(get_config);
 
-=info
+=head1 NAME
+
+HTFeed::ModuleValidator
+
+=head1 DESCRIPTION
+
 	parent class/factory for HTFeed validation plugins
 	a plugin is responsible for validating Jhove output for **one Jhove
 	module** as well as runnging any external filetype specific validation
 
 	For general Jhove output processing see HTFeed::Validator
+
 =cut
 
-=synopsis
+=head1 SYNOPSIS
+
 	my $context_node = $xpc->findnodes("$repInfo/$format"."Metadata");
 	my $validator = HTFeed::ModuleValidator::JPEG2000_hul->new(xpc => $xpc, qlib => $querylib);
 	if ($validator->validate){
@@ -29,6 +36,7 @@ use HTFeed::Config qw(get_config);
 		my $errors = $validator->getErrors;
 		# FAILURE code...
 	}
+
 =cut
 
 sub new {
@@ -85,9 +93,6 @@ sub new {
     return $object;
 }
 
-# validates input, checks for consistancy if already set
-# sets error if needed
-# returns success
 sub _setdatetime {
     my $self     = shift;
     my $datetime = shift;
@@ -128,9 +133,6 @@ sub _setdatetime {
     return 1;
 }
 
-# validates input, checks for consistancy if already set
-# sets error if needed
-# returns success
 sub _setartist {
     my $self   = shift;
     my $artist = shift;
@@ -154,9 +156,6 @@ sub _setartist {
     return 1;
 }
 
-# validates input, checks for consistancy if already set
-# sets error if needed
-# returns success
 sub _setdocumentname {
     my $self         = shift;
     my $documentname = shift;
@@ -207,9 +206,9 @@ sub _setdocumentname {
     return 1;
 }
 
-# ($xmlstring)
+
+# setupXMPcontext($mxlstring)
 # takes a string containing XML and creates a new XML::LibXML::XPathContext object with it
-# return success
 sub _setupXMPcontext {
     my $self = shift;
     my $xml  = shift;
@@ -234,7 +233,6 @@ sub _setupXMPcontext {
     }
 }
 
-# set fail, log errors
 sub set_error {
     my $self  = shift;
     my $error = shift;
@@ -276,15 +274,13 @@ sub run {
 
 package HTFeed::QueryLib;
 
-=info
-	parent class for HTFeed query plugins
-	
-	we may get some speed benefit from the precompile stage (see _compile)
-	but the main reason for this class is to
-	neatly organize a lot of dirty work (the queries) in one spot (the plugins)
-	
-	see HTFeed::QueryLib::JPEG2000_hul for typical subclass example
-=cut
+# parent class for HTFeed query plugins
+
+# we may get some speed benefit from the precompile stage (see _compile)
+# but the main reason for this class is to
+# neatly organize a lot of dirty work (the queries) in one spot (the plugins)
+
+# see HTFeed::QueryLib::JPEG2000_hul for typical subclass example
 
 # compile all queries, this call is REQUIRED in constructor
 sub _compile{
@@ -323,8 +319,10 @@ sub query{
 
 1;
 
-__END__;
+__END__
 
-1;
+=pod
 
-__END__;
+    INSERT_UNIVERSITY_OF_MICHIGAN_COPYRIGHT_INFO_HERE
+
+=cut

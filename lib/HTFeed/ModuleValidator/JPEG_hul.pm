@@ -7,11 +7,17 @@ use HTFeed::ModuleValidator;
 use HTFeed::XPathValidator qw(:closures);
 use base qw(HTFeed::ModuleValidator);
 
-our $qlib = HTFeed::QueryLib::JPEG_hul->new();
+=head1 NAME
 
-=info
+HTFeed::ModuleValidator::JPEG_hul
+
+=head1 SYNOPSIS
+
     TIFF-hul HTFeed validation plugin
+
 =cut
+
+our $qlib = HTFeed::QueryLib::JPEG_hul->new();
 
 sub _set_required_querylib {
     my $self = shift;
@@ -137,15 +143,12 @@ sub _findxmp {
 
 
 package HTFeed::QueryLib::JPEG_hul;
+# JPEG-hul HTFeed query plugin
 
 use warnings;
 use strict;
 
 use base qw(HTFeed::QueryLib);
-
-=info
-	JPEG-hul HTFeed query plugin
-=cut
 
 sub new{	
 	my $class = shift;
@@ -226,4 +229,10 @@ sub new{
 
 1;
 
-__END__;
+__END__
+
+=pod
+
+    INSERT_UNIVERSITY_OF_MICHIGAN_COPYRIGHT_INFO_HERE
+
+=cut

@@ -9,6 +9,17 @@ use HTFeed::DBTools;
 use File::Pairtree qw(id2ppath s2ppchars);
 use File::Path qw(make_path);
 
+=head1 NAME
+
+HTFeed::Stage::Collate.pm
+
+=head1 SYNOPSIS
+
+	Base class for Collate stage
+	Establishes pairtree object path for ingest
+
+=cut
+
 sub run{
     my $self = shift;
 
@@ -107,3 +118,9 @@ sub clean_success {
 1;
 
 __END__
+
+=pod
+
+    INSERT_UNIVERSITY_OF_MICHIGAN_COPYRIGHT_INFO_HERE
+
+=cut
