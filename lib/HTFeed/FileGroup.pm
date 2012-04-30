@@ -3,13 +3,6 @@ package HTFeed::FileGroup;
 use strict;
 use warnings;
 
-=item new([file1, file2, ...], use => 'use', prefix => 'prefix')
-
-Creates a new file group with the given files. The optional use and prefix
-set the use and ID prefix for the file group in the METS file.
-
-=cut
-
 sub new {
     my $class = shift;
     my $files = shift;
@@ -25,58 +18,25 @@ sub new {
     return $self;
 }
 
-=item get_filenames()
-
-Returns all the files in this file group
-
-=cut
-
 sub get_filenames {
     my $self = shift;
     return $self->{files};
 }
-
-=item get_use()
-
-Returns the use for this group of files to set in the METS fileGrp
-
-=cut
 
 sub get_use {
     my $self = shift;
     return $self->{use};
 }
 
-=item get_prefix()
-
-Returns the prefix for this group of files to set in the METS fileGrp
-
-=cut
-
 sub get_prefix {
     my $self = shift;
     return $self->{prefix};
 }
 
-=item get_required()
-
-Returns whether this filegroup is required to have content.
-
-=cut
-
-
 sub get_required {
     my $self = shift;
     return $self->{required};
 }
-
-=item in_structmap()
-
-Returns whether files in this filegroup should be used in the METS structMap.
-The default is that files are used in a structMap. Override this by setting
-structmap => 0.
-
-=cut
 
 sub in_structmap {
     my $self = shift;
@@ -86,4 +46,51 @@ sub in_structmap {
 
 1;
 
-__END__;
+__END__
+
+=head1 HTFeed::FileGroup - Manage Feed file groups
+
+=head1 SYNOPSIS
+
+=head1 DESCRIPTION
+
+Feed uses File Groups to differentiate and process the varying types of files that might be included together in ingest package (eg image, ocr, xml).
+
+=head2 METHODS
+
+=over 4
+
+=item new()
+
+Creates a new file group with the given files. The optional use and prefix
+set the use and ID prefix for the file group in the METS file.
+
+new[file1, file2, ...], use => 'use', prefix => 'prefix');
+
+=item get_filenames()
+
+Returns all the files in a file group
+
+=item get_use()
+
+Returns the use for this group of files to set in the METS fileGrp
+
+=item get_prefix()
+
+Returns the prefix for this group of files to set in the METS fileGrp
+
+=item get_required()
+
+Returns whether this filegroup is required to have content.
+
+=item in_structmap()
+
+Returns whether files in this filegroup should be used in the METS structMap.
+The default is that files are used in a structMap. Override this by setting
+structmap => 0.
+
+=back
+
+INSERT_UNIVERSITY_OF_MICHIGAN_COPYRIGHT_INFO_HERE
+
+=cut

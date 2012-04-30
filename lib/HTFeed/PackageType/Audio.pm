@@ -51,7 +51,6 @@ our $config = {
 	validate_filegroups_nonempty
 	validate_consistency
 	validate_mets_consistency
-	validate_checksums
 	validate_metadata)
 	],
 

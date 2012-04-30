@@ -8,11 +8,17 @@ use HTFeed::XPathValidator qw(:closures);
 use Scalar::Util qw(weaken);
 use base qw(HTFeed::ModuleValidator);
 
-our $qlib = HTFeed::QueryLib::JPEG2000_hul->new();
+=head1 NAME
 
-=info
-	JPEG2000-hul HTFeed validation plugin
+HTFeed::ModuleValidator::JPEG2000_hil
+
+=head1 SYNOPSIS
+
+JPEG2000-hul HTFeed validation plugin
+
 =cut
+
+our $qlib = HTFeed::QueryLib::JPEG2000_hul->new();
 
 sub _set_required_querylib {
     my $self = shift;
@@ -282,15 +288,12 @@ sub _setupXMP {
 
 
 package HTFeed::QueryLib::JPEG2000_hul;
+#JPEG2000-hul HTFeed query plugin
 
 use warnings;
 use strict;
 
 use base qw(HTFeed::QueryLib);
-
-=info
-    JPEG2000-hul HTFeed query plugin
-=cut
 
 sub new {
     my $class = shift;
@@ -378,4 +381,10 @@ sub new {
 
 1;
 
-__END__;
+__END__
+
+=pod
+
+    INSERT_UNIVERSITY_OF_MICHIGAN_COPYRIGHT_INFO_HERE
+
+=cut

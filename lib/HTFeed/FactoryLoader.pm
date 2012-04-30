@@ -6,12 +6,25 @@ use File::Basename;
 use File::Find;
 use Carp;
 
-# common base stuff for namespace & packagetype
+=head1 NAME
+
+HTFeed::FactoryLoader
+
+=head1 DESCRIPTION
+
+	Common base stuff for namespace & packagetype
+
+=cut
 
 # hash of allowed config variables
 our %subclass_map;
 
-# Load all subclasses
+=item import()
+
+ Load all subclasses
+
+=cut
+
 sub import {
 
     no strict 'refs';
@@ -71,6 +84,12 @@ sub import {
 
 }
 
+=item get_identifier()
+
+ Get subclass identifier
+
+=cut
+
 sub get_identifier {
     no strict 'refs';
     my $self = shift;
@@ -79,7 +98,12 @@ sub get_identifier {
     return $subclass_identifier;
 }
 
-# must bless into subclass..
+=item new()
+
+ Must bless into subclass...
+
+=cut
+
 sub new {
     my $class      = shift;
     my $identifier = shift;
@@ -91,3 +115,11 @@ sub new {
 }
 
 1;
+
+__END__
+
+=pod
+
+    INSERT_UNIVERSITY_OF_MICHIGAN_COPYRIGHT_INFO_HERE
+
+=cut

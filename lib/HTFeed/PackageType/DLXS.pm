@@ -111,6 +111,9 @@ our $config = {
     },
 
     # Allow (but do not require) both a .tif and .jp2 image for a given sequence number
-    allow_multiple_pageimage_formats => 1
+    allow_multiple_pageimage_formats => 1,
+
+    # Create a preingest directory
+    use_preingest => 1,
 
 };

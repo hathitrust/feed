@@ -7,11 +7,17 @@ use HTFeed::ModuleValidator;
 use HTFeed::XPathValidator qw(:closures);
 use base qw(HTFeed::ModuleValidator);
 
-our $qlib = HTFeed::QueryLib::WAVE_hul->new();
+=head1 NAME
 
-=info
+HTFeed::ModuleValidator::WAVE_hul
+
+=head1 SYNOPSIS
+
 	WAVE-hul HTFeed validation plugin
+
 =cut
+
+our $qlib = HTFeed::QueryLib::WAVE_hul->new();
 
 sub _set_required_querylib {
 	my $self = shift;
@@ -74,13 +80,10 @@ sub run {
 }
 
 package HTFeed::QueryLib::WAVE_hul;
+# WAVE-hul HTFeed query plugin
 
 use strict;
 use base qw(HTFeed::QueryLib);
-
-=info
-	WAVE-hul HTFeed query plugin
-=cut
 
 sub new{	
 	my $class = shift;
@@ -139,4 +142,10 @@ sub new{
 
 1;
 
-__END__;
+__END__
+
+=pod
+
+    INSERT_UNIVERSITY_OF_MICHIGAN_COPYRIGHT_INFO_HERE
+
+=cut

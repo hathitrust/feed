@@ -6,6 +6,25 @@ use base qw(HTFeed::Stage::DirectoryMaker);
 use Log::Log4perl qw(get_logger);
 use HTFeed::Config qw(get_config);
 
+=head1 NAME
+
+HTFeed::Stage::Fetch
+
+=item DESCRIPTION
+
+Base class for HTFeed Fetch stage
+Fetches new material for ingest from a networked location
+
+=cut
+
+=item fetch_from_source()
+
+ fetch_from_source($source, $destination)
+ fetches a package from directory $source
+ and deposits it in directory $destination
+
+=cut
+
 sub fetch_from_source {
 
 	my $self = shift;
@@ -20,6 +39,14 @@ sub fetch_from_source {
 	system("cp -Lrs '$source' '$dest'")
         and $self->set_error('OperationFailed', operation=>'copy', detail=>"copy $source $dest failed with status: $?");
 }
+
+=item fix_line_endings()
+
+fix_line_endings($destination)
+Fixes line endings in text files
+in directory $destination
+
+=cut
 
 sub fix_line_endings {
     my $self = shift;
@@ -54,8 +81,22 @@ sub fix_line_endings {
 
 }
 
+=item stage_info()
+
+Returns stage data based on success/failure
+
+=cut
+
 sub stage_info{
 	return {success_state => 'fetched', failure_state => 'punted'};
 }
 
 1;
+
+__END__
+
+=pod
+
+	INSERT_UNIVERSITY_OF_MICHIGAN_COPYRIGHT_INFO_HERE
+
+=cut

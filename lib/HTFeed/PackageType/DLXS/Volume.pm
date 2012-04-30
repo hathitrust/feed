@@ -25,14 +25,6 @@ my %pagetag_map = (
 
 );
 
-# don't pt-escape the directory name for preingest for these (following dlxs conventions)
-sub get_preingest_directory {
-    my $self = shift;
-
-    my $objid = $self->get_objid();
-    return sprintf("%s/%s", get_config('staging'=>'preingest'), $objid);
-}
-
 sub get_srcmets_page_data {
     my $self = shift;
     my $file = shift;
