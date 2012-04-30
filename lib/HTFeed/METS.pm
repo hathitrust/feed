@@ -80,7 +80,7 @@ sub _add_header {
     $header->add_agent(
         role => 'CREATOR',
         type => 'ORGANIZATION',
-        name => 'DLPS'
+        name => get_config('mets_header_agent_name'),
     );
 
     $mets->set_header($header);
