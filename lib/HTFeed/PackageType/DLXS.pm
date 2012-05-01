@@ -5,6 +5,7 @@ package HTFeed::PackageType::DLXS;
 use strict;
 use warnings;
 use base qw(HTFeed::PackageType);
+use POSIX qw(ceil);
 use HTFeed::XPathValidator qw(:closures);
 
 our $identifier = 'dlxs';
@@ -115,6 +116,28 @@ our $config = {
                  v_ge( 'xmp', 'xRes', 300 ), # should work even though resolution is specified as NNN/1
                  v_same( 'xmp', 'xRes', 'xmp', 'yRes' )
              ),
+            'decomposition_levels' => sub {
+                my $self = shift;
+
+                my $xsize = $self->_findone("mix","width");
+                my $ysize = $self->_findone("mix","length");
+
+                my $maxdim = $xsize > $ysize ? $xsize : $ysize;
+
+                my $expectedLevels = ceil(log($maxdim / 150.0)/log(2));
+                my $actualLevels = $self->_findone('codingStyleDefault','decompositionLevels');
+
+                if ($expectedLevels == $actualLevels) {
+                    return 1;
+                } else {
+                    $self->set_error("BadValue", 
+                        field => "codingStyleDefault_decompositionLevels", 
+                        actual => $actualLevels,
+                        expected => $expectedLevels);
+                    return;
+                }
+
+            }
         }
     },
 
