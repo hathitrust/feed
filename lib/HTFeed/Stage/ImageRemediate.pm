@@ -8,6 +8,7 @@ use Log::Log4perl qw(get_logger);
 use File::Copy;
 use Carp;
 use HTFeed::XMLNamespaces qw(register_namespaces);
+use Encode qw(decode);
 
 sub run {
     die("Subclass must implement run.");
@@ -120,7 +121,7 @@ sub _remediate_tiff {
                 get_logger()->trace("PREVALIDATE_REMEDIATE: $infile has remediable error '$error'\n");
                 $remediate_exiftool = 1;
             } else {
-                get_logger()->trace("PREVALIDATE_ERR: $infile has nonremediable error '$error'\n");
+                $self->set_error("BadFile",file => $infile,detail=>"Nonremediable error '$error'");
                 $bad = 1;
             }
 
@@ -141,7 +142,13 @@ sub _remediate_tiff {
     if(!$bad) {
         $remediate_imagemagick = 1 unless $self->prevalidate_field('IFD0:PhotometricInterpretation','WhiteIsZero',1);
         $remediate_imagemagick = 1 unless $self->prevalidate_field('IFD0:Compression','T6/Group 4 Fax',1);
-        $bad = 1 unless $self->prevalidate_field('File:FileType','TIFF',0);
+        if(!$self->prevalidate_field('File:FileType','TIFF',0)) {
+            $bad = 1;
+            $self->set_error("BadValue", 
+                field => "File:FileType", 
+                actual => $self->{oldFields}{'File:FileType'},
+                expected => 'TIFF');
+        }
         if (!$self->prevalidate_field('IFD0:Orientation','Horizontal (normal)',1)) {
             $remediate_exiftool = 1;
             $self->{newFields}{'IFD0:Orientation'} = 'Horizontal (normal)';
@@ -386,6 +393,30 @@ sub remediate_tiffs {
     my $stage_path = $volume->get_staging_directory();
     my $objid = $volume->get_objid();
 
+    # check if Artist and/or ModifyDate header is full of binary junk; if so remove it
+    foreach my $tiff (@$files) {
+        my $headers = $self->get_exiftool_fields("$tiffpath/$tiff");
+        my $needwrite = 0;
+        my $exiftool = new Image::ExifTool;
+        foreach my $field ('IFD0:ModifyDate','IFD0:Artist') {
+            my $header = $headers->{$field};
+            eval {
+                # see if the header is valid ascii or UTF-8
+                my $decoded_header = decode('utf-8',$header,Encode::FB_CROAK);
+            };
+            if($@) { 
+                # if not, strip it
+                $exiftool->SetNewValue($field);
+                $needwrite = 1;
+            }
+            
+        }
+        if($needwrite) {
+            $exiftool->WriteInfo("$tiffpath/$tiff");
+        }
+
+    }
+
 
     $self->run_jhove($volume,$tiffpath,$files, sub {
             my ($volume,$file,$node) = @_;
@@ -451,7 +482,7 @@ defined.
 
 For example,
 
-remediate_jpeg2000($oldfile,$newfile,['XMP-dc:source' => 'Internet Archive'],['XMP-tiff:Make' => 'Canon'])
+$stage->remediate_image($oldfile,$newfile,{'XMP-dc:source' => 'Internet Archive'},{'XMP-tiff:Make' => 'Canon'})
 
 will force the XMP-dc:source field to 'Internet Archive' whether or not it is already present,
 and set XMP-tiff:Make to Canon if XMP-tiff:Make is not otherwise defined.
