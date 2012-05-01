@@ -10,10 +10,19 @@ use HTFeed::Config qw(get_config);
 
 use base qw(HTFeed::Stage);
 
-# Abstract class for stages (VolumeValidator, ImageRemediate, etc) that may need to run 
-# JHOVE on a set of files.
+=head1 NAME
 
-=item run_jhove
+HTFeed::Stage::JHOVE_Runner
+
+=head1 DESCRIPTION
+
+Abstract class for stages (VolumeValidator,
+ImageRemediate, etc) that may need to
+run  JHOVE on a set of files.
+
+=cut
+
+=item run_jhove()
 
 runs JHOVE in the given directory on the given files and calls the given
 callback once per file with a parsed XML document with the JHOVE output for
@@ -130,3 +139,9 @@ sub run_jhove {
 1;
 
 __END__
+
+=pod
+
+    INSERT_UNIVERSITY_OF_MICHIGAN_COPYRIGHT_INFO_HERE
+
+=cut

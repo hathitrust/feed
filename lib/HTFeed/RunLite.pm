@@ -15,6 +15,12 @@ use Log::Log4perl qw( get_logger );
 use HTFeed::Job;
 use Data::Dumper;
 
+=head1 NAME
+
+HTFeed::RunLite
+
+=cut
+
 use base qw( Exporter );
 our @EXPORT_OK = qw( runlite );
 
@@ -205,3 +211,9 @@ sub _do_work {
 1;
 
 __END__
+
+=pod
+
+    INSERT_UNIVERSITY_OF_MICHIGAN_COPYRIGHT_INFO_HERE
+
+=cut

@@ -198,8 +198,6 @@ Initialize Log4perl with custom root logger (command line)
 while executing any script that uses Log.pm (even indirectly)
 myscript.pl [-screen] [-dbi] [-file FILENAME] [-level (TRACE|DEBUG|INFO|WARN|ERROR|FATAL|OFF)]
 
-=head1 AUTHOR
-
-=head1 COPYRIGHT
+INSERT_UNIVERSITY_OF_MICHIGAN_COPYRIGHT_INFO_HERE
 
 =cut

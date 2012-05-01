@@ -8,11 +8,14 @@ use Filesys::Df;
 use base qw(HTFeed::Stage);
 use HTFeed::Config;
 
-=item make_staging_directories
+=head1 NAME
+
+HTFeed::Stage::DirectoryMaker
+
+=head1 DESCRIPTION
 
 makes staging directory, either in ram or on disk. if stage_on_disk returns
 true, creates it on disk rather than ram and symlinks to ram.
- returns staging directory
 
 =cut
 
@@ -29,15 +32,17 @@ sub make_staging_directories{
     }
 }
 
-=item run
-
-Run the stage
-
-=cut
-
 sub run {
     my $self = shift;
     $self->make_staging_directories();
 }
 
 1;
+
+__END__
+
+=pod
+
+    INSERT_UNIVERSITY_OF_MICHIGAN_COPYRIGHT_INFO_HERE
+
+=cut

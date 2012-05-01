@@ -15,12 +15,15 @@ sub new {
     my $class = shift;
     my $self = $class->SUPER::new(@_);
 	$self->{stages}{validate_mets_consistency} = \&_validate_mets_consistency;
+
 	return $self;
 }
 
 sub _validate_mets_consistency {
     my $self = shift;
     my $volume = $self->{volume};
+
+	my %checksums = ();
 
     # get top-level xpathcontext for METS
     my $xpc = $volume->get_source_mets_xpc();
@@ -35,9 +38,25 @@ sub _validate_mets_consistency {
 	foreach my $techmd_node ($xpc->findnodes("//mets:techMD")){
 
         my $techmd_id = $techmd_node->getAttribute("ID");
-		my $file = $xpc->findvalue("//mets:file[\@ADMID='$techmd_id']/mets:FLocat/\@xlink:href");
+
+		my $file;
+
+		# skip notes.txt
+		my $notes = $xpc->findvalue("//mets:techMD[\@ID='$techmd_id']/mets:mdRef/\@xlink:href");
+		next if($notes);
+	
+		# get wav techMD
+		my $rawFile = $xpc->findvalue("//mets:techMD[\@ID='$techmd_id']/mets:mdWrap/mets:xmlData/aes:audioObject/\@ID");
+
+		# remediate...
+		my $ns = $volume->get_namespace();
+		my $objid = $volume->get_objid();
+		if($rawFile =~ m/($ns\.)($objid\.)(.+)/){
+			$file = $3 . ".wav";
+		}
+
 		if(! -e $volume->get_staging_directory() . "/" . $file) {
-			$self->set_error("MissingFile", field => 'file');
+			$self->set_error("MissingFile", field => $file);
 		}
 
 		#tests for existence of values
@@ -45,6 +64,9 @@ sub _validate_mets_consistency {
 		if(! $checksumValue) {
 			$self->set_error("MissingField", field=>'checksumValue');
 		}
+
+		# collect $file and $checksumValue for validation
+		$checksums{$file} = $checksumValue;
 
 		my $checksumKind = $xpc->findvalue("./mets:mdWrap/mets:xmlData/aes:audioObject/aes:checksum/aes:checksumKind", $techmd_node);
 		if(! $checksumKind) {
@@ -106,10 +128,9 @@ sub _validate_mets_consistency {
 			unless ($tech_sampleRate == 96000) {
 				$self->set_error("BadValue",field=>'sampleRate',expected=>96000,actual=>$tech_sampleRate);
 			}
-		}
-		
-        	
+		}    	
 	}
+
 
 	#sourceMD tests
     my $source_UseType = $xpc->findvalue("//mets:sourceMD/mets:mdWrap/mets:xmlData/aes:audioObject/aes:use/\@useType");
@@ -130,9 +151,79 @@ sub _validate_mets_consistency {
 		$self->set_error("BadValue",field=>'analogDigitalFlag',expected=>'ANALOG',actual=>$source_analogDigitalFlag);
 	}
 
+	# validate checksums
+	$self->_validate_checksums(\%checksums);
+
     return;
 }
 
+sub _validate_checksums {
 
+	# validate wav checksums in METS against checksum file
+
+    my $self             = shift;
+    my $checksums        = shift;
+
+    my $volume           = $self->{volume};
+	my $source_mets_file = $volume->get_source_mets_file();
+    my $checksum_file    = $volume->get_nspkg()->get('checksum_file');
+    my $path             = $volume->get_staging_directory();
+
+	my %checksums 		 = %$checksums;	
+	my @tovalidate 		 = sort keys %checksums;
+	
+    my @bad_files = ();
+
+    foreach my $file (@tovalidate) {
+        next if $source_mets_file and $file eq $source_mets_file;
+        next if $checksum_file and $file =~ $checksum_file;
+        my $expected = $checksums->{$file};
+
+        if ( not defined $expected ) {
+            $self->set_error(
+                "BadChecksum",
+                field  => 'checksum',
+                file   => $file,
+                detail => "File present in package but not in checksum file"
+            );
+        }
+        elsif ( !-e "$path/$file" ) {
+            $self->set_error(
+                "MissingFile",
+                file => $file,
+                detail =>
+                "File listed in checksum file but not present in package"
+            );
+        }
+
+		elsif ( ( my $actual = HTFeed::VolumeValidator::md5sum("$path/$file") ) ne $expected ) {
+            $self->set_error(
+                "BadChecksum",
+                field    => 'checksum',
+                file     => $file,
+                expected => $expected,
+                actual   => $actual
+            );
+            push( @bad_files, "$file" );
+        }
+
+    }
+
+    my $outcome;
+    if (@bad_files) {
+        $outcome = PREMIS::Outcome->new('warning');
+        $outcome->add_file_list_detail( "files failed checksum validation",
+            "failed", \@bad_files );
+    }
+    else {
+        $outcome = PREMIS::Outcome->new('pass');
+    }
+    $volume->record_premis_event( 'page_md5_fixity', outcome => $outcome );
+
+    return;
+
+}
 
 1;
+
+__END__
