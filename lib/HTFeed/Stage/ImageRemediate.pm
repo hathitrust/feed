@@ -185,7 +185,8 @@ sub _remediate_tiff {
             my @exiftool_remediable_errs = ('IFD offset not word-aligned',
                                             'Value offset not word-aligned',
                                             'Tag 269 out of sequence',
-                                            'Invalid DateTime separator');
+                                            'Invalid DateTime separator',
+                                            'Count mismatch for tag 306');
             my @imagemagick_remediable_errs = ('PhotometricInterpretation not defined');
             if(grep {$error =~ /^$_/} @imagemagick_remediable_errs) {
                 get_logger()->trace("PREVALIDATE_REMEDIATE: $infile has remediable error '$error'\n");
@@ -208,6 +209,11 @@ sub _remediate_tiff {
     if(defined $datetime and $datetime =~ /^(\d{4}).(\d{2}).(\d{2}).(\d{2}).(\d{2}).(\d{2})/
      and $datetime !~ /^(\d{4}):(\d{2}):(\d{2}) (\d{2}):(\d{2}):(\d{2})/) {
         $self->{newFields}{'IFD0:ModifyDate'} = "$1:$2:$3 $4:$5:$6";
+        $remediate_exiftool = 1;
+    }
+    elsif(defined $datetime and $datetime =~ /^(\d{4}).?(\d{2}).?(\d{2})/
+     and $datetime !~ /^(\d{4}):(\d{2}):(\d{2}) (\d{2}):(\d{2}):(\d{2})/) {
+        $self->{newFields}{'IFD0:ModifyDate'} = "$1:$2:$3 00:00:00";
         $remediate_exiftool = 1;
     }
 
