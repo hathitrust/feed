@@ -44,7 +44,17 @@ our $config = {
         	jhove => 1,
         	utf8 => 0
 		},
-    },
+		notes => {
+			prefix => 'NOTES',
+			use => 'notes',
+			file_pattern => qr/notes\.txt/,
+			required => 0,
+			content => 1,
+			jhove => 0,
+			utf8 => 0,
+        	structmap => 0,
+		},
+	},
 	
 	validation_run_stages => [
 	qw(validate_file_names
