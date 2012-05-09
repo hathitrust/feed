@@ -8,6 +8,7 @@ use Log::Log4perl qw(get_logger);
 use File::Copy;
 use Carp;
 use HTFeed::XMLNamespaces qw(register_namespaces);
+use Encode qw(decode);
 
 =head1 NAME
 
@@ -184,7 +185,8 @@ sub _remediate_tiff {
             my @exiftool_remediable_errs = ('IFD offset not word-aligned',
                                             'Value offset not word-aligned',
                                             'Tag 269 out of sequence',
-                                            'Invalid DateTime separator');
+                                            'Invalid DateTime separator',
+                                            'Count mismatch for tag 306');
             my @imagemagick_remediable_errs = ('PhotometricInterpretation not defined');
             if(grep {$error =~ /^$_/} @imagemagick_remediable_errs) {
                 get_logger()->trace("PREVALIDATE_REMEDIATE: $infile has remediable error '$error'\n");
@@ -194,7 +196,7 @@ sub _remediate_tiff {
                 get_logger()->trace("PREVALIDATE_REMEDIATE: $infile has remediable error '$error'\n");
                 $remediate_exiftool = 1;
             } else {
-                get_logger()->trace("PREVALIDATE_ERR: $infile has nonremediable error '$error'\n");
+                $self->set_error("BadFile",file => $infile,detail=>"Nonremediable error '$error'");
                 $bad = 1;
             }
 
@@ -209,13 +211,24 @@ sub _remediate_tiff {
         $self->{newFields}{'IFD0:ModifyDate'} = "$1:$2:$3 $4:$5:$6";
         $remediate_exiftool = 1;
     }
+    elsif(defined $datetime and $datetime =~ /^(\d{4}).?(\d{2}).?(\d{2})/
+     and $datetime !~ /^(\d{4}):(\d{2}):(\d{2}) (\d{2}):(\d{2}):(\d{2})/) {
+        $self->{newFields}{'IFD0:ModifyDate'} = "$1:$2:$3 00:00:00";
+        $remediate_exiftool = 1;
+    }
 
     # Prevalidate other fields -- don't bother checking unless there is not some other error
 
     if(!$bad) {
         $remediate_imagemagick = 1 unless $self->prevalidate_field('IFD0:PhotometricInterpretation','WhiteIsZero',1);
         $remediate_imagemagick = 1 unless $self->prevalidate_field('IFD0:Compression','T6/Group 4 Fax',1);
-        $bad = 1 unless $self->prevalidate_field('File:FileType','TIFF',0);
+        if(!$self->prevalidate_field('File:FileType','TIFF',0)) {
+            $bad = 1;
+            $self->set_error("BadValue", 
+                field => "File:FileType", 
+                actual => $self->{oldFields}{'File:FileType'},
+                expected => 'TIFF');
+        }
         if (!$self->prevalidate_field('IFD0:Orientation','Horizontal (normal)',1)) {
             $remediate_exiftool = 1;
             $self->{newFields}{'IFD0:Orientation'} = 'Horizontal (normal)';
@@ -474,6 +487,30 @@ sub remediate_tiffs {
     my $stage_path = $volume->get_staging_directory();
     my $objid = $volume->get_objid();
 
+    # check if Artist and/or ModifyDate header is full of binary junk; if so remove it
+    foreach my $tiff (@$files) {
+        my $headers = $self->get_exiftool_fields("$tiffpath/$tiff");
+        my $needwrite = 0;
+        my $exiftool = new Image::ExifTool;
+        foreach my $field ('IFD0:ModifyDate','IFD0:Artist') {
+            my $header = $headers->{$field};
+            eval {
+                # see if the header is valid ascii or UTF-8
+                my $decoded_header = decode('utf-8',$header,Encode::FB_CROAK);
+            };
+            if($@) { 
+                # if not, strip it
+                $exiftool->SetNewValue($field);
+                $needwrite = 1;
+            }
+            
+        }
+        if($needwrite) {
+            $exiftool->WriteInfo("$tiffpath/$tiff");
+        }
+
+    }
+
 
     $self->run_jhove($volume,$tiffpath,$files, sub {
             my ($volume,$file,$node) = @_;
@@ -501,7 +538,87 @@ sub remediate_tiffs {
 
 __END__
 
-=pod
+=head1 NAME
+
+HTFeed::Stage::ImageRemediate - Image file processing
+
+=head1 DESCRIPTION
+
+ImageRemediate.pm is the main class for image file remediation.
+The class provides methods for cleaning up image files prior to ingest.
+
+=head2 METHODS
+
+=over 4
+
+=item get_exiftool_fields()
+
+Returns a hash of all the tags found by ExifTool in the specified file.
+The keys are in the format GroupName:TagName in the same format as the
+tag names returned by exiftool -X $file
+
+$fields_ref = get_exiftool_fields($file)
+
+=item remediate_image()
+
+Prevalidates and remediates the image headers in $oldfile and writes the results as $newfile.
+
+usage: $self->remediate_image($oldfile,$newfile,$force_headers,$set_if_undefined_headers)
+
+$force_headers and $set_if_undefined_headers are references to hashes:
+{ header => $value, 
+header2 => $value, ...}
+
+Additional parameters can be passed to set the value for particular fields.
+$force_headers lists headers to force whether or not they are present, and
+$set_if_undefined_heaeders gives headers to set if they are not already
+defined.
+
+For example,
+
+$stage->remediate_image($oldfile,$newfile,{'XMP-dc:source' => 'Internet Archive'},{'XMP-tiff:Make' => 'Canon'})
+
+will force the XMP-dc:source field to 'Internet Archive' whether or not it is already present,
+and set XMP-tiff:Make to Canon if XMP-tiff:Make is not otherwise defined.
+
+The special header 'Resolution' can be set to set X/Y resolution related fields; it should be 
+specified in pixels per inch.
+
+=item update_tags()
+
+Updates the tags in outfile with the parameters set in the given exiftool
+
+$self->update_tags($exifTool,$outfile);
+
+=item copy+old_to_new()
+
+Copies old field value to the new field value, but only if the old value is defined
+and the new one isn't.
+
+$self->copy_old_to_new($oldFieldName, $newFieldName);
+
+=item set_new_if_undefined()
+
+Copies old field value to the new field value, but only if the old value is defined
+and the new one isn't.
+
+$self->set_new_if_undefined($newFieldName,$newFieldVal);
+
+=item remediate_tiffs()
+
+$self->remediate_tiffs($volume,$path,$tiffs,$headers_sub);
+
+Runs jhove and calls image_remediate for all tiffs in $tiffs. 
+$tiffs is a reference to an array of filenames.
+$path is the base directory containing all the files in $tiffs.
+
+$headers_sub is a callback taking the filename as a parameter
+and returning the force_headers and set_if_undefined_headers parameters for
+remediate_image (qv)
+	
+=back
+
+=head1 AUTHOR
 
 	INSERT_UNIVERSITY_OF_MICHIGAN_COPYRIGHT_INFO_HERE
 

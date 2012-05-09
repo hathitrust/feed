@@ -257,7 +257,7 @@ sub get_nspkg{
 
 sub get_stages{
     my $self = shift;
-    my $stage_map = $self->get_nspkg()->get('stage_map');
+    my $stage_map = $self->get_stage_map();
     my $stage_name = shift;
     $stage_name = 'ready' if not defined $stage_name;
     my $stages = [];
@@ -650,13 +650,42 @@ sub set_error {
 }
 
 # override nspkg stage map FOR ALL VOLUME OBJECTS
-sub set_stage_map{
-    $stage_map = shift;
+sub set_stage_map {
+    my $new_stage_map = shift;
+
+    croak 'new stage map must be a hash ref'
+        unless (ref $new_stage_map eq 'HASH');
+    $stage_map = $new_stage_map;
+
+    _require_modules(values(%$new_stage_map));
+
+    return;
 }
 
-sub next_stage{
+sub clear_stage_map {
+    $stage_map = undef;
+    return;
+}
+
+# TODO: merge this with PackageType::require_modules and move to a common location
+sub _require_modules {
+    foreach my $module (@_) {
+        my $modname = $module;
+        next unless defined $modname and $modname ne '';
+        $modname =~ s/::/\//g;
+        require $modname . ".pm";
+    }
+}
+
+sub get_stage_map {
     my $self = shift;
     my $stage_map = ($stage_map or $self->get_nspkg()->get('stage_map'));
+    return $stage_map;
+}
+
+sub next_stage {
+    my $self = shift;
+    my $stage_map = $self->get_stage_map();
     my $stage_name = shift;
     $stage_name = 'ready' if not defined $stage_name;
     if(not defined $stage_map->{$stage_name}) {
