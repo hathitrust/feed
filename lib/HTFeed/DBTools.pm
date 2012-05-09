@@ -27,15 +27,15 @@ my $dbh = undef;
 my $pid = undef;
 
 sub _init {
-	# do not make new db connections if are trying to exit
-	continue_running_server or return undef;
+    # do not make new db connections if are trying to exit
+    continue_running_server or return undef;
 
     my $dsn = get_config('database','datasource');
     my $user = get_config('database','username');
     my $passwd = get_config('database','password');
 
     $dbh = DBI->connect($dsn, $user, $passwd,
-	{'RaiseError' => 1});
+    {'RaiseError' => 1});
 
     $pid = $$;
 

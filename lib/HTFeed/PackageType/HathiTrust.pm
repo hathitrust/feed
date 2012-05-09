@@ -38,15 +38,10 @@ our $config = {
         }
     },
 
-   # source_mets_file => qr/\w+\.xml$/,
-   # source_mets_mets_path =>
+    # source_mets_file => qr/\w+\.xml$/,
 
-    # what stage to run given the current state
-    stage_map => {
-        ready 	 => 'HTFeed::Dataset::Stage::UnpackText',
-        unpacked => 'HTFeed::Dataset::Stage::Pack',
-		packed   => 'HTFeed::Dataset::Stage::Collate'
-    },
+    # use HTFeed::Volume::set_stage_map to setup a workflow with this packagetype
+    stage_map => undef,
 };
 
 __END__
