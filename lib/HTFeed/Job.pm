@@ -167,7 +167,7 @@ sub _build_stage_class{
     my $self = shift;
 
     my $class = $self->volume->next_stage($self->status);
-  
+
     return $class;
 }
 

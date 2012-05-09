@@ -16,6 +16,8 @@ my $config;
 
 init();
 
+## TODO: make get_config die on failed top level requests
+
 sub init{
     # get app root and config dir
     my $feed_app_root;
@@ -29,9 +31,10 @@ sub init{
     }
     
     # load config files
-    my $config_file;
+    my $filename;
     eval{
-        foreach $config_file (sort(glob("$config_dir/*.yml"))){
+        foreach my $config_file (sort(glob("$config_dir/*.yml"))){
+			$filename = $config_file;
             if($config){
                 $config->merge(file => $config_file);
             } else {
@@ -39,7 +42,7 @@ sub init{
             }
         }
     };
-    if ($@){ die ("loading $config_file failed: $@"); }
+    if ($@){ die ("loading $filename failed: $@"); }
 
     # add feed_app_root to config
     unless (defined $config->{feed_app_root}){
