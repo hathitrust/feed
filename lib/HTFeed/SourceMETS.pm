@@ -9,7 +9,6 @@ use XML::LibXML;
 use HTFeed::XMLNamespaces qw(:namespaces :schemas register_namespaces);
 use base qw(HTFeed::METS);
 
-
 sub new {
     my $class  = shift;
 
@@ -27,8 +26,6 @@ sub new {
 
     return $self;
 }
-
-
 
 sub _add_premis {
     my $self = shift;
@@ -64,7 +61,6 @@ sub _add_premis {
     push( @{ $self->{amd_mdsecs} }, $digiprovMD);
 }
 
-
 sub stage_info{
     return {success_state => 'src_metsed', failure_state => 'punted'};
 }
@@ -75,22 +71,22 @@ sub _add_filesecs {
     my $self   = shift;
 
     $self->_add_content_fgs();
-
 }
 
 sub clean_always {
     # do nothing
 }
 
+
+# Clean volume preingest directory
 sub clean_success {
-    # clean volume preingest directory
     my $self = shift;
     return $self->{volume}->clean_preingest();
 }
 
 # do cleaning that is appropriate after failure
+# remove partially constructed source METS file, if any
 sub clean_failure{
-    # remove partially constructed source METS file, if any
     my $self = shift;
     unlink($self->{outfile}) if defined $self->{outfile};
 }
@@ -120,3 +116,5 @@ sub _add_marc_from_file {
 }
 
 1;
+
+__END__

@@ -76,26 +76,22 @@ BEGIN {
 
         uncompressed_extensions => [qw(tif jp2)],
 
+        # use a preingest directory
+        use_preingest => 0,
+
         # by default use XML schema caching. Breaks for some package types where
         # the same namespace is used for metadata that might have different 
         # schemas in different packages.
         use_schema_caching => 1,
 
         # use default volume module
-        volume_module => 'HTFeed::Volume',
+        volume_module => 'HTFeed::Volume'
+
     };
 }
 
 use HTFeed::FactoryLoader 'load_subclasses';
 use base qw(HTFeed::FactoryLoader);
-
-=item get($config)
-
-Returns a given configuration variable. First searches the packagetype override
-for a given configuration variable. If not found there, uses the namespace base
-configuration, and if not there, the package type base configuration.
-
-=cut
 
 sub get {
     my $self = shift;
@@ -120,11 +116,9 @@ sub get {
 1;
 __END__
 
-=pod
+=head1 NAME
 
-This is the superclass for all package types. It provides an interface to get configuration 
-variables and overrides for package types. Typically it would be used in conjunction with 
-a namespace (see HTFeed::Namespace)
+HTFeed::PackageType - Main class for PackageType management
 
 =head1 SYNOPSIS
 
@@ -133,14 +127,30 @@ use HTFeed::PackageType;
 $namespace = new HTFeed::PackageType('google');
 $module_validators = $namespace->get('module_validators');
 
-=head1 AUTHOR
+=head1 DESCRIPTION
 
-Aaron Elkiss, University of Michigan, aelkiss@umich.edu
+This is the superclass for all package types. It provides an interface to get configuration 
+variables and overrides for package types. Typically it would be used in conjunction with 
+a namespace (see HTFeed::Namespace)
 
-=head1 COPYRIGHT
+=head2 MODULES
 
-Copyright (c) 2010 University of Michigan. All rights reserved.  This program
-is free software; you can redistribute it and/or modify it under the same terms
-as Perl itself.
+=over 4
+
+=item get()
+
+Returns a given configuration variable. First searches the packagetype override
+for a given configuration variable. If not found there, uses the namespace base
+configuration, and if not there, the package type base configuration.
+
+$variable = get($config);
+
+=item require_modules()
+
+=item on_factory_load()
+
+=back
+
+INSERT_UNIVERSITY_OF_MICHIGAN_COPYRIGHT_INFO_HERE
 
 =cut

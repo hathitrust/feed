@@ -25,14 +25,6 @@ my %pagetag_map = (
 
 );
 
-# don't pt-escape the directory name for preingest for these (following dlxs conventions)
-sub get_preingest_directory {
-    my $self = shift;
-
-    my $objid = $self->get_objid();
-    return sprintf("%s/%s", get_config('staging'=>'preingest'), $objid);
-}
-
 sub get_srcmets_page_data {
     my $self = shift;
     my $file = shift;
@@ -106,6 +98,9 @@ sub get_download_location {
 sub get_loadcd_info {
     my $self = shift;
     my $loadcd_file = join('/',$self->get_preingest_directory(),"loadcd.log");
+    if(!-e $loadcd_file) {
+        return { volume_id => undef, load_date => undef };
+    }
     open(my $loadcd_fh, "<", $loadcd_file) or $self->set_error("UnexpectedError", file=>$loadcd_file, detail => "Can't open file: $!");
 
     my $header = <$loadcd_fh>;

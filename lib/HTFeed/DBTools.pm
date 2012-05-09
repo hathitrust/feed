@@ -8,10 +8,18 @@ use DBI;
 use Sys::Hostname;
 use DBD::mysql;
 use Log::Log4perl qw(get_logger);
-
 use HTFeed::ServerStatus qw(continue_running_server);
-
 use base qw(Exporter);
+
+=head1 NAME
+
+HTFeed::DBTools
+
+=head1 DESCRIPTION
+
+	Centralized management for DB interactions
+
+=cut
 
 our @EXPORT_OK = qw(get_dbh get_queued lock_volumes update_queue count_locks get_volumes_with_status disconnect);
 
@@ -42,7 +50,6 @@ sub disconnect {
 }
 
 sub get_dbh {
-
     # Reconnect to server if necessary
     unless($dbh and $pid eq $$ and $dbh->ping) {
         _init();
@@ -51,10 +58,14 @@ sub get_dbh {
     return($dbh);
 }
 
-# get_queued()
-# return $sth, with rows containing (ns,pkg_type,objid,status)
-# for queued volumes locked to host
-# unless there are no items, then return false
+=item get_queued()
+
+ Return $sth, with rows containing (ns,pkg_type,objid,status)
+ for queued volumes locked to host
+ unless there are no items, then return false
+
+=cut
+
 sub get_queued{
     my $items = (shift or 1);
     
@@ -67,9 +78,14 @@ sub get_queued{
     return;
 }
 
-# lock_volumes($number_of_items)
-# locks available volumes to host, up to $number_of_items
-# returns number of volumes locked
+=item lock_volumes()
+
+ lock_volumes($number_of_items)
+ locks available volumes to host, up to $number_of_items
+ returns number of volumes locked
+
+=cut
+
 sub lock_volumes{
     my $item_count = shift;
     return 0 unless ($item_count > 0);
@@ -81,25 +97,40 @@ sub lock_volumes{
     return $sth->rows;
 }
 
+=item reset_in_flight_locks()
+
+ Releases locks on in flight volumes
+ for this node and resets status to ready
+
+=cut
+
 ## TODO: better behavior here, possibly reset to downloaded in some cases, possibly keep lock but reset status
-# reset_in_flight_locks()
-# releases locks on in flight volumes for this node and resets status to ready
 sub reset_in_flight_locks{
     my $sth = get_dbh()->prepare(q(UPDATE queue SET node = NULL, status = 'ready' WHERE node = ? AND status != 'punted' AND status != 'collated';));
     return $sth->execute(hostname);
 }
 
-# count_locks()
-# returns the number of volumes locked to this node
+=item count_locks()
+
+ Returns the number of volumes locked to this node
+
+=cut
+
 sub count_locks{
     my $sth = get_dbh()->prepare(q(SELECT COUNT(*) FROM queue WHERE node = ?;));
     $sth->execute(hostname);
     return $sth->fetchrow;
 }
 
-# update_queue($ns, $objid, $new_status, [$release, [$fail]])
-# $fail indicates to incriment failure_count
-# job will be released if $new_status is a release state
+=item update_queue()
+
+ update_queue($ns, $objid, $new_status, [$release, [$fail]])
+
+ $fail indicates to incriment failure_count
+ job will be released if $new_status is a release state
+
+=cut
+
 sub update_queue {
     my ($ns, $objid, $new_status, $release, $fail) = @_;
     
@@ -111,10 +142,15 @@ sub update_queue {
     get_dbh()->do($syntax);
 }
 
-# get_volumes_with_status($namespace, $pkg_type, $status, $limit)
-# Returns a reference to a list of objids for all volumes with the given
-# namespace, package type.  By default returns all volumes, or will return up
-# to $limit volumes if the $limit parameter is given.
+=item get_volumes_with_status
+
+ get_volumes_with_status($namespace, $pkg_type, $status, $limit)
+ returns a reference to a list of objids for all volumes with the given
+ namespace, package type.  By default returns all volumes, or will return up
+ to $limit volumes if the $limit parameter is given.
+
+=cut
+
 sub get_volumes_with_status {
     my ($pkg_type, $namespace, $status, $limit) = @_;
     my $query = qq(SELECT id FROM queue WHERE namespace = ? and pkg_type = ? and status = ?);
@@ -133,3 +169,8 @@ sub get_volumes_with_status {
 
 __END__
 
+=pod
+
+	INSERT_UNIVERSITY_OF_MICHIGAN_COPYRIGHT_INFO_HERE
+
+=cut

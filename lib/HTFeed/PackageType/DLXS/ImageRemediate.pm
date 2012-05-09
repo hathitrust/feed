@@ -6,10 +6,12 @@ use base qw(HTFeed::Stage::ImageRemediate);
 
 use Log::Log4perl qw(get_logger);
 use File::Basename;
+use Date::Manip;
+use POSIX qw(strftime);
 
-# how much can guessed x & y resolution differ in jp2?
-# Allow them to differ by 10% before complaining.
-my $NONSQUARE_TOLERANCE = 0.1;
+# minimum dimensions for JP2 are set to trade paperback digitized at 400 DPI
+my $MIN_XSIZE = 2128;
+my $MIN_YSIZE = 3404;
 
 sub run{
     my $self = shift;
@@ -54,35 +56,29 @@ sub run{
         $jp2_remediated = "$stage_path/$jp2_remediated";
 
         my $set_if_undefined = {};
-        # old DocumentName may contain some valuable information!
 
-        my ($datetime, $artist, $tiff_fields) = $self->get_tiff_info($tiff,'jp2');
-        $set_if_undefined->{'XMP-tiff:DateTime'} = $datetime if defined $datetime;
-        $set_if_undefined->{'XMP-tiff:Artist'} = $artist if defined $artist;
+        # get file timestamp??!
+        $set_if_undefined->{'XMP-tiff:DateTime'} = strftime( "%Y:%m:%d %H:%M:%S%z", 
+            localtime((stat($jp2_submitted))[9]));
+        $set_if_undefined->{'XMP-tiff:Artist'} = 'University of Michigan';
 
-        # attempt to determine the physical size of the page from the tiff file,
-        # then use that to determine the resolution of the jp2
-        if(defined $tiff_fields->{'IFD0:ImageHeight'}
-                and defined $tiff_fields->{'IFD0:ImageWidth'}
-                and defined $tiff_fields->{'IFD0:XResolution'}
-                and defined $tiff_fields->{'IFD0:YResolution'} ) {
-            my $jpeg2000_fields = $self->get_exiftool_fields($jp2_submitted);
-            my $xsize_inches = $tiff_fields->{'IFD0:ImageWidth'}/$tiff_fields->{'IFD0:XResolution'};
-            my $ysize_inches = $tiff_fields->{'IFD0:ImageHeight'}/$tiff_fields->{'IFD0:YResolution'};
-            my $xres  = $jpeg2000_fields->{'Jpeg2000:ImageWidth'} / $xsize_inches;
-            my $yres = $jpeg2000_fields->{'Jpeg2000:ImageHeight'} / $ysize_inches;
-            if( ($xres - $yres)/$xres < $NONSQUARE_TOLERANCE) {
-                $set_if_undefined->{Resolution} = sprintf("%.0f/1",$xres);
-            } else {
-                get_logger()->trace("Gross TIFF/JP2 mismatch on $jp2_submitted? xres=$xres, yres=$yres");
-            }
+        # Assume we scanned at 400 DPI; does that lead to a ridiculous physical size?
+        # If not set resolution to 400 if it is not already present
+        my $xsize  = $jp2_fields->{'Jpeg2000:ImageWidth'};
+        my $ysize = $jp2_fields->{'Jpeg2000:ImageHeight'};
+        if($xsize >= $MIN_XSIZE and $ysize >= $MIN_YSIZE) {
+            $set_if_undefined->{'Resolution'} = '400/1';
+        } else {
+            $self->set_error("BadFile",
+                file => $jp2_submitted,
+                field => "Composite:ImageSize",
+                actual => $jp2_fields->{'Composite:ImageSize'},
+                expected => ">${MIN_XSIZE}x${MIN_YSIZE}"
+            );
         }
 
         $self->remediate_image( $jp2_submitted, $jp2_remediated, $force_fields, $set_if_undefined );
     }
-
-
-
 
     $volume->record_premis_event('image_header_modification');
     
@@ -105,11 +101,7 @@ sub get_tiff_info {
         $load_date = $tiff_fields->{'IFD0:ModifyDate'};
         my $docname = $tiff_fields->{'IFD0:DocumentName'};
         if(defined $docname and $docname =~ qr#^(\d{2})/(\d{2})/(\d{4}),(\d{2}):(\d{2}):(\d{2}),"(.*)"#) {
-            if($fmt eq 'tiff') {
-                $load_date = "$3:$1:$2 $4:$5:$6" if not defined $load_date;
-            } else {
-                $load_date = "$3-$1-$2T$4$5$6" if not defined $load_date;
-            }
+            $load_date = "$3:$1:$2 $4:$5:$6" if not defined $load_date;
             $artist = $7 if not defined $artist;
         }
     }
@@ -120,13 +112,12 @@ sub get_tiff_info {
     if(defined $loadcd_info->{load_date}) {
         $load_date = $loadcd_info->{load_date};
         # fix separator
-        if($fmt eq 'tiff') {
-            $load_date =~ s/-/:/g;
-        } else {
-            $load_date =~ s/ /T/;
-        }
+        $load_date =~ s/-/:/g;
     }
-    # set default artist
+
+    # set default artist and load date: file timestamp / University of Michigan
+        
+    $load_date = strftime("%Y:%m:%d %H:%M:%S", localtime((stat($tiff))[9])) if not defined $load_date;
     $artist = "University of Michigan" if not defined $artist;
     return ($load_date,$artist,$tiff_fields);
 }

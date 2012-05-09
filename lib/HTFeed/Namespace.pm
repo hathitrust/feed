@@ -46,15 +46,6 @@ sub new {
     return $self;
 }
 
-
-=item get($config)
-
-Returns a given configuration variable. First searches the packagetype override
-for a given configuration variable. If not found there, uses the namespace base
-configuration, and if not there, the package type base configuration.
-
-=cut
-
 sub get {
     my $self = shift;
     my $config_var = shift;
@@ -88,13 +79,6 @@ sub get {
 
 }
 
-=item get_validation_overrides($module)
-
-Collects the validation overrides from the current namespace and package type
-for the given validation module (e.g.  HTFeed::ModuleValidator::JPEG2000_hul) 
-
-=cut
-
 sub get_validation_overrides {
     my $self = shift;
     my $module = shift;
@@ -104,13 +88,6 @@ sub get_validation_overrides {
 }
 
 # PREMIS events
-
-=item get_event_description($eventtype)
-
-Collects the info for a given PREMIS event type, as specified in the global configuration
-and optionally overridden in package type and namespace configuration.
-
-=cut
 
 sub get_event_configuration {
 
@@ -199,12 +176,6 @@ sub _get_overrides {
     return $value;
 }
 
-=item load_gpg()
-
-returns the gpg passphrase string from the file gpg in the namespace directory
-
-=cut
-
 sub get_gpg {
     my $self = shift;
     my $class = ref($self);
@@ -230,13 +201,6 @@ sub get_gpg {
 }
 
 # UTILITIES FOR SUBCLASSES
-
-=item luhn_is_valid($systemid,$barcode)
-
-Returns true if the given barcode is valid for a book according to the common
-'codabar mod 10' barcode scheme and has the given system ID.
-
-=cut
 
 sub luhn_is_valid {
     my $self = shift;
@@ -326,26 +290,75 @@ sub noid_checkchar{ my( $id )=@_;
 1;
 __END__
 
-=pod
+=head1 NAME
+
+HTFeed::Namespace -- Feed namespace management
+
+=head1 SYNOPSIS
+
+ use HTFeed::Namespace;
+
+ $namespace = new HTFeed::Namespace('mdp','google');
+ $grinid = $namespace->get('grinid');
+
+=head1 Description
 
 This is the superclass for all namespaces. It provides a common interface to get configuration 
 variables and overrides for namespace/package type combinations.
 
-=head1 SYNOPSIS
+=head2 METHODS
 
-use HTFeed::Namespace;
+=over 4
 
-$namespace = new HTFeed::Namespace('mdp','google');
-$grinid = $namespace->get('grinid');
+=item new()
 
-=head1 AUTHOR
+=item get()
 
-Aaron Elkiss, University of Michigan, aelkiss@umich.edu
+Returns a given configuration variable. First searches the packagetype override
+for a given configuration variable. If not found there, uses the namespace base
+configuration, and if not there, the package type base configuration.
 
-=head1 COPYRIGHT
+$value = get($config);
 
-Copyright (c) 2010 University of Michigan. All rights reserved.  This program
-is free software; you can redistribute it and/or modify it under the same terms
-as Perl itself.
+=item get_validation_overrides()
+
+Collects the validation overrides from the current namespace and package type
+for the given validation module (e.g. HTFeed::ModuleValidator::JPEG2000_hul) 
+
+$overrides = get_validation_overrides($module);
+
+=item get_namespace()
+
+=item ia_ark_id_is_valid()
+
+=item get_packagetype()
+
+=item noid_checkchar()
+
+=item get_event_configuration()
+
+=item get_event_description()
+
+Collects the info for a given PREMIS event type, as specified in the global configuration
+and optionally overridden in package type and namespace configuration.
+
+$desc = get_event_description($eventtype);
+
+=item get_gpg()
+
+=item load_gpg()
+
+Returns the gpg passphrase string from the file gpg in the namespace directory
+
+=item luhn_is_valid()
+
+Returns true if the given barcode is valid for a book according to the common
+'codabar mod 10' barcode scheme and has the given system ID.
+
+luhn_is_valid($systemid, $barcode);
+
+=back
+
+INSERT_UNIVERSITY_OF_MICHIGAN_COPYRIGHT_INFO_HERE
 
 =cut

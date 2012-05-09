@@ -2,13 +2,22 @@ package HTFeed::Stage::Pack;
 
 use warnings;
 use strict;
-
 use base qw(HTFeed::Stage);
 use HTFeed::Config qw(get_config);
 use File::Basename qw(basename);
 use File::Path qw(remove_tree);
-
 use Log::Log4perl qw(get_logger);
+
+=head1 NAME
+
+HTFeed::Stage::Pack.pm
+
+=head1 DESCRIPTION
+
+ Base class for Pack stage
+ Handles compression of ingest package
+
+=cut
 
 sub run{
     my $self = shift;
@@ -56,9 +65,12 @@ sub run{
     return $self->succeeded();
 }
 
-=item zip
+=item zip()
+
     $self->zip($zip_staging_dir,$other_options,$zip_file_path,$pt_objid)
+
 =cut
+
 sub zip{
     my $self = shift;
     my ($zip_stage,$other_options,$zip_path,$pt_objid) = @_;
@@ -84,9 +96,21 @@ sub zip{
     return 1;
 }
 
+=item stage_info()
+
+return stage info (success/failure)
+
+=cut
+
 sub stage_info{
     return {success_state => 'packed', failure_state => ''};
 }
+
+=item clean_always()
+
+Perform cleaning that is appropriate on completion of this stage
+
+=cut
 
 sub clean_always{
     my $self = shift;
@@ -96,6 +120,13 @@ sub clean_always{
     get_logger()->trace("Removing $zip_stage/$pt_objid");
     remove_tree "$zip_stage/$pt_objid";
 }
+
+
+=item clean_failure()
+
+Perform cleaning that is appropriate on stage failure
+
+=cut
 
 sub clean_failure{
     my $self = shift;
@@ -109,3 +140,9 @@ sub clean_failure{
 1;
 
 __END__
+
+=pod
+
+    INSERT_UNIVERSITY_OF_MICHIGAN_COPYRIGHT_INFO_HERE
+
+=cut

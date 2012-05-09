@@ -313,14 +313,6 @@ sub _set_pagenumber {
     }
 }
 
-
-sub get_preingest_directory {
-    my $self = shift;
-
-    my $objid = $self->get_objid();
-    return sprintf("%s/%s", get_config('staging'=>'preingest'), $objid);
-}
-
 =item $obj->dospath_to_path($dospath)
 
 Takes a path of the form ...\OBJID\etc as given in the manifest, METS, etc, and
