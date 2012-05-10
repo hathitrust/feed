@@ -195,18 +195,18 @@ sub _add_premis_events {
 
         # query database for: datetime, outcome
         my $eventconfig = $nspkg->get_event_configuration($eventcode);
-        my ( $eventid, $datetime, $outcome ) =
+        my ( $eventid, $datetime, $outcome,$custom ) =
           $volume->get_event_info($eventcode);
-        $eventconfig->{eventid} = $eventid;
-        $eventconfig->{date} = $datetime;
-        if(defined $outcome) {
-            $eventconfig->{outcomes} = [$outcome];
+        if(defined $custom) {
+            $premis->add_event($custom);
+        } else {
+            $eventconfig->{eventid} = $eventid;
+            $eventconfig->{date} = $datetime;
+            if(defined $outcome) {
+                $eventconfig->{outcomes} = [$outcome];
+            }
+            $self->add_premis_event($eventconfig);
         }
-
-        # already have event? if so, don't add it again
-
-        $self->add_premis_event($eventconfig);
-
 
     }
 
