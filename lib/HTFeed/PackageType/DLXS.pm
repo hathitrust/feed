@@ -63,7 +63,7 @@ our $config = {
 
     # What PREMIS events to include in the source METS file
     source_premis_events => [
-        # capture - included manually
+         'capture',
 #        'file_rename',
 #        'source_md5_fixity',
         'image_header_modification',

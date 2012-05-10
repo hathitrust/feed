@@ -51,7 +51,6 @@ sub _add_premis {
 #    $premis_object->add_significant_property('page count',$volume->get_page_count());
     $premis->add_object($premis_object);
 
-    $self->_add_capture_event();
     $self->_add_premis_events($volume->get_nspkg()->get('source_premis_events'));
 
     my $digiprovMD =
