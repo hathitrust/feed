@@ -32,4 +32,22 @@ sub _add_capture_event {
     return;
 }
 
+sub _add_dmdsecs {
+    my $self = shift;
+    my $volume = $self->{volume};
+    my $objid = $volume->get_objid();
+    my $preingest_directory = $volume->get_preingest_directory();
+    my $xml_path = "$preingest_directory/$objid.hdr";
+
+    if(-e $xml_path) {
+
+        my $dmdsec = new METS::MetadataSection( 'dmdSec', 'id' => $self->_get_subsec_id("DMD"));
+        $dmdsec->set_xml_file(
+            $xml_path,
+            mdtype => 'TEIHDR',
+        );
+        $self->{mets}->add_dmd_sec($dmdsec);
+    }
+}
+
 1;
