@@ -44,7 +44,8 @@ sub _add_dmdsecs {
         my $dmdsec = new METS::MetadataSection( 'dmdSec', 'id' => $self->_get_subsec_id("DMD"));
         $dmdsec->set_xml_file(
             $xml_path,
-            mdtype => 'TEIHDR',
+            mdtype => 'OTHER',
+            othermdtype => 'DLXS header'
         );
         $self->{mets}->add_dmd_sec($dmdsec);
     }
