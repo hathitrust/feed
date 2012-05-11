@@ -27,6 +27,7 @@ use constant {
     NS_XLINK  => 'http://www.w3.org/1999/xlink',
     NS_XSI    => 'http://www.w3.org/2001/XMLSchema-instance',
 	NS_AES	  => 'http://www.aes.org/audioObject',
+    NS_HT     => 'http://www.hathitrust.org/premis_extension'
 };
 
 use constant {
@@ -62,6 +63,7 @@ sub register_namespaces {
     $xpc->registerNs( 'xlink',  NS_XLINK );
     $xpc->registerNs( 'xsi',    NS_XSI );
 	$xpc->registerNs( 'aes', 	NS_AES );
+    $xpc->registerNs( 'ht',     NS_HT );
 
     return;
 }
