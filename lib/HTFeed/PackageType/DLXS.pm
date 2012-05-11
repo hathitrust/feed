@@ -66,6 +66,7 @@ our $config = {
          'capture',
 #        'file_rename',
 #        'source_md5_fixity',
+        'target_remove',
         'image_header_modification',
         'ocr_normalize',
         'page_md5_create',
@@ -140,6 +141,11 @@ our $config = {
             }
         }
     },
+
+    # Allow gaps in numerical sequence of filenames?
+    # Only some sequence gaps are allowed in legacy DLXS materials, e.g. for bib target removal.
+    # This is checked in in DLXS/VolumeValidator.pm
+    allow_sequence_gaps => 1,
 
     # Allow (but do not require) both a .tif and .jp2 image for a given sequence number
     allow_multiple_pageimage_formats => 1,
