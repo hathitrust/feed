@@ -199,7 +199,7 @@ sub _add_premis_events {
           $volume->get_event_info($eventcode);
         if(defined $custom) {
             $premis->add_event($custom);
-        } else {
+        } elsif(defined $eventid) {
             $eventconfig->{eventid} = $eventid;
             $eventconfig->{date} = $datetime;
             if(defined $outcome) {
