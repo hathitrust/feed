@@ -28,6 +28,8 @@ my $config;
 
 init();
 
+## TODO: make get_config die on failed top level requests
+
 sub init{
     # find lib directory
     my $feed_lib;
@@ -58,13 +60,18 @@ baseyaml
     my $config_dir = "$feed_etc/config";
 
     # load config files
-    my $config_file;
+    my $filename;
     eval{
-        foreach $config_file (sort(glob("$config_dir/*.yml"))){
-            $config->merge(file => $config_file);
+        foreach my $config_file (sort(glob("$config_dir/*.yml"))){
+			$filename = $config_file;
+            if($config){
+                $config->merge(file => $config_file);
+            } else {
+                $config = YAML::AppConfig->new(file => $config_file);
+            }
         }
     };
-    if ($@){ die ("loading $config_file failed: $@"); }
+    if ($@){ die ("loading $filename failed: $@"); }
 
     # add feed_app_root to config
     unless (defined $config->{feed_app_root}){
@@ -75,15 +82,6 @@ baseyaml
     ## TODO: test script to dig out all the config vars and check against config file
 }
 
-=get_config
-get an entry out
-
-# Synopsis
-use HTFeed::Config qw(get_config);
-get_config('database' => 'datasource');
-get_config('jhove');
-
-=cut
 sub get_config{
     # drill down to the leaf
     my $cursor = $config->get(shift @_);
@@ -98,12 +96,7 @@ sub get_config{
     return $cursor;
 }
 
-=set_config
-change an entry after config is loaded
-this probably shouldn't be used in production, but will be quite helpful in test scripts
-
-set_config('setting','path'=>'to'=>'my'=>'setting')
-=cut
+# this probably shouldn't be used in production, but will be quite helpful in test scripts
 sub set_config{
     my $setting = shift;
     my $leaf = pop;
@@ -128,3 +121,50 @@ sub set_config{
 1;
 
 __END__
+
+=head1 NAME
+
+HTFeed::Config - Manage HTFeed configuration settings
+
+=head1 SYNOPSIS
+
+Get and Set methods for interaction with config.yml files
+
+=head1 DESCRIPTION
+
+Config.pm provides the mechanism for referencing all configuration values throughout HTFeed.
+Helpful methods for getting config values can be found in main class modules such as METS, Volume, and VolumeValidator.
+
+=head2 METHODS
+
+=over 4
+
+=item get_config()
+
+Retrieves a value from a config file
+
+Use get_config to reference a configuration value:
+
+    use HTFeed::Config qw(get_config);
+    get_config('staging' => 'ingest');
+    get_config('jhove');
+
+
+=item set_config()
+
+Use set_config to (re)set a config entry after the config file has been loaded.
+
+B<NOTE:> This method should be used for testing purposes only.
+
+    use HTFeed::Config qw(set_config);
+    set_config('setting','path'=>'to'=>'my'=>'setting');
+
+=item init()
+
+Loads the appropriate configuration files
+
+=back
+
+INSERT_UNIVERSITY_OF_MICHIGAN_COPYRIGHT_INFO_HERE
+
+=cut

@@ -39,14 +39,14 @@ sub _add_struct_map {
 
 }
 
+# Import the source fileSecs as they are, preserving the SEQ for any
+# out-of-order files or partial OCR, but omit the AMDIDs and DMDIDs since the
+# per-file metadata isn't brought in.
 sub _add_content_fgs {
     my $self   = shift;
     my $mets   = $self->{mets};
     my $volume = $self->{volume};
 
-    # Import the source fileSecs as they are, preserving the SEQ for any
-    # out-of-order files or partial OCR, but omit the AMDIDs and DMDIDs since the
-    # per-file metadata isn't brought in.
     my $src_mets_xpc  = $volume->get_source_mets_xpc();
     my @filegrp_nodes = $src_mets_xpc->findnodes("//mets:fileGrp");
     foreach my $filegrp_node (@filegrp_nodes) {
@@ -59,4 +59,7 @@ sub _add_content_fgs {
         $mets->add_filegroup($filegrp_node);
     }
 }
+
 1;
+
+__END__

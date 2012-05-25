@@ -2,16 +2,21 @@ package HTFeed::ModuleValidator::TIFF_hul;
 
 use warnings;
 use strict;
-
 use HTFeed::ModuleValidator;
 use HTFeed::XPathValidator qw(:closures);
 use base qw(HTFeed::ModuleValidator);
 
-our $qlib = HTFeed::QueryLib::TIFF_hul->new();
+=head1 NAME
 
-=info
+HTFeed::ModuleValidator::TIFF_hul
+
+=head1 SYNOPSIS
+
 	TIFF-hul HTFeed validation plugin
+
 =cut
+
+our $qlib = HTFeed::QueryLib::TIFF_hul->new();
 
 sub _set_required_querylib {
     my $self = shift;
@@ -173,15 +178,12 @@ sub _findxmp {
 }
 
 package HTFeed::QueryLib::TIFF_hul;
+# TIFF-hul HTFeed query plugin
 
 use warnings;
 use strict;
 
 use base qw(HTFeed::QueryLib);
-
-=info
-	TIFF-hul HTFeed query plugin
-=cut
 
 sub new{	
 	my $class = shift;
@@ -263,4 +265,10 @@ sub new{
 
 1;
 
-__END__;
+__END__
+
+=pod
+
+    INSERT_UNIVERSITY_OF_MICHIGAN_COPYRIGHT_INFO_HERE
+
+=cut

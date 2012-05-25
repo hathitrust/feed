@@ -71,12 +71,6 @@ sub stage_info {
     return { success_state => 'validated', failure_state => 'punted' };
 }
 
-=item _validate_file_names
-
-Ensures every file in the AIP staging directory is valid for the volume.
-
-=cut
-
 sub _validate_file_names {
     my $self   = shift;
     my $volume = $self->{volume};
@@ -98,15 +92,8 @@ sub _validate_file_names {
 
 }
 
-=item _validate_filegroups
-
-Ensure that every listed filegroup (image, ocr, etc.) contains at least one file.
-
-TODO: Use required filegroups from ns/packagetype config
-TODO: Use filegroup patterns from ns/packagetype config to populate filegroups
-
-=cut
-
+#TODO: Use required filegroups from ns/packagetype config
+#TODO: Use filegroup patterns from ns/packagetype config to populate filegroups
 sub _validate_filegroups {
     my $self   = shift;
     my $volume = $self->{volume};
@@ -122,13 +109,6 @@ sub _validate_filegroups {
 
     return;
 }
-
-=item _validate_consistency
-
-Make sure every listed file in each file group (ocr, text, etc.) has exactly one
-corresponding file in each other file group, that there are no sequence skips
-
-=cut
 
 sub _validate_consistency {
     my $self   = shift;
@@ -175,13 +155,6 @@ sub _validate_consistency {
         }
     }
 }
-
-
-=item _validate_checksums
-
-Validate each file against a precomputed list of checksums.
-
-=cut
 
 sub _validate_checksums {
     my $self             = shift;
@@ -251,13 +224,6 @@ sub _validate_checksums {
 
 }
 
-=item _validate_utf8
-
-Opens and tries to decode each file alleged to be UTF8 and ensures that it is 
-valid UTF8 and does not contain any control characters other than tab and CR.
-
-=cut
-
 sub _validate_utf8 {
     my $self       = shift;
     my $volume     = $self->{volume};
@@ -291,12 +257,6 @@ sub _validate_utf8 {
 
     }
 }
-
-=item _validate_metadata
-
-Runs JHOVE on all the files for the given volume and validates their metadata.
-
-=cut
 
 sub _validate_metadata {
     my $self   = shift;
@@ -356,5 +316,74 @@ sub clean_failure {
 
 1;
 
-__END__;
-## Please see file perltidy.ERR
+__END__
+
+=head1 NAME
+
+HTFeed::VolumeValidator - Main class for validating a Feed package.
+
+=head1 SYNOPSIS
+
+A series of stages to validate a Feed package
+
+=head1 DESCRIPTION
+
+VolumeValidator.pm provides the main methods for validating a Feed package. These methods (documented below) can be subclassed for the specific requirements of a given packagetype.
+
+=head2 METHODS
+
+=over 4
+
+=item new()
+
+Instantiate the class...
+
+=item run()
+
+Run a series of validation stages:
+
+* _validate_file_names()
+
+Ensures every file in the AIP staging directory is valid for the volume.
+
+* _validate_filegroups_nonempty()
+
+Ensure that every listed filegroup (image, ocr, etc.) contains at least one file.
+
+* _validate_consistency()
+
+Make sure every listed file in each file group (ocr, text, etc.) has exactly one
+corresponding file in each other file group, that there are no sequence skips
+
+* _validate_checksums()
+
+Validate each file against a precomputed list of checksums.
+
+* _validate_utf8()
+
+Opens and tries to decode each file alleged to be UTF8 and ensures that it is 
+valid UTF8 and does not contain any control characters other than tab and CR.
+
+* _validate_metadata()
+
+Runs JHOVE on all the files for the given volume and validates their metadata.
+
+=item stage_info()
+
+Return status on stage completion (success/failure)
+
+=item md5sum()
+
+Computes the checksum for a given file.
+
+my $checksum = md5sum("$path/$file");
+
+=item clean_failure()
+
+Do cleaning appropriate on failure
+
+=back
+
+INSERT_UNIVERSITY_OF_MICHIGAN_COPYRIGHT_INFO_HERE
+
+=cut

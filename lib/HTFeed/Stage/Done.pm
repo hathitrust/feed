@@ -1,7 +1,5 @@
 package HTFeed::Stage::Done;
 
-# Placeholder stage to clean up if not collating.
-
 use warnings;
 use strict;
 
@@ -11,6 +9,16 @@ use HTFeed::DBTools;
 use File::Pairtree qw(id2ppath s2ppchars);
 use File::Path qw(make_path);
 
+=head1 NAME
+
+HTFeed::Stage::Done.pm
+
+=item SYNOPSIS
+
+Placeholder stage to clean up if not collating.
+
+=cut
+
 sub run{
     my $self = shift;
 
@@ -18,7 +26,6 @@ sub run{
     return $self->succeeded();
     return;
 }
-
 
 sub stage_info{
     return {success_state => 'done', failure_state => 'punted'};
@@ -36,3 +43,9 @@ sub clean_always{
 1;
 
 __END__
+
+=pod
+
+    INSERT_UNIVERSITY_OF_MICHIGAN_COPYRIGHT_INFO_HERE
+
+=cut

@@ -181,13 +181,25 @@ sub _parse_git_string {
 1;
 __END__
 
-=Synopsys
-# in script.pl
+=head1 NAME
+
+HTFeed::Version - Version management
+
+=head1 SYNOPSIS
+
+Version.pm provides methods for Feed tool version maintenence
+
+=head1 DESCRIPTION
+
+Can be used in a pl to enable -version and -Version flags
+
+In script.pl:
 use HTFeed::Version;
 
-# at command line
-script.pl --version
+At command line:
+script.pl -version
 script.pl --Version
-=Description
-use in a pl to enable -version and -Version flags
+
+INSERT_UNIVERSITY_OF_MICHIGAN_COPYRIGHT_INFO_HERE
+
 =cut

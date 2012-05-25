@@ -15,7 +15,6 @@ use File::Pairtree qw(id2ppath s2ppchars);
 use Data::UUID;
 use File::Path qw(remove_tree);
 
-
 # singleton stage_map override
 my $stage_map = undef;
 
@@ -51,68 +50,31 @@ sub new {
     }
 }
 
-=item get_identifier
-
-Returns the full identifier (namespace.objid) for the volume
-
-=cut
-
 sub get_identifier {
     my $self = shift;
     return $self->get_namespace() . q{.} . $self->get_objid();
 
 }
 
-=item get_namespace
-
-Returns the namespace identifier for the volume
-
-=cut
-
 sub get_namespace {
     my $self = shift;
     return $self->{namespace};
 }
-
-=item get_objid
-
-Returns the ID (without namespace) of the volume.
-
-=cut
 
 sub get_objid {
     my $self = shift;
     return $self->{objid};
 }
 
-=item get_packagetype
-
-Returns the packagetype of the volume.
-
-=cut
-
 sub get_packagetype {
     my $self = shift;
     return $self->{packagetype};
 }
 
-=item get_pt_objid
-
-Returns the pairtreeized ID of the volume
-
-=cut
-
 sub get_pt_objid {
     my $self = shift;
     return s2ppchars($self->{objid});
 }
-
-=item get_file_groups 
-
-Returns a hash of HTFeed::FileGroup objects containing info about the logical groups
-of files in the objects. Configure through the filegroups package type setting.
-
-=cut
 
 sub get_file_groups {
     my $self = shift;
@@ -135,12 +97,6 @@ sub get_file_groups {
     return $self->{filegroups};
 }
 
-=item get_all_directory_files
-
-Returns a list of all files in the staging directory for the volume's AIP
-
-=cut
-
 sub get_all_directory_files {
     my $self = shift;
 
@@ -159,26 +115,11 @@ sub get_all_directory_files {
     return $self->{directory_files};
 }
 
-=item get_staging_directory
-
-Returns the staging directory for the volume's AIP
-returns path to staging directory on disk if $ondisk
-
-=cut
-
 sub get_staging_directory {
     my $self = shift;
     my $pt_objid = $self->get_pt_objid();
     return get_config('staging'=>'ingest') . q(/) . $pt_objid;
 }
-
-=item get_zip_directory
-
-Returns the path to the directory where the zip archive for this
-object will be constructed. If $ondisk is set, returns a path
-on disk rather than in RAM.
-
-=cut
 
 sub get_zip_directory {
     my $self = shift;
@@ -186,33 +127,14 @@ sub get_zip_directory {
     return get_config('staging'=>'zipfile') . q(/) . $pt_objid;
 }
 
-=item get_zip_path
-
-Returns the full path (directory + filename) for the zip archive
-for this object. 
-
-=cut
-
 sub get_zip_path {
     my $self = shift;
     return $self->get_zip_directory() . q(/) . $self->get_zip_filename();
 }
 
-=item get_download_directory
-
-Returns the directory the volume's SIP should be downloaded to
-
-=cut
-
 sub get_download_directory {
     return get_config('staging'=>'download');
 }
-
-=item get_all_content_files
-
-Returns a list of all files that will be validated.
-
-=cut
 
 sub get_all_content_files {
     my $self = shift;
@@ -225,13 +147,6 @@ sub get_all_content_files {
 
     return $self->{content_files};
 }
-
-=item get_checksums
-
-Returns a hash of precomputed checksums for files in the package's AIP where
-the keys are the filenames and the values are the MD5 checksums.
-
-=cut
 
 sub get_checksums {
     my $self = shift;
@@ -260,14 +175,7 @@ sub _checksum_mets_xpc {
     return $self->get_source_mets_xpc();
 }
 
-=item get_source_mets_file
-
-Returns the name of the source METS file
-
-TODO: support more general creation, substitution of templates in METS file
-
-=cut
-
+#TODO: support more general creation, substitution of templates in METS file
 sub get_source_mets_file {
     my $self = shift;
     if(not defined $self->{source_mets_file}) {
@@ -287,13 +195,6 @@ sub get_source_mets_file {
     return $self->{source_mets_file};
 }
 
-=item get_source_mets_xpc
-
-Returns an XML::LibXML::XPathContext with namespaces set up 
-and the context node positioned at the document root of the source METS.
-
-=cut
-
 sub get_source_mets_xpc {
     my $self = shift;
 
@@ -309,13 +210,8 @@ sub get_source_mets_xpc {
 
 }
 
-=item _parse_xpc
-
-Returns an XML::LibXML::XPathContext with namespaces set up
-and the context node positioned at the document root of the given XML file.
-
-=cut
-
+# Returns an XML::LibXML::XPathContext with namespaces set up
+# and the context node positioned at the document root of the given XML file.
 sub _parse_xpc {
     my $self = shift;
     my $file = shift;
@@ -339,15 +235,6 @@ sub _parse_xpc {
     }
 }
 
-=item get_repository_mets_xpc
-
-Returns an XML::LibXML::XPathContext with namespaces set up 
-and the context node positioned at the document root of the repository METS, if
-the object is already in the repository. Returns false if the object is not
-already in the repository.
-
-=cut
-
 sub get_repository_mets_xpc {
     my $self = shift;
 
@@ -363,28 +250,14 @@ sub get_repository_mets_xpc {
 
 }
 
-=item get_nspkg
-
-Returns the HTFeed::Namespace object that provides namespace & package type-
-specific configuration information.
-
-=cut
-
 sub get_nspkg{
     my $self = shift;
     return $self->{nspkg};
 }
 
-=item get_stages($start_state)
-
-Returns array ref containing a list of stage this Volume needs for a full ingest process,
-starting from the given start state, or 'ready' if none is specified.
-
-=cut
-
 sub get_stages{
     my $self = shift;
-    my $stage_map = $self->get_nspkg()->get('stage_map');
+    my $stage_map = $self->get_stage_map();
     my $stage_name = shift;
     $stage_name = 'ready' if not defined $stage_name;
     my $stages = [];
@@ -399,12 +272,6 @@ sub get_stages{
 }
 
 
-=item get_jhove_files
-
-Get all files that will need to have their metadata validated with JHOVE
-
-=cut
-
 sub get_jhove_files {
     my $self = shift;
     if(not defined $self->{jhove_files}) {
@@ -416,12 +283,6 @@ sub get_jhove_files {
     return $self->{jhove_files};
 }
 
-=item get_utf8_files
-
-Get all files that should be valid UTF-8
-
-=cut
-
 sub get_utf8_files {
     my $self = shift;
     if(not defined $self->{utf8_files}) {
@@ -432,12 +293,6 @@ sub get_utf8_files {
 
     return $self->{utf8_files};
 }
-
-=item get_marc_xml
-
-Returns an XML::LibXML node with the MARCXML
-
-=cut
 
 sub get_marc_xml {
     my $self = shift;
@@ -468,13 +323,6 @@ sub get_marc_xml {
 
 }
 
-=item get_repository_symlink
-
-Returns the path to the repository symlink for the object.
-(or the directory if the repository does not use symlinks)
-
-=cut
-
 sub get_repository_symlink {
     my $self = shift;
 
@@ -496,13 +344,6 @@ sub get_repository_symlink {
     return $self->{repository_symlink};
 }
 
-=item get_repository_mets_path
-
-Returns the full path where the METS file for this object 
-would be, if this object was in the repository.
-
-=cut
-
 sub get_repository_mets_path {
     my $self = shift;
 
@@ -517,13 +358,6 @@ sub get_repository_mets_path {
     return unless (-f $mets_in_repository_file);
     return $mets_in_repository_file;
 }
-
-=item get_repository_zip_path
-
-Returns the full path where the zip file for this object 
-would be, if this object was in the repository.
-
-=cut
 
 sub get_repository_zip_path {
     my $self = shift;
@@ -540,24 +374,11 @@ sub get_repository_zip_path {
     return $zip_in_repository_file;
 }
 
-=item get_filecount
-
-Returns the total number of content files
-
-=cut
-
 sub get_file_count {
 
     my $self = shift;
     return scalar(@{$self->get_all_content_files()});
 }
-
-=item get_page_count
-
-Returns the number of pages in the volume as determined by the number of
-images.
-
-=cut
 
 sub get_page_count {
     my $self = shift;
@@ -565,20 +386,6 @@ sub get_page_count {
     croak("Page count requested for object with no image filegroup") unless defined $image_group;
     return scalar(@{ $image_group->get_filenames() });
 }
-
-=item get_files_by_page
-
-Returns a data structure listing what files belong to each file group in
-physical page, e.g.:
-
-{ '0001' => { txt => ['0001.txt'], 
-          img => ['0001.jp2'] },
-  '0002' => { txt => ['0002.txt'],
-          img => ['0002.tif'] }, '0003' => { txt => ['0003.txt'],
-          img => ['0003.jp2','0003.tif'] }
-  };
-
-=cut
 
 sub get_required_file_groups_by_page {
     my $self = shift;
@@ -624,67 +431,44 @@ sub get_file_groups_by_page {
     return $files;
 }
 
-# TODO: altRecordID
-
-=item record_premis_event($eventtype_id,  
-                    date => $date,
-                    outcome => $outcome)
-
-Records a PREMIS event that happens to the volume. Optionally, a PREMIS::Outcome object
-can be passed. If no date (in any format parseable by MySQL) is given,
-the current date will be used. If the PREMIS event has already been recorded in the 
-database, the date and outcome will be updated.
-
-The eventtype_id refers to the event definitions in the application configuration file, not
-the PREMIS eventType (which is configured in the event definition)
-
-=cut
-
 sub record_premis_event {
     my $self = shift;
     my $eventcode = shift;
     my $eventconfig = $self->get_nspkg()->get_event_configuration($eventcode);
-    my $eventtype = $eventconfig->{'type'};
-    croak("Event code / type not found") unless $eventtype;
-
     my %params = @_;
-
-    my $date = ($params{date} or $self->_get_current_date());
-    my $outcome_xml = $params{outcome}->to_node()->toString() if defined $params{outcome};
 
     my $dbh = HTFeed::DBTools::get_dbh();
 
-    my $uuid = $self->make_premis_uuid($eventtype,$date); 
+    if(defined $params{custom_event}) {
+        my $custom_event = $params{custom_event};
+        my $set_premis_sth = $dbh->prepare("REPLACE INTO premis_events (namespace, id, eventtype_id, custom_xml) VALUES (?, ?, ?, ?)");
+        $set_premis_sth->execute($self->get_namespace(),$self->get_objid(),$eventcode,$custom_event->toString());
+    } else {
+        my $eventtype = $eventconfig->{'type'};
+        croak("Event code / type not found") unless $eventtype;
 
-    my $set_premis_sth = $dbh->prepare("REPLACE INTO premis_events (namespace, id, eventid, eventtype_id, outcome, date) VALUES
-        (?, ?, ?, ?, ?, ?)");
+        my $date = ($params{date} or $self->_get_current_date());
+        my $outcome_xml = $params{outcome}->to_node()->toString() if defined $params{outcome};
 
-    $set_premis_sth->execute($self->get_namespace(),$self->get_objid(),$uuid,$eventcode,$outcome_xml,$date);
+        my $uuid = $self->make_premis_uuid($eventtype,$date); 
+
+        my $set_premis_sth = $dbh->prepare("REPLACE INTO premis_events (namespace, id, eventid, eventtype_id, outcome, date) VALUES
+            (?, ?, ?, ?, ?, ?)");
+
+        $set_premis_sth->execute($self->get_namespace(),$self->get_objid(),$uuid,$eventcode,$outcome_xml,$date);
+    }
 
 }
-
-=item make_premis_uuid($eventtype,$date)
-
-Returns a UUID for a PREMIS event for this object of type $eventtype occurring
-at time $date.  There is no required format for the date, but it should be
-consistent to get stable UUIDs for events occurring at the same time.
-
-=cut
 
 sub make_premis_uuid {
     my $self = shift;
     my $eventtype = shift;
     my $date = shift;
+    $date =  $self->_get_current_date() if not defined $date;
     my $tohash = join("-",$self->get_namespace(),$self->get_objid(),$eventtype,$date);
     my $uuid = $self->{uuidgen}->create_from_name_str(HT_UUID,$tohash);
     return $uuid;
 }
-
-=item get_event_info( $eventtype )
-
-Returns the date and outcome for the given event type for this volume.
-
-=cut
 
 sub get_event_info {
     my $self = shift;
@@ -692,7 +476,7 @@ sub get_event_info {
 
     my $dbh = HTFeed::DBTools::get_dbh();
 
-    my $event_sql = "SELECT eventid,date,outcome FROM premis_events where namespace = ? and id = ? and eventtype_id = ?";
+    my $event_sql = "SELECT eventid,date,outcome,custom_xml FROM premis_events where namespace = ? and id = ? and eventtype_id = ?";
 
     my $event_sth = $dbh->prepare($event_sql);
     my @params = ($self->get_namespace(),$self->get_objid(),$eventtype);
@@ -701,7 +485,7 @@ sub get_event_info {
 
     $event_sth->execute(@params);
     # Should only be one event of each event type - enforced by primary key in DB
-    if (my ($eventid, $date, $outcome) = $event_sth->fetchrow_array()) {
+    if (my ($eventid, $date, $outcome, $custom) = $event_sth->fetchrow_array()) {
         # replace space separating date from time with 'T'
         $date =~ s/ /T/g;
         my $outcome_node = undef;
@@ -709,17 +493,16 @@ sub get_event_info {
             $outcome_node = XML::LibXML->new()->parse_string($outcome);
             $outcome_node = $outcome_node->documentElement();
         }
-        return ($eventid, $date, $outcome_node);
+        my $custom_node = undef;
+        if($custom) {
+            $custom_node = XML::LibXML->new()->parse_string($custom);
+            $custom_node = $custom_node->documentElement();
+        }
+        return ($eventid, $date, $outcome_node, $custom_node);
     } else {
         return;
     }
 }
-
-=item _get_current_date
-
-Returns the current date and time in a format parseable by MySQL
-
-=cut
 
 sub _get_current_date {
 
@@ -739,13 +522,6 @@ sub _get_current_date {
     return $ts;
 }
 
-=item get_zip_filename
-
-Returns the basename of the zip file to construct for this
-object.
-
-=cut
-
 sub get_zip_filename {
     my $self = shift;
     my $pt_objid = $self->get_pt_objid();
@@ -753,29 +529,9 @@ sub get_zip_filename {
     return "$pt_objid.zip";
 }
 
-=item get_page_data(file)
-
-Returns a reference to a hash:
-
-    { orderlabel => page number
-      label => page tags }
-
-for the page containing the given file.
-
-If there is no detected page number or page tags for the given page,
-the corresponding entry in the hash will not exist.
-
-=cut
-
 sub get_page_data {
     return undef;
 }
-
-=item get_mets_path
-
-Returns the path to the METS file to construct for this object
-
-=cut
 
 sub get_mets_path {
     my $self = shift;
@@ -787,12 +543,6 @@ sub get_mets_path {
     return $mets_path;
 }
 
-=item get_SIP_filename
-
-Returns the SIP's filename
-
-=cut
-
 sub get_SIP_filename {
     my $self = shift;
     my $objid = $self->{objid};
@@ -802,38 +552,29 @@ sub get_SIP_filename {
 
 =item get_preingest_directory
 
-Returns the directory where the raw submitted object is staged. 
-Returns undef by default; package type subclasses must define.
-
-should use get_config('staging'=>'preingest') as a base dir
+Returns the directory where the raw submitted object is staged.  By default, if
+use_preingest is defined and true in the package type configuration, returns
+get_config('staging'=>'preingest')/$objid, and undef if use_preingest is false
+or not defined. Note that by default the name of the preingest directory
+is NOT pairtree-encoded.
 
 =cut
 
 sub get_preingest_directory {
-    return;
+    my $self = shift;
+
+    if($self->{nspkg}->get('use_preingest')) {
+        my $objid = $self->get_objid();
+        return sprintf("%s/%s", get_config('staging'=>'preingest'), $objid);
+    } else { return; }
 }
 
-=item get_download_location
-
-Returns the file or path (if the SIP consists of multiple files) to download
-the volume to. This file or path will be removed when the volume is successfully
-ingested.
-
-=cut 
 sub get_download_location {
     my $self = shift;
     my $staging_dir = $self->get_download_directory();
     return "$staging_dir/" . $self->get_SIP_filename();
     return;
 }
-
-
-=item clear_premis_events
-
-Deletes the PREMIS events for this volume. Typically used when the volume has been collated
-and there is no longer a need to retain the PREMIS events in the database.
-
-=cut
 
 sub clear_premis_events {
     my $self = shift;
@@ -846,12 +587,7 @@ sub clear_premis_events {
 }
 
 
-=item _clean_vol_path
-
-    remove staging directory
-
-=cut
-
+# remove staging directory
 sub _clean_vol_path {
     my $self = shift;
     my $stagetype = shift;
@@ -899,9 +635,6 @@ sub clean_download {
     }
 }
 
-=item ingested
-return true if item is already in the repository
-=cut
 sub ingested{
     my $self = shift;
     my $link = $self->get_repository_symlink();
@@ -909,12 +642,6 @@ sub ingested{
     return 1 if (-e $link);
     return;
 }
-
-=item set_error
-For compatibility with HTFeed::Stage - logs an error 
-with the namespace and object ID set, and croaks no 
-matter what (as that is the expectation with Volume)
-=cut
 
 sub set_error {
     my $self  = shift;
@@ -933,19 +660,42 @@ sub set_error {
 }
 
 # override nspkg stage map FOR ALL VOLUME OBJECTS
-sub set_stage_map{
-    $stage_map = shift;
+sub set_stage_map {
+    my $new_stage_map = shift;
+
+    croak 'new stage map must be a hash ref'
+        unless (ref $new_stage_map eq 'HASH');
+    $stage_map = $new_stage_map;
+
+    _require_modules(values(%$new_stage_map));
+
+    return;
 }
 
-=item get_stage($start_state)
+sub clear_stage_map {
+    $stage_map = undef;
+    return;
+}
 
-Returns string containing the name of the next stage this Volume needs for ingest
+# TODO: merge this with PackageType::require_modules and move to a common location
+sub _require_modules {
+    foreach my $module (@_) {
+        my $modname = $module;
+        next unless defined $modname and $modname ne '';
+        $modname =~ s/::/\//g;
+        require $modname . ".pm";
+    }
+}
 
-=cut
-
-sub next_stage{
+sub get_stage_map {
     my $self = shift;
     my $stage_map = ($stage_map or $self->get_nspkg()->get('stage_map'));
+    return $stage_map;
+}
+
+sub next_stage {
+    my $self = shift;
+    my $stage_map = $self->get_stage_map();
     my $stage_name = shift;
     $stage_name = 'ready' if not defined $stage_name;
     if(not defined $stage_map->{$stage_name}) {
@@ -957,3 +707,270 @@ sub next_stage{
 1;
 
 __END__
+
+=head1 NAME
+
+HTFeed::Volume - Feed volume manager
+
+=head1 SYNOPSIS
+
+Parent class for volume maintenence.
+
+=head1 DESCRIPTION
+
+=head2 METHODS
+
+=over 4
+
+=item new()
+
+=item get_identifier()
+
+Returns the full identifier (namespace.objid) for the volume
+
+=item get_namespace()
+
+Returns the namespace identifier for the volume
+
+=item get_objid()
+
+Returns the ID (without namespace) of the volume.
+
+=item get_packagetype()
+
+Returns the packagetype of the volume.
+
+=item get_pt_objid()
+
+Returns the pairtreeized ID of the volume
+
+=item get_file_groups()
+
+Returns a hash of HTFeed::FileGroup objects containing info about the logical groups
+of files in the objects. Configure through the filegroups package type setting.
+
+=item get_all_directory_files()
+
+Returns a list of all files in the staging directory for the volume's AIP
+
+=item get_staging_directory()
+
+Returns the staging directory for the volume's AIP
+returns path to staging directory on disk if $ondisk
+
+=item get_zip_directory()
+
+Returns the path to the directory where the zip archive for this
+object will be constructed. If $ondisk is set, returns a path
+on disk rather than in RAM.
+
+=item get_zip_path()
+
+Returns the full path (directory + filename) for the zip archive
+for this object. 
+
+=item get_download_directory()
+
+Returns the directory the volume's SIP should be downloaded to
+
+=item get_all_content_files()
+
+Returns a list of all files that will be validated.
+
+=item get_checksums()
+
+Returns a hash of precomputed checksums for files in the package's AIP where
+the keys are the filenames and the values are the MD5 checksums.
+
+=item get_source_mets_file()
+
+Returns the name of the source METS file
+
+=item get_source_mets_xpc()
+
+Returns an XML::LibXML::XPathContext with namespaces set up 
+and the context node positioned at the document root of the source METS.
+
+=item get_repository_mets_xpc()
+
+Returns an XML::LibXML::XPathContext with namespaces set up 
+and the context node positioned at the document root of the repository METS, if
+the object is already in the repository. Returns false if the object is not
+already in the repository.
+
+=item get_nspkg
+
+Returns the HTFeed::Namespace object that provides namespace & package type-
+specific configuration information.
+
+=item get_stages()
+
+Returns array ref containing a list of stages this Volume needs for a full ingest process,
+starting from the given start state, or 'ready' if none is specified.
+
+$stages = get_stages($start_state);
+
+=item get_jhove_files()
+
+Get all files that will need to have their metadata validated with JHOVE
+
+=item get_utf8_files()
+
+Get all files that should be valid UTF-8
+
+=item get_marc_xml()
+
+Returns an XML::LibXML node with the MARCXML
+
+=item get_repository_symlink()
+
+Returns the path to the repository symlink for the object.
+(or the directory if the repository does not use symlinks)
+
+=item get_repository_mets_path()
+
+Returns the full path where the METS file for this object 
+would be, if this object was in the repository.
+
+=item get_repository_zip_path()
+
+Returns the full path where the zip file for this object 
+would be, if this object was in the repository.
+
+=item get_filecount()
+
+Returns the total number of content files
+
+=item get_page_count()
+
+Returns the number of pages in the volume as determined by the number of
+images.
+
+=item get_files_by_page()
+
+Returns a data structure listing what files belong to each file group in
+physical page, e.g.:
+
+{ '0001' => { txt => ['0001.txt'], 
+          img => ['0001.jp2'] },
+  '0002' => { txt => ['0002.txt'],
+          img => ['0002.tif'] }, '0003' => { txt => ['0003.txt'],
+          img => ['0003.jp2','0003.tif'] }
+  };
+
+=item record_premis_event()
+
+Records a PREMIS event that happens to the volume. Optionally, a PREMIS::Outcome object
+can be passed. If no date (in any format parseable by MySQL) is given,
+the current date will be used. If the PREMIS event has already been recorded in the 
+database, the date and outcome will be updated.
+
+The eventtype_id refers to the event definitions in the application configuration file, not
+the PREMIS eventType (which is configured in the event definition)
+
+record_premis_event($eventtype_id, date => $date, outcome => $outcome);
+
+=item make_premis_uuid()
+
+Returns a UUID for a PREMIS event for this object of type $eventtype occurring
+at time $date.  There is no required format for the date, but it should be
+consistent to get stable UUIDs for events occurring at the same time.
+
+make_premis_uuid($eventtype,$date);
+
+=item get_event_info()
+
+Returns the date and outcome for the given event type for this volume.
+
+$outcome = get_event_info($eventtype);
+
+=item _get_current_date()
+
+Returns the current date and time in a format parseable by MySQL
+
+=item get_zip_filename()
+
+Returns the basename of the zip file to construct for this
+object.
+
+=item get_page_data()
+
+Returns a reference to a hash:
+
+    { orderlabel => page number
+      label => page tags }
+
+for the page containing the given file.
+
+If there is no detected page number or page tags for the given page,
+the corresponding entry in the hash will not exist.
+
+$ref = get_page_data($file);
+
+=item get_mets_path()
+
+Returns the path to the METS file to construct for this object
+
+=item get_SIP_filename()
+
+Returns the SIP's filename
+
+=item get_preingest_directory()
+
+Returns the directory where the raw submitted object is staged. 
+Returns undef by default; package type subclasses must define.
+
+should use get_config('staging'=>'preingest') as a base dir
+
+=item get_download_location()
+
+Returns the file or path (if the SIP consists of multiple files) to download
+the volume to. This file or path will be removed when the volume is successfully
+ingested.
+
+=item clear_premis_events()
+
+Deletes the PREMIS events for this volume. Typically used when the volume has been collated
+and there is no longer a need to retain the PREMIS events in the database.
+
+=item ingested()
+
+Returns true if item is already in the repository
+
+=item set_error()
+
+For compatibility with HTFeed::Stage - logs an error 
+with the namespace and object ID set, and croaks no 
+matter what (as that is the expectation with Volume)
+
+=item next_stage()
+
+Returns string containing the name of the next stage this Volume needs for ingest
+
+$next_stage = next_stage($start_state);
+
+=item clean_zip()
+
+=item get_file_groups_by_page()
+
+=item clean_mets()
+
+=item set_stage_map()
+
+=item get_required_file_groups_by_page()
+
+=item get_file_count()
+
+=item clean_preingest()
+
+=item clean_download()
+
+=item clean_unpacked_object()
+
+=item get_structmap_file_groups_by_page()
+
+=back
+
+INSERT_UNIVERSITY_OF_MICHIGAN_COPYRIGHT_INFO_HERE
+
+=cut

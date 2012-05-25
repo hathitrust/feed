@@ -18,7 +18,11 @@ has '_release'                          => (is => 'ro', isa => 'Bool',    init_a
 has 'volume'                            => (is => 'ro', isa => 'Object',                     lazy_build => 1);
 has 'stage'                             => (is => 'ro', isa => 'Object',  init_arg => undef, lazy_build => 1);
 
-=item new
+=head1 NAME
+
+HTFed::Job
+
+=head1 DESCRIPTION
 
 callback is a coderef to update status of job
 
@@ -39,16 +43,14 @@ HTFeed::Job->new(   volume => $volume,
                     callback => \&callback)
 =cut
 
-=item update
+=item update()
 
-uses callback to update job status (usually in the queue db table, but the callback can do whatever you want)
-status of this job DOES NOT change from what was defined on instantiation; jobs are not intended to be re-used
-
-=synopsis
-
-$job->update();
+ $job->update();
+ uses callback to update job status (usually in the queue db table, but the callback can do whatever you want)
+ status of this job DOES NOT change from what was defined on instantiation; jobs are not intended to be re-used
 
 =cut
+
 sub update{
     my $self = shift;
 
@@ -58,7 +60,7 @@ sub update{
 
     ## TODO: make this a class global or see if it can be better accessed with YAML::Config, etc.
     ## i.e. put it somwhere else, but preferably somthing tidy
-    my %release_states = map {$_ => 1} @{get_config('daemon'=>'release_states')};
+    my %release_states = map {$_ => 1} @{get_config('release_states')};
 
     my $release = $self->_release;
 
@@ -79,7 +81,7 @@ sub _build__release{
 
     ## TODO: make this a class global or see if it can be better accessed with YAML::Config, etc.
     ## i.e. put it somwhere else, but preferably somthing tidy
-    my %release_states = map {$_ => 1} @{get_config('daemon'=>'release_states')};
+    my %release_states = map {$_ => 1} @{get_config('release_states')};
 
     my $release = 0;
     $release = 1 if (defined $release_states{$new_status});
@@ -87,13 +89,10 @@ sub _build__release{
     return $release;
 }
 
-=item clean
+=item clean()
 
-runs appropriate cleaning methods
-
-=synopsis
-
-$job->clean();
+ $job->clean();
+ runs appropriate cleaning methods
 
 =cut
 
@@ -167,7 +166,7 @@ sub _build_stage_class{
     my $self = shift;
 
     my $class = $self->volume->next_stage($self->status);
-  
+
     return $class;
 }
 
@@ -197,27 +196,29 @@ sub _build_new_status{
     return $new_status;
 }
 
-=item runnable
-returns 1 if status successfully maps to a stage in the volume's stage map, else false
+=item runnable()
+
+ Returns 1 if status successfully maps to a
+ stage in the volume's stage map, else false
+
 =cut
+
 sub runnable{
     my $self = shift;
     return unless $self->stage_class;
     return 1;
 }
 
-=synopsis
+#TODO move to POD
+#All options:
+# $self->run( [$clean], [$force_failed_status]);
+#Ususal:
+# $self->run( 1 );
+#Force success:
+# $self->run( $clean, 0 );
+#Force failure:
+# $self->job( $clean, 1 );
 
-All options:
- $self->run( [$clean], [$force_failed_status]);
-Ususal:
- $self->run( 1 );
-Force success:
- $self->run( $clean, 0 );
-Force failure:
- $self->job( $clean, 1 );
-
-=cut
 sub run_job {
     my $job = shift;
     my $clean = shift;
@@ -260,11 +261,13 @@ sub run_job {
 
 }
 
-=item successor
-returns a new Job object to execute next stage
+=item successor()
 
+returns a new Job object to execute next stage
 returns false if we have reached a release state
+
 =cut
+
 sub successor {
     my $self = shift;
 
@@ -285,3 +288,8 @@ sub successor {
 
 __END__
 
+=pod
+
+    INSERT_UNIVERSITY_OF_MICHIGAN_COPYRIGHT_INFO_HERE
+
+=cut

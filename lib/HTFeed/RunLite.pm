@@ -4,6 +4,7 @@ use warnings;
 use strict;
 use Carp;
 
+use HTFeed::VolumeGroup;
 use HTFeed::StagingSetup;
 use HTFeed::Version;
 use HTFeed::ServerStatus;
@@ -15,8 +16,14 @@ use Log::Log4perl qw( get_logger );
 use HTFeed::Job;
 use Data::Dumper;
 
+=head1 NAME
+
+HTFeed::RunLite
+
+=cut
+
 use base qw( Exporter );
-our @EXPORT_OK = qw( runlite );
+our @EXPORT_OK = qw( runlite runlite_finish );
 
 my $pid = $$;
 
@@ -27,32 +34,13 @@ my $max_kids = 0;
 
 my %kids;
 
-my $volumes;
-my $namespace;
-my $packagetype;
+my $volumegroup;
 my $logger;
 my $verbose;
 my $clean;
 
 my $volume_count;
 my $volumes_processed;
-
-my $mk_volume = sub{return};
-
-my %volume_input_types = (
-    ns_id  => sub{my $arr = shift; my ($namespace, $id) = @{$arr}; return _mk_vol($packagetype, $namespace, $id)},
-    id     => sub{my $id = shift; return _mk_vol($packagetype, $namespace, $id)},
-    volume => sub{my $volume = shift; return $volume},
-);
-
-sub _mk_vol{
-    my ($packagetype, $namespace, $id) = @_;
-    return HTFeed::Volume->new(
-        objid       => $id,
-        namespace   => $namespace,
-        packagetype => $packagetype,
-    );
-}
 
 # run end block on SIGINT and SIGTERM
 $SIG{'INT'} =
@@ -65,44 +53,50 @@ $SIG{'TERM'} =
     };
 
 sub runlite{
-    croak 'runlite can only be invoked once'
+    # setup
+    croak 'runlite() connot be invoked twice without running runlite_finish()'
         if($started);
     $started++;
 
     my $args = {
         volumes => undef,
-        namespace => undef,
         packagetype => undef,
+        volumegroup => undef,
+
         threads => 0,
         logger => 'HTFeed::RunLite',
         verbose => 0,
         clean => 1,
-        volume_input_type => 'ns_id',
         @_,
     };
-    $volumes     = $args->{volumes};
-    $namespace   = $args->{namespace};
-    $packagetype = $args->{packagetype};
+
+    croak 'Specify only one of volumegroup and volumes'
+        if ($args->{volumegroup} and $args->{volumes});
+    croak 'Must specify packagetype for volumes argument'
+        if ($args->{volumes} and !$args->{packagetype});
+    croak 'Must specify one of volumegroup or volumes'
+        if ($args->{volumes} and !$args->{packagetype});
+
+    $volumegroup = $args->{volumegroup};
     $logger      = $args->{logger};
     $verbose     = $args->{verbose};
     $clean       = $args->{clean};
-
     $max_kids = $args->{threads};
 
-    $mk_volume = $volume_input_types{$args->{volume_input_type}}
-        or croak "Bad volume_input_type $args->{volume_input_type} specified";
+    $volumegroup = HTFeed::VolumeGroup->new(ns_objids => $args->{volumes}, packagetype => $args->{packagetype})
+        if (!$args->{volumegroup});
 
     # wipe staging directories
     HTFeed::StagingSetup::make_stage($clean);
 
-    $volume_count = @{$volumes};
+    $volume_count = $volumegroup->size();
     $volumes_processed = 0;
-    print "Processing $volume_count volumes...\n" if($verbose);
+    print "$logger: Processing $volume_count volumes...\n" if ($verbose);
     
-    while (my $volume = shift @{$volumes}){
+    while (my $volume = $volumegroup->shift()){
         $volumes_processed++;
-        print "Processing volume $volumes_processed of $volume_count...\n"
-            unless ($volumes_processed % 1000 and $verbose);
+        print "$logger: Processing volume $volumes_processed of $volume_count...\n"
+            if ($verbose);
         
         # Fork iff $max_kids != 0
         if($max_kids){
@@ -179,16 +173,7 @@ sub _spawn_worker{
 }
 
 sub _do_work {
-    my $volume_info = shift;
-    my $volume;
-    
-    eval {
-        $volume = &{$mk_volume}($volume_info);
-    };
-    if($@ or !$volume) {
-        get_logger($logger)->error( 'Volume instantiation failed', detail => $@ . 'Input: ' . Dumper($volume_info) );
-        return;
-    }
+    my $volume = shift;
     
     my $job = HTFeed::Job->new(volume => $volume, callback => sub{return});
     
@@ -202,6 +187,38 @@ sub _do_work {
     return;
 }
 
+# wait() on any remaining children and reset singletons
+# croak rather than continue if we are in a bad state
+sub runlite_finish {
+    croak 'runlite_finish can only run from main thread'
+        unless ($pid == $$);
+
+    my $reamining_children = scalar(keys %kids);
+
+    croak "runlite_finish called with $reamining_children remaining"
+        if ($reamining_children);
+
+    $started = 0;
+    $finished = 0;
+    $max_kids = 0;
+
+    %kids = ();
+
+    $volumegroup = undef;
+    $logger = undef;
+    $verbose = undef;
+    $clean = undef;
+
+    $volume_count = undef;
+    $volumes_processed = undef;
+}
+
 1;
 
 __END__
+
+=pod
+
+    INSERT_UNIVERSITY_OF_MICHIGAN_COPYRIGHT_INFO_HERE
+
+=cut

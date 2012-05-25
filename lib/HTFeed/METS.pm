@@ -79,7 +79,7 @@ sub _add_header {
     $header->add_agent(
         role => 'CREATOR',
         type => 'ORGANIZATION',
-        name => 'DLPS'
+        name => get_config('mets_header_agent_name'),
     );
 
     $mets->set_header($header);
@@ -194,18 +194,18 @@ sub _add_premis_events {
 
         # query database for: datetime, outcome
         my $eventconfig = $nspkg->get_event_configuration($eventcode);
-        my ( $eventid, $datetime, $outcome ) =
+        my ( $eventid, $datetime, $outcome,$custom ) =
           $volume->get_event_info($eventcode);
-        $eventconfig->{eventid} = $eventid;
-        $eventconfig->{date} = $datetime;
-        if(defined $outcome) {
-            $eventconfig->{outcomes} = [$outcome];
+        if(defined $custom) {
+            $premis->add_event($custom);
+        } else {
+            $eventconfig->{eventid} = $eventid;
+            $eventconfig->{date} = $datetime;
+            if(defined $outcome) {
+                $eventconfig->{outcomes} = [$outcome];
+            }
+            $self->add_premis_event($eventconfig);
         }
-
-        # already have event? if so, don't add it again
-
-        $self->add_premis_event($eventconfig);
-
 
     }
 
@@ -551,12 +551,7 @@ sub validate_xml {
 
 }
 
-=item _get_createdate $ss1970
-
-Given ss1970, use Time::localtime to generate a date with format: yyyy-mm-ddT13:27:00
-
-=cut
-
+# Given ss1970, use Time::localtime to generate a date with format: yyyy-mm-ddT13:27:00
 sub _get_createdate {
     my $self   = shift;
     my $ss1970 = shift;
@@ -572,12 +567,6 @@ sub _get_createdate {
 
     return $ts;
 }
-
-=item perl_mod_version($module)
-
-Returns $module::VERSION; $module must have already been loaded.
-
-=cut
 
 sub perl_mod_version() {
     my $self    = shift;
@@ -602,13 +591,6 @@ sub perl_mod_version() {
         return "$module";
     }
 }
-
-=item local_directory_version($package)
-
-Returns the version of a package installed in a local directory hierarchy,
-specified by the 'premis_tool_local' configuration directive
-
-=cut
 
 sub local_directory_version() {
     my $self      = shift;
@@ -641,12 +623,6 @@ sub local_directory_version() {
     }
 }
 
-=item system_version($package)
-
-Returns the version of a system-installed RPM package.
-
-=cut
-
 sub system_version() {
     my $self    = shift;
     my $package = shift;
@@ -663,12 +639,6 @@ sub system_version() {
         return $version;
     }
 }
-
-=item get_tool_version($package_identifier)
-
-Gets the version of a tool defined in the premis_tools section in the configuration file.
-
-=cut
 
 sub get_tool_version {
 
@@ -844,3 +814,99 @@ sub _remediate_marc {
 }
 
 1;
+
+__END__
+
+=head1 NAME
+
+HTFeed::METS - Main class for creating METS XML
+
+=head1 SYNOPSIS
+
+A series of stages to generate a METS XML document for a Feed package.
+
+=head1 DESCRIPTION 
+
+METS.pm provides the main methods for generating a METS XML document.
+These methods (documented below) can be subclassed for various special cases, such as SourceMETS and PackageType::METS.
+
+=head2 METHODS
+
+=over 4
+
+=item new()
+
+Instantiate the class
+
+=item run()
+
+Run a series of internally defined stages to generate the METS elements:
+
+schemas
+
+header
+
+dmdsecs
+
+techmds 
+
+filesecs
+
+struct_map
+
+premis
+
+amdsecs
+
+The run() method also validates and saves the METS XML document.
+
+=item perl_mod_version()
+
+Return $module::VERSION; B<NOTE:> $module must have already been loaded.
+
+C<$version = perl_mod_version($module);>
+
+=item stage_info()
+
+Return status on completion of METS stage (success/failure) 
+
+=item add_premis_event()
+
+Add a PREMIS event
+
+=item local_directory_version()
+
+Return the version of a package installed in a local directory hierarchy,
+specified by the 'premis_tool_local' configuration directive
+
+$local_version = local_directory_version($package);
+
+=item system_version()
+
+Return the version of a system-installed RPM package.
+
+$package_version = system_version($package);
+
+=item get_tool_version()
+
+Get the version of a tool defined in the premis_tools section in the configuration file.
+
+$tool_version = get_tool_version($package_identifier);
+
+=item clean_always()
+
+Do the cleaining that is appropriate for this stage.
+
+=item validate_xml()
+
+Validate the METS XML against the defined schema.
+
+=item clean_failure()
+
+Do the cleaning that is appropriate on stage failure.
+
+=back
+
+INSERT_UNIVERSITY_OF_MICHIGAN_COPYRIGHT_INFO_HERE
+
+=cut

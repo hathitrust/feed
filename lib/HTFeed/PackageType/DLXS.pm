@@ -5,6 +5,7 @@ package HTFeed::PackageType::DLXS;
 use strict;
 use warnings;
 use base qw(HTFeed::PackageType);
+use POSIX qw(ceil);
 use HTFeed::XPathValidator qw(:closures);
 
 our $identifier = 'dlxs';
@@ -51,8 +52,9 @@ our $config = {
         ready       => 'HTFeed::PackageType::DLXS::Fetch',
         fetched     => 'HTFeed::PackageType::DLXS::ImageRemediate',
         images_remediated    => 'HTFeed::PackageType::DLXS::OCRSplit',
-        ocr_extracted => 'HTFeed::PackageType::DLXS::SourceMETS',
-        src_metsed		=> 'HTFeed::VolumeValidator',
+        ocr_extracted => 'HTFeed::PackageType::DLXS::BibTargetRemove',
+        target_removed => 'HTFeed::PackageType::DLXS::SourceMETS',
+        src_metsed		=> 'HTFeed::PackageType::DLXS::VolumeValidator',
 		validated	=> 'HTFeed::Stage::Pack',
 		packed		=> 'HTFeed::METS',
         metsed		=> 'HTFeed::Stage::Handle',
@@ -61,7 +63,7 @@ our $config = {
 
     # What PREMIS events to include in the source METS file
     source_premis_events => [
-        # capture - included manually
+         'capture',
 #        'file_rename',
 #        'source_md5_fixity',
         'image_header_modification',
@@ -94,7 +96,14 @@ our $config = {
     # Overrides for the basic PREMIS event configuration
     premis_overrides => {
         'ocr_normalize' =>
-          { detail => 'Split OCR into one plain text OCR file per page', }
+          { detail => 'Split OCR into one plain text OCR file per page', },
+        'target_remove' => 
+          { type => 'file deletion',
+            detail => 'Remove bibliographic record targets' ,
+            executor => 'MiU',
+            executor_type => 'MARC21 Code',
+            tools => ['GROOVE']
+          },
     },
 
     source_mets_file => qr/^DLXS_[\w,]+\.xml$/,
@@ -107,10 +116,35 @@ our $config = {
                  v_ge( 'xmp', 'xRes', 300 ), # should work even though resolution is specified as NNN/1
                  v_same( 'xmp', 'xRes', 'xmp', 'yRes' )
              ),
+            'decomposition_levels' => sub {
+                my $self = shift;
+
+                my $xsize = $self->_findone("mix","width");
+                my $ysize = $self->_findone("mix","length");
+
+                my $maxdim = $xsize > $ysize ? $xsize : $ysize;
+
+                my $expectedLevels = ceil(log($maxdim / 150.0)/log(2));
+                my $actualLevels = $self->_findone('codingStyleDefault','decompositionLevels');
+
+                if ($expectedLevels == $actualLevels) {
+                    return 1;
+                } else {
+                    $self->set_error("BadValue", 
+                        field => "codingStyleDefault_decompositionLevels", 
+                        actual => $actualLevels,
+                        expected => $expectedLevels);
+                    return;
+                }
+
+            }
         }
     },
 
     # Allow (but do not require) both a .tif and .jp2 image for a given sequence number
-    allow_multiple_pageimage_formats => 1
+    allow_multiple_pageimage_formats => 1,
+
+    # Create a preingest directory
+    use_preingest => 1,
 
 };
