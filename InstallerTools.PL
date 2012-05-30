@@ -39,9 +39,9 @@ sub write_path_config {
 
     my $config_pm = 'blib/lib/HTFeed/Config.pm';
 
-    _replace($config_pm,'FEED_ETC',"my \$feed_etc = $feed_etc; # FEED_ETC") if($feed_etc);
-    _replace($config_pm,'FEED_BIN',"my \$feed_bin = $feed_bin; # FEED_BIN") if($feed_bin);
-    _replace($config_pm,'FEED_VAR',"my \$feed_var = $feed_var; # FEED_VAR") if($feed_var);
+    _replace($config_pm,'FEED_ETC',"my \$feed_etc = \"$feed_etc\"; # FEED_ETC") if($feed_etc);
+    _replace($config_pm,'FEED_BIN',"my \$feed_bin = \"$feed_bin\"; # FEED_BIN") if($feed_bin);
+    _replace($config_pm,'FEED_VAR',"my \$feed_var = \"$feed_var\"; # FEED_VAR") if($feed_var);
     
     return;
 }

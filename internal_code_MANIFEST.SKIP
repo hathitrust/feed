@@ -16,4 +16,8 @@
 \bfeedd.pl$
 \breprioritize.pl$
 
+# skip private config files
+\b01_cron_jobs.yml$
+\b01_dataset.yml$
+
 ## possibly list some unwanted tests here
