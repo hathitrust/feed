@@ -87,8 +87,7 @@ sub _get_version_from_git {
     
     my $this_module = __PACKAGE__ . '.pm';
 	$this_module =~ s/::/\//g;
-    #my $path_to_this_module = dirname($INC{$this_module});
-    my $path_to_this_module = '/Users/rrotter/Documents/HTFeed/lib/HTFeed';
+    my $path_to_this_module = dirname($INC{$this_module});
     # is git installed?
     if(! system("which git > /dev/null 2>&1")) {
         # are we in a git repo?

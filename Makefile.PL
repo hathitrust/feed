@@ -69,6 +69,8 @@ install ::
 etc_to_blib ::
 	perl InstallerTools.PL install_dir etc blib/etc
 
+dist : inject_copyright brand_version
+
 distdir : inject_copyright brand_version
 
 # remove generated MANIFEST.SKIP
