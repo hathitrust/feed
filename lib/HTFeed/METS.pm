@@ -10,7 +10,7 @@ use Carp;
 use Log::Log4perl qw(get_logger);
 use Time::localtime;
 use Cwd qw(cwd abs_path);
-use HTFeed::Config qw(get_config);
+use HTFeed::Config qw(get_config get_tool_version);
 use Date::Manip;
 use File::Basename qw(basename dirname);
 use FindBin;
@@ -206,6 +206,8 @@ sub _add_premis_events {
                 $eventconfig->{outcomes} = [$outcome];
             }
             $self->add_premis_event($eventconfig);
+        } elsif (not defined $eventconfig->{optional} or !$eventconfig->{optional}) {
+            $self->set_error("MissingField",field=>"premis_$eventcode",detail=>"No PREMIS event recorded with config ID $eventcode");
         }
 
     }
@@ -252,7 +254,7 @@ sub add_premis_event {
     my $tools_config = $eventconfig->{'tools'};
     foreach my $agent (@$tools_config) {
         $event->add_linking_agent(
-            new PREMIS::LinkingAgent( 'tool', $self->get_tool_version($agent), 'software')
+            new PREMIS::LinkingAgent( 'tool', get_tool_version($agent), 'software')
         );
     }
     $included_events->{$eventid} = $event;
@@ -569,99 +571,6 @@ sub _get_createdate {
     return $ts;
 }
 
-sub perl_mod_version() {
-    my $self    = shift;
-    my $module  = shift;
-    my $mod_req = $module;
-    $mod_req =~ s/::/\//g;
-    my $toreturn;
-    eval { require "$mod_req.pm"; };
-    if ($@) {
-        $self->set_error( 'ToolVersionError',
-            detail => "Error loading $module: $@" );
-        return "$module";
-    }
-    no strict 'refs';
-    my $version = ${"${module}::VERSION"};
-    if ( defined $version ) {
-        return "$module $version";
-    }
-    else {
-        $self->set_error( 'ToolVersionError',
-            detail => "Can't find ${module}::VERSION" );
-        return "$module";
-    }
-}
-
-sub local_directory_version() {
-    my $self      = shift;
-    my $package   = shift;
-    my $tool_root = get_config("premis_tool_local");
-    if ( not -l "$tool_root/$package" ) {
-        $self->set_error( 'ToolVersionError',
-            detail => "$tool_root/$package not a symlink" );
-        return $package;
-    }
-    else {
-        my $package_target;
-        if ( !( $package_target = readlink("$tool_root/$package") ) ) {
-            $self->set_error( 'ToolVersionError',
-                detail => "Error in readlink for $tool_root/$package: $!" )
-              if $!;
-            return $package;
-        }
-
-        my ($package_version) = ( $package_target =~ /$package-([\w.]+)$/ );
-        if ($package_version) {
-            return "$package $package_version";
-        }
-        else {
-            $self->set_error( 'ToolVersionError',
-                detail => "Couldn't extract version from symlink $package_version for $package");
-            return $package;
-        }
-
-    }
-}
-
-sub system_version() {
-    my $self    = shift;
-    my $package = shift;
-    my $version = `rpm -q $package`;
-
-    if ( $? or $version !~ /^$package[-.\w]+/ ) {
-        $self->set_error( 'ToolVersionError',
-            detail =>
-              "RPM returned '$version' with status $? for package $package" );
-        return $package;
-    }
-    else {
-        chomp $version;
-        return $version;
-    }
-}
-
-sub get_tool_version {
-
-    my $self       = shift;
-    my $package_id = shift;
-    my $to_eval    = get_config( 'premis_tools', $package_id );
-    if ( !$to_eval ) {
-        $self->set_error( 'ToolVersionError',
-            detail => "$package_id missing from premis_tools" );
-        return $package_id;
-    }
-
-    my $version = eval($to_eval);
-    if ( $@ or !$version ) {
-        $self->set_error( 'ToolVersionError', detail => $@ );
-        return $package_id;
-    }
-    else {
-        return $version;
-    }
-}
-
 sub clean_always {
     my $self = shift;
 
@@ -887,12 +796,6 @@ $local_version = local_directory_version($package);
 Return the version of a system-installed RPM package.
 
 $package_version = system_version($package);
-
-=item get_tool_version()
-
-Get the version of a tool defined in the premis_tools section in the configuration file.
-
-$tool_version = get_tool_version($package_identifier);
 
 =item clean_always()
 
