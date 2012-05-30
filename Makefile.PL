@@ -58,19 +58,17 @@ sub MY::postamble {
 	## TODO: remove hard coded paths, use $(PERL), et al
 
 	return <<'DIST_MAKE_FRAG' if($make_dist);
-pure_all ::
-	$(NOECHO) $(NOOP)
-
 # disable install target
 install ::
 	false
 
-dist : inject_copyright brand_version
+dist : manifest inject_copyright brand_version
 
-distdir : inject_copyright brand_version
+distdir : manifest inject_copyright brand_version
 
-# remove generated MANIFEST.SKIP
+# remove generated MANIFEST.SKIP, MANIFEST
 clean_manifest :
+	$(RM_RF) MANIFEST
 	mv MANIFEST.SKIP.bak MANIFEST.SKIP
 
 # write version info to Version.pm
@@ -78,7 +76,10 @@ brand_version ::
 	perl InstallerTools.PL brand_version
 
 inject_copyright :
-	perl InstallerTools.PL inject_copyright $(TO_INST_PM) 
+	perl InstallerTools.PL inject_copyright $(TO_INST_PM)
+
+realclean purge :: clean_manifest
+	$(NOECHO) $(NOOP)
 
 DIST_MAKE_FRAG
 
@@ -98,10 +99,6 @@ install_etc ::
 # write file paths to Config.pm
 write_path_config ::
 	perl InstallerTools.PL write_path_config
-
-# remove generated MANIFEST.SKIP
-clean_manifest :
-	mv MANIFEST.SKIP.bak MANIFEST.SKIP
 
 INSTALL_MAKE_FRAG
 
