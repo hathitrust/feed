@@ -62,14 +62,16 @@ sub MY::postamble {
 install ::
 	false
 
-dist : brand_version inject_copyright
+dist : fix_manifest_skip brand_version inject_copyright
 
-distdir : brand_version inject_copyright
+distdir : fix_manifest_skip brand_version inject_copyright
+
+fix_manifest_skip :
+	([ -f MANIFEST.SKIP.bak ] && mv MANIFEST.SKIP.bak MANIFEST.SKIP) || [ ! -f MANIFEST.SKIP.bak ]
 
 # remove generated MANIFEST.SKIP, MANIFEST
-clean_manifest :
+clean_manifest : fix_manifest_skip
 	$(RM_RF) MANIFEST
-	mv MANIFEST.SKIP.bak MANIFEST.SKIP
 
 # write version info to Version.pm
 brand_version ::
