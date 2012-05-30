@@ -27,17 +27,12 @@ sub _validate_consistency {
 
     my $files = $volume->get_required_file_groups_by_page();
 
-    # TODO: query PREMIS events for item to make sure any sequence gaps are listed there.
-    # <HT:fileList xmlns:HT="http://www.hathitrust.org/premis_extension" status="removed"><HT:file>00000001.tif</HT:file><HT:file>00000001.txt</HT:file></HT:fileList>
-
-    my (undef,undef,$outcome) = $volume->get_event_info('target_remove');
-    my @allowed_missing_seq = ();
-    if($outcome) {
-        my $xpc = XML::LibXML::XPathContext->new($outcome);
-        register_namespaces($xpc);
-        @allowed_missing_seq = map { basename($_->toString(),".txt",".tif",".jp2") } 
-            $xpc->findnodes("//ht:fileList[\@status='removed']/ht:file/text()");
-    }
+    # query PREMIS events for item to make sure any sequence gaps are listed there:
+    # <HT:fileList xmlns:HT="http://www.hathitrust.org/premis_extension"
+    # status="removed"><HT:file>00000001.tif</HT:file><HT:file>00000001.txt</HT:file></HT:fileList>
+    my $mets_xpc = $volume->get_source_mets_xpc();
+    my @allowed_missing_seq = map { basename($_->toString(),".txt",".tif",".jp2") } 
+        $mets_xpc->findnodes("//ht:fileList[\@status='removed']/ht:file/text()");
 
     my $prev_sequence_number = 0;
     my @sequence_numbers     = sort( keys(%$files) );
