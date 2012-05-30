@@ -62,9 +62,9 @@ sub MY::postamble {
 install ::
 	false
 
-dist : fix_manifest_skip brand_version inject_copyright
+dist : brand_version inject_copyright
 
-distdir : fix_manifest_skip brand_version inject_copyright
+distdir : brand_version inject_copyright
 
 fix_manifest_skip :
 	([ -f MANIFEST.SKIP.bak ] && mv MANIFEST.SKIP.bak MANIFEST.SKIP) || [ ! -f MANIFEST.SKIP.bak ]

@@ -37,7 +37,8 @@ sub write_path_config {
     my $feed_bin = '/usr/local/bin';
     my $feed_var = '/usr/local/var/feed';
 
-    my $config_pm = 'blib/lib/HTFeed/Config.pm';
+    # TODO: us etemp dir of some kind; blib doesn't work
+    my $config_pm = 'lib/HTFeed/Config.pm';
 
     _replace($config_pm,'FEED_ETC',"my \$feed_etc = \"$feed_etc\"; # FEED_ETC") if($feed_etc);
     _replace($config_pm,'FEED_BIN',"my \$feed_bin = \"$feed_bin\"; # FEED_BIN") if($feed_bin);
