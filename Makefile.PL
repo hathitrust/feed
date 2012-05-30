@@ -62,9 +62,9 @@ sub MY::postamble {
 install ::
 	false
 
-dist : manifest inject_copyright brand_version
+dist : brand_version manifest inject_copyright
 
-distdir : manifest inject_copyright brand_version
+distdir : brand_version manifest inject_copyright
 
 # remove generated MANIFEST.SKIP, MANIFEST
 clean_manifest :
