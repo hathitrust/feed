@@ -103,6 +103,7 @@ our $config = {
             detail => 'Remove bibliographic record targets' ,
             executor => 'MiU',
             executor_type => 'MARC21 Code',
+            optional => 1,
             tools => ['GROOVE']
           },
     },
