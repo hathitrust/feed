@@ -29,7 +29,6 @@ WriteMakefile(
 		'LWP'					=> 0,
 		'List::MoreUtils'		=> 0,
 		'Log::Log4perl'			=> 0,
-		'MailTools'				=> 0,
 		'Readonly'				=> 0,
 		'XML::LibXML'			=> 0,
 		'YAML::Any'				=> 0,
@@ -59,15 +58,12 @@ sub MY::postamble {
 	## TODO: remove hard coded paths, use $(PERL), et al
 
 	return <<'DIST_MAKE_FRAG' if($make_dist);
-pure_all :: etc_to_blib brand_version
+pure_all ::
 	$(NOECHO) $(NOOP)
 
 # disable install target
 install ::
 	false
-
-etc_to_blib ::
-	perl InstallerTools.PL install_dir etc blib/etc
 
 dist : inject_copyright brand_version
 
@@ -82,7 +78,7 @@ brand_version ::
 	perl InstallerTools.PL brand_version
 
 inject_copyright :
-	perl InstallerTools.PL inject_copyright 
+	perl InstallerTools.PL inject_copyright $(TO_INST_PM) 
 
 DIST_MAKE_FRAG
 

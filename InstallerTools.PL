@@ -84,6 +84,7 @@ sub _generate_version_block {
 # _replace($file, $tag, $newline, $action_name)
 sub _replace {
     my ($file, $tag, $newline, $action_name) = @_;
+	$file = readlink $file if (-l $file);
     my $cmd = q!perl -pe 'if ($_ =~ /%s$/){$_ = q+%s+.qq+\n+}' -i %s!;
     $cmd = sprintf($cmd,$tag,$newline,$file);
     my $result = system($cmd);
