@@ -33,7 +33,6 @@ WriteMakefile(
 		'Readonly'				=> 0,
 		'XML::LibXML'			=> 0,
 		'YAML::Any'				=> 0,
-		'YAML::AppConfig'		=> 0,
 	},
 	BUILD_REQUIRES => {
 		'Test::DatabaseRow'		=> 0,

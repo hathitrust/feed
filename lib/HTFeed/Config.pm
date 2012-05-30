@@ -2,7 +2,7 @@ package HTFeed::Config;
 
 use warnings;
 use strict;
-use YAML::AppConfig;
+use YAML::AppConfigFork;
 use Carp;
 use File::Basename;
 use File::Spec;
@@ -55,7 +55,7 @@ feed_lib: $feed_lib
 feed_bin: $feed_bin
 feed_var: $feed_var
 baseyaml
-    $config = YAML::AppConfig->new(string => $base_config);
+    $config = YAML::AppConfigFork->new(string => $base_config);
 
     my $config_dir = "$feed_etc/config";
 
@@ -67,16 +67,16 @@ baseyaml
             if($config){
                 $config->merge(file => $config_file);
             } else {
-                $config = YAML::AppConfig->new(file => $config_file);
+                $config = YAML::AppConfigFork->new(file => $config_file);
             }
         }
     };
     if ($@){ die ("loading $filename failed: $@"); }
 
-    # add feed_app_root to config
-    unless (defined $config->{feed_app_root}){
-        $config->set('feed_home',$feed_app_root);
-    }
+#    # add feed_app_root to config
+#    unless (defined $config->{feed_app_root}){
+#        $config->set('feed_home',$feed_app_root);
+#    }
     
     ## TODO: check file validity, can't do this until we establish what the file will look like
     ## TODO: test script to dig out all the config vars and check against config file
@@ -116,6 +116,10 @@ sub set_config{
     }
 
     return 1;
+}
+
+sub _dump {
+    print $config->dump();
 }
 
 1;
