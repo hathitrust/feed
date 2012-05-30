@@ -2,6 +2,8 @@ use warnings;
 use strict;
 use v5.10;
 use Carp;
+use File::Basename;
+use Cwd qw(realpath);
 
 use lib "lib";
 use HTFeed::Version qw(:no_getopt get_vstring get_full_version_string get_production_ok);
@@ -84,8 +86,16 @@ sub _generate_version_block {
 # _replace($file, $tag, $newline, $action_name)
 sub _replace {
     my ($file, $tag, $newline, $action_name) = @_;
-	$file = readlink $file if (-l $file);
-    my $cmd = q!perl -pe 'if ($_ =~ /%s$/){$_ = q+%s+.qq+\n+}' -i %s!;
+    # get real paths here, no symlinks
+    if (-l $file) {
+        print "resolving link: $file points to ";
+        my $path = dirname($file);
+        my $link = readlink($file);
+        $file = $link =~ /^\// ? $link : realpath("$path/$link");
+        print "$file\n";
+    }
+    croak "ERROR: $file not found" unless (-f $file);
+    my $cmd = q!perl -pe 'if ($_ =~ /%s$/){$_ = q+%s+.qq+\n+}' -i '%s'!;
     $cmd = sprintf($cmd,$tag,$newline,$file);
     my $result = system($cmd);
     croak ("$action_name failed")
