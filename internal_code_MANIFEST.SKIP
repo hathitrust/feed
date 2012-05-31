@@ -19,7 +19,6 @@
 # skip private config files
 \b01_cron_jobs.yml$
 \b01_dataset.yml$
-\b01_feedd.yml$
 \b01_rights.yml$
 
 ## possibly list some unwanted tests here

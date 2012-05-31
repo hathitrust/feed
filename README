@@ -142,6 +142,15 @@ perl Makefile.pl
 make
 sudo make install
 
+Feed installs files to the following locations:
+
+/usr/local/lib/perl5/ # HTFeed and METS namespace perl modules
+/usr/local/bin/ # ingest_test test_stage validate_images
+/usr/local/etc/feed/ # Feed config files
+/usr/local/var/feed/ # Feed sqlite database
+
+Following installation make sure that /usr/local/bin/ is in your $PATH and /usr/local/lib/perl5/ is in your $PERL5LIB
+
 <h1>Configuration</h1>
 
 Configuration files are installed in the config directory under Feed's etc directory
