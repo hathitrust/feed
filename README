@@ -107,11 +107,47 @@ element and does not support the <tt>agent</tt> or <tt>rights</tt> entity.
 
 <h1>Installation</h1>
 
-RYAN TODO
+<h2>Prerequisites</h2>
+<h3>System</h3>
+Feed is supported on RedHat, CentOS, Debian, and Mac OS X. Other Linux distributions should
+work but have not been tested. Microsoft Windows and other non-Unix-like operating systems will
+not be supported. Feed requires Perl v5.10.0 or later.
+
+<h3>Perl Modules</h3>
+The following Perl modules are require for Feed, these can be installed from CPAN. Many of these
+are also from apt-get, yum, MacPorts or other package managers.
+
+- Algorithm::LUHN
+- Any::Moose
+- Data::UUID
+- Date::Manip
+- Date::Parse
+- File::Pairtree
+- Filesys::Df
+- Image::ExifTool
+- LWP
+- List::MoreUtils
+- Log::Log4perl
+- MailTools
+- Readonly
+- XML::LibXML
+- YAML::Any
+
+<h3>Other Software</h3>
+JHOVE 1.5 must be installed. No other version is supported.
+You can get JHOVE 1.5 from http://sourceforge.net/projects/jhove/files/jhove/JHOVE%201.5/
 
 <h1>Configuration</h1>
 
-AARON TODO
+Configuration files are installed in the config directory under Feed's etc directory
+(by default this is /usr/local/etc/feed). If Feed is properly installed and it's scripts
+(by default in /usr/local/bin) "feed_env.pl feed_etc" will print the configured location
+of this directory.
+
+The config files include comments on what settings do and how to edit them. We
+recommended making local configuration changes in a separate file (e.g.
+/usr/local/etc/feed/config/02_local_config.yml). All config files must end in ".yml". Files
+are loaded in alphabetical order.
 
 <h1>Package Type Creation</h1>
 
