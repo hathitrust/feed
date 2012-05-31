@@ -105,15 +105,13 @@ and consistent fashion. Feed has limited support for the PREMIS <tt>object</tt>
 element and does not support the <tt>agent</tt> or <tt>rights</tt> entity.
 
 
-<h1>Installation</h1>
-
-<h2>Prerequisites</h2>
-<h3>System</h3>
+<h1>Prerequisites</h1>
+<h2>System</h2>
 Feed is supported on RedHat, CentOS, Debian, and Mac OS X. Other Linux distributions should
 work but have not been tested. Microsoft Windows and other non-Unix-like operating systems will
 not be supported. Feed requires Perl v5.10.0 or later.
 
-<h3>Perl Modules</h3>
+<h2>Perl Modules</h2>
 The following Perl modules are require for Feed, these can be installed from CPAN. Many of these
 are also from apt-get, yum, MacPorts or other package managers.
 
@@ -133,9 +131,16 @@ are also from apt-get, yum, MacPorts or other package managers.
 - XML::LibXML
 - YAML::Any
 
-<h3>Other Software</h3>
+<h2>Other Software</h2>
 JHOVE 1.5 must be installed. No other version is supported.
 You can get JHOVE 1.5 from http://sourceforge.net/projects/jhove/files/jhove/JHOVE%201.5/
+
+<h1>Installation</h1>
+Download and unzip the the Feed tarball
+cd HTFeed-vX.X.X
+perl Makefile.pl
+make
+sudo make install
 
 <h1>Configuration</h1>
 
