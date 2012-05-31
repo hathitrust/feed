@@ -62,9 +62,9 @@ sub MY::postamble {
 install ::
 	false
 
-dist : brand_version inject_copyright
+dist : brand_version inject_copyright write_path_config
 
-distdir : brand_version inject_copyright
+distdir : brand_version inject_copyright write_path_config
 
 fix_manifest_skip :
 	([ -f MANIFEST.SKIP.bak ] && mv MANIFEST.SKIP.bak MANIFEST.SKIP) || [ ! -f MANIFEST.SKIP.bak ]
@@ -83,13 +83,17 @@ inject_copyright :
 realclean purge :: clean_manifest
 	$(NOECHO) $(NOOP)
 
+# write file paths to Config.pm
+write_path_config ::
+	perl InstallerTools.PL write_path_config
+
 DIST_MAKE_FRAG
 
 	return <<'INSTALL_MAKE_FRAG'
 pure_all :: etc_to_blib
 	$(NOECHO) $(NOOP)
 
-install :: write_path_config install_etc
+install :: install_etc
 	$(NOECHO) $(NOOP)
 
 etc_to_blib ::
@@ -97,10 +101,6 @@ etc_to_blib ::
 
 install_etc ::
 	perl InstallerTools.PL install_dir blib/etc /usr/local/etc/feed
-
-# write file paths to Config.pm
-write_path_config ::
-	perl InstallerTools.PL write_path_config
 
 INSTALL_MAKE_FRAG
 
