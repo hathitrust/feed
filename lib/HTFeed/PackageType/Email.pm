@@ -16,6 +16,8 @@ our $config = {
         \w+\.mbox |
         \w+\.csv |
         \w+\.xml |
+		\w+\.zip |
+		\w+\.pst
     )/x,
 
     filegroups => {
