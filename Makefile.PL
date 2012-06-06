@@ -3,6 +3,7 @@ use strict;
 use v5.10;
 
 use ExtUtils::MakeMaker;
+use ExtUtils::Manifest qw(maniread);
 
 use FindBin;
 use lib "$FindBin::Bin/lib";
@@ -48,9 +49,11 @@ WriteMakefile(
 );
 
 sub MY::post_constants {
-	return <<'MAKE_CONSTANTS'
-
-MAKE_CONSTANTS
+	my @manifest_files = keys %{maniread()};
+	my @etc_files = grep {/^etc\//};
+	return unless (scalar @etc_files);
+	my $to_inst_etc = 'TO_INST_ETC = ' . join(" \\\n\t",@etc_files) . "\n";
+	return $to_inst_etc;
 }
 
 # install etc directory
@@ -97,10 +100,10 @@ install :: install_etc
 	$(NOECHO) $(NOOP)
 
 etc_to_blib ::
-	perl InstallerTools.PL install_dir etc blib/etc
+	$(ABSPERLRUN) -MExtUtils::Install -e 'install {"etc" => "blib/etc"}'
 
 install_etc ::
-	perl InstallerTools.PL install_dir blib/etc /usr/local/etc/feed
+	$(ABSPERLRUN) -MExtUtils::Install -e 'install {"etc" => "/usr/local/etc/feed"}'
 
 INSTALL_MAKE_FRAG
 

@@ -14,7 +14,6 @@ given( $directive ) {
     when ('brand_version')     { brand_version(@ARGV); }
     when ('write_path_config') { write_path_config(@ARGV); }
     when ('inject_copyright')  { write_copyright(@ARGV); }
-    when ('install_dir')       { install_dir(@ARGV); }
 }
 
 # brand Version.pm in blib with found version information (usualy from git)
@@ -43,17 +42,6 @@ sub write_path_config {
     _replace($config_pm,'FEED_ETC',"my \$feed_etc = \"$feed_etc\"; # FEED_ETC") if($feed_etc);
     _replace($config_pm,'FEED_BIN',"my \$feed_bin = \"$feed_bin\"; # FEED_BIN") if($feed_bin);
     _replace($config_pm,'FEED_VAR',"my \$feed_var = \"$feed_var\"; # FEED_VAR") if($feed_var);
-    
-    return;
-}
-
-sub install_dir {
-    my $src = shift;
-    my $target = shift;
-
-    my $result = system("cp -r $src $target");
-    croak ("installing $src to $target failed")
-        if($result);
     
     return;
 }
