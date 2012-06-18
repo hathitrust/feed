@@ -173,7 +173,7 @@ sub _extract_old_premis {
         else {
 
             # TODO: should be warning, not error
-            $self->set_error(
+            get_logger()->warn(
                 "BadFile",
                 file   => $mets_in_repos,
                 detail => $val_results
