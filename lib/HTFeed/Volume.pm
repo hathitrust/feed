@@ -431,28 +431,32 @@ sub get_file_groups_by_page {
     return $files;
 }
 
-# TODO: altRecordID
-
 sub record_premis_event {
     my $self = shift;
     my $eventcode = shift;
     my $eventconfig = $self->get_nspkg()->get_event_configuration($eventcode);
-    my $eventtype = $eventconfig->{'type'};
-    croak("Event code / type not found") unless $eventtype;
-
     my %params = @_;
-
-    my $date = ($params{date} or $self->_get_current_date());
-    my $outcome_xml = $params{outcome}->to_node()->toString() if defined $params{outcome};
 
     my $dbh = HTFeed::DBTools::get_dbh();
 
-    my $uuid = $self->make_premis_uuid($eventtype,$date); 
+    if(defined $params{custom_event}) {
+        my $custom_event = $params{custom_event};
+        my $set_premis_sth = $dbh->prepare("REPLACE INTO premis_events (namespace, id, eventtype_id, custom_xml) VALUES (?, ?, ?, ?)");
+        $set_premis_sth->execute($self->get_namespace(),$self->get_objid(),$eventcode,$custom_event->toString());
+    } else {
+        my $eventtype = $eventconfig->{'type'};
+        croak("Event code / type not found") unless $eventtype;
 
-    my $set_premis_sth = $dbh->prepare("REPLACE INTO premis_events (namespace, id, eventid, eventtype_id, outcome, date) VALUES
-        (?, ?, ?, ?, ?, ?)");
+        my $date = ($params{date} or $self->_get_current_date());
+        my $outcome_xml = $params{outcome}->to_node()->toString() if defined $params{outcome};
 
-    $set_premis_sth->execute($self->get_namespace(),$self->get_objid(),$uuid,$eventcode,$outcome_xml,$date);
+        my $uuid = $self->make_premis_uuid($eventtype,$date); 
+
+        my $set_premis_sth = $dbh->prepare("REPLACE INTO premis_events (namespace, id, eventid, eventtype_id, outcome, date) VALUES
+            (?, ?, ?, ?, ?, ?)");
+
+        $set_premis_sth->execute($self->get_namespace(),$self->get_objid(),$uuid,$eventcode,$outcome_xml,$date);
+    }
 
 }
 
@@ -460,6 +464,7 @@ sub make_premis_uuid {
     my $self = shift;
     my $eventtype = shift;
     my $date = shift;
+    $date =  $self->_get_current_date() if not defined $date;
     my $tohash = join("-",$self->get_namespace(),$self->get_objid(),$eventtype,$date);
     my $uuid = $self->{uuidgen}->create_from_name_str(HT_UUID,$tohash);
     return $uuid;
@@ -471,7 +476,7 @@ sub get_event_info {
 
     my $dbh = HTFeed::DBTools::get_dbh();
 
-    my $event_sql = "SELECT eventid,date,outcome FROM premis_events where namespace = ? and id = ? and eventtype_id = ?";
+    my $event_sql = "SELECT eventid,date,outcome,custom_xml FROM premis_events where namespace = ? and id = ? and eventtype_id = ?";
 
     my $event_sth = $dbh->prepare($event_sql);
     my @params = ($self->get_namespace(),$self->get_objid(),$eventtype);
@@ -480,7 +485,7 @@ sub get_event_info {
 
     $event_sth->execute(@params);
     # Should only be one event of each event type - enforced by primary key in DB
-    if (my ($eventid, $date, $outcome) = $event_sth->fetchrow_array()) {
+    if (my ($eventid, $date, $outcome, $custom) = $event_sth->fetchrow_array()) {
         # replace space separating date from time with 'T'
         $date =~ s/ /T/g;
         my $outcome_node = undef;
@@ -488,7 +493,12 @@ sub get_event_info {
             $outcome_node = XML::LibXML->new()->parse_string($outcome);
             $outcome_node = $outcome_node->documentElement();
         }
-        return ($eventid, $date, $outcome_node);
+        my $custom_node = undef;
+        if($custom) {
+            $custom_node = XML::LibXML->new()->parse_string($custom);
+            $custom_node = $custom_node->documentElement();
+        }
+        return ($eventid, $date, $outcome_node, $custom_node);
     } else {
         return;
     }

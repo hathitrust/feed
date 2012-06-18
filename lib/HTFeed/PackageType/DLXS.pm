@@ -54,7 +54,7 @@ our $config = {
         images_remediated    => 'HTFeed::PackageType::DLXS::OCRSplit',
         ocr_extracted => 'HTFeed::PackageType::DLXS::BibTargetRemove',
         target_removed => 'HTFeed::PackageType::DLXS::SourceMETS',
-        src_metsed		=> 'HTFeed::VolumeValidator',
+        src_metsed		=> 'HTFeed::PackageType::DLXS::VolumeValidator',
 		validated	=> 'HTFeed::Stage::Pack',
 		packed		=> 'HTFeed::METS',
         metsed		=> 'HTFeed::Stage::Handle',
@@ -63,9 +63,10 @@ our $config = {
 
     # What PREMIS events to include in the source METS file
     source_premis_events => [
-        # capture - included manually
+         'capture',
 #        'file_rename',
 #        'source_md5_fixity',
+        'target_remove',
         'image_header_modification',
         'ocr_normalize',
         'page_md5_create',
@@ -102,6 +103,7 @@ our $config = {
             detail => 'Remove bibliographic record targets' ,
             executor => 'MiU',
             executor_type => 'MARC21 Code',
+            optional => 1,
             tools => ['GROOVE']
           },
     },
@@ -140,6 +142,11 @@ our $config = {
             }
         }
     },
+
+    # Allow gaps in numerical sequence of filenames?
+    # Only some sequence gaps are allowed in legacy DLXS materials, e.g. for bib target removal.
+    # This is checked in in DLXS/VolumeValidator.pm
+    allow_sequence_gaps => 1,
 
     # Allow (but do not require) both a .tif and .jp2 image for a given sequence number
     allow_multiple_pageimage_formats => 1,

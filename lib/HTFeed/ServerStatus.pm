@@ -9,7 +9,7 @@ use Filesys::Df;
 use base qw(Exporter);
 our @EXPORT_OK = qw(continue_running_server check_disk_usage);
 
-my $stop_file = get_config('daemon'=>'stop_file');
+my $stop_file = get_config('stop_file');
 my $locked = _locked();
 
 if ($locked){

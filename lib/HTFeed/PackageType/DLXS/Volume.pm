@@ -25,6 +25,64 @@ my %pagetag_map = (
 
 );
 
+my $INHOUSE = 'University of Michigan Digital Conversion Unit';
+my $UNKNOWN = undef;
+my $PR = 'Preservation Resources';
+my $TRIGO = 'Trigonix'; 
+
+# Map from CD label / project codes to scanning artist.
+# From ldunger 'CD_Label_explanations.xls'
+my %volume_id_map = (
+    ACLS => $UNKNOWN,
+    BEN => $INHOUSE,
+    BVBE => $INHOUSE,
+    CC => $UNKNOWN,
+    CLCH => $UNKNOWN,
+    COLD => 'University of Michigan or Trigonix',
+    DENT => $INHOUSE,
+    DE => $TRIGO,
+    ESU => $UNKNOWN,
+    FISH => 'University of Michigan or Trigonix',
+    GLRD => $UNKNOWN,
+    JWA => $UNKNOWN,
+    MAA => 'DI (Mexico)',
+    MA => $INHOUSE,
+    MFM => $UNKNOWN,
+    MID => 'Penny Imaging',
+    MM => $UNKNOWN,
+    MOA4 => $UNKNOWN,
+    MOA5 => $PR,
+    MQR => $TRIGO,
+    MUTECH => $UNKNOWN,
+    NEH => $TRIGO,
+    NEHZ => $INHOUSE,
+    NICK => 'Kirtas Technologies',
+    NSF => 'DI (Mexico)',
+    PA => 'ACME Bookbinding',
+    PB => 'Backstage Libraryworks',
+    PBBI => $INHOUSE,
+    PBCT => $INHOUSE,
+    PC => 'ICI Bookbinding',
+    PD => $INHOUSE,
+    PE => 'ICI Bookbinding',
+    PF => $INHOUSE,
+    PH => $PR,
+    PHZ => $INHOUSE,
+    PI => 'Penny Imaging',
+    PN => $UNKNOWN,
+    PORT => $PR,
+    PP => $PR,
+    PRA => 'ACME Bookbinding',
+    PRGS => 'Graphic Science',
+    PRPR => $PR,
+    PS08 => $INHOUSE,
+    PT => 'Trigonix',
+    PX => $INHOUSE,
+    PZ => $INHOUSE,
+    REGENTS => $UNKNOWN,
+    UMMU => $UNKNOWN,
+);
+
 sub get_srcmets_page_data {
     my $self = shift;
     my $file = shift;
@@ -106,8 +164,23 @@ sub get_loadcd_info {
     my $header = <$loadcd_fh>;
     chomp $header;
     if($header =~ /loaded from volume ID (\w+) on (\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})/) {
+        my $volume_id = $1;
+        my $load_date = $2;
+        my $artist = undef;;
+        if($volume_id =~ /^([a-z0-9]+)_/i) {
+
+            my $project_id = $1;
+            if(defined($volume_id_map{uc($project_id)})) {
+                $artist = $volume_id_map{uc($project_id)};
+            } elsif($volume_id = /^([a-z]+)/i and 
+               defined($volume_id_map{uc($1)})) {
+                $artist = $volume_id_map{uc($1)};
+            }
+        }
         return { volume_id => $1,
-                 load_date => $2 };
+                 load_date => $2, 
+                 artist => $artist,
+             };
     } else {
         $self->set_error("BadFile",file=>$loadcd_file,detail=>"Can't parse header",actual=>$header);
     }

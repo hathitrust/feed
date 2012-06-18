@@ -60,7 +60,7 @@ sub update{
 
     ## TODO: make this a class global or see if it can be better accessed with YAML::Config, etc.
     ## i.e. put it somwhere else, but preferably somthing tidy
-    my %release_states = map {$_ => 1} @{get_config('daemon'=>'release_states')};
+    my %release_states = map {$_ => 1} @{get_config('release_states')};
 
     my $release = $self->_release;
 
@@ -81,7 +81,7 @@ sub _build__release{
 
     ## TODO: make this a class global or see if it can be better accessed with YAML::Config, etc.
     ## i.e. put it somwhere else, but preferably somthing tidy
-    my %release_states = map {$_ => 1} @{get_config('daemon'=>'release_states')};
+    my %release_states = map {$_ => 1} @{get_config('release_states')};
 
     my $release = 0;
     $release = 1 if (defined $release_states{$new_status});
