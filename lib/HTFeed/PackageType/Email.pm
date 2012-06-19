@@ -61,13 +61,11 @@ our $config = {
         validate_checksums)
     ],
 
-	# What PREMIS events to include (by internal PREMIS identifier, 
-    # configured in config.yaml)
     premis_events => [
     'page_md5_fixity',
     'package_validation',
     'zip_compression',
-    #'zip_md5_create', #verify
+    'zip_md5_create',
     'ingestion',
     ],
 
