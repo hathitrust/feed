@@ -31,7 +31,7 @@ my @jobs = ();
 my %locks_by_key = ();
 my %locks_by_pid = ();
 
-my $clean = get_config('daemon'=>'clean');
+my $clean = get_config('clean');
 
 # reread config on SIGHUP
 # 
@@ -54,7 +54,7 @@ $SIG{'HUP'} =
         HTFeed::Config::init();
         HTFeed::DBTools::_init();
         
-        $clean = get_config('daemon'=>'clean');
+        $clean = get_config('clean');
     };
 
 # run end block on SIGINT and SIGTERM
