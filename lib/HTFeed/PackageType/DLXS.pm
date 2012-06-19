@@ -56,7 +56,7 @@ our $config = {
         target_removed => 'HTFeed::PackageType::DLXS::SourceMETS',
         src_metsed		=> 'HTFeed::PackageType::DLXS::VolumeValidator',
 		validated	=> 'HTFeed::Stage::Pack',
-		packed		=> 'HTFeed::METS',
+		packed		=> 'HTFeed::PackageType::DLXS::METS',
         metsed		=> 'HTFeed::Stage::Handle',
         handled		=> 'HTFeed::Stage::Collate',
     },
