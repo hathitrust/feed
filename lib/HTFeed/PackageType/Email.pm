@@ -13,9 +13,9 @@ our $config = {
     volume_module => 'HTFeed::PackageType::Email::Volume',
 
     valid_file_pattern => qr/^(
-        \w+\.mbox |
-        \w+\.csv |
-        \w+\.xml |
+        .*\.mbox |
+        .*\.csv |
+        .*\.xml |
 		.*\.zip |
 		.*\.pst
     )/x,
