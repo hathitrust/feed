@@ -128,13 +128,13 @@ sub get_tiff_info {
         }
 
         $self->{real_artist} = 1 if defined $artist;
-        $self->{real_capture_date} = 1 if defined $load_date;
+        $self->{real_capture_date} = 1 if defined $load_date and $load_date ne '';
     }
 
     my $loadcd_info = $volume->get_loadcd_info();
     $artist = $loadcd_info->{artist} if not defined $artist and defined $loadcd_info->{artist};
 
-    if(defined $loadcd_info->{load_date} and not defined $load_date) {
+    if(defined $loadcd_info->{load_date} and (not defined $load_date or $load_date eq '')) {
         $load_date = $loadcd_info->{load_date};
         # fix separator
         $load_date =~ s/-/:/g;
@@ -145,7 +145,7 @@ sub get_tiff_info {
 
     # set default artist and load date: file timestamp / University of Michigan
 
-    if(not defined $load_date) {
+    if(not defined $load_date or $load_date eq '') {
         $load_date = strftime("%Y:%m:%d %H:%M:%S", localtime((stat($tiff))[9]));
         $self->{missing_capture_date} = 1;
         $self->{missing_capture_date_method} = 'file timestamp';
