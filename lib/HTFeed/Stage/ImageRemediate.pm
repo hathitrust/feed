@@ -216,6 +216,10 @@ sub _remediate_tiff {
         $self->{newFields}{'IFD0:ModifyDate'} = "$1:$2:$3 00:00:00";
         $remediate_exiftool = 1;
     }
+    elsif(defined $datetime and $datetime eq '' and defined $set_if_undefined_headers->{'IFD0:ModifyDate'}) {
+        $self->{newFields}{'IFD0:ModifyDate'} = $set_if_undefined_headers->{'IFD0:ModifyDate'};
+        $remediate_exiftool = 1;
+    }
 
     # Prevalidate other fields -- don't bother checking unless there is not some other error
 
