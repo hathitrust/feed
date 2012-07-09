@@ -5,15 +5,16 @@ use Readonly;
 use Exporter;
 use base qw(Exporter);
 
-our @EXPORT_OK   = qw(register_namespaces NS_METS NS_PREMIS1 NS_PREMIS NS_MARC NS_MIX NS_JHOVE NS_XLINK NS_DC NS_XSI SCHEMA_PREMIS SCHEMA_MARC NS_HT );
+our @EXPORT_OK   = qw(register_namespaces NS_HT NS_METS NS_PREMIS1 NS_PREMIS NS_MARC NS_MIX NS_JHOVE NS_XLINK NS_DC NS_XSI SCHEMA_PREMIS SCHEMA_MARC SCHEMA_EAD );
 our %EXPORT_TAGS = ( 'namespaces' =>
-      [qw(NS_METS NS_PREMIS NS_PREMIS1 NS_MARC NS_MIX NS_JHOVE NS_XLINK NS_DC NS_XSI NS_HT )],
+      [qw(NS_EAD NS_HT NS_METS NS_PREMIS NS_PREMIS1 NS_MARC NS_MIX NS_JHOVE NS_XLINK NS_DC NS_XSI )],
       'schemas' => 
-      [qw(SCHEMA_PREMIS SCHEMA_MARC)]
+      [qw(SCHEMA_PREMIS SCHEMA_MARC SCHEMA_EAD)]
   );
 
 use constant {
     NS_DC     => 'http://purl.org/dc/elements/1.1/',
+	NS_EAD	  => 'urn:isbn:1-931666-22-9',
     NS_JHOVE  => 'http://hul.harvard.edu/ois/xml/ns/jhove',
     NS_MARC   => 'http://www.loc.gov/MARC21/slim',
     NS_METS   => 'http://www.loc.gov/METS/',
@@ -32,7 +33,8 @@ use constant {
 
 use constant {
     SCHEMA_PREMIS => "http://www.loc.gov/standards/premis/v2/premis-v2-0.xsd",
-    SCHEMA_MARC => "http://www.loc.gov/standards/marcxml/schema/MARC21slim.xsd"
+    SCHEMA_MARC => "http://www.loc.gov/standards/marcxml/schema/MARC21slim.xsd",
+	SCHEMA_EAD => "http://www.loc.gov/ead/ead.xsd"
 };
 
 
