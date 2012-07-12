@@ -20,14 +20,32 @@ sub run {
     my $objid = $volume->get_objid();
     my $preingest_directory = $volume->get_preingest_directory();
 
-    if(-e "$preingest_directory/$objid.txt") {
-        $self->splinter("$preingest_directory/$objid.txt") 
-    } elsif(-e "$preingest_directory/$objid.xml") {
-        $self->splinter_xml("$preingest_directory/$objid.xml");
-    }  else {
-        $self->set_error("MissingFile", file => "$preingest_directory/$objid.txt");
+    # first check the encoding level:
+    my $tei_xpc;
+    eval {
+        $tei_xpc = $volume->_parse_xpc("$preingest_directory/$objid.hdr");
+    };
+    if($@ or not defined $tei_xpc) {
+        $self->set_error("BadFile", file => "$preingest_directory/$objid.hdr", detail => $@);
+    } else {
+        my ($tei_level) = $tei_xpc->findvalue('//EDITORIALDECL/@N');
+        if($tei_level ne '1') {
+            $self->set_error("BadValue", field => '//EDITORIALDECL/@N', expected => "1", actual => $tei_level);
+        }
     }
 
+    # first try the xml, if that fails do the text.
+    eval {
+        $self->splinter_xml("$preingest_directory/$objid.xml");
+    };
+    if($@) {
+        get_logger()->warn($@);
+        if(-e "$preingest_directory/$objid.txt") {
+            $self->splinter("$preingest_directory/$objid.txt") 
+        } else {
+            $self->set_error("MissingFile", file => "$preingest_directory/$objid.txt");
+        }
+    }
 
     $volume->record_premis_event("ocr_normalize");
 
