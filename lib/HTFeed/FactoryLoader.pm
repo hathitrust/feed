@@ -60,7 +60,12 @@ sub import {
                     my $file = $File::Find::name;
                     if($file =~ qr(^$module_path/([^.]*)\.pm$) and -f $file) {                        
                         my $package = $1;
-                        require "$relative_path/$package.pm";
+                        eval {
+                            require "$relative_path/$package.pm";
+                        };
+                        if($@) {
+                            warn("Warning: Couldn't load $relative_path/$package.pm\n");
+                        }
                         $package =~ s/\//::/g;
                         # determine if this package is something we should have bothered loading
                         my $is_subclass = eval "${caller}::${package}->isa(\$caller)"; 
