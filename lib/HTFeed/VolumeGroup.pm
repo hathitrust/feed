@@ -199,6 +199,7 @@ sub _comm {
     return HTFeed::VolumeGroup->new(htids=>$new_htids);
 }
 
+# $vg->write_id_file($path)
 sub write_id_file {
     my $self = CORE::shift;
     my $file_pathname = CORE::shift;
