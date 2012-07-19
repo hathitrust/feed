@@ -26,12 +26,7 @@ BEGIN {
             my $modname = $module;
             next unless defined $modname and $modname ne '';
             $modname =~ s/::/\//g;
-            eval {
-                require $modname . ".pm";
-            };
-            if($@) {
-                warn("Can't load $modname: $@\n");
-            }
+            require $modname . ".pm";
         }
     }
     our $identifier = "pkgtype";

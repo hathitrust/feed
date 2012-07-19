@@ -3,7 +3,7 @@ package HTFeed::PackageType::DLXS::Volume;
 use warnings;
 use strict;
 use base qw(HTFeed::Volume);
-use HTFeed::PackageType::MPubDCU::Volume;
+use HTFeed::PackageType::MPub::Volume;
 use HTFeed::Config;
 
 my %pagetag_map = (
