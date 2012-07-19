@@ -12,6 +12,10 @@ our $config = {
     description => 'Bentley Historical Library Email Archive',
     volume_module => 'HTFeed::PackageType::Email::Volume',
 
+	# pkg will contain
+	# 1 or more mbox file
+	# 1 csv & 2 xml files
+	# 0 or more pst and/or zip files
     valid_file_pattern => qr/^(
         .*\.mbox |
         .*\.csv |
@@ -24,7 +28,7 @@ our $config = {
         submission => {
             prefix => 'SUB',
             use => 'submission',
-            file_pattern => qr/.*/,
+            file_pattern => qr/.*/, #Need filegroup for METS processing, but pattern can be anything
             required => 1,
             content => 1,
         },
@@ -37,6 +41,7 @@ our $config = {
         },
     },
 
+	# required files
     ead => qr/^EAD_\w+\.xml$/,
     manifest => qr/^Manifest_\w+\.xml$/,
     source_premis => qr/^PREMIS_\w+\.csv$/,
