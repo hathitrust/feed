@@ -20,10 +20,50 @@ sub run {
     my $objid = $volume->get_objid();
     my $preingest_directory = $volume->get_preingest_directory();
 
-    # first check the encoding level:
+    my $tei_hdr_file;
+
+    if(-e "$preingest_directory/$objid.xml")  {
+
+        open(my $xml_in, "<$preingest_directory/$objid.xml") 
+            or die("Can't open $preingest_directory/$objid.xml: $!");
+
+        my $decl;
+        my $not_decl;
+        while(my $line = <$xml_in>) {
+            if($line =~ /^(<\?xml.*?\?>)(.*)/i) {
+                if(not defined $decl) {
+                    $decl = $1;
+                    $not_decl .= $2;
+                } else {
+                    $self->set_error("BadFile", file => "$preingest_directory/$objid.xml",
+                    detail => "More than one XML declaration found!");
+                }
+            } else {
+                $not_decl .= $line;
+            }
+
+        }
+        close($xml_in);
+
+        open(my $xml_out, ">$preingest_directory/$objid.fixed.xml") 
+            or die("Can't open $preingest_directory/$objid.fixed.xml: $!");
+        print $xml_out $decl . "\n" if defined $decl;
+        print $xml_out $not_decl;
+        close($xml_out);
+
+        $tei_hdr_file = "$preingest_directory/$objid.fixed.xml";
+        $self->splinter_xml("$preingest_directory/$objid.fixed.xml");
+    } elsif(-e "$preingest_directory/$objid.txt") {
+        $self->splinter("$preingest_directory/$objid.txt") ;
+        $tei_hdr_file = "$preingest_directory/$objid.hdr";
+    } else {
+        $self->set_error("MissingFile", file => "$preingest_directory/$objid.txt");
+    }
+
+    # check the encoding level:
     my $tei_xpc;
     eval {
-        $tei_xpc = $volume->_parse_xpc("$preingest_directory/$objid.hdr");
+        $tei_xpc = $volume->_parse_xpc($tei_hdr_file);
     };
     if($@ or not defined $tei_xpc) {
         $self->set_error("BadFile", file => "$preingest_directory/$objid.hdr", detail => $@);
@@ -31,19 +71,6 @@ sub run {
         my ($tei_level) = $tei_xpc->findvalue('//EDITORIALDECL/@N');
         if($tei_level ne '1') {
             $self->set_error("BadValue", field => '//EDITORIALDECL/@N', expected => "1", actual => $tei_level);
-        }
-    }
-
-    # first try the xml, if that fails do the text.
-    eval {
-        $self->splinter_xml("$preingest_directory/$objid.xml");
-    };
-    if($@) {
-        get_logger()->warn($@);
-        if(-e "$preingest_directory/$objid.txt") {
-            $self->splinter("$preingest_directory/$objid.txt") 
-        } else {
-            $self->set_error("MissingFile", file => "$preingest_directory/$objid.txt");
         }
     }
 
@@ -76,7 +103,7 @@ sub hex2utf8
     {
         return '&#x' . $n . ';'; 
     }
-    
+
 
     return num2utf8( hex( $n ) );
 }
@@ -128,7 +155,7 @@ sub splinter_xml {
 #    }
 #    # finish parsing
 #   my $doc = $parser->parse_chunk("",1);
-    
+
     my $doc = $parser->parse_file("$infile");
 
     my $start = 0;
@@ -176,7 +203,7 @@ sub splinter {
     {
         my $seq = $1;
         my $page = $2;
-        
+
         my $outfile = "$staging_directory/$seq.txt";
 
         open( my $out_fh, '>:utf8', "$outfile" ) or $self->set_error("OperationFailed",file => $outfile,operation => "write",detail => "Could not open file: $!");
