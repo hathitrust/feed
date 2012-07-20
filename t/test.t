@@ -19,4 +19,3 @@ closedir DIR;
 
 # and run them
 runtests @tests;
-

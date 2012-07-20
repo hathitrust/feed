@@ -11,9 +11,6 @@ my $dbh = HTFeed::DBTools::get_dbh();
 local $Test::DatabaseRow::dbh = $dbh;
 ok($dbh->ping, "database connection");
 
-#TODO store tables, columns, db refs in config (t/etc)
-#TODO test cases for failures so that test fails but unit test does not fail
- 
 #test that tables exist
 my $table;
 my @tables=("queue", "log");
