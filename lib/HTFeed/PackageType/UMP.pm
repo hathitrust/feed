@@ -1,8 +1,8 @@
-package HTFeed::PackageType::MPubDCU::UMP;
+package HTFeed::PackageType::UMP;
 
 use warnings;
 use strict;
-use base qw(HTFeed::PackageType::MPubDCU);
+use base qw(HTFeed::PackageType::MPub);
 
 # base case for UM Press
 # faculty_reprints, ump2ht, speccoll, utah state university
@@ -10,7 +10,7 @@ use base qw(HTFeed::PackageType::MPubDCU);
 our $identifier = 'ump';
 
 our $config = {
-    %{$HTFeed::PackageType::MPubDCU::config},
+    %{$HTFeed::PackageType::MPub::config},
     description => 'University of Michigan Press',
     capture_agent => 'MPublishing',
     

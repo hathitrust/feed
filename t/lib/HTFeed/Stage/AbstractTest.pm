@@ -188,15 +188,14 @@ sub required_artifacts_after_clean_success{
     return [];
 }
 
-## TODO: use these
-#sub allowed_artifacts_after_clean_punt{
-#    return [];
-#}
-#
-#sub required_artifacts_after_clean_punt{
-#    return [];
-#}
-#
+sub allowed_artifacts_after_clean_punt{
+    return [];
+}
+
+sub required_artifacts_after_clean_punt{
+    return [];
+}
+
 
 # return an arrayref conftaining the name of every staging dir
 sub all_staging_dirs{

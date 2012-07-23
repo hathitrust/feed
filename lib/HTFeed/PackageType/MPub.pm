@@ -1,4 +1,4 @@
-package HTFeed::PackageType::MPubDCU;
+package HTFeed::PackageType::MPub;
 
 use warnings;
 use strict;
@@ -11,7 +11,7 @@ our $identifier = 'mpub';
 our $config = {
     %{$HTFeed::PackageType::config},
     description => 'Mpublishing/DCU digitized material',
-    volume_module => 'HTFeed::PackageType::MPubDCU::Volume',
+    volume_module => 'HTFeed::PackageType::MPub::Volume',
     
     # Regular expression that distinguishes valid files in the file package
     valid_file_pattern => qr/^(
@@ -62,10 +62,10 @@ our $config = {
 
     # What stage to run given the current state.
     stage_map => {
-        ready		=> 'HTFeed::PackageType::MPubDCU::Fetch',
+        ready		=> 'HTFeed::PackageType::MPub::Fetch',
         fetched		=> 'HTFeed::VolumeValidator',
 		validated	=> 'HTFeed::Stage::Pack',
-		packed		=> 'HTFeed::PackageType::MPubDCU::METS',
+		packed		=> 'HTFeed::PackageType::MPub::METS',
         metsed		=> 'HTFeed::Stage::Handle',
         handled		=> 'HTFeed::Stage::Collate',
 	},
