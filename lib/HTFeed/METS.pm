@@ -8,7 +8,7 @@ use PREMIS;
 use HTFeed::XMLNamespaces qw(:namespaces :schemas);
 use Carp;
 use Log::Log4perl qw(get_logger);
-use Time::localtime;
+use Time::gmtime;
 use Cwd qw(cwd abs_path);
 use HTFeed::Config qw(get_config get_tool_version);
 use Date::Manip;
@@ -144,13 +144,38 @@ sub _extract_old_premis {
                     ) unless defined $eventinfo->{$field} and $eventinfo->{$field};
                 }
 
+                # if we don't have the time zone try to infer it from the agent.
+                if($eventinfo->{date} =~ /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/) {
+                    my $from_tz = undef;
+                    my $agent = $xc->findvalue("./premis:linkingAgentIdentifier[PREMIS:linkingAgentRole/text()='Executor']/PREMIS:linkingAgentIdentifierValue");
+                    if($agent eq 'MiU' or $agent eq 'UM' or $agent =~ /Michigan/) {
+                        $from_tz = 'America/Detroit';
+                    }
+                    elsif($agent eq 'Ca-MvGOO' or $agent =~ /Google/) {
+                        $from_tz = 'America/Los_Angeles';
+                    } elsif($agent eq 'IA' or $agent eq 'CaSfIA' or $agent =~ /Internet Archive/) {
+                        # TODO: need to confirm this
+                        # $from_tz = 'America/Los_Angeles';
+                    }
+
+                    if(defined $from_tz) {
+                        $eventinfo->{date} = $self->convert_tz($eventinfo->{date},$from_tz);
+                    }
+                }
+
+
                 my $uuid = $volume->make_premis_uuid($eventinfo->{eventtype},$eventinfo->{date});
                 my $update_eventid = 0;
                 if($eventinfo->{eventidtype} ne 'UUID') {
                     get_logger()->info("Updating old event ID type $eventinfo->{eventidtype} to UUID for $eventinfo->{eventtype}/$eventinfo->{date}");
                     $update_eventid = 1;
                 } elsif($eventinfo->{eventid} ne $uuid) {
-                    get_logger()->warn("Warning: calculated UUID for $eventinfo->{eventtype} on $eventinfo->{date} did not match saved UUID; updating.");
+                    # UUID may change if it was originally computed incorrectly
+                    # or if the time zone is now included in the date
+                    # calculation.
+                    get_logger()->warn("Warning: calculated UUID for
+                        $eventinfo->{eventtype} on $eventinfo->{date} did not
+                        match saved UUID; updating.");
                     $update_eventid = 1;
                 }
 
@@ -163,6 +188,7 @@ sub _extract_old_premis {
                     $eventidtype_node->appendText('UUID');
 
                 }
+
 
                 $old_events->{$uuid} = $event;
             }
@@ -554,18 +580,18 @@ sub validate_xml {
 
 }
 
-# Given ss1970, use Time::localtime to generate a date with format: yyyy-mm-ddT13:27:00
+# Given ss1970, use Time::gmtime to generate a date with format: yyyy-mm-ddT13:27:00
 sub _get_createdate {
     my $self   = shift;
     my $ss1970 = shift;
 
-    my $localtime_obj = defined($ss1970) ? localtime($ss1970) : localtime();
+    my $gmtime_obj = defined($ss1970) ? gmtime($ss1970) : gmtime();
 
     my $ts = sprintf(
-        "%d-%02d-%02dT%02d:%02d:%02d",
-        ( 1900 + $localtime_obj->year() ), ( 1 + $localtime_obj->mon() ),
-        $localtime_obj->mday(), $localtime_obj->hour(),
-        $localtime_obj->min(),  $localtime_obj->sec()
+        "%d-%02d-%02dT%02d:%02d:%02dZ",
+        ( 1900 + $gmtime_obj->year() ), ( 1 + $gmtime_obj->mon() ),
+        $gmtime_obj->mday(), $gmtime_obj->hour(),
+        $gmtime_obj->min(),  $gmtime_obj->sec()
     );
 
     return $ts;
@@ -721,6 +747,22 @@ sub _remediate_marc {
     }
 
 
+}
+
+sub convert_tz {
+    my $self = shift;
+    my $date = shift;
+    my $from_tz = shift;
+    die("No from_tz specified") unless defined $from_tz;
+
+    my $parsed = ParseDate($date);
+    die("Can't parse date $date") unless defined $parsed;
+    
+    my $utc_date = Date_ConvTZ($parsed,$from_tz,'UTC');
+
+    die("Date_ConvTZ($parsed,$from_tz,'UTC') failed") if(not defined $utc_date);
+
+    return UnixDate($utc_date,'%OZ');
 }
 
 1;

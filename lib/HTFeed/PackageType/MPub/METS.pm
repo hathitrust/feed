@@ -216,9 +216,9 @@ sub _get_checksum_time {
     if(-e $checksum_path) {
         my $checksum_secs = (stat($checksum_path))[9];
 
-        return strftime("%Y-%m-%dT%H:%M:%S",localtime($checksum_secs));
+        return strftime("%Y-%m-%dT%H:%M:%SZ",gmtime($checksum_secs));
     } else {
-        return strftime("%Y-%m-%dT%H:%M:%S",localtime);
+        return strftime("%Y-%m-%dT%H:%M:%SZ",gmtime);
     }
 
 }

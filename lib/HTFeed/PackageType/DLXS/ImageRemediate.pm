@@ -165,6 +165,7 @@ sub _add_capture_event {
     my $self = shift;
     my $volume = $self->{volume};
 
+    # FIXME: record time zone here
     my $capture_date = $self->{capture_date};
     if($capture_date =~ /^(\d{4}).(\d{2}).(\d{2}).(\d{2}).(\d{2}).(\d{2})(.*)/) {
         $capture_date = "$1-$2-$3T$4:$5:$6$7";
