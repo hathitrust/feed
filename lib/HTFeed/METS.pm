@@ -144,10 +144,11 @@ sub _extract_old_premis {
                     ) unless defined $eventinfo->{$field} and $eventinfo->{$field};
                 }
 
-                # if we don't have the time zone try to infer it from the agent.
+                # if we don't have the time zone try to infer it from the agent and update
+                # the date based on that
                 if($eventinfo->{date} =~ /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/) {
                     my $from_tz = undef;
-                    my $agent = $xc->findvalue("./premis:linkingAgentIdentifier[PREMIS:linkingAgentRole/text()='Executor']/PREMIS:linkingAgentIdentifierValue");
+                    my $agent = $xc->findvalue("./premis:linkingAgentIdentifier[premis:linkingAgentRole/text()='Executor']/premis:linkingAgentIdentifierValue",$event);
                     if($agent eq 'MiU' or $agent eq 'UM' or $agent =~ /Michigan/) {
                         $from_tz = 'America/Detroit';
                     }
@@ -160,6 +161,9 @@ sub _extract_old_premis {
 
                     if(defined $from_tz) {
                         $eventinfo->{date} = $self->convert_tz($eventinfo->{date},$from_tz);
+                        my $eventdateTimeNode = ($xc->findnodes('./premis:eventDateTime',$event))[0];
+                        $eventdateTimeNode->removeChildNodes();
+                        $eventdateTimeNode->appendText($eventinfo->{date});
                     }
                 }
 
@@ -173,9 +177,7 @@ sub _extract_old_premis {
                     # UUID may change if it was originally computed incorrectly
                     # or if the time zone is now included in the date
                     # calculation.
-                    get_logger()->warn("Warning: calculated UUID for
-                        $eventinfo->{eventtype} on $eventinfo->{date} did not
-                        match saved UUID; updating.");
+                    get_logger()->warn("Warning: calculated UUID for $eventinfo->{eventtype} on $eventinfo->{date} did not match saved UUID; updating.");
                     $update_eventid = 1;
                 }
 
@@ -186,7 +188,6 @@ sub _extract_old_premis {
                     my $eventidtype_node = ($xc->findnodes("./premis:eventIdentifier/premis:eventIdentifierType",$event))[0];
                     $eventidtype_node->removeChildNodes();
                     $eventidtype_node->appendText('UUID');
-
                 }
 
 
