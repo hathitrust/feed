@@ -25,12 +25,14 @@ sub Missing : Test(2){
 	test_config('damaged');
 
 	my $self = shift;
+
 	my $stage = $self->{test_stage};
 	my $volume = $self->{volume};
+
 	my $ia_id = $volume->get_ia_id();
 	my $objdir = $volume->get_download_directory();
 	my $scandata = "$objdir/${ia_id}_scandata.xml";
-	my $undamaged = "/htapps/test.babel/feed/t/staging/UNDAMAGED";
+	my $undamaged = "/htapps/feed.babel/test_data/staging/UNDAMAGED";
 
 	# remove $scandata
 	unlink($scandata);
@@ -44,7 +46,6 @@ sub Missing : Test(2){
 	# replace $scandata for next test
 	my $clean_copy = "$undamaged/download/ia/$ia_id/${ia_id}_scandata.xml";
 	copy($clean_copy,$objdir) or die "copy failed: $!";
-
 }
 
 # test additional warnings

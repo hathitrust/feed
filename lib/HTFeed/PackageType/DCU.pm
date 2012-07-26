@@ -1,15 +1,15 @@
-package HTFeed::PackageType::MPubDCU::DCU;
+package HTFeed::PackageType::DCU;
 
 use warnings;
 use strict;
-use base qw(HTFeed::PackageType::MPubDCU);
+use base qw(HTFeed::PackageType::MPub);
 
 #base case for DCU (DigOnDemand)
 
 our $identifier = 'dcu';
 
 our $config = {
-    %{$HTFeed::PackageType::MPubDCU::config},
+    %{$HTFeed::PackageType::MPub::config},
     description => 'Digitize on Demand',
 
     capture_agent => 'Digital Conversion Unit',

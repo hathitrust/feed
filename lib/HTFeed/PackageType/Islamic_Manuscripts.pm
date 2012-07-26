@@ -1,13 +1,13 @@
-package HTFeed::PackageType::MPubDCU::Islamic;
+package HTFeed::PackageType::Islamic_Manuscripts;
 
 use warnings;
 use strict;
-use base qw(HTFeed::PackageType::MPubDCU);
+use base qw(HTFeed::PackageType::MPub);
 
 our $identifier = 'islamic_manuscripts';
 
 our $config = {
-    %{$HTFeed::PackageType::MPubDCU::config},
+    %{$HTFeed::PackageType::MPub::config},
     description => 'DCU-digitized Islamic Manuscripts',
     capture_agent => 'Digital Conversion Unit',
     
@@ -58,7 +58,7 @@ __END__
 
 =pod
 
-This is the package type configuration file for MPubDCU materials (Islamic MSS)
+This is the package type configuration file for MPub materials (Islamic MSS)
 
 =head1 SYNOPSIS
 

@@ -1,4 +1,4 @@
-package HTFeed::PackageType::MPubDCU::METS;
+package HTFeed::PackageType::MPub::METS;
 use strict;
 use warnings;
 use Log::Log4perl qw(get_logger);

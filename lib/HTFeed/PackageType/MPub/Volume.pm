@@ -1,4 +1,4 @@
-package HTFeed::PackageType::MPubDCU::Volume;
+package HTFeed::PackageType::MPub::Volume;
 
 use warnings;
 use strict;

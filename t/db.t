@@ -11,12 +11,9 @@ my $dbh = HTFeed::DBTools::get_dbh();
 local $Test::DatabaseRow::dbh = $dbh;
 ok($dbh->ping, "database connection");
 
-#XXX store tables, columns in external file/ get from schema?
-#TODO test cases for failures so that test fails but unit test does not fail
- 
 #test that tables exist
 my $table;
-my @tables=("queue", "ingest_log");
+my @tables=("queue", "log");
 my @row;
 my $match = "no match";
 
@@ -62,7 +59,6 @@ eval{
 ok($execute, "correct syntax");
 
 #test specific calls
-#XXX sample
 row_ok(
 	table	=>	"queue",
 	where	=>	["status"	=> "punted"],

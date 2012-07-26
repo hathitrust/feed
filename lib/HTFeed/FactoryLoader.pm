@@ -53,33 +53,15 @@ sub import {
             if($@) { die $@ };
         }
 
-#        warn("Factory loading in $module_path\n");
+        # find the stuff that can be loaded
+        foreach my $file (glob("$module_path/*.pm")) {
+            if($file =~ qr(^$module_path/([^.]*)\.pm$) and -f $file) {                        
+                my $id = lc($1);
+                # map to %INC key/val
+                $subclass_map{$caller}{$id} = "$relative_path/$1.pm";
+            }
 
-        find ( { no_chdir => 1,
-                wanted => sub {
-                    my $file = $File::Find::name;
-                    if($file =~ qr(^$module_path/([^.]*)\.pm$) and -f $file) {                        
-                        my $package = $1;
-                        require "$relative_path/$package.pm";
-                        $package =~ s/\//::/g;
-                        # determine if this package is something we should have bothered loading
-                        my $is_subclass = eval "${caller}::${package}->isa(\$caller)"; 
-                        if($is_subclass) {
-                            my $subclass_identifier = ${"${caller}::${package}::identifier"};
-                            die("${caller}::${package} missing identifier")
-                                unless defined $subclass_identifier;
-                            $subclass_map{$caller}{$subclass_identifier} = "${caller}::${package}";
-
-                            # run callback for when package was loaded, if it exists
-                            if(eval "${caller}::${package}->can('on_factory_load')") {
-                                eval "${caller}::${package}->on_factory_load()";
-                                if($@) { die $@ };
-                            }
-                        }
-
-                    }
-            } }, $module_path );
-
+        }
     }
 
 }
@@ -108,8 +90,20 @@ sub new {
     my $class      = shift;
     my $identifier = shift;
 
-    my $subclass = $subclass_map{$class}{$identifier};
-    croak("Unknown subclass identifier $identifier") unless $subclass;
+    my $inc_key = $subclass_map{$class}{$identifier};
+    croak("Unknown subclass identifier $identifier") unless $inc_key;
+    my $subclass = $inc_key;
+    $subclass =~ s|/|::|g;
+    $subclass =~ s/\.pm$//;
+
+    if(not defined $INC{$inc_key}) {
+        require "$inc_key";
+        # run callback for when package was loaded, if it exists
+        if(eval "$subclass->can('on_factory_load')") {
+            eval "$subclass->on_factory_load()";
+            if($@) { die $@ };
+        }
+    }
 
     return bless {}, $subclass;
 }
