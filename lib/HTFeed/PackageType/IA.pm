@@ -3,6 +3,7 @@ package HTFeed::PackageType::IA;
 use warnings;
 use strict;
 use base qw(HTFeed::PackageType);
+use HTFeed::XPathValidator qw(:closures);
 
 our $identifier = 'ia';
 
@@ -130,6 +131,10 @@ our $config = {
     validation => {
         'HTFeed::ModuleValidator::JPEG2000_hul' => {
             'camera'               => undef,
+            'resolution'      => v_and(
+                v_in( 'xmp', 'xRes', ['300/1','350/1','400/1','500/1','600/1','650/1']),
+                v_same( 'xmp', 'xRes', 'xmp', 'yRes' )
+            ),
         }
     },
 
