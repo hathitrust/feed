@@ -163,7 +163,7 @@ sub get_loadcd_info {
 
     my $header = <$loadcd_fh>;
     chomp $header;
-    if($header =~ /loaded from volume ID (\w+) on (\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})/) {
+    if($header =~ /loaded from volume ID ([\w#]+) on (\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})/) {
         my $volume_id = $1;
         my $load_date = $2;
         my $artist = undef;;
