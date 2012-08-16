@@ -32,6 +32,7 @@ sub new {
     $self->{outfile} = $self->{volume}->get_mets_path();
     # by default use volume "get_pagedata" to apply pagedata
     $self->{pagedata} = sub { $self->{volume}->get_page_data(@_); };
+    $self->{premis} = new PREMIS;
 
     return $self;
 }
@@ -94,7 +95,7 @@ sub _add_dmdsecs {
     my $mets   = $self->{mets};
 
     my $dmdsec =
-      new METS::MetadataSection( 'dmdSec',
+    new METS::MetadataSection( 'dmdSec',
         'id' => $self->_get_subsec_id("DMD") );
     $dmdsec->set_md_ref(
         mdtype       => 'MARC',
@@ -123,7 +124,7 @@ sub _extract_old_premis {
 
         # validate METS in repository
         my ( $mets_in_rep_valid, $val_results ) =
-          $self->validate_xml($mets_in_repos);
+        $self->validate_xml($mets_in_repos);
         if ($mets_in_rep_valid) {
             my $xc = $volume->get_repository_mets_xpc();
 
@@ -223,7 +224,7 @@ sub _add_premis_events {
         # query database for: datetime, outcome
         my $eventconfig = $nspkg->get_event_configuration($eventcode);
         my ( $eventid, $datetime, $outcome,$custom ) =
-          $volume->get_event_info($eventcode);
+        $volume->get_event_info($eventcode);
         if(defined $custom) {
             $premis->add_event($custom);
         } elsif(defined $eventid) {
@@ -252,12 +253,12 @@ sub add_premis_event {
         if(not defined $eventconfig->{$field}) {
             $self->set_error("MissingField",
                 field => $field,
-		actual => $eventconfig
+                actual => $eventconfig
             );
             return;
         }
     }
-    
+
     # make sure we haven't already added this event
     my $eventid = $eventconfig->{'eventid'};
     if (defined $included_events->{$eventid}) {
@@ -265,8 +266,8 @@ sub add_premis_event {
     } 
 
     my $event = new PREMIS::Event( $eventconfig->{'eventid'}, 'UUID', 
-                                   $eventconfig->{'type'}, $eventconfig->{'date'},
-                                   $eventconfig->{'detail'});
+        $eventconfig->{'type'}, $eventconfig->{'date'},
+        $eventconfig->{'detail'});
     foreach my $outcome (@{ $eventconfig->{'outcomes'} }) {
         $event->add_outcome($outcome);
     }
@@ -274,8 +275,8 @@ sub add_premis_event {
 # query namespace/packagetype for software tools to record for this event type
     $event->add_linking_agent(
         new PREMIS::LinkingAgent( $eventconfig->{'executor_type'}, 
-                                  $eventconfig->{'executor'}, 
-                                  'Executor' ) );
+            $eventconfig->{'executor'}, 
+            'Executor' ) );
 
     my @agents       = ();
     my $tools_config = $eventconfig->{'tools'};
@@ -306,7 +307,7 @@ sub _add_source_mets_events {
         # do we want to keep this kind of event?
         my $event_type = $xc->findvalue( './premis:eventType', $src_event );
         $src_premis_events->{$event_type} = []
-          if not defined $src_premis_events->{$event_type};
+        if not defined $src_premis_events->{$event_type};
         push( @{ $src_premis_events->{$event_type} }, $src_event );
     }
 
@@ -336,8 +337,7 @@ sub _add_premis {
     # map from UUID to event - events that have already been added
     $self->{included_events} = {};
 
-    my $premis = new PREMIS;
-    $self->{premis} = $premis;
+    my $premis = $self->{premis};
 
     my $old_events = $self->_extract_old_premis();
     if ($old_events) {
@@ -351,8 +351,7 @@ sub _add_premis {
 
     # create PREMIS object
     my $premis_object =
-      new PREMIS::Object( 'identifier', $volume->get_identifier() );
-    $premis_object->set_preservation_level("1");
+    new PREMIS::Object( 'HathiTrust', $volume->get_identifier() );
     $premis_object->add_significant_property( 'file count',
         $volume->get_file_count() );
     if ($volume->get_file_groups()->{image}) {
@@ -367,7 +366,7 @@ sub _add_premis {
     $self->_add_premis_events( $nspkg->get('premis_events') );
 
     my $digiprovMD =
-      new METS::MetadataSection( 'digiprovMD', 'id' => 'premis1' );
+    new METS::MetadataSection( 'digiprovMD', 'id' => 'premis1' );
     $digiprovMD->set_xml_node( $premis->to_node(), mdtype => 'PREMIS' );
 
     push( @{ $self->{amd_mdsecs} }, $digiprovMD );
@@ -377,7 +376,7 @@ sub _add_premis {
 sub _add_amdsecs {
     my $self = shift;
     $self->{'mets'}
-      ->add_amd_sec( $self->_get_subsec_id("AMD"), @{ $self->{amd_mdsecs} } );
+    ->add_amd_sec( $self->_get_subsec_id("AMD"), @{ $self->{amd_mdsecs} } );
 
 }
 
@@ -386,8 +385,21 @@ sub _get_subsec_id {
     my $subsec_type = shift;
     $self->{counts} = {} if not exists $self->{counts};
     $self->{counts}{$subsec_type} = 0
-      if not exists $self->{counts}{$subsec_type};
+    if not exists $self->{counts}{$subsec_type};
     return "$subsec_type" . ++$self->{counts}{$subsec_type};
+}
+
+sub _add_premis_fg_object {
+    my $self = shift;
+    my $mets_fg = shift;
+    my $preservation_level = shift;
+    $preservation_level = 1 if not defined $preservation_level;
+    my $premis = $self->{premis};
+    my $volume = $self->{volume};
+    my $fg_premis_object = new PREMIS::Object('HathiTrust',$volume->get_identifier() . "//fileGrp#" . $mets_fg->{attrs}{ID});
+    # TODO: what preservation level to use for PDF? include preservation level default in pkgtype config?
+    $fg_premis_object->set_preservation_level($preservation_level);
+    $premis->add_object($fg_premis_object);
 }
 
 sub _add_zip_fg {
@@ -403,6 +415,7 @@ sub _add_zip_fg {
     my ($zip_path,$zip_name) = ($volume->get_zip_directory(), $volume->get_zip_filename());
     $zip_filegroup->add_file( $zip_name, path => $zip_path, prefix => 'ZIP' );
     $mets->add_filegroup($zip_filegroup);
+    $self->_add_premis_fg_object($zip_filegroup)
 }
 
 sub _add_srcmets_fg {
@@ -422,6 +435,8 @@ sub _add_srcmets_fg {
             path => $volume->get_staging_directory(), 
             prefix => 'METS' );
         $mets->add_filegroup($mets_filegroup);
+        # no migration for src mets
+        $self->_add_premis_fg_object($mets_filegroup,2);
     }
 }
 
@@ -444,6 +459,7 @@ sub _add_content_fgs {
 
         $self->{filegroups}{$filegroup_name} = $mets_filegroup;
         $mets->add_filegroup($mets_filegroup);
+        $self->_add_premis_fg_object($mets_filegroup,$filegroup->get_preservation_level());
     }
 }
 
@@ -477,7 +493,7 @@ sub _add_struct_map {
         while ( my ( $filegroup_name, $files ) = each(%$pagefiles) ) {
             foreach my $file (@$files) {
                 my $fileid =
-                  $self->{filegroups}{$filegroup_name}->get_file_id($file);
+                $self->{filegroups}{$filegroup_name}->get_file_id($file);
                 if ( not defined $fileid ) {
                     $self->set_error(
                         "MissingField",
@@ -503,10 +519,10 @@ sub _add_struct_map {
                                 "NotEqualValues",
                                 actual => "other=$val ,$fileid=$val1",
                                 detail =>
-    "Mismatched page data for different files in pagefiles"
-                              )
-                              unless ( not defined $val and not defined $val1 )
-                              or ( $val eq $val1 );
+                                "Mismatched page data for different files in pagefiles"
+                            )
+                            unless ( not defined $val and not defined $val1 )
+                                or ( $val eq $val1 );
                         }
 
                     }
@@ -533,7 +549,7 @@ sub _save_mets {
     my $mets_path = $self->{outfile};
 
     open( my $metsxml, ">", "$mets_path" )
-      or die("Can't open METS xml $mets_path for writing: $!");
+        or die("Can't open METS xml $mets_path for writing: $!");
     print $metsxml $mets->to_node()->toString(1);
     close($metsxml);
 }
@@ -543,7 +559,7 @@ sub _validate_mets {
     my $mets_path = $self->{outfile};
 
     croak("File $mets_path does not exist. Cannot validate.")
-      unless -e $mets_path;
+    unless -e $mets_path;
 
     my ( $mets_valid, $val_results ) = $self->validate_xml($mets_path);
     if ( !$mets_valid ) {
@@ -571,7 +587,7 @@ sub validate_xml {
     my $validation_cmd = "$xerces '$filename' 2>&1";
     my $val_results    = `$validation_cmd`;
     if ( ($use_caching and $val_results !~ /\Q$filename\E OK/) or
-         (!$use_caching and $val_results =~ /Error/) or
+        (!$use_caching and $val_results =~ /Error/) or
         $? ) {
         wantarray ? return ( 0, $val_results ) : return (0);
     }
@@ -630,18 +646,18 @@ sub _remediate_marc {
         [\dA-Za-z ]{1} # 05: Record status
         [\dA-Za-z]{1} # 06: Type of record
         [\dA-Za-z ]{3} # 07: Bibliographic level
-                       # 08: Type of control
-                       # 09: Character
+        # 08: Type of control
+        # 09: Character
         (2| )          # 10: Indicator count
         (2| )          # 11: Subfield code count
         [\d ]{5}       # 12: Base address of data
         [\dA-Za-z ]{3} # 17: Encoding level
-                       # 18: Descriptive cataloging form
-                       # 19: Multipart resource record level
+        # 18: Descriptive cataloging form
+        # 19: Multipart resource record level
         (4500|    )    # 20: Length of the length-of-field portion
-                       # 21: Length of the starting-character-position portion
-                       # 22: Length of the implementation-defined portion
-                       # 23: Undefined
+        # 21: Length of the starting-character-position portion
+        # 22: Length of the implementation-defined portion
+        # 23: Undefined
         $/x) {
 
         # 00-04: Record length - default to empty
@@ -758,7 +774,7 @@ sub convert_tz {
 
     my $parsed = ParseDate($date);
     die("Can't parse date $date") unless defined $parsed;
-    
+
     my $utc_date = Date_ConvTZ($parsed,$from_tz,'UTC');
 
     die("Date_ConvTZ($parsed,$from_tz,'UTC') failed") if(not defined $utc_date);

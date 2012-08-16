@@ -38,6 +38,16 @@ sub get_required {
     return $self->{required};
 }
 
+sub get_preservation_level {
+    my $self = shift;
+    if(defined $self->{preservation_level}) {
+        return $self->{preservation_level};
+    } else {
+        # default: 
+        return 1;
+    }
+}
+
 sub in_structmap {
     my $self = shift;
     return (not defined $self->{structmap} or $self->{structmap})
