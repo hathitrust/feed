@@ -201,7 +201,9 @@ sub _extract_old_premis {
         else {
 
             # TODO: should be warning, not error
-            get_logger()->warn(
+            # For purposes of reingest needs to be error if we can't import the old premis events.
+#            get_logger()->warn(
+            $self->set_error(
                 "BadFile",
                 file   => $mets_in_repos,
                 detail => $val_results
@@ -389,19 +391,6 @@ sub _get_subsec_id {
     return "$subsec_type" . ++$self->{counts}{$subsec_type};
 }
 
-sub _add_premis_fg_object {
-    my $self = shift;
-    my $mets_fg = shift;
-    my $preservation_level = shift;
-    $preservation_level = 1 if not defined $preservation_level;
-    my $premis = $self->{premis};
-    my $volume = $self->{volume};
-    my $fg_premis_object = new PREMIS::Object('HathiTrust',$volume->get_identifier() . "//fileGrp#" . $mets_fg->{attrs}{ID});
-    # TODO: what preservation level to use for PDF? include preservation level default in pkgtype config?
-    $fg_premis_object->set_preservation_level($preservation_level);
-    $premis->add_object($fg_premis_object);
-}
-
 sub _add_zip_fg {
     my $self   = shift;
     my $mets   = $self->{mets};
@@ -415,7 +404,6 @@ sub _add_zip_fg {
     my ($zip_path,$zip_name) = ($volume->get_zip_directory(), $volume->get_zip_filename());
     $zip_filegroup->add_file( $zip_name, path => $zip_path, prefix => 'ZIP' );
     $mets->add_filegroup($zip_filegroup);
-    $self->_add_premis_fg_object($zip_filegroup)
 }
 
 sub _add_srcmets_fg {
@@ -435,8 +423,6 @@ sub _add_srcmets_fg {
             path => $volume->get_staging_directory(), 
             prefix => 'METS' );
         $mets->add_filegroup($mets_filegroup);
-        # no migration for src mets
-        $self->_add_premis_fg_object($mets_filegroup,2);
     }
 }
 
@@ -459,7 +445,6 @@ sub _add_content_fgs {
 
         $self->{filegroups}{$filegroup_name} = $mets_filegroup;
         $mets->add_filegroup($mets_filegroup);
-        $self->_add_premis_fg_object($mets_filegroup,$filegroup->get_preservation_level());
     }
 }
 
