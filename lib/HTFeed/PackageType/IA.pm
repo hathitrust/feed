@@ -124,6 +124,9 @@ our $config = {
         packed            => 'HTFeed::METS',
         metsed            => 'HTFeed::Stage::Handle',
         handled           => 'HTFeed::Stage::Collate',
+
+        needs_uplift => 'HTFeed::Stage::RepositoryUnpack',
+        uplift_unpacked => 'HTFeed::Stage::ReMETS'
     },
 
 
