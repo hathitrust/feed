@@ -87,7 +87,6 @@ sub enqueue_volumes{
                 if($blacklist_sth->fetchrow_array()) {
                     get_logger()->warn("Blacklisted",namespace=>$namespace,objid=>$objid);
                     push(@results,0);
-                    return;
                 }
             }
 
@@ -144,6 +143,7 @@ sub reset_volumes {
 
     my $force = $args{force};
     my $status = $args{status};
+    my $fallback = $args{fallback};
     
     my $dbh = HTFeed::DBTools::get_dbh();
     my $sth;
@@ -151,7 +151,7 @@ sub reset_volumes {
         $sth = $dbh->prepare(q(UPDATE queue SET node = NULL, status = ?, failure_count = 0 WHERE namespace = ? and id = ?;));
     }
     else{
-        $sth = $dbh->prepare(q(UPDATE queue SET node = NULL, status = ?, failure_count = 0 WHERE status in ('punted','rights','done') and namespace = ? and id = ?;));
+        $sth = $dbh->prepare(q(UPDATE queue SET node = NULL, status = ?, failure_count = 0 WHERE status in ('punted','collated','rights','done') and namespace = ? and id = ?;));
     }
     
     my @results;
