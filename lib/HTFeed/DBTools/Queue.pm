@@ -143,7 +143,6 @@ sub reset_volumes {
 
     my $force = $args{force};
     my $status = $args{status};
-    my $fallback = $args{fallback};
     
     my $dbh = HTFeed::DBTools::get_dbh();
     my $sth;
