@@ -56,7 +56,7 @@ our $config = {
         }
     },
 
-    source_mets_file => qr/^Kirtas_\w+\.xml$/,
+    source_mets_file => qr/^Yale_\w+\.xml$/,
 
     # The list of stages to run to successfully ingest a volume.
     # The list of stages to run to successfully ingest a volume
@@ -72,6 +72,9 @@ our $config = {
         packed            => 'HTFeed::METS',
         metsed            => 'HTFeed::Stage::Handle',
         handled           => 'HTFeed::Stage::Collate',
+
+        needs_uplift => 'HTFeed::Stage::RepositoryUnpack',
+        uplift_unpacked => 'HTFeed::Stage::ReMETS'
     },
 
     # What PREMIS events to include in the source METS file
