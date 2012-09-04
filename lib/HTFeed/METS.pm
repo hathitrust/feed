@@ -22,6 +22,7 @@ sub new {
     my $class = shift;
 
     my $self = $class->SUPER::new(
+        is_uplift => 0,
         @_,
 
         #		files			=> [],
@@ -33,6 +34,7 @@ sub new {
     # by default use volume "get_pagedata" to apply pagedata
     $self->{pagedata} = sub { $self->{volume}->get_page_data(@_); };
     $self->{premis} = new PREMIS;
+    $self->{old_event_types} = {};
 
     return $self;
 }
@@ -118,11 +120,10 @@ sub _extract_old_premis {
     my $volume = $self->{volume};
 
     my $mets_in_repos = $volume->get_repository_mets_path();
-    my $old_events    = {};
+    my $old_events = {};
 
     if ( defined $mets_in_repos ) {
 
-        # validate METS in repository
         my ( $mets_in_rep_valid, $val_results ) =
         $self->validate_xml($mets_in_repos);
         if ($mets_in_rep_valid) {
@@ -191,26 +192,29 @@ sub _extract_old_premis {
                     $eventidtype_node->appendText('UUID');
                 }
 
-
+                $self->{old_event_types}->{$eventinfo->{eventtype}} = $event;
                 $old_events->{$uuid} = $event;
             }
-
-            return $old_events;
-
+        } else {
+            # TODO after uplift: make this an error.
+             get_logger()->warn(
+             # $self->set_error(
+                 "BadFile",
+                 file   => $mets_in_repos,
+                 detail => $val_results
+             );
         }
-        else {
 
-            # TODO: should be warning, not error
-            # For purposes of reingest needs to be error if we can't import the old premis events.
-#            get_logger()->warn(
-            $self->set_error(
-                "BadFile",
-                file   => $mets_in_repos,
-                detail => $val_results
-            );
-            print "$val_results";
-            return 0;
+        # at a minimum there should be capture, message digest calculation,
+        # fixity check, validation and ingestion.
+        foreach my $required_event_type ("capture","message digest calculation","fixity check","validation","ingestion") {
+            $self->set_error("BadField",detail=>"Could not extract old PREMIS event",
+                field=>"premis event $required_event_type",file=>$mets_in_repos)
+            if not defined $self->{old_event_types}->{$required_event_type};
         }
+
+        return $old_events;
+
     }
 }
 
@@ -765,6 +769,11 @@ sub convert_tz {
     die("Date_ConvTZ($parsed,$from_tz,'UTC') failed") if(not defined $utc_date);
 
     return UnixDate($utc_date,'%OZ');
+}
+
+sub is_uplift {
+    my $self = shift;
+    return $self->{is_uplift};
 }
 
 1;
