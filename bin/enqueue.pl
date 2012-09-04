@@ -5,7 +5,7 @@ use lib "$FindBin::Bin/../lib";
 
 use warnings;
 use strict;
-use HTFeed::Log { root_logger => 'INFO, dbi' };
+use HTFeed::Log { root_logger => 'INFO, screen' };
 use HTFeed::Version;
 use Log::Log4perl qw(get_logger);
 use HTFeed::DBTools::Queue;
@@ -49,7 +49,7 @@ pod2usage(1) if $help;
 
 # check options
 pod2usage(-msg => '-1 and -d flags incompatible', -exitval => 2) if ($one_line and $dot_packagetype);
-pod2usage(-msg => '-r/-R incompatible with -i', -exitval => 2) if (($reset or $force_reset) and $insert);
+#pod2usage(-msg => '-r/-R incompatible with -i', -exitval => 2) if (($reset or $force_reset) and $insert);
 pod2usage(-msg => '-p and -n exclude -d and -1', -exitval => 2) if (($default_packagetype or $default_namespace) and ($one_line or $dot_packagetype));
 
 if ($one_line){
@@ -110,39 +110,43 @@ else{
 
 # add volumes to queue
 my $results;
-if($reset or $force_reset){
-    $results = reset_volumes(volumes => \@volumes, status => $state, force => $force_reset);
-}
-else{
+
+if(!($reset or $force_reset) or $insert) {
     if(defined $priority){
-        $results = enqueue_volumes(volumes=>\@volumes,status=>$state,ignore=>$insert,priority=>$priority,use_blacklist=>$use_blacklist);        
+        print_results('queued',enqueue_volumes(volumes=>\@volumes,status=>$state,ignore=>$insert,priority=>$priority,use_blacklist=>$use_blacklist));        
     }
     else{
-        $results = enqueue_volumes(volumes=>\@volumes,status=>$state,ignore=>$insert,use_blacklist=>$use_blacklist);
+        print_results('queued',enqueue_volumes(volumes=>\@volumes,status=>$state,ignore=>$insert,use_blacklist=>$use_blacklist));
     }
 }
 
-if ($verbose or !$quiet){
-    # print report
-    my $verb = 'added';
-    if ($reset or $force_reset){
-        $verb = 'reset';
-    }
-    foreach my $volume (@volumes){
-        print  $volume->get_packagetype() . ' ' . $volume->get_namespace() . ' ' . $volume->get_objid() . ': ';
-        my $result = shift @{$results};
-        # dbi returned true
-        if ($result){
-            # 0 lines updated
-            print 'not ' if ($result < 1);
-            print "$verb \n";
-        }
-        # dbi returned false or died
-        else {
-            print "failure or skipped\n";
+if($reset or $force_reset){
+    print_results('reset',reset_volumes(volumes => \@volumes, status => $state, force => $force_reset));
+    
+}
+
+sub print_results {
+    my $verb = shift;
+    my $results = shift;
+    if ($verbose or !$quiet){
+        # print report
+        foreach my $volume (@volumes){
+            print  $volume->get_packagetype() . ' ' . $volume->get_namespace() . ' ' . $volume->get_objid() . ': ';
+            my $result = shift @{$results};
+            # dbi returned true
+            if ($result){
+                # 0 lines updated
+                print 'not ' if ($result < 1);
+                print "$verb \n";
+            }
+            # dbi returned false or died
+            else {
+                print "failure or skipped\n";
+            }
         }
     }
 }
+
 __END__
 
 =head1 NAME
@@ -167,11 +171,14 @@ enqueue.pl [-v|-q] [-r|-R|-i] [-y priority] -1 packagetype namespace objid
         incompatible with -d, -1
     
     GENERAL OPTIONS
-    -r reset - resets punted volumes in list to ready
+    -r reset - resets punted,collated,rights,done volumes in list to ready
 
-    -R reset force - resets all volumes in list to ready
+    -R reset force - resets all volumes in list to ready (use with care)
 
     -i insert - volumes are added if they are not already in the queue, but no error is raised for duplicate volumes
+
+      If the -i flag is specified with the -R or -r option, will first reset any punted, etc. volumes.
+      then enqueue any items not in the queue, 
 
     -v verbose - verbose output for file parsing - overrides quiet
 
