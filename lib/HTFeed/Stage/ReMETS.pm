@@ -46,7 +46,7 @@ sub run {
     $volume->record_premis_event('mets_update');
     # run original METS stage
     my $mets_class = $volume->next_stage('packed');
-    my $mets_stage =  eval "$mets_class->new(volume => \$volume)";
+    my $mets_stage =  eval "$mets_class->new(volume => \$volume, is_uplift => 1)";
     $mets_stage->run();
 
     # assure success
@@ -96,9 +96,14 @@ sub run {
 
         foreach my $attribute ($old_file->attributes(), $new_file->attributes()) {
             my $attr_name = $attribute->nodeName();
-            next if lc($attr_name) eq 'created';
+            next if lc($attr_name) eq 'created' or lc($attr_name) eq 'id';
             my $old_attr = $old_file->getAttribute($attr_name);
             my $new_attr = $new_file->getAttribute($attr_name);
+
+            # ignore if file is XML and old mime type is HTML
+            next if($file_name =~ /\.xml$/ and lc($attr_name) eq 'mimetype' and $new_attr = 'text/xml');
+            next if($file_name =~ /\.pdf$/ and lc($attr_name) eq 'mimetype' and $new_attr = 'application/pdf');
+
             $self->assert_equal($old_attr,$new_attr,"$file_name $attr_name");
         }
     }
