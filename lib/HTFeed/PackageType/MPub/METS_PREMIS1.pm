@@ -1,10 +1,11 @@
-package HTFeed::PackageType::MPub::METS;
+package HTFeed::PackageType::MPub::METS_PREMIS1;
 use strict;
 use warnings;
 use Log::Log4perl qw(get_logger);
 use HTFeed::XMLNamespaces qw(:namespaces :schemas);
 use base qw(HTFeed::METS);
 use POSIX qw(strftime);
+use Image::ExifTool;
 
 
 # Override base class _add_dmdsecs to not try to add MARC
