@@ -375,6 +375,15 @@ sub extract_source_mets {
                 mets_ins($namespace,$objid,"GBS_READING",$tag,$val);
             }
 
+            foreach my $techmd ($xpc->findnodes("//mets:techMD")) {
+                if($techmd->getAttribute("ID") =~ /^IMAGE_METHOD/) {
+                    my $imagemethod_id = $techmd->getAttribute("ID");
+                    my $method = $xpc->findvalue(".//gbs:imageMethod",$techmd);
+                    my $count = $xpc->findvalue("count(//mets:file[contains(\@ADMID,\"$imagemethod_id\")])");
+                    mets_ins($namespace,$objid,"IMAGE_METHOD",$method,$count);
+                }
+            }
+
         };
         if($@) {
             set_status($namespace,$objid,$srcmets[0],"BAD_SOURCE_METS",$@);
