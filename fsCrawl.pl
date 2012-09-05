@@ -19,11 +19,16 @@ my $update="update audit set zipcheck_ok = ? where namespace = ? and id = ?";
 my $mets_ins = "insert into audit_detail (namespace, id, path, status, detail) values (?,?,?,?,?)";
 
 ### set /sdr1 to /sdrX for test & parallelization
-my $base= shift @ARGV or die("Missing base directory..");
 my $filesProcessed = 0;
 my $prevpath;
 my $do_md5 = 0;
 my $do_mets = 0;
+GetOptions(
+    'md5!' => \$do_md5,
+    'mets!' => \$do_mets,
+);
+
+my $base= shift @ARGV or die("Missing base directory..");
 open(RUN, "find $base -follow -type f|") or die ("Can't open pipe to find: $!");
 
 while(my $line = <RUN>) {
