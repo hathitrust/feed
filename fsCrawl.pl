@@ -10,8 +10,9 @@ use File::Pairtree qw(ppath2id s2ppchars);
 use HTFeed::Volume;
 use HTFeed::Namespace;
 use HTFeed::PackageType;
-use Getopt::Long;
+use HTFeed::METS;
 use POSIX qw(strftime);
+use Getopt::Long;
 
 
 my $insert="replace into audit (namespace, id, zip_size, zip_date, mets_size, mets_date, lastchecked, zipcheck_ok) values(?,?,?,?,?,?,CURRENT_TIMESTAMP,NULL)";
@@ -281,21 +282,22 @@ sub zipcheck {
             mets_ins($namespace,$objid,"METS_VALID",$mets_valid,$error);
         }
 
-        { # has notes
-            my $has_notes = $mets->findvalue('count(//mets:mdref[@LABEL="production notes"])');
-            mets_ins($namespace,$objid,"HAS_NOTES",$has_notes);
+        {
+            eval {
+                my %mdsecs = ();
+                foreach my $mdsec ( $mets->findnodes('//mets:mdWrap | //mets:mdRef') ) {
+                    my @mdbits = ();
+                    push(@mdbits,$mdsec->nodeName);
+                    foreach my $attr (qw(LABEL MDTYPE OTHERMDTYPE)) {
+                        my $attrval = $mdsec->getAttribute($attr);
+                        if($attrval and $attrval ne '') {
+                            push(@mdbits,"$attr=$attrval");
+                        }
+                    }
+                    mets_ins($namespace,$objid,"METS_MDSEC",join("; ",@mdbits));
+                }
+            }
         }
-
-        { # has pagedata
-            my $has_pagedata = $mets->findvalue('count(//mets:mdref[@LABEL="page metadata"])');
-            mets_ins($namespace,$objid,"HAS_PAGEDATA",$has_pagedata);
-        }
-
-        { # has PDF
-            my $has_pdf = $mets->findvalue('count(//mets:mdref[@OTHERMDTYPE="pdf"])');
-            mets_ins($namespace,$objid,"HAS_PDF",$has_pdf);
-        }
-
 
         { # Page tagging
             my $has_pagetags = $mets->findvalue('count(//mets:div[@TYPE="page"]/@LABEL[string() != ""])');
@@ -344,6 +346,7 @@ sub extract_source_mets {
         set_status($namespace,$objid,$zipfile,"MULTIPLE_SOURCE_METS_CANDIDATES",undef);
     } else {
         # source METS found
+        mets_ins($namespace,$objid,"SOURCE_METS",$srcmets[0]);
         system("cd /tmp; unzip -j '$zipfile' '$srcmets[0]'");
         my ($smets_name) = ($srcmets[0] =~ /\/([^\/]+)$/);
         my $tmp_smets_loc = "/tmp/$smets_name";
