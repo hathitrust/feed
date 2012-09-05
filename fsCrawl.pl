@@ -10,6 +10,7 @@ use File::Pairtree qw(ppath2id s2ppchars);
 use HTFeed::Volume;
 use HTFeed::Namespace;
 use HTFeed::PackageType;
+use Getopt::Long;
 use POSIX qw(strftime);
 
 
