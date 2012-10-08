@@ -82,17 +82,22 @@ sub enqueue_volumes{
                 $status = $volume->get_nspkg()->get('default_queue_state');
             }
 
+            my $blacklisted = 0;
             if($use_blacklist) {
                 $blacklist_sth->execute($namespace,$objid);
                 if($blacklist_sth->fetchrow_array()) {
                     get_logger()->warn("Blacklisted",namespace=>$namespace,objid=>$objid);
                     push(@results,0);
+                    $blacklisted = 1;
                 }
             }
 
-            my $res = $sth->execute($volume->get_packagetype(), $volume->get_namespace(), $volume->get_objid(), initial_priority($volume,$priority_modifier), $status);
-            push @results, $res;
-        } or get_logger()->error($@) and return \@results;
+            if(!$blacklisted) {
+                my $res = $sth->execute($volume->get_packagetype(), $volume->get_namespace(), $volume->get_objid(), initial_priority($volume,$priority_modifier), $status);
+                push @results, $res;
+            }
+        };
+        get_logger()->error($@) and return \@results if $@;
     }
 
     # set priorities for newly added volumes
