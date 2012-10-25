@@ -353,7 +353,10 @@ sub _add_premis {
         }
     }
 
-    $self->_add_source_mets_events();
+    # don't re-add source METS events if this is an uplift
+    if(!$self->{is_uplift}) {
+        $self->_add_source_mets_events();
+    }
 
     # create PREMIS object
     my $premis_object =
