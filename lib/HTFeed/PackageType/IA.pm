@@ -153,6 +153,11 @@ our $config = {
     '%s_files.xml',
     '%s_scanfactors.xml' ],
 
+    # migrate old 'transformation' events 
+    migrate_events => {
+        'transformation' => 'image_header_modification',
+    }
+
 
 };
 

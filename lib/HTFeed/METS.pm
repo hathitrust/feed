@@ -41,7 +41,8 @@ sub new {
 
 sub run {
     my $self = shift;
-    my $mets = new METS( objid => $self->{volume}->get_identifier() );
+    my $mets = new METS( objid => $self->{volume}->get_identifier(),
+                         profile => 'FOR_CHRIS_TO_FILL_IN' );
     $self->{'mets'}    = $mets;
     $self->{'amdsecs'} = [];
 
@@ -75,11 +76,30 @@ sub _add_header {
     my $self = shift;
     my $mets = $self->{mets};
 
-    my $header = new METS::Header(
-        createdate   => _get_createdate(),
-        recordstatus => 'NEW',
-        id           => 'HDR1',
-    );
+    my $header;
+
+    if($self->{is_uplift}) {
+        my $volume = $self->{volume};
+        my $xc = $volume->get_repository_mets_xpc();
+        my $createdate = $xc->findvalue('//mets:metsHdr/@CREATEDATE');
+        if(not defined $createdate or !$createdate) {
+            $self->setError('BadValue',field=>'//metsHdr/@CREATEDATE',
+                detail=>"can't get METS creation time",
+                file=>$volume->get_repository_mets_path());
+        }
+        $header = new METS::Header(
+            createdate => $createdate,
+            lastmoddate => _get_createdate(),
+            recordstatus => 'REV',
+            id => 'HDR1',
+        );
+    } else {
+        $header = new METS::Header(
+            createdate   => _get_createdate(),
+            recordstatus => 'NEW',
+            id           => 'HDR1',
+        );
+    }
     $header->add_agent(
         role => 'CREATOR',
         type => 'ORGANIZATION',
@@ -127,6 +147,17 @@ sub _extract_old_premis {
         my ( $mets_in_rep_valid, $val_results ) =
         $self->validate_xml($mets_in_repos);
         if ($mets_in_rep_valid) {
+            # create map of event types to event details -- for use in updating old event details
+            my %event_map = ();
+            my $nspkg = $volume->get_nspkg();
+            foreach my $eventconfig ( (@{ $nspkg->get('source_premis_events_extract') }, 
+                                      @{ $nspkg->{packagetype}->get('premis_events') }, # underlying original events
+                                      @{ $nspkg->get('premis_events') }) ) { # overridden events
+                my $eventconfig_info = $nspkg->get_event_configuration($eventconfig);
+                my $eventconfig_type = $eventconfig_info->{type};
+                $event_map{$eventconfig_type} = $eventconfig_info->{detail};
+            }
+
             my $xc = $volume->get_repository_mets_xpc();
 
             foreach my $event ( $xc->findnodes('//premis:event') ) {
@@ -144,6 +175,22 @@ sub _extract_old_premis {
                         field => "$field",
                         node  => $event->toString()
                     ) unless defined $eventinfo->{$field} and $eventinfo->{$field};
+                }
+
+                # migrate obsolete events
+                my $migrate_events = $nspkg->get('migrate_events');
+                my $new_event_tag = $migrate_events->{$eventinfo->{eventtype}};
+                if(defined $new_event_tag) {
+                    my $new_eventinfo = $nspkg->get_event_configuration($new_event_tag);
+                    # update eventType,eventDetail
+                    my $eventtype_node = ($xc->findnodes("./premis:eventType",$event))[0];
+                    $eventtype_node->removeChildNodes();
+                    $eventtype_node->appendText($new_eventinfo->{type});
+                    my $eventdetail_node = ($xc->findnodes("./premis:eventDetail",$event))[0];
+                    $eventdetail_node->removeChildNodes();
+                    $eventdetail_node->appendText($new_eventinfo->{detail});
+                    # event UUID will automatically update below
+                    get_logger()->info("Migrated $eventinfo->{eventtype} event to $new_eventinfo->{type}");
                 }
 
                 # if we don't have the time zone try to infer it from the agent and update
@@ -192,8 +239,20 @@ sub _extract_old_premis {
                     $eventidtype_node->appendText('UUID');
                 }
 
+                # update eventDetail
+                my $eventdetail_node = ($xc->findnodes("./premis:eventDetail",$event))[0];
+                my $text = $eventdetail_node->textContent();
+                my $newtext = $event_map{$eventinfo->{eventtype}};
+                if(defined $newtext
+                       and $newtext ne $text) {
+                    $eventdetail_node->removeChildNodes();
+                    $eventdetail_node->appendText($event_map{$eventinfo->{eventtype}});
+                    get_logger()->info("Updated detail for $eventinfo->{eventtype} from '$text' to '$newtext'");
+                }
+
                 $self->{old_event_types}->{$eventinfo->{eventtype}} = $event;
                 $old_events->{$uuid} = $event;
+
             }
         } else {
             # TODO after uplift: make this an error.
