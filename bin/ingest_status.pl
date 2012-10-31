@@ -37,18 +37,19 @@ GetOptions(
 pod2usage(1) if $help;
 
 # check options
-pod2usage(-msg => '-1 and -d flags incompatible', -exitval => 2) if ($one_line);
 pod2usage(-msg => '-n excludes -d and -1', -exitval => 2) if ($default_namespace) and ($one_line or $dot);
-
-if ($one_line){
-    $default_namespace = shift;
-}
 
 my @volumes;
 
 # handle -1 flag (no infile read, get one object form command line)
-if ($one_line) {
-    my $objid = shift;
+if($one_line and $dot) {
+    my $htid = shift @ARGV;
+    my ($namespace, $objid) = parse_htid($htid);
+    push @volumes, HTFeed::Volume->new(packagetype => 'ht', namespace => $namespace, objid => $objid);
+}
+elsif ($one_line) {
+    my $namespace = shift @ARGV;
+    my $objid = shift @ARGV;
     unless( $default_namespace and $objid ){
         die 'Must specify namespace and objid when using -1 option';
     }
@@ -58,13 +59,8 @@ if ($one_line) {
 else{
     # handle -d (read infile in dot format)
     if ($dot) {
-        while (<>) {
-            # simplified, lines should match /(.*)\.(.*)/
-            $_ =~ /^([^\.\s]*)\.([^\s]*)$/;
-            my ($namespace,$objid) = ($1,$2);
-            unless( $namespace and $objid ){
-                die "Bad syntax near: $_";
-            }
+        while (my $htid = <>) {
+            my ($namespace,$objid) = parse_htid($htid);
 
             push @volumes, HTFeed::Volume->new(packagetype => 'ht', namespace => $namespace, objid => $objid);
         }
@@ -150,6 +146,17 @@ foreach my $volume (@volumes) {
         print "\n";
     }
 
+}
+
+sub parse_htid {
+    my $htid = shift;
+    # simplified, lines should match /(.*)\.(.*)/
+    $htid =~ /^([^\.\s]*)\.([^\s]*)$/;
+    my ($namespace,$objid) = ($1,$2);
+    unless( $namespace and $objid ){
+        die "Bad syntax near: $htid";
+    }
+    return($namespace,$objid);
 }
 
 __END__
