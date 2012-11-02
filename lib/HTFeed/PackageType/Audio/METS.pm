@@ -28,7 +28,7 @@ sub _add_techmds {
     my $reading_order = new METS::MetadataSection( 'techMD',
         id => $self->_get_subsec_id('techMD'));
 
-    my @mdwraps = $xc->findnodes('//METS:mdRef[@LABEL="production notes"]');
+    my @mdwraps = $xc->findnodes('//mets:mdRef[@LABEL="production notes"]');
     if(@mdwraps != 1) {
         my $count = scalar(@mdwraps);
         $self->set_error("BadField",field=>"production notes",decription=>"Found $count production notes techMDs, expected 1");
