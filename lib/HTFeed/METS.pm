@@ -122,7 +122,7 @@ sub _add_dmdsecs {
     $dmdsec->set_md_ref(
         mdtype       => 'MARC',
         loctype      => 'OTHER',
-        otherloctype => 'Item ID stored as second call number in item record',
+        otherloctype => 'Item ID stored in HathiTrust Metadata Management System',
         xptr         => $volume->get_identifier()
     );
     $mets->add_dmd_sec($dmdsec);
@@ -134,6 +134,40 @@ sub _add_techmds {
     my $self = shift;
 }
 
+sub _update_event_date {
+    my $self = shift;
+
+    my $event = shift;
+    my $xc = shift;
+    my $date = shift;
+
+    my $volume = $self->{volume};
+
+    # if we don't have the time zone try to infer it from the agent and update
+    # the date based on that
+    if($date =~ /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/) {
+        my $from_tz = undef;
+        my $agent = $xc->findvalue("./premis:linkingAgentIdentifier[premis:linkingAgentRole/text()='Executor']/premis:linkingAgentIdentifierValue",$event);
+        if($agent eq 'MiU' or $agent eq 'UM' or $agent =~ /Michigan/) {
+            $from_tz = 'America/Detroit';
+        }
+        elsif($agent eq 'Ca-MvGOO' or $agent =~ /Google/) {
+            $from_tz = 'America/Los_Angeles';
+        } elsif($agent eq 'IA' or $agent eq 'CaSfIA' or $agent =~ /Internet Archive/) {
+            $from_tz = 'America/Los_Angeles';
+        }
+
+        if(defined $from_tz) {
+            $date = $self->convert_tz($date,$from_tz);
+            my $eventdateTimeNode = ($xc->findnodes('./premis:eventDateTime',$event))[0];
+            $eventdateTimeNode->removeChildNodes();
+            $eventdateTimeNode->appendText($date);
+        }
+    }
+
+    return $date;
+}
+
 # extract existing PREMIS events from object currently in repos
 sub _extract_old_premis {
     my $self   = shift;
@@ -141,6 +175,7 @@ sub _extract_old_premis {
 
     my $mets_in_repos = $volume->get_repository_mets_path();
     my $old_events = {};
+    my $need_uplift_event = 0;
 
     if ( defined $mets_in_repos ) {
 
@@ -179,79 +214,88 @@ sub _extract_old_premis {
 
                 # migrate obsolete events
                 my $migrate_events = $nspkg->get('migrate_events');
-                my $new_event_tag = $migrate_events->{$eventinfo->{eventtype}};
-                if(defined $new_event_tag) {
-                    my $new_eventinfo = $nspkg->get_event_configuration($new_event_tag);
-                    # update eventType,eventDetail
-                    my $eventtype_node = ($xc->findnodes("./premis:eventType",$event))[0];
-                    $eventtype_node->removeChildNodes();
-                    $eventtype_node->appendText($new_eventinfo->{type});
+                my $new_event_tags = $migrate_events->{$eventinfo->{eventtype}};
+                if(defined $new_event_tags) {
+                    my $old_event_type = $eventinfo->{eventtype};
+                    $new_event_tags = [$new_event_tags] unless ref($new_event_tags);
+                    foreach my $new_event_tag (@$new_event_tags) {
+                        my $new_event = $event->cloneNode(1);
+
+                        my $new_eventinfo = $nspkg->get_event_configuration($new_event_tag);
+
+                        # update eventType,eventDetail
+                        my $eventtype_node = ($xc->findnodes("./premis:eventType",$new_event))[0];
+                        $eventtype_node->removeChildNodes();
+                        $eventtype_node->appendText($new_eventinfo->{type});
+                        $eventinfo->{eventtype} = $new_eventinfo->{type};
+
+                        my $eventdetail_node = ($xc->findnodes("./premis:eventDetail",$new_event))[0];
+                        $eventdetail_node->removeChildNodes();
+                        $eventdetail_node->appendText($new_eventinfo->{detail});
+
+                        # update eventDate
+                        my $new_date = $self->_update_event_date($new_event,$xc,$eventinfo->{date});
+
+                        # create new event UUID
+                        my $uuid = $volume->make_premis_uuid($new_eventinfo->{type},$new_date);
+                        my $eventidval_node = ($xc->findnodes("./premis:eventIdentifier/premis:eventIdentifierValue",$new_event))[0];
+                        $eventidval_node->removeChildNodes();
+                        $eventidval_node->appendText($uuid);
+
+                        my $eventidtype_node = ($xc->findnodes("./premis:eventIdentifier/premis:eventIdentifierType",$new_event))[0];
+                        $eventidtype_node->removeChildNodes();
+                        $eventidtype_node->appendText('UUID');
+                        
+                        $old_events->{$uuid} = $new_event;
+                        $self->{old_event_types}->{$new_eventinfo->{type}} = $event;
+                        $need_uplift_event = 1;
+                        get_logger()->info("Migrated $old_event_type event to $new_eventinfo->{type}");
+                    }
+                } else {
+
+                    # update eventDetail
                     my $eventdetail_node = ($xc->findnodes("./premis:eventDetail",$event))[0];
-                    $eventdetail_node->removeChildNodes();
-                    $eventdetail_node->appendText($new_eventinfo->{detail});
-                    # event UUID will automatically update below
-                    get_logger()->info("Migrated $eventinfo->{eventtype} event to $new_eventinfo->{type}");
-                }
-
-                # if we don't have the time zone try to infer it from the agent and update
-                # the date based on that
-                if($eventinfo->{date} =~ /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/) {
-                    my $from_tz = undef;
-                    my $agent = $xc->findvalue("./premis:linkingAgentIdentifier[premis:linkingAgentRole/text()='Executor']/premis:linkingAgentIdentifierValue",$event);
-                    if($agent eq 'MiU' or $agent eq 'UM' or $agent =~ /Michigan/) {
-                        $from_tz = 'America/Detroit';
-                    }
-                    elsif($agent eq 'Ca-MvGOO' or $agent =~ /Google/) {
-                        $from_tz = 'America/Los_Angeles';
-                    } elsif($agent eq 'IA' or $agent eq 'CaSfIA' or $agent =~ /Internet Archive/) {
-                        # TODO: need to confirm this
-                        # $from_tz = 'America/Los_Angeles';
+                    my $text = $eventdetail_node->textContent();
+                    my $newtext = $event_map{$eventinfo->{eventtype}};
+                    if(defined $newtext
+                            and $newtext ne $text) {
+                        $eventdetail_node->removeChildNodes();
+                        $eventdetail_node->appendText($event_map{$eventinfo->{eventtype}});
+                        $need_uplift_event = 1;
+                        get_logger()->info("Updated detail for $eventinfo->{eventtype} from '$text' to '$newtext'");
                     }
 
-                    if(defined $from_tz) {
-                        $eventinfo->{date} = $self->convert_tz($eventinfo->{date},$from_tz);
-                        my $eventdateTimeNode = ($xc->findnodes('./premis:eventDateTime',$event))[0];
-                        $eventdateTimeNode->removeChildNodes();
-                        $eventdateTimeNode->appendText($eventinfo->{date});
+                    # update eventDate
+                    my $event_date = $self->_update_event_date($event,$xc,$eventinfo->{date});
+
+                    # update event UUID
+                    my $uuid = $volume->make_premis_uuid($eventinfo->{eventtype},$event_date);
+                    my $update_eventid = 0;
+                    if($eventinfo->{eventidtype} ne 'UUID') {
+                        get_logger()->info("Updating old event ID type $eventinfo->{eventidtype} to UUID for $eventinfo->{eventtype}/$eventinfo->{date}");
+                        $need_uplift_event = 1;
+                        $update_eventid = 1;
+                    } elsif($eventinfo->{eventid} ne $uuid) {
+                        # UUID may change if it was originally computed incorrectly
+                        # or if the time zone is now included in the date
+                        # calculation.
+                        get_logger()->warn("Warning: calculated UUID for $eventinfo->{eventtype} on $eventinfo->{date} did not match saved UUID; updating.");
+                        $need_uplift_event = 1;
+                        $update_eventid = 1;
                     }
+
+                    if($update_eventid) {
+                        my $eventidval_node = ($xc->findnodes("./premis:eventIdentifier/premis:eventIdentifierValue",$event))[0];
+                        $eventidval_node->removeChildNodes();
+                        $eventidval_node->appendText($uuid);
+                        my $eventidtype_node = ($xc->findnodes("./premis:eventIdentifier/premis:eventIdentifierType",$event))[0];
+                        $eventidtype_node->removeChildNodes();
+                        $eventidtype_node->appendText('UUID');
+                    }
+
+                    $self->{old_event_types}->{$eventinfo->{eventtype}} = $event;
+                    $old_events->{$uuid} = $event;
                 }
-
-
-                my $uuid = $volume->make_premis_uuid($eventinfo->{eventtype},$eventinfo->{date});
-                my $update_eventid = 0;
-                if($eventinfo->{eventidtype} ne 'UUID') {
-                    get_logger()->info("Updating old event ID type $eventinfo->{eventidtype} to UUID for $eventinfo->{eventtype}/$eventinfo->{date}");
-                    $update_eventid = 1;
-                } elsif($eventinfo->{eventid} ne $uuid) {
-                    # UUID may change if it was originally computed incorrectly
-                    # or if the time zone is now included in the date
-                    # calculation.
-                    get_logger()->warn("Warning: calculated UUID for $eventinfo->{eventtype} on $eventinfo->{date} did not match saved UUID; updating.");
-                    $update_eventid = 1;
-                }
-
-                if($update_eventid) {
-                    my $eventidval_node = ($xc->findnodes("./premis:eventIdentifier/premis:eventIdentifierValue",$event))[0];
-                    $eventidval_node->removeChildNodes();
-                    $eventidval_node->appendText($uuid);
-                    my $eventidtype_node = ($xc->findnodes("./premis:eventIdentifier/premis:eventIdentifierType",$event))[0];
-                    $eventidtype_node->removeChildNodes();
-                    $eventidtype_node->appendText('UUID');
-                }
-
-                # update eventDetail
-                my $eventdetail_node = ($xc->findnodes("./premis:eventDetail",$event))[0];
-                my $text = $eventdetail_node->textContent();
-                my $newtext = $event_map{$eventinfo->{eventtype}};
-                if(defined $newtext
-                       and $newtext ne $text) {
-                    $eventdetail_node->removeChildNodes();
-                    $eventdetail_node->appendText($event_map{$eventinfo->{eventtype}});
-                    get_logger()->info("Updated detail for $eventinfo->{eventtype} from '$text' to '$newtext'");
-                }
-
-                $self->{old_event_types}->{$eventinfo->{eventtype}} = $event;
-                $old_events->{$uuid} = $event;
 
             }
         } else {
@@ -272,6 +316,9 @@ sub _extract_old_premis {
             if not defined $self->{old_event_types}->{$required_event_type};
         }
 
+        if($need_uplift_event) {
+            $volume->record_premis_event('premis_migration');
+        }
         return $old_events;
 
     }

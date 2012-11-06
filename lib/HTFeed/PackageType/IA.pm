@@ -155,7 +155,7 @@ our $config = {
 
     # migrate old 'transformation' events 
     migrate_events => {
-        'transformation' => 'image_header_modification',
+        'transformation' => ['image_header_modification','package_inspection','ocr_normalize'],
     }
 
 

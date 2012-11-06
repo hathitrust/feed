@@ -34,8 +34,8 @@ sub run {
 
     # add uplift METS events; mess with PREMIS events we will include.
 
-    my $pkg_type = $volume->get_nspkg();
-    my $pkg_class = ref($pkg_type);
+    my $nspkg = $volume->get_nspkg();
+    my $pkg_class = ref($nspkg);
     no strict 'refs';
     my $pkg_config = ${"${pkg_class}::config"};
     $pkg_config->{premis_events} = [
@@ -76,16 +76,37 @@ sub run {
 
     # for each premis2 event type in old METS //premis:eventType/text()
       # count of events in new PREMIS much match count in old PREMIS //premis:eventType='$event_type'
+    # is this an event we're migrating?
+    my $migrate_events = $nspkg->get('migrate_events');
     foreach my $event_type_node ($old_xpc->findnodes("//premis:eventType")) {
-        my $event_type = $event_type_node->textContent();
+        my $old_event_type = $event_type_node->textContent();
+        my @new_event_types = ($old_event_type);
 
-        my $query = "count(//premis:eventType[text()='$event_type']";
-        my $old_event_count = $old_xpc->findvalue($query);
-        my $new_event_count = $new_xpc->findvalue($query);
-        $self->assert_equal($old_event_count,$new_event_count,"count($query)");
+        if(my $new_event_tags = $migrate_events->{$old_event_type}) {
+            @new_event_types = map { $nspkg->get_event_configuration($_)->{type} } @$new_event_tags;
+        }
+
+        foreach my $new_event_type (@new_event_types) {
+            my $old_event_count = $old_xpc->findvalue("count(//premis:eventType[text()='$old_event_type'])");
+            my $new_event_count = $new_xpc->findvalue("count(//premis:eventType[text()='$new_event_type'])");
+            $self->assert_equal($old_event_count,$new_event_count,"count $old_event_type = $new_event_type)");
+        }
     }
 
-    # verify mapping of PREMIS1 events??
+    # for each premis2 event type in new METS, verify a few things..
+    foreach my $event_node ($new_xpc->findnodes("//premis:event")) {
+        $self->assert_equal("UUID",$new_xpc->findvalue(".//premis:eventIdentifierType",$event_node),"eventIdentifierType");
+
+        my $identifier = $new_xpc->findvalue(".//premis:eventIdentifierValue",$event_node);
+        if(not defined $identifier or $identifier !~ /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/) {
+            $self->set_error("BadValue",field=>"eventIdentifierValue",file=>$new_mets_file,value=>$identifier);
+        }
+    }
+
+    # make sure there are no PREMIS1 events in the new file
+    foreach my $event_node ($new_xpc->findnodes("//premis1:event")) {
+        $self->set_error("BadFile",file=>$new_mets_file,detail=>"Unexpected PREMIS1 event found");
+    }
 
     # for each //mets:file
     #   the //mets:file with that ID in the new METS must have the same attributes except CREATED
