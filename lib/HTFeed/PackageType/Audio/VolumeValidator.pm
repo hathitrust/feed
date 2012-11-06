@@ -30,7 +30,7 @@ sub _validate_mets_consistency {
 
 	#definitions for comparison tests
 	my $source_analogDigitalFlag = $xpc->findvalue("//mets:sourceMD/mets:mdWrap/mets:xmlData/aes:audioObject/\@analogDigitalFlag");
-    my $source_format = $xpc->findvalue("//mets:sourceMD/mets:mdWrap/mets:xmlData/aes:audioObject/aes:use/aes:format");
+    my $source_format = $xpc->findvalue("//mets:sourceMD/mets:mdWrap/mets:xmlData/aes:audioObject/aes:format");
 	my $source_bitDepth = $xpc->findvalue("//mets:sourceMD/mets:mdWrap/mets:xmlData/aes:audioObject/aes:formatList/aes:formatRegion/aes:bitDepth");
 	my $source_sampleRate = $xpc->findvalue("//mets:sourceMD/mets:mdWrap/mets:xmlData/aes:audioObject/aes:formatList/aes:formatRegion/aes:sampleRate");
 
@@ -46,12 +46,12 @@ sub _validate_mets_consistency {
 		next if($notes);
 	
 		# get wav techMD
-		my $rawFile = $xpc->findvalue("//mets:techMD[\@ID='$techmd_id']/mets:mdWrap/mets:xmlData/aes:audioObject/\@ID");
+		$file = $xpc->findvalue("//mets:techMD[\@ID='$techmd_id']/mets:mdWrap/mets:xmlData/aes:audioObject/\@ID");
 
 		# remediate...
 		my $ns = $volume->get_namespace();
 		my $objid = $volume->get_objid();
-		if($rawFile =~ m/($ns\.)($objid\.)(.+)/){
+		if($file =~ m/($ns\.)($objid[.-])(.+)/){
 			$file = $3 . ".wav";
 		}
 
@@ -137,19 +137,18 @@ sub _validate_mets_consistency {
 	if($source_UseType ne "ORIGINAL_MASTER") {
     	$self->set_error("BadValue",field=>'source useType',actual=>$source_UseType,expected=>"ORIGINAL_MASTER");
 	}
-
-	my $speedCoarse = $xpc->findvalue("//mets:sourceMD/mets:mdWrap/mets:xmlData/aes:audioObject/aes:formatList/aes:formatRegion/aes:speed/aes:speedCoarse");
-	if ($speedCoarse eq '')  {
-		$self->set_error("MissingField", field =>'speedCoarse');
-	}
-	
 	if ($source_format eq "DAT" || $source_format eq "CD") {
  		if ($source_analogDigitalFlag ne "PHYS_DIGITAL") {
 			$self->set_error("BadValue",field=>'analogDigitalFlag',expected=>'PHYS_DIGITAL',actual=>$source_analogDigitalFlag);
 		}
-	} elsif ($source_analogDigitalFlag ne "ANALOG") {
-		$self->set_error("BadValue",field=>'analogDigitalFlag',expected=>'ANALOG',actual=>$source_analogDigitalFlag);
-	}
+	} elsif ($source_analogDigitalFlag eq "ANALOG") {
+        my $speedCoarse = $xpc->findvalue("//mets:sourceMD/mets:mdWrap/mets:xmlData/aes:audioObject/aes:formatList/aes:formatRegion/aes:speed/aes:speedCoarse");
+        if ($speedCoarse eq '')  {
+            $self->set_error("MissingField", field =>'speedCoarse');
+        }
+	} else {
+		$self->set_error("BadValue",field=>'analogDigitalFlag',expected=>'ANALOG|PHYS_DIGITAL',actual=>$source_analogDigitalFlag);
+    }
 
 	# validate checksums
 	$self->_validate_checksums(\%checksums);

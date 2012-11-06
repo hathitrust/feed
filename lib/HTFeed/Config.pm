@@ -33,7 +33,9 @@ sub init{
     # load config files
     my $filename;
     eval{
-        foreach my $config_file (sort(glob("$config_dir/*.yml"))){
+        my @config_files = sort(glob("$config_dir/*.yml"));
+        push (@config_files, $ENV{HTFEED_CONFIG}) if(defined $ENV{HTFEED_CONFIG});
+        foreach my $config_file (@config_files) {
 			$filename = $config_file;
             if($config){
                 $config->merge(file => $config_file);
