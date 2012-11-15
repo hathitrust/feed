@@ -17,7 +17,7 @@ sub run{
         # unpack only .txt files
         $self->unzip_file($zipfile,$volume->get_staging_directory()) or return;
         # add link to zip file for METS regeneration
-        system("ln -s $zipfile " . $volume->get_zip_directory());
+        system("ln -s '$zipfile' '" . $volume->get_zip_directory() . "'");
     }
     else{
         $self->set_error('MissingFile',file=>$zipfile);
