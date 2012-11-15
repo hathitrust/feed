@@ -42,7 +42,7 @@ sub new {
 sub run {
     my $self = shift;
     my $mets = new METS( objid => $self->{volume}->get_identifier(),
-                         profile => 'FOR_CHRIS_TO_FILL_IN' );
+                         profile => get_config('mets_profile') );
     $self->{'mets'}    = $mets;
     $self->{'amdsecs'} = [];
 
