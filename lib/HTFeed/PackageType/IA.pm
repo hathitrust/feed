@@ -124,6 +124,9 @@ our $config = {
         packed            => 'HTFeed::METS',
         metsed            => 'HTFeed::Stage::Handle',
         handled           => 'HTFeed::Stage::Collate',
+
+        needs_uplift => 'HTFeed::Stage::RepositoryUnpack',
+        uplift_unpacked => 'HTFeed::Stage::ReMETS'
     },
 
 
@@ -149,6 +152,11 @@ our $config = {
     non_core_package_items => [ 
     '%s_files.xml',
     '%s_scanfactors.xml' ],
+
+    # migrate old 'transformation' events 
+    migrate_events => {
+        'transformation' => ['image_header_modification','package_inspection','ocr_normalize','source_mets_creation'],
+    }
 
 
 };

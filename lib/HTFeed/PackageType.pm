@@ -85,7 +85,10 @@ BEGIN {
         use_schema_caching => 1,
 
         # use default volume module
-        volume_module => 'HTFeed::Volume'
+        volume_module => 'HTFeed::Volume',
+
+        # don't migrate any events by default
+        migrate_events => {}
 
     };
 }

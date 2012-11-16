@@ -7,173 +7,35 @@ use base qw(HTFeed::METS);
 use POSIX qw(strftime);
 use Image::ExifTool;
 
+sub _add_source_mets_events {
 
-# Override base class _add_dmdsecs to not try to add MARC
-
-
-sub _add_dmdsecs {
-    my $self   = shift;
-    my $volume = $self->{volume};
-    my $mets   = $self->{mets};
-
-    my $dmdsec =
-      new METS::MetadataSection( 'dmdSec',
-        'id' => $self->_get_subsec_id("DMD") );
-    $dmdsec->set_md_ref(
-        mdtype       => 'MARC',
-        loctype      => 'OTHER',
-        otherloctype => 'Item ID stored as second call number in item record',
-        xptr         => $volume->get_identifier()
-    );
-    $mets->add_dmd_sec($dmdsec);
-
-}
-
-sub _add_schemas {
-    my $self = shift;
-    my $mets = $self->{mets};
-
-    # add PREMIS1 namespace but don't worry about validating it
-    $mets->add_schema( "PREMIS", NS_PREMIS1);
-
-}
-
-sub _add_premis {
     my $self = shift;
     my $volume = $self->{volume};
-    my $nspkg = $volume->get_nspkg();
-    $self->{parser} = new XML::LibXML;
 
-    # preservationLevel
-
-    # keep track of count for each kind of event
-    $self->{premis_xml} = "";
-    $self->{event_type_counters} = {};
-    $self->{old_events} = {};
-
-    my $premis_obj_MD =
-      new METS::MetadataSection( 'techMD', 'id' => 'premisobject1' );
-    $premis_obj_MD->set_xml_node( $self->{parser}->parse_xml_chunk(<<"EOT"), mdtype => 'PREMIS' );
-
-        <PREMIS:object xmlns:PREMIS="http://www.loc.gov/standards/premis">
-               <PREMIS:preservationLevel>1</PREMIS:preservationLevel>
-        </PREMIS:object>
-EOT
-    push( @{ $self->{amd_mdsecs} }, $premis_obj_MD );
-
-    $self->{premis_node} = new XML::LibXML::DocumentFragment();
-
-    # old PREMIS events
-    my $xpc = $volume->get_repository_mets_xpc();
-    if(defined $xpc) {
-        foreach my $event ($xpc->findnodes('//premis1:event')) {
-            my $PREMIS_id = $xpc->findvalue('.//premis1:eventIdentifierValue',$event);
-            my $PREMIS_type = $xpc->findvalue('.//premis1:eventType',$event);
-            my $PREMIS_date = $xpc->findvalue('.//premis1:eventDateTime',$event);
-
-            $self->{old_events}{$PREMIS_type}{$PREMIS_date} = $event;
-
-            # canonicalize to ensure namespaces handled correctly
-            $self->{premis_node}->appendChild($event);
-            my ($eventIdPrefix,$eventCount) = $PREMIS_id =~ /^(\D+)(\d+)$/;
-            if(defined $eventCount) {
-                if(not defined $self->{event_type_counters}{$eventIdPrefix}
-                        or $self->{event_type_counters}{$eventIdPrefix} < $eventCount) {
-                    $self->{event_type_counters}{$eventIdPrefix} = $eventCount;
-                }
-            } else {
-                $self->set_error("BadField",field => "premis1:eventIdentifierValue",actual=>$PREMIS_id);
-            }
-        }
-    }
-
-    # new events
-
-    my $capture_agent = $volume->get_nspkg()->get('capture_agent');
-
-    my $capture_time = $self->_get_capture_time();
-    my $checksum_time = $self->_get_checksum_time();
-
-    $self->_add_premis_event(type => 'capture', time => $capture_time, agent => $capture_agent);
-    $self->_add_premis_event(type => 'compression', time => $capture_time, agent => $capture_agent);
-
-    # message digest calculation -> Google, convert date from source METS
-
-
-    # only add fixity check event if there was a checksum file with the SIP
-    if(-e $volume->get_staging_directory() . "/" . $volume->get_nspkg()->get('checksum_file')) {
-        $self->_add_premis_event(type => 'fixity check', time => $self->_get_event_time('page_md5_fixity'), agent => 'UM',
-                               outcome => <<"EOT");
-                 <PREMIS:eventOutcomeInformation>
-                        <PREMIS:eventOutcomeDetail>pass</PREMIS:eventOutcomeDetail>
-                 </PREMIS:eventOutcomeInformation>
-EOT
-        $self->_add_premis_event(type => 'message digest calculation', time => $checksum_time, agent => $capture_agent);
-    } else {
-        $self->_add_premis_event(type => 'message digest calculation', time => $checksum_time, agent => 'UM');
-    }
-
-    $self->_add_premis_event(type => 'validation', time => $self->_get_event_time('package_validation'), agent => 'UM');
-
-    # ingestion -> now
-    # last chance to record, even though it's not done yet
-    $volume->record_premis_event('ingestion');
-    $self->_add_premis_event(type => 'ingestion', time => $self->_get_event_time('ingestion'), agent => 'UM');
-
-    my $digiprovMD =
-      new METS::MetadataSection( 'digiprovMD', 'id' => 'premisevent1' );
-    $digiprovMD->set_xml_node($self->{premis_node}, mdtype => 'PREMIS' );
-    push( @{ $self->{amd_mdsecs} }, $digiprovMD );
-
-    return;
-}
-
-sub _add_premis_event {
-    my $self = shift;
-    my %params = @_;
-    my $namespace = NS_PREMIS1;
-
-    foreach my $param (qw(type agent time)) {
-        if(not defined $params{$param} or $params{$param} eq '') {
-            $self->set_error("MissingField",field=>"premis_$param",actual=>\%params);
-        }
-    }
-
-    my $outcome = "";
-    $outcome = "\n" . $params{outcome} if defined $params{outcome};
-
-    # Haven't seen this event: get a new event ID and add it
-    if(not defined ($self->{'old_events'}{$params{'type'}}{$params{'time'}})) {
+    # only do this if we aren't uplifting?
     
+    if(!$self->is_uplift()) {
+        my $capture_time = $self->_get_capture_time();
+        my $checksum_time = $self->_get_checksum_time();
+        my $capture_agent = $volume->get_nspkg()->get('capture_agent');
+        $self->_add_premis_event(type => 'capture', time => $capture_time, agent => $capture_agent);
+        $self->_add_premis_event(type => 'compression', time => $capture_time, agent => $capture_agent);
 
-        my $eventSeq = ++$self->{event_type_counters}{$params{type}};
-
-        $self->{premis_node}->appendChild( $self->{parser}->parse_xml_chunk(<<EOT));
-         <PREMIS:event xmlns:PREMIS="$namespace">
-          <PREMIS:eventIdentifier>
-           <PREMIS:eventIdentifierValue>$params{type}$eventSeq</PREMIS:eventIdentifierValue>
-          </PREMIS:eventIdentifier>
-          <PREMIS:eventType>$params{type}</PREMIS:eventType>
-          <PREMIS:eventDateTime>$params{time}</PREMIS:eventDateTime>$outcome
-          <PREMIS:linkingAgentIdentifier>
-           <PREMIS:linkingAgentIdentifierType>AgentID</PREMIS:linkingAgentIdentifierType>
-           <PREMIS:linkingAgentIdentifierValue>$params{agent}</PREMIS:linkingAgentIdentifierValue>
-          </PREMIS:linkingAgentIdentifier>
-         </PREMIS:event>
+        # message digest calculation -> Google, convert date from source METS
+        # only add fixity check event if there was a checksum file with the SIP
+        if(-e $volume->get_staging_directory() . "/" . $volume->get_nspkg()->get('checksum_file')) {
+            $self->_add_premis_event(type => 'fixity check', time => $self->_get_event_time('page_md5_fixity'), agent => 'UM',
+                                   outcome => <<"EOT");
+                     <PREMIS:eventOutcomeInformation>
+                            <PREMIS:eventOutcomeDetail>pass</PREMIS:eventOutcomeDetail>
+                     </PREMIS:eventOutcomeInformation>
 EOT
+            $self->_add_premis_event(type => 'message digest calculation', time => $checksum_time, agent => $capture_agent);
+        } else {
+            $self->_add_premis_event(type => 'message digest calculation', time => $checksum_time, agent => 'UM');
+        }
     }
 
-}
-
-# get just the event time from the recorded premis event, since that's all we need for
-# PREMIS 1
-sub _get_event_time {
-    my $self = shift;
-    my $event_id = shift;
-
-    my ($eventid, $date, $outcome_node) = $self->{volume}->get_event_info($event_id);
-
-    return $date;
 
 }
 
@@ -217,11 +79,80 @@ sub _get_checksum_time {
     if(-e $checksum_path) {
         my $checksum_secs = (stat($checksum_path))[9];
 
-        return strftime("%Y-%m-%dT%H:%M:%S",localtime($checksum_secs));
+        return strftime("%Y-%m-%dT%H:%M:%SZ",gmtime($checksum_secs));
     } else {
-        return strftime("%Y-%m-%dT%H:%M:%S",localtime);
+        return strftime("%Y-%m-%dT%H:%M:%SZ",gmtime);
     }
 
 }
+
+sub _extract_old_premis {
+    my $self = shift;
+    my $volume = $self->{volume};
+    my $nspkg = $volume->get_nspkg();
+    my $xpc = $volume->get_repository_mets_xpc();
+    return unless defined $xpc;
+
+    my %premis1_event_map = (
+        capture => [qw(capture)],
+        # we know the Google source METS & image compression was done at the same time as page md5 creation
+        'message digest calculation' => [qw(page_md5_create image_compression)],
+        'fixity check' => [qw(page_md5_fixity)],
+        'ingestion' => [qw(ingestion zip_compression zip_md5_create)],
+        'validation' => [qw(package_validation)]
+    );
+
+    # FIXME: $volume->record_premis_event('mets_update');
+    my $had_premis1 = 0;
+    foreach my $event ($xpc->findnodes('//premis1:event')) {
+        $had_premis1 = 1;
+        my $premis1_type = $xpc->findvalue('./premis1:eventType',$event);
+        if(my $eventcodes = $premis1_event_map{$premis1_type}) {
+            foreach my $eventcode (@$eventcodes) {
+                my $eventconfig = $nspkg->get_event_configuration($eventcode);
+                my $from_tz = undef;
+                $eventconfig->{date} = $xpc->findvalue('./premis1:eventDateTime',$event);
+                # tool is not represented in PREMIS1; don't make up one
+                delete $eventconfig->{'tools'};
+
+                my @agents = $xpc->findnodes('./premis1:linkingAgentIdentifier',$event);
+                if(@agents != 1) {
+                    $self->set_error("BadField",field => "linkingAgentIdentifier",
+                        detail => "Expected 1 linking agent, found " . scalar(@agents));
+                }
+                my $agent = $agents[0];
+                my $agentid = $xpc->findvalue('./premis1:linkingAgentIdentifierValue',$agent);
+                if($agentid eq 'Google, Inc.') {
+                    $eventconfig->{'executor_type'} = 'MARC21 Code';
+                    $eventconfig->{'executor'} = 'Ca-MvGOO';
+                    $from_tz = 'America/Los_Angeles';
+                } elsif($agentid eq 'UM' or $agentid eq 'SPO' or $agentid =~ /Digital.Conversion/) {
+                    $eventconfig->{'executor_type'} = 'MARC21 Code';
+                    $eventconfig->{'executor'} = 'MiU';
+                    $from_tz = 'America/Detroit';
+                } else {
+                    $self->set_error("BadField",field=>"linkingAgentIdentifierValue",
+                        actual => $agentid, 
+                        detail => "Unknown agent ID");
+                }
+
+                # if date doesn't have a time zone and we know what time zone it should be
+                if($eventconfig->{date} =~ /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/ and defined $from_tz) {
+                    $eventconfig->{date} = $self->convert_tz($eventconfig->{date},$from_tz);
+                } 
+
+                $eventconfig->{'eventid'} =  $volume->make_premis_uuid($eventconfig->{'type'},$eventconfig->{'date'});
+
+                $self->{old_event_types}->{$eventconfig->{type}} = $event;
+                $self->add_premis_event($eventconfig);
+            }
+        }
+    }
+    $volume->record_premis_event('premis_migration') if($had_premis1);
+
+    # get any PREMIS2 events if they are there..
+    return $self->SUPER::_extract_old_premis();
+}
+
 
 1;

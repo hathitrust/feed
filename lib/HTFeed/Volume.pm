@@ -10,10 +10,11 @@ use HTFeed::FileGroup;
 use XML::LibXML;
 use HTFeed::Config qw(get_config);
 use HTFeed::DBTools;
-use Time::localtime;
+use Time::gmtime;
 use File::Pairtree qw(id2ppath s2ppchars);
 use Data::UUID;
 use File::Path qw(remove_tree);
+use Date::Manip;
 
 # singleton stage_map override
 my $stage_map = undef;
@@ -448,12 +449,13 @@ sub record_premis_event {
         croak("Event code / type not found") unless $eventtype;
 
         my $date = ($params{date} or $self->_get_current_date());
+
         my $outcome_xml = $params{outcome}->to_node()->toString() if defined $params{outcome};
 
         my $uuid = $self->make_premis_uuid($eventtype,$date); 
 
-        my $set_premis_sth = $dbh->prepare("REPLACE INTO premis_events (namespace, id, eventid, eventtype_id, outcome, date) VALUES
-            (?, ?, ?, ?, ?, ?)");
+        $dbh->do("SET time_zone = '+00:00'");
+        my $set_premis_sth = $dbh->prepare("REPLACE INTO premis_events (namespace, id, eventid, eventtype_id, outcome, date) VALUES (?, ?, ?, ?, ?, ?)");
 
         $set_premis_sth->execute($self->get_namespace(),$self->get_objid(),$uuid,$eventcode,$outcome_xml,$date);
     }
@@ -476,6 +478,7 @@ sub get_event_info {
 
     my $dbh = HTFeed::DBTools::get_dbh();
 
+    $dbh->do("SET time_zone = '+00:00'");
     my $event_sql = "SELECT eventid,date,outcome,custom_xml FROM premis_events where namespace = ? and id = ? and eventtype_id = ?";
 
     my $event_sth = $dbh->prepare($event_sql);
@@ -486,8 +489,9 @@ sub get_event_info {
     $event_sth->execute(@params);
     # Should only be one event of each event type - enforced by primary key in DB
     if (my ($eventid, $date, $outcome, $custom) = $event_sth->fetchrow_array()) {
-        # replace space separating date from time with 'T'
+        # replace space separating date from time with 'T'; add Z
         $date =~ s/ /T/g;
+        $date .= 'Z';
         my $outcome_node = undef;
         if($outcome) {
             $outcome_node = XML::LibXML->new()->parse_string($outcome);
@@ -509,15 +513,15 @@ sub _get_current_date {
     my $self = shift;
     my $ss1970 = shift;
 
-    my $localtime_obj = defined($ss1970) ? localtime($ss1970) : localtime();
+    my $gmtime_obj = defined($ss1970) ? gmtime($ss1970) : gmtime();
 
-    my $ts = sprintf("%d-%02d-%02dT%02d:%02d:%02d",
-        (1900 + $localtime_obj->year()),
-        (1 + $localtime_obj->mon()),
-        $localtime_obj->mday(),
-        $localtime_obj->hour(),
-        $localtime_obj->min(),
-        $localtime_obj->sec());
+    my $ts = sprintf("%d-%02d-%02dT%02d:%02d:%02dZ",
+        (1900 + $gmtime_obj->year()),
+        (1 + $gmtime_obj->mon()),
+        $gmtime_obj->mday(),
+        $gmtime_obj->hour(),
+        $gmtime_obj->min(),
+        $gmtime_obj->sec());
 
     return $ts;
 }
@@ -860,10 +864,11 @@ physical page, e.g.:
 
 =item record_premis_event()
 
-Records a PREMIS event that happens to the volume. Optionally, a PREMIS::Outcome object
-can be passed. If no date (in any format parseable by MySQL) is given,
-the current date will be used. If the PREMIS event has already been recorded in the 
-database, the date and outcome will be updated.
+Records a PREMIS event that happens to the volume. Optionally, a
+PREMIS::Outcome object can be passed. If no date (in any format parseable by
+MySQL) is given, the current date will be used. The date is assumed to be UTC.
+If the PREMIS event has already been recorded in the database, the date and
+outcome will be updated.
 
 The eventtype_id refers to the event definitions in the application configuration file, not
 the PREMIS eventType (which is configured in the event definition)

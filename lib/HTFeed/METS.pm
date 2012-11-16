@@ -8,7 +8,7 @@ use PREMIS;
 use HTFeed::XMLNamespaces qw(:namespaces :schemas);
 use Carp;
 use Log::Log4perl qw(get_logger);
-use Time::localtime;
+use Time::gmtime;
 use Cwd qw(cwd abs_path);
 use HTFeed::Config qw(get_config get_tool_version);
 use Date::Manip;
@@ -22,6 +22,7 @@ sub new {
     my $class = shift;
 
     my $self = $class->SUPER::new(
+        is_uplift => 0,
         @_,
 
         #		files			=> [],
@@ -32,13 +33,16 @@ sub new {
     $self->{outfile} = $self->{volume}->get_mets_path();
     # by default use volume "get_pagedata" to apply pagedata
     $self->{pagedata} = sub { $self->{volume}->get_page_data(@_); };
+    $self->{premis} = new PREMIS;
+    $self->{old_event_types} = {};
 
     return $self;
 }
 
 sub run {
     my $self = shift;
-    my $mets = new METS( objid => $self->{volume}->get_identifier() );
+    my $mets = new METS( objid => $self->{volume}->get_identifier(),
+                         profile => get_config('mets_profile') );
     $self->{'mets'}    = $mets;
     $self->{'amdsecs'} = [];
 
@@ -72,11 +76,30 @@ sub _add_header {
     my $self = shift;
     my $mets = $self->{mets};
 
-    my $header = new METS::Header(
-        createdate   => _get_createdate(),
-        recordstatus => 'NEW',
-        id           => 'HDR1',
-    );
+    my $header;
+
+    if($self->{is_uplift}) {
+        my $volume = $self->{volume};
+        my $xc = $volume->get_repository_mets_xpc();
+        my $createdate = $xc->findvalue('//mets:metsHdr/@CREATEDATE');
+        if(not defined $createdate or !$createdate) {
+            $self->setError('BadValue',field=>'//metsHdr/@CREATEDATE',
+                detail=>"can't get METS creation time",
+                file=>$volume->get_repository_mets_path());
+        }
+        $header = new METS::Header(
+            createdate => $createdate,
+            lastmoddate => _get_createdate(),
+            recordstatus => 'REV',
+            id => 'HDR1',
+        );
+    } else {
+        $header = new METS::Header(
+            createdate   => _get_createdate(),
+            recordstatus => 'NEW',
+            id           => 'HDR1',
+        );
+    }
     $header->add_agent(
         role => 'CREATOR',
         type => 'ORGANIZATION',
@@ -94,12 +117,12 @@ sub _add_dmdsecs {
     my $mets   = $self->{mets};
 
     my $dmdsec =
-      new METS::MetadataSection( 'dmdSec',
+    new METS::MetadataSection( 'dmdSec',
         'id' => $self->_get_subsec_id("DMD") );
     $dmdsec->set_md_ref(
         mdtype       => 'MARC',
         loctype      => 'OTHER',
-        otherloctype => 'Item ID stored as second call number in item record',
+        otherloctype => 'Item ID stored in HathiTrust Metadata Management System',
         xptr         => $volume->get_identifier()
     );
     $mets->add_dmd_sec($dmdsec);
@@ -111,20 +134,65 @@ sub _add_techmds {
     my $self = shift;
 }
 
+sub _update_event_date {
+    my $self = shift;
+
+    my $event = shift;
+    my $xc = shift;
+    my $date = shift;
+
+    my $volume = $self->{volume};
+
+    # if we don't have the time zone try to infer it from the agent and update
+    # the date based on that
+    if($date =~ /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/) {
+        my $from_tz = undef;
+        my $agent = $xc->findvalue("./premis:linkingAgentIdentifier[premis:linkingAgentRole/text()='Executor']/premis:linkingAgentIdentifierValue",$event);
+        if($agent eq 'MiU' or $agent eq 'UM' or $agent =~ /Michigan/) {
+            $from_tz = 'America/Detroit';
+        }
+        elsif($agent eq 'Ca-MvGOO' or $agent =~ /Google/) {
+            $from_tz = 'America/Los_Angeles';
+        } elsif($agent eq 'IA' or $agent eq 'CaSfIA' or $agent =~ /Internet Archive/) {
+            $from_tz = 'America/Los_Angeles';
+        }
+
+        if(defined $from_tz) {
+            $date = $self->convert_tz($date,$from_tz);
+            my $eventdateTimeNode = ($xc->findnodes('./premis:eventDateTime',$event))[0];
+            $eventdateTimeNode->removeChildNodes();
+            $eventdateTimeNode->appendText($date);
+        }
+    }
+
+    return $date;
+}
+
 # extract existing PREMIS events from object currently in repos
 sub _extract_old_premis {
     my $self   = shift;
     my $volume = $self->{volume};
 
     my $mets_in_repos = $volume->get_repository_mets_path();
-    my $old_events    = {};
+    my $old_events = {};
+    my $need_uplift_event = 0;
 
     if ( defined $mets_in_repos ) {
 
-        # validate METS in repository
         my ( $mets_in_rep_valid, $val_results ) =
-          $self->validate_xml($mets_in_repos);
+        $self->validate_xml($mets_in_repos);
         if ($mets_in_rep_valid) {
+            # create map of event types to event details -- for use in updating old event details
+            my %event_map = ();
+            my $nspkg = $volume->get_nspkg();
+            foreach my $eventconfig ( (@{ $nspkg->get('source_premis_events_extract') }, 
+                                      @{ $nspkg->{packagetype}->get('premis_events') }, # underlying original events
+                                      @{ $nspkg->get('premis_events') }) ) { # overridden events
+                my $eventconfig_info = $nspkg->get_event_configuration($eventconfig);
+                my $eventconfig_type = $eventconfig_info->{type};
+                $event_map{$eventconfig_type} = $eventconfig_info->{detail};
+            }
+
             my $xc = $volume->get_repository_mets_xpc();
 
             foreach my $event ( $xc->findnodes('//premis:event') ) {
@@ -144,43 +212,115 @@ sub _extract_old_premis {
                     ) unless defined $eventinfo->{$field} and $eventinfo->{$field};
                 }
 
-                my $uuid = $volume->make_premis_uuid($eventinfo->{eventtype},$eventinfo->{date});
-                my $update_eventid = 0;
-                if($eventinfo->{eventidtype} ne 'UUID') {
-                    get_logger()->info("Updating old event ID type $eventinfo->{eventidtype} to UUID for $eventinfo->{eventtype}/$eventinfo->{date}");
-                    $update_eventid = 1;
-                } elsif($eventinfo->{eventid} ne $uuid) {
-                    get_logger()->warn("Warning: calculated UUID for $eventinfo->{eventtype} on $eventinfo->{date} did not match saved UUID; updating.");
-                    $update_eventid = 1;
+                # migrate obsolete events
+                my $migrate_events = $nspkg->get('migrate_events');
+                my $new_event_tags = $migrate_events->{$eventinfo->{eventtype}};
+                if(defined $new_event_tags) {
+                    my $old_event_type = $eventinfo->{eventtype};
+                    $new_event_tags = [$new_event_tags] unless ref($new_event_tags);
+                    foreach my $new_event_tag (@$new_event_tags) {
+                        my $new_event = $event->cloneNode(1);
+
+                        my $new_eventinfo = $nspkg->get_event_configuration($new_event_tag);
+
+                        # update eventType,eventDetail
+                        my $eventtype_node = ($xc->findnodes("./premis:eventType",$new_event))[0];
+                        $eventtype_node->removeChildNodes();
+                        $eventtype_node->appendText($new_eventinfo->{type});
+                        $eventinfo->{eventtype} = $new_eventinfo->{type};
+
+                        my $eventdetail_node = ($xc->findnodes("./premis:eventDetail",$new_event))[0];
+                        $eventdetail_node->removeChildNodes();
+                        $eventdetail_node->appendText($new_eventinfo->{detail});
+
+                        # update eventDate
+                        my $new_date = $self->_update_event_date($new_event,$xc,$eventinfo->{date});
+
+                        # create new event UUID
+                        my $uuid = $volume->make_premis_uuid($new_eventinfo->{type},$new_date);
+                        my $eventidval_node = ($xc->findnodes("./premis:eventIdentifier/premis:eventIdentifierValue",$new_event))[0];
+                        $eventidval_node->removeChildNodes();
+                        $eventidval_node->appendText($uuid);
+
+                        my $eventidtype_node = ($xc->findnodes("./premis:eventIdentifier/premis:eventIdentifierType",$new_event))[0];
+                        $eventidtype_node->removeChildNodes();
+                        $eventidtype_node->appendText('UUID');
+                        
+                        $old_events->{$uuid} = $new_event;
+                        $self->{old_event_types}->{$new_eventinfo->{type}} = $event;
+                        $need_uplift_event = 1;
+                        get_logger()->info("Migrated $old_event_type event to $new_eventinfo->{type}");
+                    }
+                } else {
+
+                    # update eventDetail
+                    my $eventdetail_node = ($xc->findnodes("./premis:eventDetail",$event))[0];
+                    my $text = $eventdetail_node->textContent();
+                    my $newtext = $event_map{$eventinfo->{eventtype}};
+                    if(defined $newtext
+                            and $newtext ne $text) {
+                        $eventdetail_node->removeChildNodes();
+                        $eventdetail_node->appendText($event_map{$eventinfo->{eventtype}});
+                        $need_uplift_event = 1;
+                        get_logger()->info("Updated detail for $eventinfo->{eventtype} from '$text' to '$newtext'");
+                    }
+
+                    # update eventDate
+                    my $event_date = $self->_update_event_date($event,$xc,$eventinfo->{date});
+
+                    # update event UUID
+                    my $uuid = $volume->make_premis_uuid($eventinfo->{eventtype},$event_date);
+                    my $update_eventid = 0;
+                    if($eventinfo->{eventidtype} ne 'UUID') {
+                        get_logger()->info("Updating old event ID type $eventinfo->{eventidtype} to UUID for $eventinfo->{eventtype}/$eventinfo->{date}");
+                        $need_uplift_event = 1;
+                        $update_eventid = 1;
+                    } elsif($eventinfo->{eventid} ne $uuid) {
+                        # UUID may change if it was originally computed incorrectly
+                        # or if the time zone is now included in the date
+                        # calculation.
+                        get_logger()->warn("Warning: calculated UUID for $eventinfo->{eventtype} on $eventinfo->{date} did not match saved UUID; updating.");
+                        $need_uplift_event = 1;
+                        $update_eventid = 1;
+                    }
+
+                    if($update_eventid) {
+                        my $eventidval_node = ($xc->findnodes("./premis:eventIdentifier/premis:eventIdentifierValue",$event))[0];
+                        $eventidval_node->removeChildNodes();
+                        $eventidval_node->appendText($uuid);
+                        my $eventidtype_node = ($xc->findnodes("./premis:eventIdentifier/premis:eventIdentifierType",$event))[0];
+                        $eventidtype_node->removeChildNodes();
+                        $eventidtype_node->appendText('UUID');
+                    }
+
+                    $self->{old_event_types}->{$eventinfo->{eventtype}} = $event;
+                    $old_events->{$uuid} = $event;
                 }
 
-                if($update_eventid) {
-                    my $eventidval_node = ($xc->findnodes("./premis:eventIdentifier/premis:eventIdentifierValue",$event))[0];
-                    $eventidval_node->removeChildNodes();
-                    $eventidval_node->appendText($uuid);
-                    my $eventidtype_node = ($xc->findnodes("./premis:eventIdentifier/premis:eventIdentifierType",$event))[0];
-                    $eventidtype_node->removeChildNodes();
-                    $eventidtype_node->appendText('UUID');
-
-                }
-
-                $old_events->{$uuid} = $event;
             }
-
-            return $old_events;
-
+        } else {
+            # TODO after uplift: make this an error.
+             get_logger()->warn(
+             # $self->set_error(
+                 "BadFile",
+                 file   => $mets_in_repos,
+                 detail => $val_results
+             );
         }
-        else {
 
-            # TODO: should be warning, not error
-            get_logger()->warn(
-                "BadFile",
-                file   => $mets_in_repos,
-                detail => $val_results
-            );
-            print "$val_results";
-            return 0;
+        # at a minimum there should be capture, message digest calculation,
+        # fixity check, validation and ingestion.
+        foreach my $required_event_type ("capture","message digest calculation","validation","ingestion") {
+            $self->set_error("BadField",detail=>"Could not extract old PREMIS event",
+                field=>"premis event $required_event_type",file=>$mets_in_repos)
+            if not defined $self->{old_event_types}->{$required_event_type};
         }
+
+        if($need_uplift_event) {
+            $volume->record_premis_event('premis_migration');
+        }
+        return $old_events;
+
     }
 }
 
@@ -196,7 +336,7 @@ sub _add_premis_events {
         # query database for: datetime, outcome
         my $eventconfig = $nspkg->get_event_configuration($eventcode);
         my ( $eventid, $datetime, $outcome,$custom ) =
-          $volume->get_event_info($eventcode);
+        $volume->get_event_info($eventcode);
         if(defined $custom) {
             $premis->add_event($custom);
         } elsif(defined $eventid) {
@@ -225,12 +365,12 @@ sub add_premis_event {
         if(not defined $eventconfig->{$field}) {
             $self->set_error("MissingField",
                 field => $field,
-		actual => $eventconfig
+                actual => $eventconfig
             );
             return;
         }
     }
-    
+
     # make sure we haven't already added this event
     my $eventid = $eventconfig->{'eventid'};
     if (defined $included_events->{$eventid}) {
@@ -238,8 +378,8 @@ sub add_premis_event {
     } 
 
     my $event = new PREMIS::Event( $eventconfig->{'eventid'}, 'UUID', 
-                                   $eventconfig->{'type'}, $eventconfig->{'date'},
-                                   $eventconfig->{'detail'});
+        $eventconfig->{'type'}, $eventconfig->{'date'},
+        $eventconfig->{'detail'});
     foreach my $outcome (@{ $eventconfig->{'outcomes'} }) {
         $event->add_outcome($outcome);
     }
@@ -247,8 +387,8 @@ sub add_premis_event {
 # query namespace/packagetype for software tools to record for this event type
     $event->add_linking_agent(
         new PREMIS::LinkingAgent( $eventconfig->{'executor_type'}, 
-                                  $eventconfig->{'executor'}, 
-                                  'Executor' ) );
+            $eventconfig->{'executor'}, 
+            'Executor' ) );
 
     my @agents       = ();
     my $tools_config = $eventconfig->{'tools'};
@@ -279,7 +419,7 @@ sub _add_source_mets_events {
         # do we want to keep this kind of event?
         my $event_type = $xc->findvalue( './premis:eventType', $src_event );
         $src_premis_events->{$event_type} = []
-          if not defined $src_premis_events->{$event_type};
+        if not defined $src_premis_events->{$event_type};
         push( @{ $src_premis_events->{$event_type} }, $src_event );
     }
 
@@ -309,8 +449,7 @@ sub _add_premis {
     # map from UUID to event - events that have already been added
     $self->{included_events} = {};
 
-    my $premis = new PREMIS;
-    $self->{premis} = $premis;
+    my $premis = $self->{premis};
 
     my $old_events = $self->_extract_old_premis();
     if ($old_events) {
@@ -320,12 +459,14 @@ sub _add_premis {
         }
     }
 
-    $self->_add_source_mets_events();
+    # don't re-add source METS events if this is an uplift
+    if(!$self->{is_uplift}) {
+        $self->_add_source_mets_events();
+    }
 
     # create PREMIS object
     my $premis_object =
-      new PREMIS::Object( 'identifier', $volume->get_identifier() );
-    $premis_object->set_preservation_level("1");
+    new PREMIS::Object( 'HathiTrust', $volume->get_identifier() );
     $premis_object->add_significant_property( 'file count',
         $volume->get_file_count() );
     if ($volume->get_file_groups()->{image}) {
@@ -340,7 +481,7 @@ sub _add_premis {
     $self->_add_premis_events( $nspkg->get('premis_events') );
 
     my $digiprovMD =
-      new METS::MetadataSection( 'digiprovMD', 'id' => 'premis1' );
+    new METS::MetadataSection( 'digiprovMD', 'id' => 'premis1' );
     $digiprovMD->set_xml_node( $premis->to_node(), mdtype => 'PREMIS' );
 
     push( @{ $self->{amd_mdsecs} }, $digiprovMD );
@@ -350,7 +491,7 @@ sub _add_premis {
 sub _add_amdsecs {
     my $self = shift;
     $self->{'mets'}
-      ->add_amd_sec( $self->_get_subsec_id("AMD"), @{ $self->{amd_mdsecs} } );
+    ->add_amd_sec( $self->_get_subsec_id("AMD"), @{ $self->{amd_mdsecs} } );
 
 }
 
@@ -359,7 +500,7 @@ sub _get_subsec_id {
     my $subsec_type = shift;
     $self->{counts} = {} if not exists $self->{counts};
     $self->{counts}{$subsec_type} = 0
-      if not exists $self->{counts}{$subsec_type};
+    if not exists $self->{counts}{$subsec_type};
     return "$subsec_type" . ++$self->{counts}{$subsec_type};
 }
 
@@ -450,7 +591,7 @@ sub _add_struct_map {
         while ( my ( $filegroup_name, $files ) = each(%$pagefiles) ) {
             foreach my $file (@$files) {
                 my $fileid =
-                  $self->{filegroups}{$filegroup_name}->get_file_id($file);
+                $self->{filegroups}{$filegroup_name}->get_file_id($file);
                 if ( not defined $fileid ) {
                     $self->set_error(
                         "MissingField",
@@ -476,10 +617,10 @@ sub _add_struct_map {
                                 "NotEqualValues",
                                 actual => "other=$val ,$fileid=$val1",
                                 detail =>
-    "Mismatched page data for different files in pagefiles"
-                              )
-                              unless ( not defined $val and not defined $val1 )
-                              or ( $val eq $val1 );
+                                "Mismatched page data for different files in pagefiles"
+                            )
+                            unless ( not defined $val and not defined $val1 )
+                                or ( $val eq $val1 );
                         }
 
                     }
@@ -506,7 +647,7 @@ sub _save_mets {
     my $mets_path = $self->{outfile};
 
     open( my $metsxml, ">", "$mets_path" )
-      or die("Can't open METS xml $mets_path for writing: $!");
+        or die("Can't open METS xml $mets_path for writing: $!");
     print $metsxml $mets->to_node()->toString(1);
     close($metsxml);
 }
@@ -516,7 +657,7 @@ sub _validate_mets {
     my $mets_path = $self->{outfile};
 
     croak("File $mets_path does not exist. Cannot validate.")
-      unless -e $mets_path;
+    unless -e $mets_path;
 
     my ( $mets_valid, $val_results ) = $self->validate_xml($mets_path);
     if ( !$mets_valid ) {
@@ -544,7 +685,7 @@ sub validate_xml {
     my $validation_cmd = "$xerces '$filename' 2>&1";
     my $val_results    = `$validation_cmd`;
     if ( ($use_caching and $val_results !~ /\Q$filename\E OK/) or
-         (!$use_caching and $val_results =~ /Error/) or
+        (!$use_caching and $val_results =~ /Error/) or
         $? ) {
         wantarray ? return ( 0, $val_results ) : return (0);
     }
@@ -554,18 +695,18 @@ sub validate_xml {
 
 }
 
-# Given ss1970, use Time::localtime to generate a date with format: yyyy-mm-ddT13:27:00
+# Given ss1970, use Time::gmtime to generate a date with format: yyyy-mm-ddT13:27:00
 sub _get_createdate {
     my $self   = shift;
     my $ss1970 = shift;
 
-    my $localtime_obj = defined($ss1970) ? localtime($ss1970) : localtime();
+    my $gmtime_obj = defined($ss1970) ? gmtime($ss1970) : gmtime();
 
     my $ts = sprintf(
-        "%d-%02d-%02dT%02d:%02d:%02d",
-        ( 1900 + $localtime_obj->year() ), ( 1 + $localtime_obj->mon() ),
-        $localtime_obj->mday(), $localtime_obj->hour(),
-        $localtime_obj->min(),  $localtime_obj->sec()
+        "%d-%02d-%02dT%02d:%02d:%02dZ",
+        ( 1900 + $gmtime_obj->year() ), ( 1 + $gmtime_obj->mon() ),
+        $gmtime_obj->mday(), $gmtime_obj->hour(),
+        $gmtime_obj->min(),  $gmtime_obj->sec()
     );
 
     return $ts;
@@ -603,18 +744,18 @@ sub _remediate_marc {
         [\dA-Za-z ]{1} # 05: Record status
         [\dA-Za-z]{1} # 06: Type of record
         [\dA-Za-z ]{3} # 07: Bibliographic level
-                       # 08: Type of control
-                       # 09: Character
+        # 08: Type of control
+        # 09: Character
         (2| )          # 10: Indicator count
         (2| )          # 11: Subfield code count
         [\d ]{5}       # 12: Base address of data
         [\dA-Za-z ]{3} # 17: Encoding level
-                       # 18: Descriptive cataloging form
-                       # 19: Multipart resource record level
+        # 18: Descriptive cataloging form
+        # 19: Multipart resource record level
         (4500|    )    # 20: Length of the length-of-field portion
-                       # 21: Length of the starting-character-position portion
-                       # 22: Length of the implementation-defined portion
-                       # 23: Undefined
+        # 21: Length of the starting-character-position portion
+        # 22: Length of the implementation-defined portion
+        # 23: Undefined
         $/x) {
 
         # 00-04: Record length - default to empty
@@ -721,6 +862,27 @@ sub _remediate_marc {
     }
 
 
+}
+
+sub convert_tz {
+    my $self = shift;
+    my $date = shift;
+    my $from_tz = shift;
+    die("No from_tz specified") unless defined $from_tz;
+
+    my $parsed = ParseDate($date);
+    die("Can't parse date $date") unless defined $parsed;
+
+    my $utc_date = Date_ConvTZ($parsed,$from_tz,'UTC');
+
+    die("Date_ConvTZ($parsed,$from_tz,'UTC') failed") if(not defined $utc_date);
+
+    return UnixDate($utc_date,'%OZ');
+}
+
+sub is_uplift {
+    my $self = shift;
+    return $self->{is_uplift};
 }
 
 1;

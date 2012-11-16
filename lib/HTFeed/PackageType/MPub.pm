@@ -68,6 +68,9 @@ our $config = {
 		packed		=> 'HTFeed::PackageType::MPub::METS',
         metsed		=> 'HTFeed::Stage::Handle',
         handled		=> 'HTFeed::Stage::Collate',
+
+        needs_uplift => 'HTFeed::Stage::RepositoryUnpack',
+        uplift_unpacked => 'HTFeed::Stage::ReMETS'
 	},
 
     # What PREMIS events to include (by internal PREMIS identifier, 
@@ -80,6 +83,7 @@ our $config = {
 	'zip_compression',
 	'zip_md5_create',
 	'ingestion',
+	'premis_migration',
     ],
 
 

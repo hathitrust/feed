@@ -10,6 +10,7 @@ use HTFeed::Config qw(get_config);
 use HTFeed::DBTools qw(get_dbh);
 use HTFeed::Volume;
 use HTFeed::XMLNamespaces qw(:namespaces);
+use HTFeed::METS;
 use XML::LibXML;
 use POSIX qw(strftime);
 use PREMIS;
