@@ -24,7 +24,6 @@ my $dot = 0;
 my $default_namespace = undef; # -n
 
 # read flags
-pod2usage(1) if !@ARGV;
 GetOptions(
     '1' => \$one_line,
     'verbose|v' => \$verbose,
@@ -50,11 +49,11 @@ if($one_line and $dot) {
 elsif ($one_line) {
     my $namespace = shift @ARGV;
     my $objid = shift @ARGV;
-    unless( $default_namespace and $objid ){
+    unless( $namespace and $objid ){
         die 'Must specify namespace and objid when using -1 option';
     }
 
-    push @volumes, HTFeed::Volume->new(packagetype => 'ht', namespace => $default_namespace, objid => $objid);
+    push @volumes, HTFeed::Volume->new(packagetype => 'ht', namespace => $namespace, objid => $objid);
 }
 else{
     # handle -d (read infile in dot format)
