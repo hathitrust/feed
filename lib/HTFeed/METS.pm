@@ -548,6 +548,8 @@ sub _add_content_fgs {
     my $filegroups = $volume->get_file_groups();
     $self->{filegroups} = {};
     while ( my ( $filegroup_name, $filegroup ) = each(%$filegroups) ) {
+        # ignore empty file groups
+        next unless @{$filegroup->get_filenames()};
         my $mets_filegroup = new METS::FileGroup(
             id  => $self->_get_subsec_id("FG"),
             use => $filegroup->get_use()
