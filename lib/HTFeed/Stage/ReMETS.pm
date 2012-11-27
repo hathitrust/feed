@@ -161,10 +161,28 @@ sub run {
     }
 
     # move old METS aside
+    my $mets_source = $volume->get_mets_path();
+    my $mets_dest = $volume->get_repository_mets_path();
+    my $mets_old;
+    if($mets_dest =~ /\.mets\.xml$/) {
+        $mets_old = $mets_dest;
+        $mets_old =~ s/\.mets\.xml$/.pre_uplift.mets.xml/;
+    } else {
+        $self->set_error("BadFile",file=>$mets_dest,detail=>"Unexpected file name for METS in repository",expected=>"*.mets.xml");
+    }
+
     # move new METS into place
+    if (-f $mets_source and -f $mets_dest and defined $mets_old){
+        # move mets and zip to repo
+        system('cp','-f',$mets_dest,$mets_old)
+            and $self->set_error('OperationFailed', operation => 'cp', detail => "cp $mets_dest $mets_old failed with status: $?");
+            
+        system('cp','-f',$mets_source,$mets_dest)
+            and $self->set_error('OperationFailed', operation => 'cp', detail => "cp $mets_source $mets_dest failed with status: $?");
 
-    # remap success output stage
-
+        $self->_set_done();
+        return $self->succeeded();
+    }
 
 }
 
@@ -181,7 +199,7 @@ sub clean_failure {
 }
 
 sub stage_info {
-   return { success_state => 'done', failure_state => 'punted' };
+   return { success_state => 'uplift_done', failure_state => 'punted' };
 }
 
 sub assert_equal {
