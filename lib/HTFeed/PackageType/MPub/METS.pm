@@ -17,23 +17,38 @@ sub _add_source_mets_events {
     if(!$self->is_uplift()) {
         my $capture_time = $self->_get_capture_time();
         my $checksum_time = $self->_get_checksum_time();
+        # FIXME: use this capture agent instead of MiU... need to use controlled vocabulary (FUTURE)
         my $capture_agent = $volume->get_nspkg()->get('capture_agent');
-        $self->_add_premis_event(type => 'capture', time => $capture_time, agent => $capture_agent);
-        $self->_add_premis_event(type => 'compression', time => $capture_time, agent => $capture_agent);
 
-        # message digest calculation -> Google, convert date from source METS
-        # only add fixity check event if there was a checksum file with the SIP
-        if(-e $volume->get_staging_directory() . "/" . $volume->get_nspkg()->get('checksum_file')) {
-            $self->_add_premis_event(type => 'fixity check', time => $self->_get_event_time('page_md5_fixity'), agent => 'UM',
-                                   outcome => <<"EOT");
-                     <PREMIS:eventOutcomeInformation>
-                            <PREMIS:eventOutcomeDetail>pass</PREMIS:eventOutcomeDetail>
-                     </PREMIS:eventOutcomeInformation>
-EOT
-            $self->_add_premis_event(type => 'message digest calculation', time => $checksum_time, agent => $capture_agent);
-        } else {
-            $self->_add_premis_event(type => 'message digest calculation', time => $checksum_time, agent => 'UM');
+        {
+            my $eventcode = 'capture';
+            my $eventconfig = $volume->get_nspkg()->get_event_configuration($eventcode);
+            $eventconfig->{'eventid'} = $volume->make_premis_uuid($eventconfig->{'type'},$capture_time);
+            $eventconfig->{'executor'} = 'MiU';
+            $eventconfig->{'executor_type'} = 'MARC21 Code';
+            $eventconfig->{'date'} = $capture_time;
+            my $event = $self->add_premis_event($eventconfig);
         }
+        {
+            my $eventcode = 'image_compression';
+            my $eventconfig = $volume->get_nspkg()->get_event_configuration($eventcode);
+            $eventconfig->{'eventid'} = $volume->make_premis_uuid($eventconfig->{'type'},$capture_time);
+            $eventconfig->{'executor'} = 'MiU';
+            $eventconfig->{'executor_type'} = 'MARC21 Code';
+            $eventconfig->{'date'} = $capture_time;
+            my $event = $self->add_premis_event($eventconfig);
+        }
+
+        {
+            my $eventcode = 'page_md5_create';
+            my $eventconfig = $volume->get_nspkg()->get_event_configuration($eventcode);
+            $eventconfig->{'eventid'} = $volume->make_premis_uuid($eventconfig->{'type'},$checksum_time);
+            $eventconfig->{'executor'} = 'MiU';
+            $eventconfig->{'executor_type'} = 'MARC21 Code';
+            $eventconfig->{'date'} = $capture_time;
+            my $event = $self->add_premis_event($eventconfig);
+        }
+
     }
 
 
@@ -96,7 +111,8 @@ sub _extract_old_premis {
     my %premis1_event_map = (
         capture => [qw(capture)],
         # we know the Google source METS & image compression was done at the same time as page md5 creation
-        'message digest calculation' => [qw(page_md5_create image_compression)],
+        'compression' => [qw(image_compression)],
+        'message digest calculation' => [qw(page_md5_create)],
         'fixity check' => [qw(page_md5_fixity)],
         'ingestion' => [qw(ingestion zip_compression zip_md5_create)],
         'validation' => [qw(package_validation)]
