@@ -91,6 +91,10 @@ our $config = {
           { 
             optional => 1,
           },
+        'image_compression' => 
+          {
+              tools => undef,
+          }
     },
 
 
