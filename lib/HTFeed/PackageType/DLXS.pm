@@ -87,8 +87,7 @@ our $config = {
     premis_events => [
         'page_md5_fixity',
         'package_validation',
-        
-        'page_feature_mapping'
+        'page_feature_mapping',
         'zip_compression',
         'zip_md5_create',
         'ingestion',
