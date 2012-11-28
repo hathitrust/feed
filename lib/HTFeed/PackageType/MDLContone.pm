@@ -101,8 +101,8 @@ our $config = {
     'package_validation',
     'zip_compression',
     'zip_md5_create',
-#	'ht_mets_creation',
     'ingestion',
+    'premis_migration', #optional
     ],
 
 

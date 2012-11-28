@@ -97,6 +97,7 @@ our $config = {
         'zip_compression',
         'zip_md5_create',
         'ingestion',
+        'premis_migration', # optional
     ],
 
     # Overrides for the basic PREMIS event configuration

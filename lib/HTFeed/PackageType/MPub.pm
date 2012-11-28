@@ -77,14 +77,21 @@ our $config = {
     # configured in config.yaml)
     # TODO: review/fix MPub PREMIS events
     premis_events => [
-	'page_md5_fixity',
-	'page_md5_create',
-	'package_validation',
-	'zip_compression',
-	'zip_md5_create',
-	'ingestion',
-	'premis_migration',
+        'page_md5_fixity', # optional
+        'package_validation',
+        'zip_compression',
+        'zip_md5_create',
+        'ingestion',
+        'premis_migration', #optional
     ],
+
+    # Often times a checksum.md5 file will not be provided!
+    premis_overrides => {
+        'page_md5_fixity' => 
+          { 
+            optional => 1,
+          },
+    },
 
 
 };

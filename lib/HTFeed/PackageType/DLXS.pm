@@ -88,10 +88,11 @@ our $config = {
         'page_md5_fixity',
         'package_validation',
         
-#        'page_feature_mapping', TODO
+        'page_feature_mapping'
         'zip_compression',
         'zip_md5_create',
         'ingestion',
+        'premis_migration', #optional 
     ],
 
     # Overrides for the basic PREMIS event configuration
