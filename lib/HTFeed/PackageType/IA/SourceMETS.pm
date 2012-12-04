@@ -106,7 +106,7 @@ sub _add_capture_event {
     if( $eventdate =~ /^(\d\d\d\d)(\d\d)(\d\d)(\d\d)(\d\d)(\d\d)$/ ) {
 
         my $capture_date
-        = sprintf( "%d-%02d-%02dT%02d:%02d:%02d", $1, $2, $3, $4, $5, $6 );
+        = sprintf( "%d-%02d-%02dT%02d:%02d:%02dZ", $1, $2, $3, $4, $5, $6 );
         
 
         my $eventcode = 'capture';
