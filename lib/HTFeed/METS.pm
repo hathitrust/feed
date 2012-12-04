@@ -154,7 +154,7 @@ sub _update_event_date {
         elsif($agent eq 'Ca-MvGOO' or $agent =~ /Google/) {
             $from_tz = 'America/Los_Angeles';
         } elsif($agent eq 'IA' or $agent eq 'CaSfIA' or $agent =~ /Internet Archive/) {
-            $from_tz = 'America/Los_Angeles';
+            $from_tz = 'UTC';
         }
 
         if(defined $from_tz) {
