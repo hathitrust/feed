@@ -4,6 +4,7 @@ use warnings;
 use strict;
 use LWP::UserAgent;
 use HTFeed::Version;
+use Date::Manip;
 
 use base qw(HTFeed::Stage);
 
@@ -56,6 +57,8 @@ sub download{
 
     if( $response->is_success() ){
         my $size = (-s $pathname);
+        my $date = $response->header('last-modified');
+        utime(time,UnixDate(ParseDate($date),"%s"),$pathname);
         my $expected_size = $response->header('content-length');
         if (not defined $expected_size or $size eq $expected_size){
             get_logger()->trace("Downloading $url succeeded, $size bytes downloaded");
