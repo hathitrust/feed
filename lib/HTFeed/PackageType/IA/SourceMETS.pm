@@ -7,6 +7,7 @@ use Log::Log4perl qw(get_logger);
 use HTFeed::SourceMETS;
 use HTFeed::XMLNamespaces qw(:namespaces :schemas register_namespaces);
 use base qw(HTFeed::SourceMETS);
+use POSIX qw(strftime);
 
 
 sub new {
@@ -94,6 +95,7 @@ sub _add_capture_event {
     my $volume = $self->{volume};
     my $premis = $self->{premis};
     my $xpc = $volume->get_scandata_xpc();
+    my $ia_id = $volume->get_ia_id();
 
     my $eventdate = $xpc->findvalue("//scribe:scanLog/scribe:scanEvent[1]/scribe:endTimeStamp | //scanLog/scanEvent[1]/endTimeStamp");
     my $scribe = $xpc->findvalue("//scribe:scanLog/scribe:scanEvent[1]/scribe:scribe | //scanLog/scanEvent[1]/scribe");
@@ -103,10 +105,23 @@ sub _add_capture_event {
         $eventdate = $meta_xpc->findvalue("//scandate");
     }
 
+    if(not defined $eventdate or $eventdate eq '') {
+        $eventdate = $xpc->findvalue("//scribe:page[last()]/scribe:gmtTimeStamp | //page[last()]/gmtTimeStamp");
+    }
+
+    # if we still can't find it just use the file timestamp
+    if(not defined $eventdate or $eventdate eq '') {
+        my $download_directory = $volume->get_download_directory();
+        $eventdate = strftime("%Y%m%d%H%M%S",gmtime((stat("$download_directory/${ia_id}_scandata.xml"))[9]));
+    }
+
     if( $eventdate =~ /^(\d\d\d\d)(\d\d)(\d\d)(\d\d)(\d\d)(\d\d)$/ ) {
 
+        # some IA packages have timestamps with hour 24 but that's not allowed in ISO format
+        my $hour = $4;
+        $hour = '00' if $hour eq '24'; 
         my $capture_date
-        = sprintf( "%d-%02d-%02dT%02d:%02d:%02dZ", $1, $2, $3, $4, $5, $6 );
+        = sprintf( "%d-%02d-%02dT%02d:%02d:%02dZ", $1, $2, $3, $hour, $5, $6 );
         
 
         my $eventcode = 'capture';
