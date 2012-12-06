@@ -89,9 +89,10 @@ sub get_queued{
 sub lock_volumes{
     my $item_count = shift;
     return 0 unless ($item_count > 0);
+    my $release_status = join(',', map {"'$_'"} get_config('release_states'));
     
     # trying to make sure MySQL uses index
-    my $sth = get_dbh()->prepare(q(UPDATE queue SET node = ? WHERE node IS NULL AND status = 'ready' ORDER BY node, status, priority, date_added LIMIT ?;));
+    my $sth = get_dbh()->prepare(q(UPDATE queue SET node = ?, reset_status = status WHERE node IS NULL AND status not in ($release_status) ORDER BY node, status, priority, date_added LIMIT ?;));
     $sth->execute(hostname,$item_count);
 
     return $sth->rows;
@@ -106,7 +107,8 @@ sub lock_volumes{
 
 ## TODO: better behavior here, possibly reset to downloaded in some cases, possibly keep lock but reset status
 sub reset_in_flight_locks{
-    my $sth = get_dbh()->prepare(q(UPDATE queue SET node = NULL, status = 'ready' WHERE node = ? AND status != 'punted' AND status != 'collated';));
+    my $release_status = join(',', map {"'$_'"} get_config('release_states'));
+    my $sth = get_dbh()->prepare(q(UPDATE queue SET node = NULL, status = reset_status, release_status = NULL WHERE node = ? AND status not in ($release_status);));
     return $sth->execute(hostname);
 }
 
