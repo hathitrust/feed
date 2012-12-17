@@ -95,7 +95,7 @@ while(my $line = <RUN>) {
         my $found_zip = 0;
         my $found_mets = 0;
         while( my $file = readdir($dh))  {
-            next if $file eq '.' or $file eq '..';
+            next if $file eq '.' or $file eq '..' or $file =~ /pre_uplift.mets.xml$/; # ignore backup mets
             if($file !~ /^([^.]+)\.(zip|mets.xml)$/) {
                 print("BAD_FILE $path $file\n");
             }
