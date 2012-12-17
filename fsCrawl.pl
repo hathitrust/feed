@@ -15,10 +15,9 @@ use POSIX qw(strftime);
 use Getopt::Long;
 
 
-my $insert="replace into audit (namespace, id, zip_size, zip_date, mets_size, mets_date, lastchecked, zipcheck_ok) values(?,?,?,?,?,?,CURRENT_TIMESTAMP,NULL)";
-my $update="update audit set zipcheck_ok = ? where namespace = ? and id = ?";
-#my $fs_mets_data="insert into audit_mets_data (namespace, id, `key`, value, value2, date) values (?,?,?,?,?,CURRENT_TIMESTAMP)";
-my $mets_ins = "insert into audit_detail (namespace, id, path, status, detail) values (?,?,?,?,?)";
+my $insert="replace into feed_audit (namespace, id, zip_size, zip_date, mets_size, mets_date, lastchecked, zipcheck_ok) values(?,?,?,?,?,?,CURRENT_TIMESTAMP,NULL)";
+my $update="update feed_audit set zipcheck_ok = ? where namespace = ? and id = ?";
+my $mets_ins = "insert into feed_audit_detail (namespace, id, path, status, detail) values (?,?,?,?,?)";
 
 ### set /sdr1 to /sdrX for test & parallelization
 my $filesProcessed = 0;
