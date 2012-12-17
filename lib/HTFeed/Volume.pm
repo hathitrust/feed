@@ -442,7 +442,7 @@ sub record_premis_event {
 
     if(defined $params{custom_event}) {
         my $custom_event = $params{custom_event};
-        my $set_premis_sth = $dbh->prepare("REPLACE INTO premis_events (namespace, id, eventtype_id, custom_xml) VALUES (?, ?, ?, ?)");
+        my $set_premis_sth = $dbh->prepare("REPLACE INTO feed_premis_events (namespace, id, eventtype_id, custom_xml) VALUES (?, ?, ?, ?)");
         $set_premis_sth->execute($self->get_namespace(),$self->get_objid(),$eventcode,$custom_event->toString());
     } else {
         my $eventtype = $eventconfig->{'type'};
@@ -455,7 +455,7 @@ sub record_premis_event {
         my $uuid = $self->make_premis_uuid($eventtype,$date); 
 
         $dbh->do("SET time_zone = '+00:00'");
-        my $set_premis_sth = $dbh->prepare("REPLACE INTO premis_events (namespace, id, eventid, eventtype_id, outcome, date) VALUES (?, ?, ?, ?, ?, ?)");
+        my $set_premis_sth = $dbh->prepare("REPLACE INTO feed_premis_events (namespace, id, eventid, eventtype_id, outcome, date) VALUES (?, ?, ?, ?, ?, ?)");
 
         $set_premis_sth->execute($self->get_namespace(),$self->get_objid(),$uuid,$eventcode,$outcome_xml,$date);
     }
@@ -479,7 +479,7 @@ sub get_event_info {
     my $dbh = HTFeed::DBTools::get_dbh();
 
     $dbh->do("SET time_zone = '+00:00'");
-    my $event_sql = "SELECT eventid,date,outcome,custom_xml FROM premis_events where namespace = ? and id = ? and eventtype_id = ?";
+    my $event_sql = "SELECT eventid,date,outcome,custom_xml FROM feed_premis_events where namespace = ? and id = ? and eventtype_id = ?";
 
     my $event_sth = $dbh->prepare($event_sql);
     my @params = ($self->get_namespace(),$self->get_objid(),$eventtype);
@@ -585,7 +585,7 @@ sub clear_premis_events {
 
     my $ns = $self->get_namespace();
     my $objid = $self->get_objid();
-    my $sth = HTFeed::DBTools::get_dbh()->prepare("DELETE FROM premis_events WHERE namespace = ? and id = ?");
+    my $sth = HTFeed::DBTools::get_dbh()->prepare("DELETE FROM feed_premis_events WHERE namespace = ? and id = ?");
     $sth->execute($ns,$objid);
 
 }

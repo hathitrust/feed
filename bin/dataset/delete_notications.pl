@@ -59,12 +59,12 @@ my $new_timestamp = get_db_time();
 
 my $sth;
 if($all){
-    $sth = get_dbh()->prepare(q|SELECT CONCAT(namespace,'.',id) FROM dataset_tracking WHERE delete_t IS NOT NULL|);
+    $sth = get_dbh()->prepare(q|SELECT CONCAT(namespace,'.',id) FROM feed_dataset_tracking WHERE delete_t IS NOT NULL|);
     $sth->execute();
 }
 else{
     my $time = ($since_date or previous_time());
-    $sth = get_dbh()->prepare(q|SELECT CONCAT(namespace,'.',id) FROM dataset_tracking WHERE delete_t > FROM_UNIXTIME(?)|);
+    $sth = get_dbh()->prepare(q|SELECT CONCAT(namespace,'.',id) FROM feed_dataset_tracking WHERE delete_t > FROM_UNIXTIME(?)|);
     $sth->execute($time);
 }
 
