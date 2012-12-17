@@ -38,9 +38,9 @@ while(my $line = <RUN>) {
 
     eval {
         $filesProcessed++;
-        if($filesProcessed % 10000== 0) {
-            print "$filesProcessed files processed\n";
-        }
+#        if($filesProcessed % 10000== 0) {
+#            print "$filesProcessed files processed\n";
+#        }
         chomp($line);
 
         # strip trailing / from path
