@@ -93,7 +93,7 @@ sub lock_volumes{
     my $release_status = join(',', map {get_dbh()->quote($_)} @{get_config('release_states')});
     
     # trying to make sure MySQL uses index
-    my $sth = get_dbh()->prepare(qq(UPDATE feed_queue SET node = ?, reset_status = status WHERE node IS NULL AND status not in ($release_status) ORDER BY node, status, priority, date_added LIMIT ?;));
+    my $sth = get_dbh()->prepare(qq(UPDATE feed_queue SET node = ?, reset_status = status WHERE node IS NULL AND status not in ($release_status) ORDER BY priority, date_added LIMIT ?;));
     $sth->execute(hostname,$item_count);
 
     return $sth->rows;
