@@ -155,7 +155,7 @@ sub reset_volumes {
         $sth = $dbh->prepare(q(UPDATE feed_queue SET node = NULL, status = ?, failure_count = 0 WHERE namespace = ? and id = ?;));
     }
     else{
-        $sth = $dbh->prepare(q(UPDATE feed_queue SET node = NULL, status = ?, failure_count = 0 WHERE status in ('punted','collated','rights','done') and namespace = ? and id = ?;));
+        $sth = $dbh->prepare(q(UPDATE feed_queue SET node = NULL, status = ?, failure_count = 0 WHERE status in ('punted','collated','rights','done','uplift_done','needs_uplift') and namespace = ? and id = ? and node is null;));
     }
     
     my @results;
