@@ -190,12 +190,13 @@ sub clean_always {
     my $self = shift;
 
     $self->{volume}->clean_unpacked_object();
+    $self->{volume}->clean_mets();
+    $self->{volume}->clean_zip();
 }
 
-# do cleaning that is appropriate after failure
-sub clean_failure {
+sub clean_success {
     my $self = shift;
-    $self->{volume}->clean_mets();
+    $self->{volume}->clear_premis_events();
 }
 
 sub stage_info {

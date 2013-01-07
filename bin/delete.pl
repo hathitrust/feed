@@ -91,14 +91,14 @@ sub add_to_blacklist {
     my $volume = shift;
     my $note = shift;
     die("Must have a reason for blacklisting") if not defined $note or $note eq '';
-    my $sth = get_dbh()->prepare("INSERT IGNORE INTO blacklist (namespace, id, note) VALUES (?,?,?)");
+    my $sth = get_dbh()->prepare("INSERT IGNORE INTO feed_blacklist (namespace, id, note) VALUES (?,?,?)");
     $sth->execute($volume->get_namespace(),$volume->get_objid(),$note);
 }
 
 sub remove_from_queue {
     my $volume = shift;
 
-    my $sth = get_dbh()->prepare("DELETE FROM queue WHERE namespace = ? and id = ?");
+    my $sth = get_dbh()->prepare("DELETE FROM feed_queue WHERE namespace = ? and id = ?");
     $sth->execute($volume->get_namespace(),$volume->get_objid());
 }
 

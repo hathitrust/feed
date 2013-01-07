@@ -64,11 +64,11 @@ sub enqueue_volumes{
     
     my $dbh = HTFeed::DBTools::get_dbh();
     my $sth;
-    my $blacklist_sth = $dbh->prepare("SELECT namespace, id FROM mdp_tracking.blacklist WHERE namespace = ? and id = ?");
+    my $blacklist_sth = $dbh->prepare("SELECT namespace, id FROM feed_blacklist WHERE namespace = ? and id = ?");
     if($ignore){
-        $sth = $dbh->prepare(q(INSERT IGNORE INTO queue (pkg_type, namespace, id, priority, status) VALUES (?,?,?,?,?);));
+        $sth = $dbh->prepare(q(INSERT IGNORE INTO feed_queue (pkg_type, namespace, id, priority, status) VALUES (?,?,?,?,?);));
     }else {
-        $sth = $dbh->prepare(q(INSERT INTO queue (pkg_type, namespace, id, priority, status) VALUES (?,?,?,?,?);));
+        $sth = $dbh->prepare(q(INSERT INTO feed_queue (pkg_type, namespace, id, priority, status) VALUES (?,?,?,?,?);));
     }
     
     my @results;
@@ -152,10 +152,10 @@ sub reset_volumes {
     my $dbh = HTFeed::DBTools::get_dbh();
     my $sth;
     if($force){
-        $sth = $dbh->prepare(q(UPDATE queue SET node = NULL, status = ?, failure_count = 0 WHERE namespace = ? and id = ?;));
+        $sth = $dbh->prepare(q(UPDATE feed_queue SET node = NULL, status = ?, failure_count = 0 WHERE namespace = ? and id = ?;));
     }
     else{
-        $sth = $dbh->prepare(q(UPDATE queue SET node = NULL, status = ?, failure_count = 0 WHERE status in ('punted','collated','rights','done') and namespace = ? and id = ?;));
+        $sth = $dbh->prepare(q(UPDATE feed_queue SET node = NULL, status = ?, failure_count = 0 WHERE status in ('punted','collated','rights','done','uplift_done','needs_uplift') and namespace = ? and id = ? and node is null;));
     }
     
     my @results;

@@ -88,9 +88,9 @@ else{
 
 my $dbh = get_dbh();
 
-my $log_sth = $dbh->prepare("select * from log where namespace = ? and id = ? order by timestamp asc");
-my $last_err_sth = $dbh->prepare("select * from last_error where namespace = ? and id = ?");
-my $queue_sth = $dbh->prepare("select * from queue where namespace = ? and id = ?");
+my $log_sth = $dbh->prepare("select * from feed_log where namespace = ? and id = ? order by timestamp asc");
+my $last_err_sth = $dbh->prepare("select * from feed_last_error where namespace = ? and id = ?");
+my $queue_sth = $dbh->prepare("select * from feed_queue where namespace = ? and id = ?");
 
 foreach my $volume (@volumes) {
 

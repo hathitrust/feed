@@ -71,7 +71,7 @@ sub get_queued{
     
     my $dbh = get_dbh();
 
-    my $sth = $dbh->prepare(q(SELECT pkg_type, namespace, id, status, failure_count FROM queue WHERE node = ?;));
+    my $sth = $dbh->prepare(q(SELECT pkg_type, namespace, id, status, failure_count FROM feed_queue WHERE node = ?;));
     $sth->execute(hostname);
     
     return $sth if ($sth->rows);
@@ -87,12 +87,13 @@ sub get_queued{
 =cut
 
 sub lock_volumes{
+    my $dbh = get_dbh();
     my $item_count = shift;
     return 0 unless ($item_count > 0);
-    my $release_status = join(',', map {"'$_'"} get_config('release_states'));
+    my $release_status = join(',', map {get_dbh()->quote($_)} @{get_config('release_states')});
     
     # trying to make sure MySQL uses index
-    my $sth = get_dbh()->prepare(q(UPDATE queue SET node = ?, reset_status = status WHERE node IS NULL AND status not in ($release_status) ORDER BY node, status, priority, date_added LIMIT ?;));
+    my $sth = get_dbh()->prepare(qq(UPDATE feed_queue SET node = ?, reset_status = status WHERE node IS NULL AND status not in ($release_status) ORDER BY priority, date_added LIMIT ?;));
     $sth->execute(hostname,$item_count);
 
     return $sth->rows;
@@ -107,8 +108,9 @@ sub lock_volumes{
 
 ## TODO: better behavior here, possibly reset to downloaded in some cases, possibly keep lock but reset status
 sub reset_in_flight_locks{
-    my $release_status = join(',', map {"'$_'"} get_config('release_states'));
-    my $sth = get_dbh()->prepare(q(UPDATE queue SET node = NULL, status = reset_status, release_status = NULL WHERE node = ? AND status not in ($release_status);));
+    my $dbh = get_dbh();
+    my $release_status = join(',', map {$dbh->quote($_)} @{get_config('release_states')});
+    my $sth = get_dbh()->prepare(qq(UPDATE feed_queue SET node = NULL, status = reset_status, reset_status = NULL WHERE node = ? AND status not in ($release_status);));
     return $sth->execute(hostname);
 }
 
@@ -119,7 +121,7 @@ sub reset_in_flight_locks{
 =cut
 
 sub count_locks{
-    my $sth = get_dbh()->prepare(q(SELECT COUNT(*) FROM queue WHERE node = ?;));
+    my $sth = get_dbh()->prepare(q(SELECT COUNT(*) FROM feed_queue WHERE node = ?;));
     $sth->execute(hostname);
     return $sth->fetchrow;
 }
@@ -136,7 +138,7 @@ sub count_locks{
 sub update_queue {
     my ($ns, $objid, $new_status, $release, $fail) = @_;
     
-    my $syntax = qq(UPDATE queue SET status = '$new_status');
+    my $syntax = qq(UPDATE feed_queue SET status = '$new_status');
     $syntax .= q(, failure_count=failure_count+1) if ($fail);
     $syntax .= q(, node = NULL) if ($release);
     $syntax .= qq( WHERE namespace = '$ns' AND id = '$objid';);
@@ -155,7 +157,7 @@ sub update_queue {
 
 sub get_volumes_with_status {
     my ($pkg_type, $namespace, $status, $limit) = @_;
-    my $query = qq(SELECT id FROM queue WHERE namespace = ? and pkg_type = ? and status = ?);
+    my $query = qq(SELECT id FROM feed_queue WHERE namespace = ? and pkg_type = ? and status = ?);
     if($limit) { $query .= " LIMIT $limit"; }
     my $sth = get_dbh()->prepare($query);
     $sth->execute($namespace,$pkg_type,$status);
