@@ -454,7 +454,7 @@ sub record_premis_event {
 
         my $uuid = $self->make_premis_uuid($eventtype,$date); 
 
-        $dbh->do("SET time_zone = '+00:00'");
+        $dbh->do("SET time_zone = '+00:00'") if($dbh->{Driver}->{Name} eq 'mysql');
         my $set_premis_sth = $dbh->prepare("REPLACE INTO feed_premis_events (namespace, id, eventid, eventtype_id, outcome, date) VALUES (?, ?, ?, ?, ?, ?)");
 
         $set_premis_sth->execute($self->get_namespace(),$self->get_objid(),$uuid,$eventcode,$outcome_xml,$date);
@@ -478,7 +478,7 @@ sub get_event_info {
 
     my $dbh = HTFeed::DBTools::get_dbh();
 
-    $dbh->do("SET time_zone = '+00:00'");
+    $dbh->do("SET time_zone = '+00:00'") if $dbh->{Driver}->{Name} eq 'mysql';
     my $event_sql = "SELECT eventid,date,outcome,custom_xml FROM feed_premis_events where namespace = ? and id = ? and eventtype_id = ?";
 
     my $event_sth = $dbh->prepare($event_sql);
