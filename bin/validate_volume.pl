@@ -24,6 +24,8 @@ $| = 1;
 # report all image errors
 set_config(0,'stop_on_error');
 
+my $ignore_errors = 0;
+my $clean = 1;
 my $one_line = 0; # -1
 my $help = 0; # -help,-?
 
@@ -38,6 +40,8 @@ GetOptions(
     'dot-packagetype|d=s' => \$dot_packagetype,    
     'pkgtype|p=s' => \$default_packagetype,
     'namespace|n=s' => \$default_namespace,
+    "ignore_errors!" => \$ignore_errors, 
+    "clean!"         => \$clean,
 )  or pod2usage(2);
 
 pod2usage(1) if $help;
@@ -105,4 +109,4 @@ my $stage_map = $volumes[0]->get_stage_map();
 $stage_map->{metsed} = 'HTFeed::Stage::Done';
 
 
-runlite(volumegroup => new HTFeed::VolumeGroup(volumes => \@volumes), logger => 'validate_volume.pl', verbose => 1);
+runlite(volumegroup => new HTFeed::VolumeGroup(volumes => \@volumes), logger => 'validate_volume.pl', verbose => 1, clean => $clean);
