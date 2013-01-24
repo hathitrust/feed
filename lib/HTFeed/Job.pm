@@ -231,6 +231,7 @@ sub run_job {
         
         get_logger()->info( 'RunStage', objid => $job->id, namespace => $job->namespace, stage => $job->stage_class );
 
+        $job->volume->reset();
         $stage->run();
     };
 
