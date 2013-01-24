@@ -126,6 +126,7 @@ sub get_page_data {
     croak("Can't extract sequence number from file $file") unless $seqnum;
 
     if(not defined $self->{'page_data'}) {
+        $self->record_premis_event('page_feature_mapping');
         my $pagedata = {};
 
         my $xc = $self->get_source_mets_xpc();
