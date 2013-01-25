@@ -24,6 +24,12 @@ my $pagetag_mapping = {
     'Title Page' => 'TITLE'
 };
 
+sub reset {
+    my $self = shift;
+    delete $self->{meta_xpc};
+    $self->SUPER::reset;
+}
+
 sub get_ia_id{
     my $self = shift;
 

@@ -51,6 +51,16 @@ sub new {
     }
 }
 
+# invalidate cached information between jobs
+sub reset {
+    my $self = shift;
+    my @fields = qw(checksums content_files source_mets_file source_mets_xpc
+    repsitory_mets_xpc jhove_files utf8_files repository_symlink page_data
+    filegroups ingest_date); 
+    
+    map { delete $self->{$_} } @fields;
+}
+
 sub get_identifier {
     my $self = shift;
     return $self->get_namespace() . q{.} . $self->get_objid();
@@ -491,7 +501,7 @@ sub get_event_info {
     if (my ($eventid, $date, $outcome, $custom) = $event_sth->fetchrow_array()) {
         # replace space separating date from time with 'T'; add Z
         $date =~ s/ /T/g;
-        $date .= 'Z';
+        $date .= 'Z' unless $date =~ /([+-]\d{2}:\d{2})|Z$/;
         my $outcome_node = undef;
         if($outcome) {
             $outcome_node = XML::LibXML->new()->parse_string($outcome);
