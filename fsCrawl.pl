@@ -8,6 +8,7 @@ use HTFeed::DBTools qw(get_dbh);
 use File::Basename;
 use File::Pairtree qw(ppath2id s2ppchars);
 use HTFeed::Volume;
+use HTFeed::VolumeValidator;
 use HTFeed::Namespace;
 use HTFeed::PackageType;
 use HTFeed::METS;
@@ -15,8 +16,9 @@ use POSIX qw(strftime);
 use Getopt::Long;
 
 
-my $insert="replace into feed_audit (namespace, id, zip_size, zip_date, mets_size, mets_date, lastchecked, zipcheck_ok) values(?,?,?,?,?,?,CURRENT_TIMESTAMP,NULL)";
-my $update="update feed_audit set zipcheck_ok = ? where namespace = ? and id = ?";
+my $insert="insert into feed_audit (namespace, id, zip_size, zip_date, mets_size, mets_date, lastchecked) values(?,?,?,?,?,?,CURRENT_TIMESTAMP) \
+               ON DUPLICATE KEY UPDATE zip_size=?, zip_date =?,mets_size=?,mets_date=?,lastchecked = CURRENT_TIMESTAMP";
+my $update="update feed_audit set md5check_ok = ?, lastmd5check = CURRENT_TIMESTAMP where namespace = ? and id = ?";
 my $mets_ins = "insert into feed_audit_detail (namespace, id, path, status, detail) values (?,?,?,?,?)";
 
 ### set /sdr1 to /sdrX for test & parallelization
@@ -35,6 +37,7 @@ open(RUN, "find $base -follow -type f|") or die ("Can't open pipe to find: $!");
 while(my $line = <RUN>) {
 
     my @newList=(); #initialize array
+    next if $line =~ /\Qpre_uplift.mets.xml\E/;
 
     eval {
         $filesProcessed++;
@@ -69,23 +72,24 @@ while(my $line = <RUN>) {
         #get last modified date
         my $zipfile = "$path/$pt_objid.zip";
         my $metsfile = "$path/$pt_objid.mets.xml";
-        my $zipdate= strftime("%Y-%m-%d %H:%M:%S",localtime((stat($zipfile))[9]));
+        my $zip_seconds = (stat($zipfile))[9];
+        my $zipdate= strftime("%Y-%m-%d %H:%M:%S",localtime($zip_seconds));
         my $metsdate= strftime("%Y-%m-%d %H:%M:%S",localtime((stat($metsfile))[9]));
         my $zipsize = -s $zipfile;
         my $metssize = -s $metsfile;
 
-        #test symlinks unless we're traversing sdr1
-        if($first_path ne 'sdr1') {
+        #test symlinks unless we're traversing sdr1 or the file is too new
+        if($first_path ne 'sdr1' and time - $zip_seconds >= 86400) {
             my $link_path = join("/","/sdr1",@pathcomp,$last_path);
             my $link_target = readlink $link_path or set_status($namespace,$objid,$path,"CANT_LSTAT", "$link_path $!");
 
-            if($link_target ne $path) {
+            if(defined $link_target and $link_target ne $path) {
                 set_status($namespace,$objid,$path,"SYMLINK_INVALID",$link_target);
             }
         }
 
         #insert
-        execute_stmt($insert,$namespace,$objid,$zipsize,$zipdate,$metssize,$metsdate);
+        execute_stmt($insert,$namespace,$objid,$zipsize,$zipdate,$metssize,$metsdate,$zipsize,$zipdate,$metssize,$metsdate);
 
 
         # does barcode have a zip & xml, and do they match?
@@ -118,9 +122,10 @@ while(my $line = <RUN>) {
         }
 
         eval {
-            if( zipcheck($namespace,$objid) ){
+            my $rval = zipcheck($namespace,$objid);
+            if( $rval ){
                 execute_stmt($update,"1",$namespace,$objid);
-            } else {
+            } elsif(defined $rval) {
                 execute_stmt($update,"0",$namespace,$objid);
             }
         };
@@ -188,6 +193,7 @@ sub zipcheck {
                 $rval= 1;
             } else {
                 set_status($namespace,$objid,$volume->get_repository_zip_path(),"BAD_CHECKSUM","expected=$mets_zipsum actual=$realsum");
+                $rval = 0;
             }
         }
     }
