@@ -51,6 +51,16 @@ sub new {
     }
 }
 
+# invalidate cached information between jobs
+sub reset {
+    my $self = shift;
+    my @fields = qw(checksums content_files source_mets_file source_mets_xpc
+    repsitory_mets_xpc jhove_files utf8_files repository_symlink page_data
+    filegroups ingest_date); 
+    
+    map { delete $self->{$_} } @fields;
+}
+
 sub get_identifier {
     my $self = shift;
     return $self->get_namespace() . q{.} . $self->get_objid();
@@ -454,7 +464,7 @@ sub record_premis_event {
 
         my $uuid = $self->make_premis_uuid($eventtype,$date); 
 
-        $dbh->do("SET time_zone = '+00:00'");
+        $dbh->do("SET time_zone = '+00:00'") if($dbh->{Driver}->{Name} eq 'mysql');
         my $set_premis_sth = $dbh->prepare("REPLACE INTO feed_premis_events (namespace, id, eventid, eventtype_id, outcome, date) VALUES (?, ?, ?, ?, ?, ?)");
 
         $set_premis_sth->execute($self->get_namespace(),$self->get_objid(),$uuid,$eventcode,$outcome_xml,$date);
@@ -478,7 +488,7 @@ sub get_event_info {
 
     my $dbh = HTFeed::DBTools::get_dbh();
 
-    $dbh->do("SET time_zone = '+00:00'");
+    $dbh->do("SET time_zone = '+00:00'") if $dbh->{Driver}->{Name} eq 'mysql';
     my $event_sql = "SELECT eventid,date,outcome,custom_xml FROM feed_premis_events where namespace = ? and id = ? and eventtype_id = ?";
 
     my $event_sth = $dbh->prepare($event_sql);
@@ -491,7 +501,7 @@ sub get_event_info {
     if (my ($eventid, $date, $outcome, $custom) = $event_sth->fetchrow_array()) {
         # replace space separating date from time with 'T'; add Z
         $date =~ s/ /T/g;
-        $date .= 'Z';
+        $date .= 'Z' unless $date =~ /([+-]\d{2}:\d{2})|Z$/;
         my $outcome_node = undef;
         if($outcome) {
             $outcome_node = XML::LibXML->new()->parse_string($outcome);
