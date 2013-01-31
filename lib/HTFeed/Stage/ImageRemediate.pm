@@ -364,17 +364,12 @@ sub _remediate_jpeg2000 {
             get_logger()->warn("Resolution unit awry")
             if ( not $xresunit or not $yresunit or $xresunit ne $yresunit );
 
-            $xresunit eq 'um'
-                and $force_headers->{'Resolution'} =
-            sprintf( "%.0f", $xres * 25400 );
-            $xresunit eq 'mm'
-                and $force_headers->{'Resolution'} =
-            sprintf( "%.0f", $xres * 25.4 );
-            $xresunit eq 'cm'
-                and $force_headers->{'Resolution'} =
-            sprintf( "%.0f", $xres * 2.54 );
-            $xresunit eq 'in'
-                and $force_headers->{'Resolution'} = sprintf( "%.0f", $xres );
+            $xresunit eq 'um' and $force_headers->{'Resolution'} = sprintf( "%.0f", $xres * 25400 );
+            $xresunit eq '0.01 mm' and $force_headers->{'Resolution'} = sprintf( "%.0f", $xres * 2540 );
+            $xresunit eq '0.1 mm' and $force_headers->{'Resolution'} = sprintf( "%.0f", $xres * 254 );
+            $xresunit eq 'mm' and $force_headers->{'Resolution'} = sprintf( "%.0f", $xres * 25.4 );
+            $xresunit eq 'cm' and $force_headers->{'Resolution'} = sprintf( "%.0f", $xres * 2.54 );
+            $xresunit eq 'in' and $force_headers->{'Resolution'} = sprintf( "%.0f", $xres );
         }
 
     }
