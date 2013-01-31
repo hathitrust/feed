@@ -121,39 +121,21 @@ while(my $line = <RUN>) {
             set_status($namespace,$objid,$path,"BAD_FILECOUNT","zip=$found_zip mets=$found_mets total=$filecount");
         }
 
-        eval {
-            my $rval = zipcheck($namespace,$objid);
-            if( $rval ){
-                execute_stmt($update,"1",$namespace,$objid);
-            } elsif(defined $rval) {
-                execute_stmt($update,"0",$namespace,$objid);
+        # do md5 check and METS extraction stuff, but only if it's fully replicated
+        if(time - $zip_seconds >= 86400) {
+            eval {
+                my $rval = zipcheck($namespace,$objid);
+                if( $rval ){
+                    execute_stmt($update,"1",$namespace,$objid);
+                } elsif(defined $rval) {
+                    execute_stmt($update,"0",$namespace,$objid);
+                }
+            };
+            if($@) {
+                set_status($namespace,$objid,$path,"CANT_ZIPCHECK",$@);
             }
-        };
-        if($@) {
-            set_status($namespace,$objid,$path,"CANT_ZIPCHECK",$@);
         }
 
-
-        # validate barcodes for namespace consistency
-        # my $capName = uc($namespace);
-        # call validator? --> "/htapps/ezbrooks.babel/git/feed/lib/HTFeed/Namespace/$capName.pm"
-        # pass $barcode --> pipe results to log file?
-
-#            # check against ht_files
-#			my $htCheck = "select * from ht_files where namespace='$namespace' and id='$barcode'";
-#			my $sth2=$dbh->prepare($htCheck);
-#			$sth2->execute();
-#			# TODO:
-#			# pipe output . . . to file?
-#			# on error, warn . . .
-        #
-#            # check against rights_current
-#			my $rightsCheck = "select * from mdp.rights_current where namespace='$namespace' and id='$barcode'";
-#			my $sth3=$dbh->prepare($rightsCheck);
-#            $sth3->execute();
-#			# TODO:
-#			# pipe output . . . to file?
-#			# on error, warn . . .
 
     };
 
