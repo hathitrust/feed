@@ -23,14 +23,19 @@ my $update =
 my $mets_ins =
 "insert into feed_audit_detail (namespace, id, path, status, detail) values (?,?,?,?,?)";
 
+my $checkpoint_sel = 
+"select lastmd5check > ? from feed_audit where namespace = ? and id = ?";
+
 ### set /sdr1 to /sdrX for test & parallelization
 my $filesProcessed = 0;
 my $prevpath;
 my $do_md5  = 0;
 my $do_mets = 0;
+my $checkpoint = undef;
 GetOptions(
     'md5!'  => \$do_md5,
     'mets!' => \$do_mets,
+    'checkpoint=s' => \$checkpoint,
 );
 
 my $base = shift @ARGV or die("Missing base directory..");
@@ -183,6 +188,14 @@ sub zipcheck {
     my ( $namespace, $objid ) = @_;
 
     return unless $do_md5 or $do_mets;
+
+    # don't check this item if we just looked at it
+    if(defined $checkpoint) {
+        my $sth = execute_stmt($checkpoint_sel,$checkpoint,$namespace,$objid);
+        if(my @row = $sth->fetchrow_array()) {
+            return if @row and $row[0];
+        }
+    }
 
     # use google as a 'default' namespace for now
     my $volume = new HTFeed::Volume(
@@ -401,6 +414,7 @@ sub execute_stmt {
     my $dbh  = get_dbh();
     my $sth  = $dbh->prepare($stmt);
     $sth->execute(@_);
+    return $sth;
 }
 
 sub extract_source_mets {
