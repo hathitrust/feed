@@ -12,6 +12,8 @@ use base qw(Exporter);
 our @EXPORT = qw(get_config);
 our @EXPORT_OK = qw(set_config get_tool_version);
 
+use Getopt::Long qw(:config pass_through no_ignore_case);
+
 my $config;
 
 init();
@@ -50,7 +52,14 @@ sub init{
     unless (defined $config->{feed_app_root}){
         $config->set('feed_home',$feed_app_root);
     }
-    
+   
+    my $printenv;
+    GetOptions ( "printenv" => \$printenv );
+    if ($printenv) {
+        print $config->dump();
+        exit 0;
+    }
+ 
     ## TODO: check file validity, can't do this until we establish what the file will look like
     ## TODO: test script to dig out all the config vars and check against config file
 }
