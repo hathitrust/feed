@@ -13,3 +13,6 @@ bin/validateCache
 etc/libadm*
 etc/mysqlparams
 t/cover*
+etc/config/*
+!etc/config/00_*
+!etc/config/01_*

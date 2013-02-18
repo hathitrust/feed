@@ -97,9 +97,8 @@ sub runlite{
     
     while (my $volume = $volumegroup->shift()){
         $volumes_processed++;
-        print "$logger: Processing volume $volumes_processed of $volume_count...\n"
-            if ($verbose);
-        
+        get_logger($logger)->trace("RunLite executing $volumes_processed of $volume_count", volume=>$volume);
+
         # Fork iff $max_kids != 0
         if($max_kids){
             _spawn_worker($volume);
