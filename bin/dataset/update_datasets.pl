@@ -97,6 +97,7 @@ if ($full) {
 
     # update outdated volumes
     if ($reingest) {
+        print "Identifying outdated volumes...\n";
         my $outdated_volumes = HTFeed::Dataset::Tracking::get_outdated();
 
         runlite(volumegroup => $outdated_volumes, logger => 'HTFeed::Dataset::update_outdated', verbose => $verbose);
@@ -104,6 +105,7 @@ if ($full) {
     }
 
     # add missing volumes
+    print "Identifying missing volumes...\n";
     my $current = HTFeed::Dataset::Tracking::get_all();
     my $expected = HTFeed::Dataset::RightsDB::get_fullset_volumegroup();
     my $missing_volumes = $expected->difference($current);
@@ -137,7 +139,7 @@ if ($write_fullset_id_file) {
 	print "writing id file: $full_set_id_file\n";
 
     my $fullset_vg = HTFeed::Dataset::Tracking::get_all();
-	$fullset_vg->write_id_file($full_set_id_file);
+    $fullset_vg->write_id_file($full_set_id_file);
 
     symlink $full_set_id_file,$full_set_id_file_link or die "Cannot make link $full_set_id_file_link";
 }
