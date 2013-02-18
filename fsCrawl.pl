@@ -105,9 +105,12 @@ while ( my $line = <RUN> ) {
             $metsdate     = strftime( "%Y-%m-%d %H:%M:%S",
                 localtime( ( stat($metsfile) )[9] ) );
         }
+        
+        my $last_touched = $zip_seconds;
+        $last_touched = $mets_seconds if not defined $zip_seconds or $mets_seconds > $zip_seconds;
 
         #test symlinks unless we're traversing sdr1 or the file is too new
-        if ( $first_path ne 'sdr1' and time - $zip_seconds >= 86400 ) {
+        if ( $first_path ne 'sdr1' and (defined $last_touched and time - $last_touched >= 86400) ) {
             my $link_path = join( "/", "/sdr1", @pathcomp, $last_path );
             my $link_target = readlink $link_path
               or set_status( $namespace, $objid, $path, "CANT_LSTAT",
