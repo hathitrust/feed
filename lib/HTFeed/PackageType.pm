@@ -88,7 +88,10 @@ BEGIN {
         volume_module => 'HTFeed::Volume',
 
         # don't migrate any events by default
-        migrate_events => {}
+        migrate_events => {},
+
+        # use kdu_munge when remediating JPEG2000 images
+        use_kdu_munge => 1
 
     };
 }
