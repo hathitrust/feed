@@ -107,7 +107,7 @@ while ( my $line = <RUN> ) {
         }
         
         my $last_touched = $zip_seconds;
-        $last_touched = $mets_seconds if not defined $zip_seconds or $mets_seconds > $zip_seconds;
+        $last_touched = $mets_seconds if defined $mets_seconds and (not defined $zip_seconds or $mets_seconds > $zip_seconds);
 
         #test symlinks unless we're traversing sdr1 or the file is too new
         if ( $first_path ne 'sdr1' and (defined $last_touched and time - $last_touched >= 86400) ) {
