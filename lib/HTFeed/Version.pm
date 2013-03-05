@@ -4,7 +4,7 @@ use warnings;
 use strict;
 no strict 'refs';
 
-use Getopt::Long qw(:config pass_through no_ignore_case);
+use Getopt::Long qw(:config pass_through no_ignore_case no_auto_abbrev);
 
 use HTFeed::Config qw(get_config);
 use HTFeed::PackageType;
