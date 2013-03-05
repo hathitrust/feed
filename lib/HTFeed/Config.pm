@@ -12,7 +12,7 @@ use base qw(Exporter);
 our @EXPORT = qw(get_config);
 our @EXPORT_OK = qw(set_config get_tool_version);
 
-use Getopt::Long qw(:config pass_through no_ignore_case);
+use Getopt::Long qw(:config pass_through no_ignore_case no_auto_abbrev);
 
 my $config;
 
