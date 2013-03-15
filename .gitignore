@@ -21,3 +21,4 @@ etc/config_*
 !etc/config/00_*
 !etc/config/01_*
 *~
+var
