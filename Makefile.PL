@@ -1,6 +1,6 @@
 use warnings;
 use strict;
-use v5.10;
+use v5.8;
 
 use ExtUtils::MakeMaker;
 use ExtUtils::Manifest qw(maniread);
@@ -50,7 +50,7 @@ WriteMakefile(
 
 sub MY::post_constants {
 	my @manifest_files = keys %{maniread()};
-	my @etc_files = grep {/^etc\//};
+	my @etc_files = grep {/^etc\//} @manifest_files;
 	return unless (scalar @etc_files);
 	my $to_inst_etc = 'TO_INST_ETC = ' . join(" \\\n\t",@etc_files) . "\n";
 	return $to_inst_etc;
