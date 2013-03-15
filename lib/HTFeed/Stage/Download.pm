@@ -48,7 +48,7 @@ sub download{
     return 1 if -e "$path/$filename";
 
     my $ua = LWP::UserAgent->new;
-	my $version = HTFeed::Version::get_feed_version_number();
+	my $version = HTFeed::Version::get_vstring();
     $ua->agent('HTFeedBot/$version  '); # space causes LWP to append its ua
 
     get_logger()->trace("Requesting $url");
