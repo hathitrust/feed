@@ -1,6 +1,6 @@
 use warnings;
 use strict;
-use v5.8;
+#use v5.10;
 
 use ExtUtils::MakeMaker;
 use ExtUtils::Manifest qw(maniread);
@@ -64,6 +64,7 @@ sub MY::postamble {
 # disable install target
 install ::
 	false
+    my @etc_files = grep {/^etc\//} @manifest_files;
 
 dist : brand_version inject_copyright write_path_config
 
