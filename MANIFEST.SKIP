@@ -10,8 +10,8 @@ MANIFEST\.
 HTFeed-v
 
 # local files
-\bgpg$
-\bweb$
+\bgpg\b
+\bweb\b
 local_config.yml$
 \bget_book.sh$
 \bvalidateCache$
