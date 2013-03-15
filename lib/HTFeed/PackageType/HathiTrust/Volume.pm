@@ -172,6 +172,12 @@ sub get_last_ingest_date{
     return $self->{ingest_date};
 }
 
+# There is no SIP
+sub clean_download {
+    return 1;
+}
+
+
 
 1;
 

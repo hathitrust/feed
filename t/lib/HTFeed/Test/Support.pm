@@ -16,14 +16,14 @@ use Carp;
 
 my %staging_configs = (
     damaged     => {
-        download  => '/htapps/test.babel/feed/t/staging/DAMAGED/download',
-        ingest    => '/htapps/test.babel/feed/t/staging/DAMAGED/ingest',
-        preingest => '/htapps/test.babel/feed/t/staging/DAMAGED/preingest',
+        download  => '/htapps/test.babel/staging/DAMAGED/download',
+        ingest    => '/htapps/test.babel/staging/DAMAGED/ingest',
+        preingest => '/htapps/test.babel/staging/DAMAGED/preingest',
     },
     undamaged     => {
-        download  => '/htapps/test.babel/feed/t/staging/UNDAMAGED/download',
-        ingest    => '/htapps/test.babel/feed/t/staging/UNDAMAGED/ingest',
-        preingest => '/htapps/test.babel/feed/t/staging/UNDAMAGED/preingest',
+        download  => '/htapps/test.babel/staging/UNDAMAGED/download',
+        ingest    => '/htapps/test.babel/staging/UNDAMAGED/ingest',
+        preingest => '/htapps/test.babel/staging/UNDAMAGED/preingest',
     },
     
     original    => {
@@ -77,6 +77,7 @@ my @test_classes;
 sub get_test_volume{
     my $voltype = shift;
 
+	#TODO this should always be defined as some packagetype
     $voltype = 'default' if not defined $voltype;
 
     my $volumes = {

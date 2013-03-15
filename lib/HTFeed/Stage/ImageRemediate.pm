@@ -108,8 +108,17 @@ sub update_tags {
     my $self = shift;
     my $exifTool = shift;
     my $outfile = shift;
+    my $infile = shift;
 
-    if ( !$exifTool->WriteInfo($outfile) ) {
+    my $res;
+
+    if(defined $infile) {
+        $res = $exifTool->WriteInfo($infile,$outfile)
+    } else {
+        $res = $exifTool->WriteInfo($outfile)
+    }
+
+    if ( !$res ) {
         $self->set_error("OperationFailed",
             operation=>"exiftool write",
             file=>"$outfile",
@@ -183,10 +192,10 @@ sub _remediate_tiff {
         foreach my $error ( @{$self->{jhoveErrors}} ) {
             # Is the error remediable?
             my @exiftool_remediable_errs = ('IFD offset not word-aligned',
-                                            'Value offset not word-aligned',
-                                            'Tag 269 out of sequence',
-                                            'Invalid DateTime separator',
-                                            'Count mismatch for tag 306');
+                'Value offset not word-aligned',
+                'Tag 269 out of sequence',
+                'Invalid DateTime separator',
+                'Count mismatch for tag 306');
             my @imagemagick_remediable_errs = ('PhotometricInterpretation not defined');
             if(grep {$error =~ /^$_/} @imagemagick_remediable_errs) {
                 get_logger()->trace("PREVALIDATE_REMEDIATE: $infile has remediable error '$error'\n");
@@ -207,13 +216,17 @@ sub _remediate_tiff {
     # get existing DateTime field, normalize to TIFF 6.0 spec "YYYY:MM:DD HH:MM:SS"
     my $datetime = $self->{oldFields}{'IFD0:ModifyDate'};
     if(defined $datetime and $datetime =~ /^(\d{4}).(\d{2}).(\d{2}).(\d{2}).(\d{2}).(\d{2})/
-     and $datetime !~ /^(\d{4}):(\d{2}):(\d{2}) (\d{2}):(\d{2}):(\d{2})/) {
+            and $datetime !~ /^(\d{4}):(\d{2}):(\d{2}) (\d{2}):(\d{2}):(\d{2})/) {
         $self->{newFields}{'IFD0:ModifyDate'} = "$1:$2:$3 $4:$5:$6";
         $remediate_exiftool = 1;
     }
     elsif(defined $datetime and $datetime =~ /^(\d{4}).?(\d{2}).?(\d{2})/
-     and $datetime !~ /^(\d{4}):(\d{2}):(\d{2}) (\d{2}):(\d{2}):(\d{2})/) {
+            and $datetime !~ /^(\d{4}):(\d{2}):(\d{2}) (\d{2}):(\d{2}):(\d{2})/) {
         $self->{newFields}{'IFD0:ModifyDate'} = "$1:$2:$3 00:00:00";
+        $remediate_exiftool = 1;
+    }
+    elsif(defined $datetime and $datetime eq '' and defined $set_if_undefined_headers->{'IFD0:ModifyDate'}) {
+        $self->{newFields}{'IFD0:ModifyDate'} = $set_if_undefined_headers->{'IFD0:ModifyDate'};
         $remediate_exiftool = 1;
     }
 
@@ -360,17 +373,12 @@ sub _remediate_jpeg2000 {
             get_logger()->warn("Resolution unit awry")
             if ( not $xresunit or not $yresunit or $xresunit ne $yresunit );
 
-            $xresunit eq 'um'
-                and $force_headers->{'Resolution'} =
-            sprintf( "%.0f", $xres * 25400 );
-            $xresunit eq 'mm'
-                and $force_headers->{'Resolution'} =
-            sprintf( "%.0f", $xres * 25.4 );
-            $xresunit eq 'cm'
-                and $force_headers->{'Resolution'} =
-            sprintf( "%.0f", $xres * 2.54 );
-            $xresunit eq 'in'
-                and $force_headers->{'Resolution'} = sprintf( "%.0f", $xres );
+            $xresunit eq 'um' and $force_headers->{'Resolution'} = sprintf( "%.0f", $xres * 25400 );
+            $xresunit eq '0.01 mm' and $force_headers->{'Resolution'} = sprintf( "%.0f", $xres * 2540 );
+            $xresunit eq '0.1 mm' and $force_headers->{'Resolution'} = sprintf( "%.0f", $xres * 254 );
+            $xresunit eq 'mm' and $force_headers->{'Resolution'} = sprintf( "%.0f", $xres * 25.4 );
+            $xresunit eq 'cm' and $force_headers->{'Resolution'} = sprintf( "%.0f", $xres * 2.54 );
+            $xresunit eq 'in' and $force_headers->{'Resolution'} = sprintf( "%.0f", $xres );
         }
 
     }
@@ -427,41 +435,45 @@ sub _remediate_jpeg2000 {
     }
 
 
-    my $kdu_munge = get_config('kdu_munge');
-    system("$kdu_munge -i '$infile' -o '$outfile' 2>&1 > /dev/null") and
-    $self->set_error("OperationFailed",file=>$outfile,operation=>"kdu_munge");
+    if($self->{volume}->get_nspkg()->get('use_kdu_munge')) {
+            my $kdu_munge = get_config('kdu_munge');
+            system("$kdu_munge -i '$infile' -o '$outfile' 2>&1 > /dev/null") and
+            $self->set_error("OperationFailed",file=>$outfile,operation=>"kdu_munge");
 
-    $self->update_tags($exifTool,$outfile);
+            $self->update_tags($exifTool,$outfile);
+        } else {
+            $self->update_tags($exifTool,$outfile,$infile);
+        }
 
-}
-
-sub prevalidate_field {
-    my $self = shift;
-    my $fieldname = shift;
-    my $expected = shift; # can be a scalar or an array ref, if there are multiple permissible values
-    my $remediable = shift;
-    my $ok = 0;
-
-    my $actual = $self->{oldFields}{$fieldname};
-    my $error_class = $remediable ? 'PREVALIDATE_REMEDIATE' : 'PREVALIDATE_ERR';
-
-    if (not defined $actual) {
-        $ok = 0;
-    } elsif(not defined $expected) {
-        # any value is OK
-        $ok = 1;
-    } elsif ((!ref($expected) and $actual eq $expected)
-        # OK value
-            or (ref($expected) eq 'ARRAY' and (grep {$_ eq $actual} @$expected))) {
-        $ok = 1;
-    } else {
-        # otherwise: unexpected/invalid value
-        $ok = 0;
     }
 
-    return $ok;
+    sub prevalidate_field {
+        my $self = shift;
+        my $fieldname = shift;
+        my $expected = shift; # can be a scalar or an array ref, if there are multiple permissible values
+        my $remediable = shift;
+        my $ok = 0;
 
-}
+        my $actual = $self->{oldFields}{$fieldname};
+        my $error_class = $remediable ? 'PREVALIDATE_REMEDIATE' : 'PREVALIDATE_ERR';
+
+        if (not defined $actual) {
+            $ok = 0;
+        } elsif(not defined $expected) {
+            # any value is OK
+            $ok = 1;
+        } elsif ((!ref($expected) and $actual eq $expected)
+            # OK value
+                or (ref($expected) eq 'ARRAY' and (grep {$_ eq $actual} @$expected))) {
+            $ok = 1;
+        } else {
+            # otherwise: unexpected/invalid value
+            $ok = 0;
+        }
+
+        return $ok;
+
+    }
 
 =item remediate_tiffs()
 
@@ -503,7 +515,7 @@ sub remediate_tiffs {
                 $exiftool->SetNewValue($field);
                 $needwrite = 1;
             }
-            
+
         }
         if($needwrite) {
             $exiftool->WriteInfo("$tiffpath/$tiff");
@@ -530,7 +542,7 @@ sub remediate_tiffs {
             $self->remediate_image("$tiffpath/$file",
                 "$stage_path/$file",
                 $force_headers,
-                    $set_if_undefined_headers);
+                $set_if_undefined_headers);
         },"-m TIFF-hul");
 }
 
@@ -615,11 +627,11 @@ $path is the base directory containing all the files in $tiffs.
 $headers_sub is a callback taking the filename as a parameter
 and returning the force_headers and set_if_undefined_headers parameters for
 remediate_image (qv)
-	
+
 =back
 
 =head1 AUTHOR
 
-	INSERT_UNIVERSITY_OF_MICHIGAN_COPYRIGHT_INFO_HERE
+    INSERT_UNIVERSITY_OF_MICHIGAN_COPYRIGHT_INFO_HERE
 
 =cut

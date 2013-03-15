@@ -1,10 +1,11 @@
-package HTFeed::PackageType::MPubDCU::METS;
+package HTFeed::PackageType::MPub::METS_PREMIS1;
 use strict;
 use warnings;
 use Log::Log4perl qw(get_logger);
 use HTFeed::XMLNamespaces qw(:namespaces :schemas);
 use base qw(HTFeed::METS);
 use POSIX qw(strftime);
+use Image::ExifTool;
 
 
 # Override base class _add_dmdsecs to not try to add MARC
@@ -216,9 +217,9 @@ sub _get_checksum_time {
     if(-e $checksum_path) {
         my $checksum_secs = (stat($checksum_path))[9];
 
-        return strftime("%Y-%m-%dT%H:%M:%S",localtime($checksum_secs));
+        return strftime("%Y-%m-%dT%H:%M:%SZ",gmtime($checksum_secs));
     } else {
-        return strftime("%Y-%m-%dT%H:%M:%S",localtime);
+        return strftime("%Y-%m-%dT%H:%M:%SZ",gmtime);
     }
 
 }

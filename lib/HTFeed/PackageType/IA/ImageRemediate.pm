@@ -5,6 +5,7 @@ use strict;
 use base qw(HTFeed::Stage::ImageRemediate);
 use Carp;
 use Log::Log4perl qw(get_logger);
+use POSIX qw(strftime);
 
 sub run {
     my $self           = shift;
@@ -56,7 +57,9 @@ sub run {
 sub get_capture_time {
     my $self       = shift;
     my $image_file = shift;
-    my $xpc        = $self->{volume}->get_scandata_xpc();
+    my $volume     = $self->{volume};
+    my $xpc        = $volume->get_scandata_xpc();
+    my $preingest_path = $volume->get_preingest_directory();
 
     # Get the time of creation from scandata.xml
     my $leafNum = int( $image_file =~ /_(\d{4}).jp2/ );
@@ -71,6 +74,11 @@ sub get_capture_time {
     if( not defined $gmtTimeStamp or $gmtTimeStamp eq '') {
         my $meta_xpc = $self->{volume}->get_meta_xpc();
         $gmtTimeStamp = $meta_xpc->findvalue('//scandate');
+    }
+
+    # use file time stamp if all else fails
+    if( not defined $gmtTimeStamp or $gmtTimeStamp eq '') {
+        $gmtTimeStamp = strftime("%Y%m%d%H%M%S",gmtime((stat("$preingest_path/$image_file"))[9]));
     }
 
     # Format is YYYYMMDDHHmmss

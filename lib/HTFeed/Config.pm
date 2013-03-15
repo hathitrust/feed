@@ -10,7 +10,9 @@ use Cwd qw(realpath);
 
 use base qw(Exporter);
 our @EXPORT = qw(get_config);
-our @EXPORT_OK = qw(set_config);
+our @EXPORT_OK = qw(set_config get_tool_version);
+
+use Getopt::Long qw(:config pass_through no_ignore_case no_auto_abbrev);
 
 ##################################################
 #               HTFeed directories               #
@@ -62,7 +64,9 @@ baseyaml
     # load config files
     my $filename;
     eval{
-        foreach my $config_file (sort(glob("$config_dir/*.yml"))){
+        my @config_files = sort(glob("$config_dir/*.yml"));
+        push (@config_files, $ENV{HTFEED_CONFIG}) if(defined $ENV{HTFEED_CONFIG});
+        foreach my $config_file (@config_files) {
 			$filename = $config_file;
             if($config){
                 $config->merge(file => $config_file);
@@ -73,11 +77,13 @@ baseyaml
     };
     if ($@){ die ("loading $filename failed: $@"); }
 
-#    # add feed_app_root to config
-#    unless (defined $config->{feed_app_root}){
-#        $config->set('feed_home',$feed_app_root);
-#    }
-    
+    my $printenv;
+    GetOptions ( "printenv" => \$printenv );
+    if ($printenv) {
+        print $config->dump();
+        exit 0;
+    }
+ 
     ## TODO: check file validity, can't do this until we establish what the file will look like
     ## TODO: test script to dig out all the config vars and check against config file
 }
@@ -121,6 +127,84 @@ sub set_config{
 sub _dump {
     print $config->dump();
 }
+
+sub get_tool_version {
+
+    my $package_id = shift;
+    my $to_eval    = get_config( 'premis_tools', $package_id );
+    if ( !$to_eval ) {
+        croak("Configuration error: $package_id missing from premis_tools");
+        return $package_id;
+    }
+
+    my $version = eval($to_eval);
+    if ( $@ or !$version ) {
+        croak("Error getting version for $package_id: $@");
+        return $package_id;
+    }
+    else {
+        return $version;
+    }
+}
+
+sub perl_mod_version {
+    my $module  = shift;
+    my $mod_req = $module;
+    $mod_req =~ s/::/\//g;
+    my $toreturn;
+    eval { require "$mod_req.pm"; };
+    if ($@) {
+        croak( "Error loading $module: $@" );
+    }
+    no strict 'refs';
+    my $version = ${"${module}::VERSION"};
+    if ( defined $version ) {
+        return "$module $version";
+    }
+    else {
+        croak("Can't find ${module}::VERSION" );
+    }
+}
+
+sub local_directory_version {
+    my $package   = shift;
+    my $tool_root = get_config("premis_tool_local");
+    if ( not -l "$tool_root/$package" ) {
+        croak("$tool_root/$package not a symlink" );
+    }
+    else {
+        my $package_target;
+        if ( !( $package_target = readlink("$tool_root/$package") ) ) {
+            croak("Error in readlink for $tool_root/$package: $!" ) if $!;
+            return $package;
+        }
+
+        my ($package_version) = ( $package_target =~ /$package-([\w.]+)$/ );
+        if ($package_version) {
+            return "$package $package_version";
+        }
+        else {
+            croak( "Couldn't extract version from symlink $package_version for $package");
+            return $package;
+        }
+
+    }
+}
+
+sub system_version {
+    my $package = shift;
+    my $version = `rpm -q $package`;
+
+    if ( $? or $version !~ /^$package[-.\w]+/ ) {
+        croak("RPM returned '$version' with status $? for package $package" );
+    }
+    else {
+        chomp $version;
+        return $version;
+    }
+}
+
+
 
 1;
 
@@ -168,6 +252,12 @@ B<NOTE:> This method should be used for testing purposes only.
 Loads the appropriate configuration files
 
 =back
+
+=item get_tool_version()
+
+Get the version of a tool defined in the premis_tools section in the configuration file.
+
+$tool_version = get_tool_version($package_identifier);
 
 INSERT_UNIVERSITY_OF_MICHIGAN_COPYRIGHT_INFO_HERE
 

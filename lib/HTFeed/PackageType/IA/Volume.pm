@@ -24,6 +24,12 @@ my $pagetag_mapping = {
     'Title Page' => 'TITLE'
 };
 
+sub reset {
+    my $self = shift;
+    delete $self->{meta_xpc};
+    $self->SUPER::reset;
+}
+
 sub get_ia_id{
     my $self = shift;
 
@@ -37,7 +43,7 @@ sub get_ia_id{
     my $arkid = $self->get_objid();
 
     my $dbh = get_dbh();
-    my $sth = $dbh->prepare("select ia_id from ia_arkid where arkid = ?");
+    my $sth = $dbh->prepare("select ia_id from feed_ia_arkid where arkid = ?");
     $sth->execute($arkid);
 
     my $results = $sth->fetchrow_arrayref();

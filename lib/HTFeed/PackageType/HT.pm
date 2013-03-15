@@ -1,4 +1,4 @@
-package HTFeed::PackageType::HathiTrust;
+package HTFeed::PackageType::HT;
 
 use warnings;
 use strict;

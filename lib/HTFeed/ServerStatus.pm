@@ -13,7 +13,8 @@ my $stop_file = get_config('stop_file');
 my $locked = _locked();
 
 if ($locked){
-    print "LOCKED!\n";
+    print "STOPFEED is set -- waiting 30 seconds, then exiting!\n";
+    sleep 30;
     exit 1;
 }
 

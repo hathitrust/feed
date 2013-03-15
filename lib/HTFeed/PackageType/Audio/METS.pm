@@ -4,6 +4,7 @@ package HTFeed::PackageType::Audio::METS;
 use HTFeed::METSFromSource;
 # get the default behavior from HTFeed::METSFromSource
 use base qw(HTFeed::METSFromSource);
+use Log::Log4perl qw(get_logger);
  
 sub _add_dmdsecs {
     return;
@@ -25,16 +26,26 @@ sub _add_techmds {
     my $xc = $volume->get_source_mets_xpc();
     $self->SUPER::_add_techmds();
 
-    my $reading_order = new METS::MetadataSection( 'techMD',
+    my $notes_txt = new METS::MetadataSection( 'techMD',
         id => $self->_get_subsec_id('techMD'));
 
-    my @mdwraps = $xc->findnodes('//METS:mdRef[@LABEL="production notes"]');
-    if(@mdwraps != 1) {
+    my @mdwraps = $xc->findnodes('//mets:mdRef[@LABEL="production notes"] | //mets:mdRef[@LABEL="Production notes"]');
+    if(@mdwraps == 1) {
+        $notes_txt->set_mdwrap($mdwraps[0]);
+    } else {
         my $count = scalar(@mdwraps);
         $self->set_error("BadField",field=>"production notes",decription=>"Found $count production notes techMDs, expected 1");
+#        $notes_txt->set_md_ref(
+#            label => 'production notes',
+#            loctype => 'OTHER',
+#            otherloctype => 'SYSTEM',
+#            mdtype => 'OTHER',
+#            othermdtype => 'text',
+#            xlink => { href => 'notes.txt'}
+#        );
+
     }
-    $reading_order->set_mdwrap($mdwraps[0]);
-    push(@{ $self->{amd_mdsecs} },$reading_order);
+    push(@{ $self->{amd_mdsecs} },$notes_txt);
 }
 
 sub _add_content_fgs {

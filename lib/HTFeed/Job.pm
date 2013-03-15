@@ -231,12 +231,13 @@ sub run_job {
         
         get_logger()->info( 'RunStage', objid => $job->id, namespace => $job->namespace, stage => $job->stage_class );
 
+        $job->volume->reset();
         $stage->run();
     };
 
     my $err = $@;
     if ( $err and $err !~ /STAGE_ERROR/ and $err !~ /VOLUME_ERROR/) {
-        get_logger()->error( 'UnexpectedError', objid => $job->id, namespace => $job->namespace, stage => $job->stage_class, detail => $@ );
+        get_logger()->error( 'UnexpectedError', objid => $job->id, namespace => $job->namespace, stage => $job->stage_class, detail => $err );
     }
 
     # handle fake status set in unit tests

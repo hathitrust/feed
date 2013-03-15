@@ -11,12 +11,9 @@ my $dbh = HTFeed::DBTools::get_dbh();
 local $Test::DatabaseRow::dbh = $dbh;
 ok($dbh->ping, "database connection");
 
-#XXX store tables, columns in external file/ get from schema?
-#TODO test cases for failures so that test fails but unit test does not fail
- 
 #test that tables exist
 my $table;
-my @tables=("queue", "ingest_log");
+my @tables=("feed_queue", "feed_log");
 my @row;
 my $match = "no match";
 
@@ -56,13 +53,12 @@ for my $col(@cols) {
 #test sql
 my $execute;
 eval{
-	my $sth = $dbh->prepare("SELECT pkg_type, namespace, id, status, failure_count FROM queue WHERE node = ?");
+	my $sth = $dbh->prepare("SELECT pkg_type, namespace, id, status, failure_count FROM feed_queue WHERE node = ?");
 	$execute = $sth->execute;
 };
 ok($execute, "correct syntax");
 
 #test specific calls
-#XXX sample
 row_ok(
 	table	=>	"queue",
 	where	=>	["status"	=> "punted"],

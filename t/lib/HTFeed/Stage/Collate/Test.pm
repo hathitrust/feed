@@ -6,10 +6,10 @@ use strict;
 use base qw(HTFeed::Stage::AbstractTest);
 use Test::More;
 
-#sub my_test : Test(1){
-#    my $self = shift;
-#    ok(1);
-#}
+sub my_test : Test(1){
+    my $self = shift;
+    ok(1);
+}
 
 1;
 

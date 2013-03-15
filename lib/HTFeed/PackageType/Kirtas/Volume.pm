@@ -24,6 +24,13 @@ the corresponding entry in the hash will not exist.
 
 =cut
 
+sub reset {
+    my $self = shift;
+    delete $self->{kirtas_mets_xc};
+    delete $self->{capture_time};
+    $self->SUPER::reset;
+}
+
 sub get_page_data {
     my $self = shift;
     my $file = shift;

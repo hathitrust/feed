@@ -5,7 +5,7 @@ use strict;
 use Carp;
 
 use File::Basename;
-use Getopt::Long qw(:config pass_through no_ignore_case);
+use Getopt::Long qw(:config pass_through no_ignore_case no_auto_abbrev);
 
 use base qw( Exporter );
 our @EXPORT_OK = qw( get_vstring get_full_version_string get_production_ok );
@@ -72,6 +72,8 @@ sub _long_version{
     # convert paths to module names; return all those that are a subclass
     # of the given class
 	require HTFeed;
+    HTFeed::load_namespaces();
+    HTFeed::load_pkgtypes();
 
     print "\n*** Loaded Namespaces ***\n";
     print join("\n",map {HTFeed::id_desc_info($_)} ( sort( HTFeed::find_subclasses("HTFeed::Namespace") )));

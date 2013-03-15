@@ -70,7 +70,7 @@ sub set_item_priority{
         else                { $priority = group_priority($ns,$pkg_type) * $GROUP_OFF + 0x2 }
     }
 
-    my $sth = HTFeed::DBTools::get_dbh()->prepare(qq(UPDATE queue SET priority = (priority & $BIN_MASK) + ? WHERE namespace = ? AND id = ?;));
+    my $sth = HTFeed::DBTools::get_dbh()->prepare(qq(UPDATE feed_queue SET priority = (priority & $BIN_MASK) + ? WHERE namespace = ? AND id = ?;));
 
     $sth->execute($priority,$ns,$id);
 
@@ -84,7 +84,7 @@ group_priority($ns,$pkg_type)
 =cut
 sub group_priority{
     my ($ns,$pkg_type) = @_;
-    my $get_group_priority = HTFeed::DBTools::get_dbh()->prepare(q(SELECT MIN(priority) FROM priority WHERE (namespace = ? AND pkg_type IS NULL) OR (namespace IS NULL AND pkg_type = ?) OR (namespace = ? AND pkg_type = ?);));
+    my $get_group_priority = HTFeed::DBTools::get_dbh()->prepare(q(SELECT MIN(priority) FROM feed_priority WHERE (namespace = ? AND pkg_type IS NULL) OR (namespace IS NULL AND pkg_type = ?) OR (namespace = ? AND pkg_type = ?);));
 
     # bind each var twice to accommodate wacky SQL
     $get_group_priority->execute($ns,$pkg_type,$ns,$pkg_type);
@@ -116,9 +116,9 @@ sub reprioritize{
         $where_syntax = "priority != 0 AND priority < $LAST";
     }
 
-    my $get_nspkgs = HTFeed::DBTools::get_dbh()->prepare(qq(SELECT DISTINCT namespace, pkg_type FROM queue WHERE $where_syntax;));
+    my $get_nspkgs = HTFeed::DBTools::get_dbh()->prepare(qq(SELECT DISTINCT namespace, pkg_type FROM feed_queue WHERE $where_syntax;));
     my $mask = $BIN_MASK + $SUBG_MASK;
-    my $update_priority = HTFeed::DBTools::get_dbh()->prepare(qq(UPDATE queue SET priority = (? * $GROUP_OFF) + (priority & $mask) WHERE namespace = ? AND pkg_type = ? AND $where_syntax;));
+    my $update_priority = HTFeed::DBTools::get_dbh()->prepare(qq(UPDATE feed_queue SET priority = (? * $GROUP_OFF) + (priority & $mask) WHERE namespace = ? AND pkg_type = ? AND $where_syntax;));
 
     $get_nspkgs->execute();
     while(my ($ns,$pkg) = $get_nspkgs->fetchrow_array()){
@@ -181,7 +181,7 @@ sub rebin{
     my $id = $volume->get_objid();
 
     # clear bin, set bin, don't touch it if priority is FIRST or LAST
-    my $sth = HTFeed::DBTools::get_dbh()->prepare(qq(UPDATE queue SET priority = (priority & ~$BIN_MASK) + ? WHERE namespace = ? AND id = ? AND priority != $FIRST AND priority < $LAST;));
+    my $sth = HTFeed::DBTools::get_dbh()->prepare(qq(UPDATE feed_queue SET priority = (priority & ~$BIN_MASK) + ? WHERE namespace = ? AND id = ? AND priority != $FIRST AND priority < $LAST;));
 
     $sth->execute($bin*$BIN_OFF,$ns,$id);
 }

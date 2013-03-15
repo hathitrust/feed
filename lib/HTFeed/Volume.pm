@@ -10,10 +10,11 @@ use HTFeed::FileGroup;
 use XML::LibXML;
 use HTFeed::Config qw(get_config);
 use HTFeed::DBTools;
-use Time::localtime;
+use Time::gmtime;
 use File::Pairtree qw(id2ppath s2ppchars);
 use Data::UUID;
 use File::Path qw(remove_tree);
+use Date::Manip;
 
 # singleton stage_map override
 my $stage_map = undef;
@@ -48,6 +49,16 @@ sub new {
         get_logger()->error("BadValue",namespace=>$self->{namespace},objid=>$self->{objid},field=>'barcode',detail=>'Invalid barcode');
         croak("VOLUME_ERROR");
     }
+}
+
+# invalidate cached information between jobs
+sub reset {
+    my $self = shift;
+    my @fields = qw(checksums content_files source_mets_file source_mets_xpc
+    repsitory_mets_xpc jhove_files utf8_files repository_symlink page_data
+    filegroups ingest_date); 
+    
+    map { delete $self->{$_} } @fields;
 }
 
 sub get_identifier {
@@ -441,19 +452,20 @@ sub record_premis_event {
 
     if(defined $params{custom_event}) {
         my $custom_event = $params{custom_event};
-        my $set_premis_sth = $dbh->prepare("REPLACE INTO premis_events (namespace, id, eventtype_id, custom_xml) VALUES (?, ?, ?, ?)");
+        my $set_premis_sth = $dbh->prepare("REPLACE INTO feed_premis_events (namespace, id, eventtype_id, custom_xml) VALUES (?, ?, ?, ?)");
         $set_premis_sth->execute($self->get_namespace(),$self->get_objid(),$eventcode,$custom_event->toString());
     } else {
         my $eventtype = $eventconfig->{'type'};
         croak("Event code / type not found") unless $eventtype;
 
         my $date = ($params{date} or $self->_get_current_date());
+
         my $outcome_xml = $params{outcome}->to_node()->toString() if defined $params{outcome};
 
         my $uuid = $self->make_premis_uuid($eventtype,$date); 
 
-        my $set_premis_sth = $dbh->prepare("REPLACE INTO premis_events (namespace, id, eventid, eventtype_id, outcome, date) VALUES
-            (?, ?, ?, ?, ?, ?)");
+        $dbh->do("SET time_zone = '+00:00'") if($dbh->{Driver}->{Name} eq 'mysql');
+        my $set_premis_sth = $dbh->prepare("REPLACE INTO feed_premis_events (namespace, id, eventid, eventtype_id, outcome, date) VALUES (?, ?, ?, ?, ?, ?)");
 
         $set_premis_sth->execute($self->get_namespace(),$self->get_objid(),$uuid,$eventcode,$outcome_xml,$date);
     }
@@ -476,7 +488,8 @@ sub get_event_info {
 
     my $dbh = HTFeed::DBTools::get_dbh();
 
-    my $event_sql = "SELECT eventid,date,outcome,custom_xml FROM premis_events where namespace = ? and id = ? and eventtype_id = ?";
+    $dbh->do("SET time_zone = '+00:00'") if $dbh->{Driver}->{Name} eq 'mysql';
+    my $event_sql = "SELECT eventid,date,outcome,custom_xml FROM feed_premis_events where namespace = ? and id = ? and eventtype_id = ?";
 
     my $event_sth = $dbh->prepare($event_sql);
     my @params = ($self->get_namespace(),$self->get_objid(),$eventtype);
@@ -486,8 +499,9 @@ sub get_event_info {
     $event_sth->execute(@params);
     # Should only be one event of each event type - enforced by primary key in DB
     if (my ($eventid, $date, $outcome, $custom) = $event_sth->fetchrow_array()) {
-        # replace space separating date from time with 'T'
+        # replace space separating date from time with 'T'; add Z
         $date =~ s/ /T/g;
+        $date .= 'Z' unless $date =~ /([+-]\d{2}:\d{2})|Z$/;
         my $outcome_node = undef;
         if($outcome) {
             $outcome_node = XML::LibXML->new()->parse_string($outcome);
@@ -509,15 +523,15 @@ sub _get_current_date {
     my $self = shift;
     my $ss1970 = shift;
 
-    my $localtime_obj = defined($ss1970) ? localtime($ss1970) : localtime();
+    my $gmtime_obj = defined($ss1970) ? gmtime($ss1970) : gmtime();
 
-    my $ts = sprintf("%d-%02d-%02dT%02d:%02d:%02d",
-        (1900 + $localtime_obj->year()),
-        (1 + $localtime_obj->mon()),
-        $localtime_obj->mday(),
-        $localtime_obj->hour(),
-        $localtime_obj->min(),
-        $localtime_obj->sec());
+    my $ts = sprintf("%d-%02d-%02dT%02d:%02d:%02dZ",
+        (1900 + $gmtime_obj->year()),
+        (1 + $gmtime_obj->mon()),
+        $gmtime_obj->mday(),
+        $gmtime_obj->hour(),
+        $gmtime_obj->min(),
+        $gmtime_obj->sec());
 
     return $ts;
 }
@@ -581,7 +595,7 @@ sub clear_premis_events {
 
     my $ns = $self->get_namespace();
     my $objid = $self->get_objid();
-    my $sth = HTFeed::DBTools::get_dbh()->prepare("DELETE FROM premis_events WHERE namespace = ? and id = ?");
+    my $sth = HTFeed::DBTools::get_dbh()->prepare("DELETE FROM feed_premis_events WHERE namespace = ? and id = ?");
     $sth->execute($ns,$objid);
 
 }
@@ -860,10 +874,11 @@ physical page, e.g.:
 
 =item record_premis_event()
 
-Records a PREMIS event that happens to the volume. Optionally, a PREMIS::Outcome object
-can be passed. If no date (in any format parseable by MySQL) is given,
-the current date will be used. If the PREMIS event has already been recorded in the 
-database, the date and outcome will be updated.
+Records a PREMIS event that happens to the volume. Optionally, a
+PREMIS::Outcome object can be passed. If no date (in any format parseable by
+MySQL) is given, the current date will be used. The date is assumed to be UTC.
+If the PREMIS event has already been recorded in the database, the date and
+outcome will be updated.
 
 The eventtype_id refers to the event definitions in the application configuration file, not
 the PREMIS eventType (which is configured in the event definition)

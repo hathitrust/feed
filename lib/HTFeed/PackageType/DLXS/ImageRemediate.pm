@@ -7,6 +7,7 @@ use base qw(HTFeed::Stage::ImageRemediate);
 use Log::Log4perl qw(get_logger);
 use File::Basename;
 use Date::Manip;
+use HTFeed::Config qw(get_tool_version);
 use POSIX qw(strftime);
 
 # minimum dimensions for JP2 are set to trade paperback digitized at 400 DPI
@@ -114,21 +115,26 @@ sub get_tiff_info {
 
     if(-e $tiff) {
         $tiff_fields = $self->get_exiftool_fields($tiff);
+
+        # first try the 'real' fields
+        $artist = $tiff_fields->{'IFD0:Artist'};
+        $load_date = $tiff_fields->{'IFD0:ModifyDate'};
+        
+        # next try DocumentName
         my $docname = $tiff_fields->{'IFD0:DocumentName'};
         if(defined $docname and $docname =~ qr#^(\d{2})/(\d{2})/(\d{4}),(\d{2}):(\d{2}):(\d{2}),"(.*)"#) {
             $load_date = "$3:$1:$2 $4:$5:$6" if not defined $load_date;
             $artist = $7 if not defined $artist;
         }
-        $artist = $tiff_fields->{'IFD0:Artist'};
+
         $self->{real_artist} = 1 if defined $artist;
-        $load_date = $tiff_fields->{'IFD0:ModifyDate'};
-        $self->{real_capture_date} = 1 if defined $load_date;
+        $self->{real_capture_date} = 1 if defined $load_date and $load_date ne '';
     }
 
     my $loadcd_info = $volume->get_loadcd_info();
     $artist = $loadcd_info->{artist} if not defined $artist and defined $loadcd_info->{artist};
 
-    if(defined $loadcd_info->{load_date} and not defined $load_date) {
+    if(defined $loadcd_info->{load_date} and (not defined $load_date or $load_date eq '')) {
         $load_date = $loadcd_info->{load_date};
         # fix separator
         $load_date =~ s/-/:/g;
@@ -139,7 +145,7 @@ sub get_tiff_info {
 
     # set default artist and load date: file timestamp / University of Michigan
 
-    if(not defined $load_date) {
+    if(not defined $load_date or $load_date eq '') {
         $load_date = strftime("%Y:%m:%d %H:%M:%S", localtime((stat($tiff))[9]));
         $self->{missing_capture_date} = 1;
         $self->{missing_capture_date_method} = 'file timestamp';
@@ -159,6 +165,7 @@ sub _add_capture_event {
     my $self = shift;
     my $volume = $self->{volume};
 
+    # FIXME: record time zone here
     my $capture_date = $self->{capture_date};
     if($capture_date =~ /^(\d{4}).(\d{2}).(\d{2}).(\d{2}).(\d{2}).(\d{2})(.*)/) {
         $capture_date = "$1-$2-$3T$4:$5:$6$7";
@@ -175,21 +182,11 @@ sub _add_capture_event {
         $outcome->add_detail_note("Capture date may not be accurate: estimated from $self->{missing_capture_date_method}");
         $event->add_outcome($outcome);
     }
-    # Need note if Artist is default artist
-    if(!$self->{real_artist}) {
-        my $outcome = new PREMIS::Outcome('warning');
-        $outcome->add_detail_note("Original scanning artist unknown; digitization was performed under the direction of the recorded agent.");
-        $event->add_outcome($outcome);
-        $event->add_linking_agent(
-            new PREMIS::LinkingAgent( 'MARC21 Code',
-                'MiU', 
-                'Executor' ) );
-    } else {
-        $event->add_linking_agent(
-            new PREMIS::LinkingAgent( 'HathiTrust AgentID',
-                $self->{'artist'}, 
-                'Executor' ) );
-    }
+    # always just use michigan for the capture event.
+    $event->add_linking_agent(
+        new PREMIS::LinkingAgent( 'MARC21 Code',
+            'MiU', 
+            'Executor' ) );
 
     $volume->record_premis_event('capture',custom_event => $event->to_node());
 }
@@ -204,6 +201,13 @@ sub _add_image_remediate_event {
     my $event = new PREMIS::Event( $eventid, 'UUID', 
                                    $eventconfig->{'type'}, $volume->_get_current_date(),
                                    $eventconfig->{'detail'});
+
+    my $tools_config = $eventconfig->{'tools'};
+    foreach my $agent (@$tools_config) {
+        $event->add_linking_agent(
+            new PREMIS::LinkingAgent( 'tool', get_tool_version($agent), 'software')
+        );
+    }
 
     # Need note for image header modification:
     #   - if datetime header was missing and so we used loadcd or the file timestamp

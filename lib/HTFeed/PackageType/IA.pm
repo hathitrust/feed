@@ -3,6 +3,7 @@ package HTFeed::PackageType::IA;
 use warnings;
 use strict;
 use base qw(HTFeed::PackageType);
+use HTFeed::XPathValidator qw(:closures);
 
 our $identifier = 'ia';
 
@@ -96,6 +97,7 @@ our $config = {
         'zip_compression',
         'zip_md5_create',
         'ingestion',
+        'premis_migration', # optional
     ],
 
     # Overrides for the basic PREMIS event configuration
@@ -123,6 +125,9 @@ our $config = {
         packed            => 'HTFeed::METS',
         metsed            => 'HTFeed::Stage::Handle',
         handled           => 'HTFeed::Stage::Collate',
+
+        needs_uplift => 'HTFeed::Stage::RepositoryUnpack',
+        uplift_unpacked => 'HTFeed::Stage::ReMETS'
     },
 
 
@@ -130,6 +135,10 @@ our $config = {
     validation => {
         'HTFeed::ModuleValidator::JPEG2000_hul' => {
             'camera'               => undef,
+            'resolution'      => v_and(
+                v_in( 'xmp', 'xRes', ['300/1','350/1','400/1','500/1','600/1','650/1']),
+                v_same( 'xmp', 'xRes', 'xmp', 'yRes' )
+            ),
         }
     },
 
@@ -144,6 +153,11 @@ our $config = {
     non_core_package_items => [ 
     '%s_files.xml',
     '%s_scanfactors.xml' ],
+
+    # migrate old 'transformation' events 
+    migrate_events => {
+        'transformation' => ['image_header_modification','package_inspection','ocr_normalize','source_mets_creation'],
+    }
 
 
 };

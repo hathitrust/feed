@@ -1,4 +1,3 @@
-*~
 *.swp
 ._*
 .DS_Store
@@ -17,3 +16,8 @@ Makefile
 MANIFEST
 MANIFEST.bak
 MANIFEST.SKIP.bak
+etc/config/*
+etc/config_*
+!etc/config/00_*
+!etc/config/01_*
+*~

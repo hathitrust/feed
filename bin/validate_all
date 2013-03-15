@@ -1,0 +1,16 @@
+#!/bin/bash
+
+PKGTYPE=$1
+NAMESPACE=$2
+
+if [[ -z $PKGTYPE ]];
+then PKGTYPE='google';
+fi
+if [[ -z $NAMESPACE ]];
+then NAMESPACE='mdp';
+fi
+
+
+for barcode in *;
+do perl -I /l/local/exiftool/lib/perl5/site_perl/5.8.8 -w /l/local/feed/bin/validate_images.pl $PKGTYPE $NAMESPACE $barcode $barcode;
+done

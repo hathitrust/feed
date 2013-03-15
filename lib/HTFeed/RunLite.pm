@@ -38,6 +38,7 @@ my $volumegroup;
 my $logger;
 my $verbose;
 my $clean;
+my $ignore_errors;
 
 my $volume_count;
 my $volumes_processed;
@@ -67,6 +68,7 @@ sub runlite{
         logger => 'HTFeed::RunLite',
         verbose => 0,
         clean => 1,
+        ignore_errors => 0,
         @_,
     };
 
@@ -95,9 +97,8 @@ sub runlite{
     
     while (my $volume = $volumegroup->shift()){
         $volumes_processed++;
-        print "$logger: Processing volume $volumes_processed of $volume_count...\n"
-            if ($verbose);
-        
+        get_logger($logger)->trace("RunLite executing $volumes_processed of $volume_count", volume=>$volume);
+
         # Fork iff $max_kids != 0
         if($max_kids){
             _spawn_worker($volume);
@@ -113,7 +114,7 @@ sub runlite{
         _wait_kid();
     }
 
-    HTFeed::StagingSetup::clear_stage();
+    HTFeed::StagingSetup::clear_stage() if $clean;
 
     $finished++;
     return;
@@ -131,7 +132,7 @@ END{
 
         # clean up on exit of parent process, iff runner was invoked
         HTFeed::StagingSetup::clear_stage()
-            if ($$ eq $pid and $started);
+            if ($$ eq $pid and $started and $clean);
         
         #### add clean up from feedd here
 
@@ -176,9 +177,11 @@ sub _do_work {
     my $volume = shift;
     
     my $job = HTFeed::Job->new(volume => $volume, callback => sub{return});
-    
+    my $job_flag;
+    $job_flag = 0 if($ignore_errors);
+
     while($job){
-        $job->run_job($clean);
+        $job->run_job($clean,$job_flag);
         $job = $job->successor;
         # reap any children
         while(wait()) { last if $? == -1};

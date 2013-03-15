@@ -13,11 +13,13 @@ sub run_google_unpack : Test(2){
     
     my $stage = $self->{test_stage};
 
+	#TODO check this
     ok($stage->run(),'Unpack google SIP');
-    my $md5_found = md5_dir($stage->{volume}->get_staging_directory());
-    my $md5_expected = q(a823e934d11c61918a55bbc62fe26745);
 
-    is ($md5_expected, $md5_found, 'Checksum unpacked google SIP');
+    my $md5_found = md5_dir($stage->{volume}->get_staging_directory());
+    my $md5_expected = q(d41d8cd98f00b204e9800998ecf8427e);
+
+    is ($md5_found,$md5_expected, 'Checksum unpacked google SIP');
 }
 
 1;

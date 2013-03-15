@@ -64,11 +64,11 @@ sub enqueue_volumes{
     
     my $dbh = HTFeed::DBTools::get_dbh();
     my $sth;
-    my $blacklist_sth = $dbh->prepare("SELECT namespace, id FROM mdp_tracking.blacklist WHERE namespace = ? and id = ?");
+    my $blacklist_sth = $dbh->prepare("SELECT namespace, id FROM feed_blacklist WHERE namespace = ? and id = ?");
     if($ignore){
-        $sth = $dbh->prepare(q(INSERT IGNORE INTO queue (pkg_type, namespace, id, priority, status) VALUES (?,?,?,?,?);));
+        $sth = $dbh->prepare(q(INSERT IGNORE INTO feed_queue (pkg_type, namespace, id, priority, status) VALUES (?,?,?,?,?);));
     }else {
-        $sth = $dbh->prepare(q(INSERT INTO queue (pkg_type, namespace, id, priority, status) VALUES (?,?,?,?,?);));
+        $sth = $dbh->prepare(q(INSERT INTO feed_queue (pkg_type, namespace, id, priority, status) VALUES (?,?,?,?,?);));
     }
     
     my @results;
@@ -82,18 +82,22 @@ sub enqueue_volumes{
                 $status = $volume->get_nspkg()->get('default_queue_state');
             }
 
+            my $blacklisted = 0;
             if($use_blacklist) {
                 $blacklist_sth->execute($namespace,$objid);
                 if($blacklist_sth->fetchrow_array()) {
                     get_logger()->warn("Blacklisted",namespace=>$namespace,objid=>$objid);
                     push(@results,0);
-                    return;
+                    $blacklisted = 1;
                 }
             }
 
-            my $res = $sth->execute($volume->get_packagetype(), $volume->get_namespace(), $volume->get_objid(), initial_priority($volume,$priority_modifier), $status);
-            push @results, $res;
-        } or get_logger()->error($@) and return \@results;
+            if(!$blacklisted) {
+                my $res = $sth->execute($volume->get_packagetype(), $volume->get_namespace(), $volume->get_objid(), initial_priority($volume,$priority_modifier), $status);
+                push @results, $res;
+            }
+        };
+        get_logger()->error($@) and return \@results if $@;
     }
 
     # set priorities for newly added volumes
@@ -148,10 +152,10 @@ sub reset_volumes {
     my $dbh = HTFeed::DBTools::get_dbh();
     my $sth;
     if($force){
-        $sth = $dbh->prepare(q(UPDATE queue SET node = NULL, status = ?, failure_count = 0 WHERE namespace = ? and id = ?;));
+        $sth = $dbh->prepare(q(UPDATE feed_queue SET node = NULL, status = ?, failure_count = 0 WHERE namespace = ? and id = ?;));
     }
     else{
-        $sth = $dbh->prepare(q(UPDATE queue SET node = NULL, status = ?, failure_count = 0 WHERE status in ('punted','rights','done') and namespace = ? and id = ?;));
+        $sth = $dbh->prepare(q(UPDATE feed_queue SET node = NULL, status = ?, failure_count = 0 WHERE status in ('punted','collated','rights','done','uplift_done','needs_uplift') and namespace = ? and id = ? and node is null;));
     }
     
     my @results;

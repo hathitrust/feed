@@ -6,6 +6,9 @@ no strict 'refs';
 
 use version 0.77; use HTFeed::Version qw(:no_getopt); our $VERSION = version->declare(HTFeed::Version::get_vstring());
 
+my $loaded_namespaces = 0;
+my $loaded_pkgtypes = 0;
+
 use HTFeed::Volume;
 use HTFeed::Config qw(get_config);
 use HTFeed::Volume;
@@ -24,10 +27,12 @@ sub find_subclasses {
 }
 
 sub namespace_ids {
+    load_namespaces();
     return map {${$_ . "::identifier"}} (sort(find_subclasses("HTFeed::Namespace")));
 }
 
 sub pkgtype_ids {
+    load_pkgtypes();
     return map {${$_ . "::identifier"}} (sort(find_subclasses("HTFeed::PackageType")));
 }
 
@@ -39,8 +44,24 @@ sub id_desc_info {
 }
 
 sub nspkg {
+    load_namespaces();
     return map {$_ => {id_desc_info($_)}} find_subclasses("HTFeed::Namespace");
 }
+
+sub load_namespaces {
+    if(!$loaded_namespaces) {
+        HTFeed::Namespace->load_all_subclasses();
+        $loaded_namespaces = 1;
+    }
+}
+
+sub load_pkgtypes {
+    if(!$loaded_pkgtypes) {
+        HTFeed::PackageType->load_all_subclasses();
+        $loaded_pkgtypes = 1;
+    }
+}
+
 
 =item pkg_by_ns
 
@@ -53,6 +74,8 @@ my $namespace_to_packagetype_hash;
 sub pkg_by_ns {
 	return $namespace_to_packagetype_hash if(defined $namespace_to_packagetype_hash);
 
+    load_namespaces();
+    load_pkgtypes();
     my %hsh = map {${$_ . "::identifier"}=>${$_ . "::config"}->{packagetypes}} (sort(find_subclasses("HTFeed::Namespace")));
 
 	$namespace_to_packagetype_hash = \%hsh;
@@ -70,6 +93,8 @@ my $packagetype_to_namespace_hash;
 sub ns_by_pkg {
 	return $packagetype_to_namespace_hash if(defined $packagetype_to_namespace_hash);
 
+    load_namespaces();
+    load_pkgtypes();
     my $pkg_by_ns = pkg_by_ns();
     my %ns_by_pkg;
     foreach my $ns (keys %{$pkg_by_ns}){
@@ -94,6 +119,7 @@ return hashref of namespaces mapped to their tags
 my $namespace_to_tag_hash;
 sub tags_by_ns {
 	return $namespace_to_tag_hash if(defined $namespace_to_tag_hash);
+    load_namespaces();
 	
     # ignore missing tags fields
     no warnings;
@@ -115,6 +141,7 @@ sub search_ns_by_tags {
     my $search_tags = shift;
     my @results;
     my $tags_by_ns = tags_by_ns();
+    load_namespaces();
     foreach my $ns (keys %{$tags_by_ns}){
         push (@results, $ns)
             if(_tagmatch($tags_by_ns->{$ns},$search_tags));
