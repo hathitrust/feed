@@ -95,7 +95,7 @@ sub _get_version_from_git {
         # are we in a git repo?
         if(! system("cd $path_to_this_module; git status > /dev/null 2>&1")) {
             # get feed description from git
-            my $git_string = `cd $path_to_this_module; git describe --tags --long --dirty`;
+            my $git_string = `cd $path_to_this_module; git describe --tags --long`;
             chomp $git_string;
             _parse_git_string($git_string,$vstring,$full_version_string,$production_ok);
             1;

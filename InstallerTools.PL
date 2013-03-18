@@ -60,7 +60,7 @@ sub _generate_version_block {
 	my $syntax = 'my ($vstring,$full_version_string,$production_ok) = ("%s","%s","%s"); # HTFEED_VERSION_STRINGS';
 
 	my $full_version_string = get_full_version_string();
-	croak "I will not make from a dirty git repo. Commit or stash." if ($full_version_string =~ /dirty/);
+#	croak "I will not make from a dirty git repo. Commit or stash." if ($full_version_string =~ /dirty/);
 
 	$syntax = sprintf($syntax,get_vstring(),$full_version_string,get_production_ok());
 
