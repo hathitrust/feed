@@ -35,7 +35,6 @@ WriteMakefile(
 		'YAML::Any'				=> 0,
 	},
 	BUILD_REQUIRES => {
-		'Test::DatabaseRow'		=> 0,
 		'Test::Harness'			=> 0,
 		'Test::More'			=> 0,
 		'Test::Most'			=> 0,
