@@ -14,9 +14,10 @@ use HTFeed::Stage::Download;
 sub unzip_file : Test(1){
     my $self = shift;
 
-    my $url = 'http://ia700204.us.archive.org/20/items/livesandspeeches00howeiala/livesandspeeches00howeiala_flippy.zip';
-    my $filename = 'livesandspeeches00howeiala_flippy.zip';
-    my $md5_expected = '7f88762eb06f53482dedc6142a660ef8';
+    my $url = 'http://www.archive.org/download/livesandspeeches00howeiala/livesandspeeches00howeiala.epub';
+    my $filename = 'livesandspeeches00howeiala.epub';
+    # expected md5 of all the files in the archive catted together
+    my $md5_expected = '984a386632512d17a3ce4bbf8c0f4555';
 
     my $temp_dir = mkdtemp("/tmp/feed_test_XXXXX");
 
