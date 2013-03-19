@@ -25,3 +25,4 @@
 # skip bentley email stuff
 \bEmail\b
 ## possibly list some unwanted tests here
+\bclasstests.t\b
