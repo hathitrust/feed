@@ -13,20 +13,24 @@ ok($dbh->ping, "database connection");
 my $table;
 my @tables=("feed_queue", "feed_log", "feed_premis_events");
 my @row;
-my $match = "no match";
 
-for $table(@tables) {
-	my $sth = $dbh->prepare("show tables");
-	my $execute = $sth->execute;
-	while (@row = $sth->fetchrow_array) {
-		for my $row(@row) {
-			if($row eq $table) {
-				$match = $table;
-			}
-		}
-	}
-	cmp_ok($match, 'eq', $table, "table $table exists");
-	$match = "null";
+my $sth;
+if($dbh->{Driver}->{Name} eq 'mysql') {
+    $sth = $dbh->prepare("show tables");
+} elsif($dbh->{Driver}->{Name} eq 'SQLite') {
+    $sth = $dbh->prepare('SELECT name FROM sqlite_master WHERE type = "table";');
+} else {
+    die("Unsupported driver $dbh->{Driver}->{Name}");
+}
+ok($sth->execute,"fetch tables");
+
+my @db_tables = ();
+while (@row = $sth->fetchrow_array) {
+    push(@db_tables,$row[0]);
+}
+
+foreach my $table (@tables) {
+    ok( (grep {$_ eq $table} @db_tables), "table $table exists");
 }
 
 #test columns
