@@ -192,16 +192,24 @@ sub local_directory_version {
 }
 
 sub system_version {
-    my $package = shift;
-    my $version = `rpm -q $package`;
+    my @packages = @_;
 
-    if ( $? or $version !~ /^$package[-.\w]+/ ) {
-        croak("RPM returned '$version' with status $? for package $package" );
+    my $version = undef;
+
+    foreach my $package (@packages) {
+        $version = `rpm -q $package`;
+        last if ( !$? and $version =~ /^$package[-.\w]+/ );
+
+        $version = `dpkg -s $package | grep 'Version:'`;
+        if ( !$? and $version =~ /^Version: .+/) {
+            $version =~ s/^Version: /$package-/;
+            last;
+        }
     }
-    else {
-        chomp $version;
-        return $version;
-    }
+
+    croak("Can't find version for $packages[0]") if not defined $version;
+    chomp $version;
+    return $version;
 }
 
 
