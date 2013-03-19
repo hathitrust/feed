@@ -23,5 +23,3 @@ etc/config_*
 *~
 var/*
 var/db/*
-!var/db
-!var/db/feed.db
