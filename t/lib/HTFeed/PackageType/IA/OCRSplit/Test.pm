@@ -37,10 +37,8 @@ sub Errors : Test(2){
 	my $xml = "$objdir/${ia_id}_djvu.xml";
 	unlink($xml);
 
-	subtest 'IA: OCRSplit stage fails with missing djvu file' => sub {
-		ok(! -e $xml, 'verify that djvu is missing...');
-		ok(! $stage->run(), '...and IA: OCRSplit stage fails');
-	};
+    ok(! -e $xml, 'verify that djvu is missing...');
+    ok(! $stage->run(), '...and IA: OCRSplit stage fails');
 
 	#replace djvu for next test
 	my $clean_copy = "/htapps/test.babel/feed/t/staging/UNDAMAGED/download/ia/$ia_id/${ia_id}_djvu.xml";

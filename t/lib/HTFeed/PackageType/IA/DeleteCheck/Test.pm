@@ -38,10 +38,8 @@ sub Missing : Test(2){
 	unlink($scandata);
 
 	# test stage with $scandata missing
-	subtest 'IA: DeleteCheck stage fails with missing file: $scandata' => sub {
-		ok(! -e $scandata, 'verify that $scandata is missing...');
-		ok(! $stage->run(), '...and IA: DeleteCheck stage fails');
-	};
+    ok(! -e $scandata, 'verify that $scandata is missing...');
+    ok(! $stage->run(), '...and IA: DeleteCheck stage fails');
 	
 	# replace $scandata for next test
 	my $clean_copy = "$undamaged/download/ia/$ia_id/${ia_id}_scandata.xml";
