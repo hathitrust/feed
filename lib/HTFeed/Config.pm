@@ -45,9 +45,9 @@ sub init{
     }
 
     # find bin, etc and var if they aren't predefined
-    $feed_etc ||= "$feed_lib_parent/etc";
-    $feed_bin ||= "$feed_lib_parent/bin";
-    $feed_var ||= "$feed_lib_parent/var";
+    $feed_etc = "$feed_lib_parent/etc" if not defined $feed_etc or !-d $feed_etc;
+    $feed_bin = "$feed_lib_parent/bin" if not defined $feed_bin or !-d $feed_bin;
+    $feed_var = "$feed_lib_parent/var" if not defined $feed_var or !-d $feed_var;
 
     # generate a simple base config
     my $base_config = <<"baseyaml";
