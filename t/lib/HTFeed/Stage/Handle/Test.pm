@@ -13,4 +13,4 @@ sub my_test : Test(1){
 
 1;
 
-_END__
+__END__
