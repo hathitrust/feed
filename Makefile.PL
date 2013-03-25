@@ -41,8 +41,6 @@ WriteMakefile(
 		'Test::Class'			=> 0,
 	},
 	CONFIGURE_REQUIRES => { "ExtUtils::MakeMaker" => 0 },
-	INSTALLDIRS => 'site',
-	INSTALL_BASE => '/usr/local', # TODO: this does what we want, but is the wrong assertion to make it happen
 	EXE_FILES => [ split(/\s+/,qx!cat MANIFEST | grep ^bin.*pl\$!) ], # TODO: no more .pl extensions for these
 	MAN3PODS => { }, # disable MAN3 for now
 );
@@ -93,17 +91,26 @@ write_path_config ::
 DIST_MAKE_FRAG
 
 	return <<'INSTALL_MAKE_FRAG'
-pure_all :: etc_to_blib
+pure_all :: validate_cache etc_to_blib db_to_blib
 	$(NOECHO) $(NOOP)
 
-install :: install_etc
+validate_cache ::
+	g++ -o blib/bin/validateCache src/validateCache.cpp -lxerces-c
+
+install :: install_etc install_db
 	$(NOECHO) $(NOOP)
 
 etc_to_blib ::
 	$(ABSPERLRUN) -MExtUtils::Install -e 'install {"etc" => "blib/etc"}'
 
+db_to_blib ::
+	$(ABSPERLRUN) -MExtUtils::Install -e "pm_to_blib( {'etc/feed.template.sqlite3' => 'blib/var/db/feed.db'}, '$(INST_LIB)/auto' )"
+
 install_etc ::
-	$(ABSPERLRUN) -MExtUtils::Install -e 'install {"etc" => "/usr/local/etc/feed"}'
+	$(ABSPERLRUN) -MExtUtils::Install -e "install {'blib/etc' => '$(INSTALL_BASE)/etc/feed'}"
+
+install_db ::
+	$(ABSPERLRUN) -MExtUtils::Install -e "install {'blib/var' => '$(INSTALL_BASE)/var/feed'}"
 
 INSTALL_MAKE_FRAG
 
