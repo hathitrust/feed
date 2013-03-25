@@ -333,6 +333,12 @@ sub _remediate_jpeg2000 {
         $self->copy_old_to_new( "IFD0:$field",  "XMP-tiff:$field" );
     }
 
+    # handle old version of exiftool
+    if(not defined $self->{oldFields}->{'Jpeg2000:ColorSpace'}) {
+        $self->{oldFields}->{'Jpeg2000:ColorSpace'} = 
+        $self->{oldFields}->{'Jpeg2000:Colorspace'};
+    }
+
     # For IA, ColorSpace should always be sRGB. Only set these fields if they
     # aren't already defined.
     if ( $self->{oldFields}->{'Jpeg2000:ColorSpace'} eq 'sRGB' ) {
@@ -435,17 +441,17 @@ sub _remediate_jpeg2000 {
     }
 
 
-    if($self->{volume}->get_nspkg()->get('use_kdu_munge')) {
-            my $kdu_munge = get_config('kdu_munge');
-            system("$kdu_munge -i '$infile' -o '$outfile' 2>&1 > /dev/null") and
-            $self->set_error("OperationFailed",file=>$outfile,operation=>"kdu_munge");
+    my $kdu_munge = get_config('kdu_munge');
+    if($self->{volume}->get_nspkg()->get('use_kdu_munge') and defined $kdu_munge and $kdu_munge) {
+        system("$kdu_munge -i '$infile' -o '$outfile' 2>&1 > /dev/null") and
+        $self->set_error("OperationFailed",file=>$outfile,operation=>"kdu_munge");
 
-            $self->update_tags($exifTool,$outfile);
-        } else {
-            $self->update_tags($exifTool,$outfile,$infile);
-        }
-
+        $self->update_tags($exifTool,$outfile);
+    } else {
+        $self->update_tags($exifTool,$outfile,$infile);
     }
+
+}
 
     sub prevalidate_field {
         my $self = shift;
