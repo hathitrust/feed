@@ -7,6 +7,7 @@ use HTFeed::VolumeValidator;
 use HTFeed::Log {root_logger => 'INFO, screen'};
 use Test::More tests => 9;
 use HTFeed::Config qw(set_config get_tool_version);
+use FindBin;
 
 
 BEGIN {
@@ -27,11 +28,11 @@ my $mets = new HTFeed::METS(
 
 #TODO check this test method
 like( get_tool_version("GROOVE"),
-    qr/$0 .*\d+.*/, "toolver_groove" );
+    qr/$FindBin::Script .*\d+.*/, "toolver_groove" );
 
 like( get_tool_version("EXIFTOOL"),
     qr/Image::ExifTool \d\.\d+/, "toolver_exiftool" );
-like( get_tool_version("XERCES"), qr/xerces-c[- ].*\d+.*/, "toolver_xerces" );
+like( get_tool_version("XERCES"), qr/(lib)xerces-c(3.1)?[- ].*\d+.*/, "toolver_xerces" );
 like( get_tool_version("JHOVE"),  qr/jhove \d\.\d+/i,    "toolver_jhove" );
 like( get_tool_version("DIGEST_MD5"),
     qr/Digest::MD5 \d\.\d+/, "toolver_digest_md5" );
