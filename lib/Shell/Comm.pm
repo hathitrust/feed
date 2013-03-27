@@ -3,7 +3,7 @@ package Shell::Comm;
 use warnings;
 use strict;
 
-use v5.10;
+#use v5.10;
 use File::Temp qw(tempfile);
 use IO::Pipe;
 use Carp;
@@ -27,12 +27,10 @@ comm(\@a,\@b,'b'); # list items unique to @b
 sub comm {
     my ($a,$b,$arg) = @_;
     my $flag;
-    given( $arg ) {
-        when (['common','12']) { $flag = '-12' }
-        when (['a','23'])      { $flag = '-23' }
-        when (['b','13'])      { $flag = '-13' }
-        default { croak "comm: invalid arg - $arg" };
-    }
+    $flag = '-12' if $arg eq 'common' or $arg eq '12';
+    $flag = '-23' if $arg eq 'a' or $arg eq '23';
+    $flag = '-13' if $arg eq 'b' or $arg eq '13';
+    croak "comm: invalid arg - $arg" if not defined $flag;
 
     my @a = sort @{$a};
     my @b = sort @{$b};
