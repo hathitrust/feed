@@ -1,10 +1,5 @@
 #!/usr/bin/perl
 
-=description
-
-validate_volume.pl runs a SIP through all stages of preingest transformation, image validation and METS creation.
-
-=cut
 
 use FindBin;
 use lib "$FindBin::Bin/../lib";
@@ -14,6 +9,7 @@ use HTFeed::RunLite qw(runlite);
 use HTFeed::Volume;
 use Getopt::Long qw(:config no_ignore_case);
 use Pod::Usage;
+use HTFeed::Stage::Done;
 use strict;
 use warnings;
 
@@ -24,7 +20,6 @@ $| = 1;
 # report all image errors
 set_config(0,'stop_on_error');
 
-my $ignore_errors = 0;
 my $clean = 1;
 my $one_line = 0; # -1
 my $help = 0; # -help,-?
@@ -40,7 +35,6 @@ GetOptions(
     'dot-packagetype|d=s' => \$dot_packagetype,    
     'pkgtype|p=s' => \$default_packagetype,
     'namespace|n=s' => \$default_namespace,
-    "ignore_errors!" => \$ignore_errors, 
     "clean!"         => \$clean,
 )  or pod2usage(2);
 
@@ -110,3 +104,42 @@ $stage_map->{metsed} = 'HTFeed::Stage::Done';
 
 
 runlite(volumegroup => new HTFeed::VolumeGroup(volumes => \@volumes), logger => 'validate_volume.pl', verbose => 1, clean => $clean);
+
+__END__
+
+=head1 NAME
+
+    validate_volume.pl - validate volumes by running all stages through METS generation
+
+=head1 SYNOPSIS
+
+validate_volume.pl [-p packagetype [-n namespace]] [infile]
+
+validate_volume.pl -d packagetype [infile]
+
+validate_volume.pl -1 packagetype namespace objid
+
+    INPUT OPTIONS
+
+      -d dot format infile - follow with packagetype
+          all lines of infile are expected to be of the form namespace.objid.
+
+      -1 only one volume, read from command line and not infile
+
+      -p,-n - specify packagetype, namespace respectivly.
+        incompatible with -d, -1
+    
+    GENERAL OPTIONS
+
+      --clean - clean up temporary files directories after validation (default)
+      --no-clean - leave temporary files and directories in place after validation 
+
+    INFILE - input read fron last arg on command line or stdin
+    
+    standard infile contains rows like this:
+        [[packagetype] namespace] objid
+    
+    dot-style (-d) infile rows:
+        namespace.objid
+=cut
+

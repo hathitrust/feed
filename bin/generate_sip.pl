@@ -1,11 +1,5 @@
 #!/usr/bin/perl
 
-=description
-
-validate_volume.pl runs a SIP through all stages of preingest transformation, image validation and METS creation.
-
-=cut
-
 use FindBin;
 use lib "$FindBin::Bin/../lib";
 use HTFeed::Log {root_logger => 'INFO, screen'};
