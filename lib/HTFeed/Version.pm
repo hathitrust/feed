@@ -112,7 +112,7 @@ sub _get_version_from_fs {
     require HTFeed::Config;
     HTFeed::Config->import(qw(get_config));
 
-    my $feed_bin_dir = get_config('feed_bin_dir');
+    my $feed_bin_dir = get_config('feed_bin');
     
     if(defined $feed_bin_dir) {
         my $version_file = $feed_bin_dir . '/rdist.timestamp';
@@ -127,7 +127,7 @@ sub _get_version_from_fs {
             }
             if($$vstring) {
                 $$full_version_string = $version_file_contents;
-                $production_ok = 1;
+                $$production_ok = 1;
             }
         }
     }
