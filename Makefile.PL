@@ -125,9 +125,11 @@ db_to_blib ::
 
 install_etc ::
 	$(ABSPERLRUN) -MExtUtils::Install -e "install {'blib/etc' => '$(PREFIX)/etc/feed'}"
+	chmod -R u+w $(PREFIX)/etc
 
 install_db ::
 	$(ABSPERLRUN) -MExtUtils::Install -e "install {'blib/var' => '$(PREFIX)/var/feed'}"
+	chmod -R u+w $(PREFIX)/var/feed
 
 INSTALL_MAKE_FRAG
 
