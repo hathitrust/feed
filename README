@@ -1,3 +1,7 @@
+<h1>Prerequisites, Installation and Configuration</h1>
+
+See INSTALL
+
 <h1>Introduction</h1>
 
 Feed is a suite of tools to assist in preparing content for ingest into
@@ -103,25 +107,6 @@ particular the original digitization as well as events occurring during
 remediation and packaging. Feed supports recording events in a straightforward
 and consistent fashion. Feed has limited support for the PREMIS <tt>object</tt>
 element and does not support the <tt>agent</tt> or <tt>rights</tt> entity.
-
-<h1>Prerequisites and Installation</h1>
-
-See INSTALL
-
-<h1>Configuration</h1>
-
-Configuration files are installed in the config directory under Feed's etc
-directory (by default this is /usr/local/etc/feed). If Feed is properly
-installed and it's scripts (by default in /usr/local/bin) "feed_env.pl
-feed_etc" will print the configured location of this directory.
-
-The config files include comments on what settings do and how to edit them. We
-recommended making local configuration changes in a separate file (e.g.
-/usr/local/etc/feed/config/02_local_config.yml). All config files must end in
-".yml". Files are loaded in alphabetical order.
-
-Before running feed, review the configuration files and edit the settings as
-described in each file.
 
 <h1>Package Type Creation</h1>
 

@@ -38,6 +38,7 @@ manager.
 Feed depends on the following external software:
 
 - JHOVE 1.5
+- ImageMagick 
 - Xerces-C 3.1
 - SQLite3
 - Kakadu 6.4.0 or later (optional: for converting TIFFs to JPEG2000 images)
@@ -49,9 +50,26 @@ must edit the sample 'jhove' script to point to your local installation of
 Java.
 
 
-The Xerces-C library must be installed as well. 
+The ImageMagick and Xerces-C libraries must be installed as well. 
 
-On Redhat/CentOS: 
+For ImageMagick:
+
+On RedHat/CentOS:
+
+   yum install ImageMagick
+
+On Debian/Ubuntu:
+
+   apt-get install imagemagick
+
+On Mac OS X with HomeBrew:
+
+   brew install ImageMagick
+
+
+For Xerces-C:
+
+On RedHat/CentOS: 
 
    yum install xerces-c libxerces-c-3_1 xerces-c-devel
 
@@ -99,4 +117,23 @@ By default, feed installs files to the following locations:
 Before using feed, make sure that /usr/local/bin/ is in your $PATH.
 You will also need to make sure that all files and directories under
 /usr/local/var/feed are writable by the user you will be running feed as.
+
+If you install to a different location using the PREFIX option for Makefile.PL,
+ensure that the alternate lib location is in your PERL5LIB environment
+variable.
+
+<h1>Configuration</h1>
+
+Configuration files are installed in the config directory under Feed's etc
+directory (by default this is /usr/local/etc/feed). If Feed and its scripts are
+properly installed (by default in /usr/local/bin) "feed_env.pl feed_etc" will
+print the configured location of this directory.
+
+The config files include comments on what settings do and how to edit them. We
+recommended making local configuration changes in a separate file (e.g.
+/usr/local/etc/feed/config/02_local_config.yml). All config files must end in
+".yml". Files are loaded in alphabetical order.
+
+Before running feed, review the configuration files and edit the settings as
+described in each file.
 
