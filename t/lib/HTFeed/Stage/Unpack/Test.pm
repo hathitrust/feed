@@ -17,7 +17,7 @@ sub unzip_file : Test(1){
     my $url = 'http://www.archive.org/download/livesandspeeches00howeiala/livesandspeeches00howeiala.epub';
     my $filename = 'livesandspeeches00howeiala.epub';
     # expected md5 of all the files in the archive catted together
-    my $md5_expected = '984a386632512d17a3ce4bbf8c0f4555';
+    my $md5_expected = 'a9669d2604e517c60d0f58a3f889bf5a';
 
     my $temp_dir = mkdtemp("/tmp/feed_test_XXXXX");
 
@@ -43,7 +43,7 @@ sub untgz_file : Test(1){
     my $url = 'http://www.handle.net/hs-source/hcc5.tar.gz';
     my $filename = 'hcc5.tar.gz';
     my $expanded_dir_name = 'hcc5';
-    my $md5_expected = 'fdc4c09d3d6808219eae310bc740e99c';
+    my $md5_expected = 'f0251f11eaead34fa19417fcaae695cd';
 
     my $temp_dir = mkdtemp("/tmp/feed_test_XXXXX");
 
