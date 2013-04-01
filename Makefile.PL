@@ -84,9 +84,9 @@ install ::
 	false
     my @etc_files = grep {/^etc\//} @manifest_files;
 
-dist : brand_version inject_copyright write_path_config
+dist : brand_version inject_copyright 
 
-distdir : brand_version inject_copyright write_path_config
+distdir : brand_version inject_copyright 
 
 fix_manifest_skip :
 	([ -f MANIFEST.SKIP.bak ] && mv MANIFEST.SKIP.bak MANIFEST.SKIP) || [ ! -f MANIFEST.SKIP.bak ]
@@ -108,7 +108,7 @@ realclean purge :: clean_manifest
 DIST_MAKE_FRAG
 
 	return <<'INSTALL_MAKE_FRAG'
-pure_all :: write_path_config validate_cache etc_to_blib db_to_blib
+pure_all :: validate_cache etc_to_blib db_to_blib
 	$(NOECHO) $(NOOP)
 
 validate_cache ::
