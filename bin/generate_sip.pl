@@ -1,6 +1,5 @@
 #!/usr/bin/perl
 
-
 use FindBin;
 use lib "$FindBin::Bin/../lib";
 use HTFeed::Log {root_logger => 'INFO, screen'};
@@ -9,16 +8,13 @@ use HTFeed::RunLite qw(runlite);
 use HTFeed::Volume;
 use Getopt::Long qw(:config no_ignore_case);
 use Pod::Usage;
+use HTFeed::Stage::SIPDeposit;
 use HTFeed::Stage::Done;
 use strict;
 use warnings;
 
 # autoflush STDOUT
 $| = 1;
-
-
-# report all image errors
-set_config(0,'stop_on_error');
 
 my $clean = 1;
 my $one_line = 0; # -1
@@ -41,15 +37,24 @@ GetOptions(
 pod2usage(1) if $help;
 
 # check options
-pod2usage(-msg => '-1 and -d flags incompatible', -exitval => 2) if ($one_line and $dot_packagetype);
-pod2usage(-msg => '-p and -n exclude -d and -1', -exitval => 2) if (($default_packagetype or $default_namespace) and ($one_line or $dot_packagetype));
+pod2usage(-msg => '-1 and -d flags incompatible', -exitval => 2) 
+    if ($one_line and $dot_packagetype);
+
+pod2usage(-msg => '-p and -n exclude -d and -1', -exitval => 2) 
+    if (($default_packagetype or $default_namespace) 
+            and ($one_line or $dot_packagetype));
+
+my $outdir = shift or die("You must specify the output directory for zip files");
+set_config($outdir,'sip_output');
 
 if ($one_line){
     $default_packagetype = shift;
     $default_namespace = shift;
 }
 
-pod2usage(-msg => 'must specify package type with -p or -d') if not defined $default_packagetype and not defined $dot_packagetype;
+pod2usage(-msg => 'must specify package type with -p or -d') if not defined
+    $default_packagetype and not defined $dot_packagetype;
+
 
 my @volumes;
 
@@ -73,7 +78,8 @@ else{
                 die "Bad syntax near: $_";
             }
 
-            push @volumes, HTFeed::Volume->new(packagetype => $dot_packagetype, namespace => $namespace, objid => $objid);
+            push @volumes, HTFeed::Volume->new(packagetype => $dot_packagetype,
+                namespace => $namespace, objid => $objid); 
         }
     }
 
@@ -90,8 +96,8 @@ else{
             }
 
             eval {
-                push @volumes, HTFeed::Volume->new(packagetype => $packagetype, namespace => $namespace, objid => $objid);
-            };
+                push @volumes, HTFeed::Volume->new(packagetype => $packagetype,
+                    namespace => $namespace, objid => $objid); };
             if($@) {
                 warn($@);
             }
@@ -100,26 +106,32 @@ else{
 }
 
 my $stage_map = $volumes[0]->get_stage_map();
-$stage_map->{metsed} = 'HTFeed::Stage::Done';
+$stage_map->{packed} = 'HTFeed::Stage::SIPDeposit';
+$stage_map->{collated} = 'HTFeed::Stage::Done';
 
-
-runlite(volumegroup => new HTFeed::VolumeGroup(volumes => \@volumes), logger => 'validate_volume.pl', verbose => 1, clean => $clean);
+runlite(volumegroup => new HTFeed::VolumeGroup(volumes => \@volumes), 
+    logger => 'generate_sip.pl', 
+    verbose => 1, 
+    clean => $clean);
 
 __END__
 
 =head1 NAME
 
-    validate_volume.pl - validate volumes by running all stages through METS generation
+    generate_sip.pl - generate package for submission to HathiTrust 
+       and copies it to the directory specified on the command line
 
 =head1 SYNOPSIS
 
-validate_volume.pl [-p packagetype [-n namespace]] [infile]
+generate_sip.pl outdir [-p packagetype [-n namespace]] [infile] 
 
-validate_volume.pl -d packagetype [infile]
+generate_sip.pl outdir -d packagetype [infile] 
 
-validate_volume.pl -1 packagetype namespace objid
+generate_sip.pl outdir -1 packagetype namespace objid 
 
     INPUT OPTIONS
+
+      outdir - the output directory for the generated SIPs
 
       -d dot format infile - follow with packagetype
           all lines of infile are expected to be of the form namespace.objid.
@@ -128,11 +140,12 @@ validate_volume.pl -1 packagetype namespace objid
 
       -p,-n - specify packagetype, namespace respectivly.
         incompatible with -d, -1
+
     
     GENERAL OPTIONS
 
-      --clean - clean up temporary files directories after validation (default)
-      --no-clean - leave temporary files and directories in place after validation 
+      --clean - clean up temporary files directories after SIP generation (default)
+      --no-clean - leave temporary files and directories in place after SIP generation
 
     INFILE - input read fron last arg on command line or stdin
     

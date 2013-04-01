@@ -1,0 +1,28 @@
+# skip dataset pm's
+\bDataset\b
+\bDataset.pm$
+
+# skip internal/local scripts
+\baudit\b
+\bdataset\b
+\bdelete.pl$
+\bfeed.daily\b
+\bfeed.hourly\b
+\bfeed.monthly\b
+\bfeed.weekly\b
+
+# skip MySQL based ingest scripts
+\benqueue.pl$
+\bfeedd.pl$
+\breprioritize.pl$
+\bingest_status.pl$
+
+# skip private config files
+\b01_cron_jobs.yml$
+\b01_dataset.yml$
+\b01_rights.yml$
+
+# skip bentley email stuff
+\bEmail\b
+## possibly list some unwanted tests here
+\bclasstests.t\b

@@ -4,6 +4,10 @@ use warnings;
 use strict;
 use Carp;
 
+use HTFeed::Config;
+use Shell::Comm;
+$Shell::Comm::DIR = get_config('staging_root');
+
 sub new {
     my $class = CORE::shift;
     my $self = {
@@ -110,6 +114,7 @@ sub get_volumes {
     return $self->{volumes};
 }
 
+# shifts out a Volume object
 sub shift {
     my $self = CORE::shift;
 
@@ -158,27 +163,26 @@ sub _mk_vol{
     );
 }
 
-sub union {
-    return _union_and_intersection(@_,'union');
-}
+#sub union {
+#}
 
 sub intersection {
-    return _union_and_intersection(@_,'isect');
+    return _comm(@_,'12');
 }
 
 sub difference {
-    return _union_and_intersection(@_,'diff');
+    return _comm(@_,'23');
 }
 
-sub _sort_unique {
-    my $array = CORE::shift;
-    my %set;
-    foreach my $e (@{$array}) {$set{$e}++};
-    my @keys = (sort (keys %set));
-    return \@keys;
-}
+#sub _sort_unique {
+#    my $array = CORE::shift;
+#    my %set;
+#    foreach my $e (@{$array}) {$set{$e}++};
+#    my @keys = (sort (keys %set));
+#    return \@keys;
+#}
 
-sub _union_and_intersection {
+sub _comm {
     my $a = CORE::shift;
     my $b = CORE::shift;
 
@@ -187,23 +191,15 @@ sub _union_and_intersection {
     croak 'set operations on VolumeGroups with non matching packagetypes not currectly supported'
         unless ($a->{packagetype} eq $b->{packagetype});
 
-    my $a_htids = _sort_unique($a->get_htids());
-    my $b_htids = _sort_unique($b->get_htids());
+    my $a_htids = $a->get_htids();
+    my $b_htids = $b->get_htids();
 
-    my %union;
-    my %isect;
-    my %diff;
+	my $new_htids = comm($a_htids,$b_htids,$cmd);
 
-    foreach my $e (@{$a_htids}) { $union{$e}++; $diff{$e}++; };
-    foreach my $e (@{$b_htids}) { $union{$e}++ && $isect{$e}++; delete $diff{$e} };
-
-    my @ret;
-    eval('@ret = keys %'."$cmd;");
-    croak "unrecognised set method $cmd" if($@);
-
-    return HTFeed::VolumeGroup->new(htids=>\@ret);
+    return HTFeed::VolumeGroup->new(htids=>$new_htids);
 }
 
+# $vg->write_id_file($path)
 sub write_id_file {
     my $self = CORE::shift;
     my $file_pathname = CORE::shift;

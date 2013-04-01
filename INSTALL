@@ -1,0 +1,139 @@
+<h1>Prerequisites</h1>
+<h2>System</h2>
+Feed is supported on Linux (RedHat, CentOS, Debian, and Ubuntu) and Mac OS X.
+Other Linux distributions should work but have not been tested. Microsoft
+Windows and other non-Unix-like operating systems will
+not be supported. Feed requires Perl v5.8.8 or later.
+
+For Mac OS X, you must install XCode from the Mac App Store before attempting
+to install feed. Homebrew (http://mxcl.github.com/homebrew/) should also be
+installed.
+
+For Debian/Ubuntu, the "build-essential" package should be installed. For
+RedHat/CentOS, the gcc, gcc-c++ and make packages should be installed. 
+
+<h2>Perl Modules</h2>
+The following Perl modules are required for Feed; these can be installed from
+CPAN. Many of these may also be available through the operating system package
+manager.
+
+- Algorithm::LUHN
+- Any::Moose
+- Data::UUID
+- Date::Manip
+- Date::Parse
+- File::Pairtree
+- Filesys::Df
+- Image::ExifTool
+- LWP
+- List::MoreUtils
+- Log::Log4perl
+- MailTools
+- Readonly
+- XML::LibXML
+- YAML::Any
+
+<h2>Other Software</h2>
+
+Feed depends on the following external software:
+
+- JHOVE 1.5
+- ImageMagick 
+- Xerces-C 3.1
+- SQLite3
+- Kakadu 6.4.0 or later (optional: for converting TIFFs to JPEG2000 images)
+
+JHOVE 1.5 must be installed. No other version is supported.  You can get JHOVE
+1.5 from http://sourceforge.net/projects/jhove/files/jhove/JHOVE%201.5/ JHOVE
+requires that Java be installed. JHOVE 1.5 will not work out of the box -- you
+must edit the sample 'jhove' script to point to your local installation of
+Java.
+
+
+The ImageMagick and Xerces-C libraries must be installed as well. 
+
+For ImageMagick:
+
+On RedHat/CentOS:
+
+   yum install ImageMagick
+
+On Debian/Ubuntu:
+
+   apt-get install imagemagick
+
+On Mac OS X with HomeBrew:
+
+   brew install ImageMagick
+
+
+For Xerces-C:
+
+On RedHat/CentOS: 
+
+   yum install xerces-c libxerces-c-3_1 xerces-c-devel
+
+On Debian/Ubuntu:
+
+   apt-get install libxerces-c3.1 libxerces-c3-dev
+
+On Mac OS X with Homebrew:
+
+   brew install xerces-c
+
+
+Finally, sqlite3 must be installed. It is installed by default
+on recent versions of Mac OS X.
+
+On RedHat/CentOS:
+
+   yum install sqlite
+
+On Debian/Ubuntu:
+
+   apt-get install sqlite3
+
+
+Kakadu (for converting TIFFs to JPEG2000 images) is optional. Kakadu is
+commercial software that requires a license. Obtaining and installing Kakadu is
+outside the scope of this document. If you wish to use Kakadu with feed, set
+the path to kdu_compress in feed's configuration file (see 'Configuration'
+below).
+
+<h1>Installation</h1>
+Download and unzip the the Feed tarball
+cd HTFeed-vX.X.X
+perl Makefile.PL
+make
+sudo make install
+
+By default, feed installs files to the following locations:
+
+/usr/local/share # HTFeed and METS namespace perl modules
+/usr/local/bin/ # ingest_test test_stage validate_images
+/usr/local/etc/feed/ # Feed config files
+/usr/local/var/feed/ # Feed sqlite database
+
+Before using feed, make sure that /usr/local/bin/ is in your $PATH.
+You will also need to make sure that all files and directories under
+/usr/local/var/feed are writable by the user you will be running feed as.
+
+If you install to a different location using the PREFIX option for Makefile.PL,
+ensure that the alternate lib location is in your PERL5LIB environment
+variable.
+
+<h1>Configuration</h1>
+
+Configuration files are installed in the config directory under Feed's etc
+directory (by default this is /usr/local/etc/feed). If Feed and its scripts are
+properly installed (by default in /usr/local/bin) "feed_env.pl feed_etc" will
+print the configured location of this directory.
+
+The config files include comments on what settings do and how to edit them. We
+recommended making local configuration changes in a separate file (e.g.
+/usr/local/etc/feed/config/02_local_config.yml). All config files must end in
+".yml". Files are loaded in alphabetical order.
+
+Before running feed, review the configuration files and edit the settings as
+described in each file.
+

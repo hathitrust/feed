@@ -18,6 +18,7 @@ my $self = new HTFeed::Stage::ImageRemediate(volume => new HTFeed::TestVolume(na
 
 
 foreach my $infile (@ARGV) {
+    die("$infile does not exist") if !-e $infile;
     # reset remediator;
 
     $self->{newFields} = {};
@@ -43,6 +44,8 @@ foreach my $infile (@ARGV) {
     # try to compress the TIFF -> JPEG2000
     print("Compressing $infile to $outfile\n");
     my $kdu_compress = get_config('kdu_compress');
+    die("You must correctly configure the path to kdu_compress in the feed configuration\n") 
+    if not defined $kdu_compress or !-x $kdu_compress;
 
     # Settings for kdu_compress recommended from Roger Espinosa. "-slope"
     # is a VBR compression mode; the value of 42988 corresponds to pre-6.4

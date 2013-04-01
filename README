@@ -1,3 +1,7 @@
+<h1>Prerequisites, Installation and Configuration</h1>
+
+See INSTALL
+
 <h1>Introduction</h1>
 
 Feed is a suite of tools to assist in preparing content for ingest into
@@ -33,8 +37,9 @@ Some introductory references to consult include:
 
 - Learning Perl
 - Programming Perl
-- (introduction to linux)
-- (something about digital images and/or preservation)
+- Introduction to Linux: http://www.tldp.org/LDP/intro-linux/html/index.html
+- Library of Congress's Digital Preservation web site: http://www.digitalpreservation.gov/
+
 
 <h1>Basic Concepts</h1>
 
@@ -104,14 +109,115 @@ remediation and packaging. Feed supports recording events in a straightforward
 and consistent fashion. Feed has limited support for the PREMIS <tt>object</tt>
 element and does not support the <tt>agent</tt> or <tt>rights</tt> entity.
 
+<h1>Sample Code</h1>
 
-<h1>Installation</h1>
+The provided scripts can assist you with validating images and packages and with
+creating SIPs for submission to HathiTrust, or with creating your own scripts to
+perform various tasks.
 
-RYAN TODO
+<h2>Validation and Submission Tools</h2>
 
-<h1>Configuration</h1>
+validate_images.pl - Validates all images in a given directory. You must
+provide the package type, namespace and object ID the images came from. Before
+using this script you must create a namespace for your content - see -- see
+"Namespace Creation" below. Eventually, you'll need a package type for your
+content (see "Package Type Creation"), but to start you can validate your
+images using the 'google' package type.
 
-AARON TODO
+generate_sip.pl - generate packages for submission to HathiTrust and copies it
+to the directory specified on the command line. See the included perldoc for
+more information. You will need a namespace and a package type before running
+this code.
+
+validate_volume.pl - Validates a volume by running all stages through METS
+generation. See the included perldoc for more information. You will need a
+namespace and a package type before using this code.
+
+<h2>Sample Code</h2>
+
+compress_tif_jp2.pl - Converts TIFFs to JPEG2000 images compliant with HathiTrust standards
+using the Kakadu library. See "Compressing TIFFs to JPEG2000 images" below.
+
+feed_env.pl - Dumps the feed configuration.
+
+genmets.pl - An example of using the included perl METS module to generate a source METS file
+without using the rest of the HTFeed framework.
+
+test_stage.pl - Runs one stage on a submission in process, for
+testing/debugging purposes.
+
+
+<h1>Namespace Creation</h1>
+
+A namespace represents a set of identifiers that are guaranteed to be unique
+within that namespace. Usually, each institution submitting content has one
+namespace for each kind of identifier under its control.
+
+Before running the sample code, you'll need to create a perl package for your
+namespace. Namespace are coordinated through HathiTrust. Let's assume you have
+been assigned the namespace "foo". Then you would copy HTFeed/Namespace/Yale.pm
+to HTFeed/Namespace/FOO.pm as a starting point and change it as follows:
+
+Change:
+	package HTFeed::Namespace::Yale;
+
+To:
+    package HTFeed::Namespace::FOO;
+    
+Change:
+	our $identifier = 'yale';
+
+To:
+    our $identifier = 'foo';
+
+	
+The configuration block requires more explanation:
+	our $config = {
+	    packagetypes => [qw(ht yale)],
+	    handle_prefix => '2027/yale',
+	    description => 'Yale University',
+	    tags => [qw(bib local report)]
+	};
+
+
+The packagetypes variable lists the allowed package types for your content.
+'ht' is a base package type representing content that is already in the
+repository. Once you create a new package type for your content, you can add it
+as an allowed package type here. For now, just set packagetypes as follows:
+
+        packagetypes => [qw(ht google)],
+
+This will allow you to validate your images to the standard used for Google
+images.
+
+Update the description to the institution this namespace is for, and update
+the handle prefix to reflect your namespace, '2027/foo' in this case.
+
+The 'tags' variable can be left as is; it supports reporting functionality for
+HathiTrust.
+
+Finally you can implement a subroutine for barcode validation:
+
+sub validate_barcode {
+    my $self    = shift;
+    my $barcode = shift;
+    return $self->luhn_is_valid('39002',$barcode);
+}
+
+If your barcodes use the common 14-digit numeric "Codabar" barcodes, you can
+just update '39002' to your library's prefix. Otherwise, you should implement a
+subroutine that returns true for valid barcodes / object identifiers and false
+otherwise. Or for testing purposes you can just always return true:
+
+sub validate_barcode {
+    return 1;
+}
+
+You can examine the other included namespaces for samples of other barcode validation.
+
+Namespaces can also be used to override package type defaults for cases when a
+package type is used by more than one namespace but with slight variations; see
+the sample namespaces for examples.
 
 <h1>Package Type Creation</h1>
 
@@ -697,8 +803,8 @@ completed.
 
 HathiTrust has adopted JPEG2000 as the preferred format for continuous tone
 images, following the recommendations of (CITE ABRAMS PAPER). For an example of
-compressing TIFFs to JPEG2000 images and adding all required metadata, see
-HTFeed::Stage::UCM::ImageRemediate. 
+compressing TIFFs to JPEG2000 images and adding all required metadata (assuming
+the metadata is present in the TIFFs), see compress_tif_jp2.pl. 
 
 This code uses Kakadu (not free software) to compress the JPEG2000 images.
 While it should be possible to modify this code to use another JPEG2000
@@ -1438,8 +1544,4 @@ fatal.
     1;
 
     __END__
-
-
-
-
 

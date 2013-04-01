@@ -7,6 +7,7 @@ use strict;
 use YAML::Any ();
 use FindBin;
 use HTFeed::Volume;
+use HTFeed::Log {root_logger => 'INFO, file'};
 
 use Test::Most;
 

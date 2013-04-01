@@ -104,9 +104,15 @@ sub md5_dir{
     my $dir = shift;
 
     my $digest = Digest::MD5->new();
-    my @ls = split /\s/, `ls $dir`;
+    opendir(my $dirh, $dir) or die("Can't open $dir: $!");
+    my @files = ();
+    while(my $filename = readdir($dirh)) {
+        next if $filename eq '.' or $filename eq '..';
+        push(@files,$filename);
+    }
+    closedir($dirh);
 
-    foreach my $file (@ls){
+    foreach my $file (sort @files){
         $file = "$dir/$file";
         open(my $fh, '<', $file);
         binmode $fh;

@@ -1,3 +1,5 @@
+#!/usr/bin/env perl
+
 use warnings;
 use strict;
 
@@ -137,7 +139,7 @@ sub get_db_time{
 # get/set timestamp for the last time deletes report was generated
 sub previous_time{
     my $time = shift;
-    my $timestamp_file = get_config('dataset'=>'path') . '/config/delete_report_timestamp';
+    my $timestamp_file = get_config('dataset'=>'path') . '/conf/delete_report_timestamp';
 
     # get time
     if(! defined $time){
