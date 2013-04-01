@@ -12,7 +12,6 @@ my $directive = shift;
 
 given( $directive ) {
     when ('brand_version')     { brand_version(@ARGV); }
-    when ('write_path_config') { write_path_config(@ARGV); }
     when ('inject_copyright')  { write_copyright(@ARGV); }
 }
 
@@ -26,23 +25,6 @@ sub brand_version {
 
     _replace($version_pm,'HTFEED_VERSION_STRINGS',$version_block,'branding Version.pm');
 
-    return;
-}
-
-sub write_path_config {
-    # find paths
-    ## TODO: Eliminate hard coding here
-    my $feed_etc = '/usr/local/etc/feed';
-    my $feed_bin = '/usr/local/bin';
-    my $feed_var = '/usr/local/var/feed';
-
-    # TODO: us etemp dir of some kind; blib doesn't work
-    my $config_pm = 'lib/HTFeed/Config.pm';
-
-    _replace($config_pm,'FEED_ETC',"my \$feed_etc = \"$feed_etc\"; # FEED_ETC") if($feed_etc);
-    _replace($config_pm,'FEED_BIN',"my \$feed_bin = \"$feed_bin\"; # FEED_BIN") if($feed_bin);
-    _replace($config_pm,'FEED_VAR',"my \$feed_var = \"$feed_var\"; # FEED_VAR") if($feed_var);
-    
     return;
 }
 
