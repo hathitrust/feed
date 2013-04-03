@@ -5,6 +5,7 @@ use strict;
 use warnings;
 use Log::Log4perl qw(get_logger);
 use List::MoreUtils qw(pairwise);
+use HTFeed::XMLNamespaces qw(:namespaces);
 use base qw(HTFeed::Stage);
 
 # Rebuilds the METS for the package from what's in the repository.
@@ -43,10 +44,16 @@ sub run {
         'mets_update'
     ];
 
+    my $old_xpc = $volume->get_repository_mets_xpc();
+    $self->{old_xpc} = $old_xpc;
+
     $volume->record_premis_event('mets_update');
     # run original METS stage
     my $mets_class = $volume->next_stage('packed');
     my $mets_stage =  eval "$mets_class->new(volume => \$volume, is_uplift => 1)";
+    if(not defined $volume->get_source_mets_file() or ! -e $volume->get_source_mets_file()) {
+       $mets_stage->{pagedata} = sub { $self->get_page_data_repository_mets(@_); };
+    }
     $mets_stage->run();
 
     # assure success
@@ -58,7 +65,6 @@ sub run {
 
     my $new_mets_file = $mets_stage->{outfile};
     $self->{new_mets_file} = $new_mets_file;
-    my $old_xpc = $volume->get_repository_mets_xpc();
     my $new_xpc = $volume->_parse_xpc($new_mets_file);
 
     # make sure file count, page count, objid are the same
@@ -152,7 +158,6 @@ sub run {
         $self->assert_equal(scalar(@old_fptrs),scalar(@new_fptrs),
             "file count for mets:div\@ORDER=$order");
 
-
         @old_fptrs = sort(map { $_->getValue() } @old_fptrs);
         @new_fptrs = sort(map { $_->getValue() } @new_fptrs);
          pairwise { $self->assert_equal($a,$b,"div\@ORDER='$order' file") }
@@ -212,6 +217,39 @@ sub assert_equal {
         return 0;
     }
     return 1;
+}
+
+# page data gatherer that uses page info from existing repository METS and does
+
+sub get_page_data_repository_mets {
+
+    my $self = shift;
+    my $file = shift;
+    my $xc   = $self->{old_xpc};
+
+    if(not defined $self->{page_data}) {
+        my $page_data = {};
+        # Extract info from the physical structmap
+        foreach my $page ($xc->findnodes('//METS:structMap/METS:div/METS:div')) {
+
+            my $pagenum = $page->getAttribute('ORDERLABEL');
+            my $tags = $page->getAttribute('LABEL');
+
+            foreach my $fptr ( $page->getChildrenByTagNameNS( NS_METS, 'fptr' ) )
+            {
+                my $fileid = $fptr->getAttribute('FILEID');
+                my $filename = $xc->findvalue(qq(//METS:file[\@ID='$fileid']/METS:FLocat/\@xlink:href));
+                $page_data->{$filename} = {
+                    orderlabel => $pagenum,
+                    label      => $tags,
+                };
+            }
+        }
+        $self->{page_data} = $page_data;
+    }
+
+    return $self->{page_data}{$file};
+
 }
 
 1;
