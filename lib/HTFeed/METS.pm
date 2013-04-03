@@ -872,14 +872,31 @@ sub convert_tz {
     my $from_tz = shift;
     die("No from_tz specified") unless defined $from_tz;
 
-    my $parsed = ParseDate($date);
-    die("Can't parse date $date") unless defined $parsed;
+    die("Missing Date::Manip::VERSION") unless defined $Date::Manip::VERSION;
+    if($Date::Manip::VERSION < 6.00) {
+        # version 5 functional interface, doesn't track timezone
+        my $parsed = ParseDate($date);
+        die("Can't parse date $date") unless defined $parsed;
 
-    my $utc_date = Date_ConvTZ($parsed,$from_tz,'UTC');
+        my $utc_date = Date_ConvTZ($parsed,$from_tz,'UTC');
 
-    die("Date_ConvTZ($parsed,$from_tz,'UTC') failed") if(not defined $utc_date);
+        die("Date_ConvTZ($parsed,$from_tz,'UTC') failed") if(not defined $utc_date);
 
-    return UnixDate($utc_date,'%OZ');
+        return UnixDate($utc_date,'%OZ');
+    } else {
+        # version 6 interface, much better with timezones
+        my $date = new Date::Manip::Date ("$date $from_tz");
+        die("Can't parse date $date: " . $date->err()) if $date->err();
+
+        $date->convert('UTC');
+        die("Can't convert date $date to UTC from $from_tz: " . $date->err()) if $date->err();
+        
+        my $res = $date->printf('%OZ');
+
+        die("Can't convert date $date to UTC from $from_tz: " . $date->err()) if not defined $res or !$res;
+
+        return $res;
+    }
 }
 
 sub is_uplift {

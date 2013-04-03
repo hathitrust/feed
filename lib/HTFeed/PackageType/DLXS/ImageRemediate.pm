@@ -6,7 +6,6 @@ use base qw(HTFeed::Stage::ImageRemediate);
 
 use Log::Log4perl qw(get_logger);
 use File::Basename;
-use Date::Manip;
 use HTFeed::Config qw(get_tool_version);
 use POSIX qw(strftime);
 
