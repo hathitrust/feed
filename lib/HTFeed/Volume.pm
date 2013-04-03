@@ -14,7 +14,6 @@ use Time::gmtime;
 use File::Pairtree qw(id2ppath s2ppchars);
 use Data::UUID;
 use File::Path qw(remove_tree);
-use Date::Manip;
 
 # singleton stage_map override
 my $stage_map = undef;
