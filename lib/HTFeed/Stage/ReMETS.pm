@@ -136,8 +136,8 @@ sub run {
     }
 
     # for each //mets:div
-    #   the corresponding //mets:div must have the same LABEL 
-    #   and ORDERLABEL and the set of fptrs must point to the same files
+    #   the corresponding //mets:div must have the same attributes
+    #   and the set of fptrs must point to the same files
     #   (although the IDs need not be the same)
     foreach my $old_div ($old_xpc->findnodes('//mets:div[@TYPE="page"]')) {
         my $order = $old_div->getAttribute('ORDER');
@@ -157,6 +157,16 @@ sub run {
         }
         $self->assert_equal(scalar(@old_fptrs),scalar(@new_fptrs),
             "file count for mets:div\@ORDER=$order");
+
+        foreach my $attribute ($old_div->attributes()) {
+            $self->assert_equal($attribute->getValue(),
+                $new_div->getAttribute($attribute->nodeName()), $attribute->nodeName());
+        }
+
+        foreach my $attribute ($new_div->attributes()) {
+            $self->assert_equal($attribute->getValue(),
+                $old_div->getAttribute($attribute->nodeName()), $attribute->nodeName());
+        }
 
         @old_fptrs = sort(map { $_->getValue() } @old_fptrs);
         @new_fptrs = sort(map { $_->getValue() } @new_fptrs);
