@@ -124,7 +124,7 @@ sub tags_by_ns {
     # ignore missing tags fields
     no warnings;
     my %hsh = map { ${$_ . "::identifier"} => [ @{${$_ . "::config"}->{packagetypes}}, @{${$_ . "::config"}->{tags}} ]  }
-        HTFeed::Version::find_subclasses("HTFeed::Namespace");
+        HTFeed::find_subclasses("HTFeed::Namespace");
 
 	$namespace_to_tag_hash = \%hsh;
     return $namespace_to_tag_hash;
