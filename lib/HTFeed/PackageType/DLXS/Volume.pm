@@ -5,6 +5,7 @@ use strict;
 use base qw(HTFeed::Volume);
 use HTFeed::PackageType::MPub::Volume;
 use HTFeed::Config;
+use Roman qw(roman);
 
 my %pagetag_map = (
     APP => 'APPENDIX',
@@ -98,13 +99,19 @@ sub get_srcmets_page_data {
             open(my $pageview_fh,"<$pageview") or croak("Can't open pageview.dat: $!");
             <$pageview_fh>; # skip first line - column headers
             while(my $line = <$pageview_fh>) {
+                next if $line =~ /^\s*#/; # skip comments
                 # clear line endings
                 $line =~ s/[\r\n]//;
                 my(undef,$order,$detected_pagenum,undef,$tags) = split(/\t/,$line);
                 $detected_pagenum =~ s/^0+//; # remove leading zeroes from pagenum
+                if($detected_pagenum =~ /^R(\d{3})$/i) {
+                    $detected_pagenum = roman($1);
+                }
                 if (defined $tags) {
                     $tags = join(', ',split(/\s/,$tags));
                 }
+
+                $order = '0000' . $order if $order =~ /^\d{4}$/;
 
                 $pagedata->{$order} = {
                     orderlabel => $detected_pagenum,
@@ -115,6 +122,9 @@ sub get_srcmets_page_data {
         }
     }
 
+    $self->set_error("MissingField",field => "page_data", file => $seqnum, 
+        detail => "No page data found for seq=$seqnum") 
+        if not defined $self->{page_data}{$seqnum};
     return $self->{page_data}{$seqnum};
 }
 
