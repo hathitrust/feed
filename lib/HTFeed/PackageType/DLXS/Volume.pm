@@ -6,6 +6,7 @@ use base qw(HTFeed::Volume);
 use HTFeed::PackageType::MPub::Volume;
 use HTFeed::Config;
 use Roman qw(roman);
+use File::Basename;
 
 my %pagetag_map = (
     APP => 'APPENDIX',
@@ -162,6 +163,26 @@ sub get_page_data {
 
 sub get_download_location {
     return;
+}
+
+# MOA material uses a scheme of MMMMNNNN.ext for file naming where MMMM is the
+# sequence number and NNNN is the zero-padded detected page number, or RNNN for
+# roman numeral page numbers.
+sub has_moa_filenames {
+    my $self = shift;
+
+    if(not defined $self->{moa_filenames}) {
+        my $preingest_path = $self->get_preingest_directory();
+        my @tiffs = map { basename($_) } glob("$preingest_path/[0-9]*.tif");
+        my $first = (sort(@tiffs))[0];
+        if ($first =~ /^0001/) {
+            $self->{moa_filenames} = 1;
+        } else {
+            $self->{moa_filenames} = 0;
+        }
+    }
+
+    return $self->{moa_filenames};
 }
 
 sub get_loadcd_info {

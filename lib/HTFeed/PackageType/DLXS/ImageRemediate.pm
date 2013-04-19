@@ -12,6 +12,8 @@ use POSIX qw(strftime);
 # minimum dimensions for JP2 are set to trade paperback digitized at 400 DPI
 my $MIN_XSIZE = 2128;
 my $MIN_YSIZE = 3404;
+#my $MIN_XSIZE = 1000;
+#my $MIN_YSIZE = 1000;
 
 sub run{
     my $self = shift;
@@ -30,7 +32,7 @@ sub run{
         sub {
             my $file = shift;
             my $renamed_file = $file;
-            $renamed_file =~ s/^(\d{4})....\.tif$/0000$1.tif/;
+            $renamed_file =~ s/^(\d{4})....\.tif$/0000$1.tif/ if $volume->has_moa_filenames();
             # three fields to remediate: docname, datetime, artist.
             # docname: remediate only if missing; set to $barcode/$filename.
             # datetime: remediate from docname if possible. otherwise use loadcd.log
@@ -54,8 +56,8 @@ sub run{
         my $jp2_fields = $self->get_exiftool_fields($jp2_submitted);
         # change to form 0000010.jp2 instead of p0000010.jp2
         $jp2_remediated =~ s/^p/0/;
-        # rename MOA stuff
-        $jp2_remediated =~ s/^(\d{4})....\.jp2$/0000$1.jp2/;
+        # there shouldn't be any JP2s for MOA material?
+        # $jp2_remediated =~ s/^(\d{4})....\.jp2$/0000$1.jp2/ if $jp2_remediated !~ /^0000/; 
         my $force_fields = {'XMP-dc:source' => join('/',$volume->get_objid(),$jp2_remediated) };
         my $set_if_undefined = {};
         $jp2_remediated = "$stage_path/$jp2_remediated";
