@@ -489,9 +489,9 @@ Runs jhove and calls image_remediate for all tiffs in $tiffs.
 $tiffs is a reference to an array of filenames.
 $path is the base directory containing all the files in $tiffs.
 
-$headers_sub is a callback taking the filename as a parameter
-and returning the force_headers and set_if_undefined_headers parameters for
-remediate_image (qv)
+$headers_sub is a callback taking the filename as a parameter and returning the
+force_headers, set_if_undefined_headers and optionally the out_file parameters
+for remediate_image (qv)
 
 =cut
 
@@ -533,7 +533,7 @@ sub remediate_tiffs {
     $self->run_jhove($volume,$tiffpath,$files, sub {
             my ($volume,$file,$node) = @_;
             my $xpc = XML::LibXML::XPathContext->new($node);
-            my ($force_headers,$set_if_undefined_headers) = (undef,undef);
+            my ($force_headers,$set_if_undefined_headers,$renamed_file) = (undef,undef,undef);
             register_namespaces($xpc);
 
             $self->{jhoveStatus} = $xpc->findvalue($repStatus_xp);
@@ -541,12 +541,15 @@ sub remediate_tiffs {
 
             # get headers that may depend on the individual file
             if($headers_sub) {
-                ($force_headers,$set_if_undefined_headers) = 
+                ($force_headers,$set_if_undefined_headers,$renamed_file) = 
                 &$headers_sub($file);
             }
 
+            my $outfile = "$stage_path/$file";
+            $outfile = "$stage_path/$renamed_file" if(defined $renamed_file);
+
             $self->remediate_image("$tiffpath/$file",
-                "$stage_path/$file",
+                $outfile,
                 $force_headers,
                 $set_if_undefined_headers);
         },"-m TIFF-hul");

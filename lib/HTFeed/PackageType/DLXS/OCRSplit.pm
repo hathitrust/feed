@@ -164,6 +164,7 @@ sub splinter_xml {
     foreach my $objnode ($doc->findnodes("//PB")) {
         my @objtext = ();
         my $seq = $objnode->getAttribute('SEQ');
+        $seq = '0000' . $seq if $seq =~ /^\d{4}$/;
         if(not defined $seq or $seq !~ /^\d{8}$/) {
             $self->set_error("BadField",field => "seqnum",actual => $seq,
                 detail=>"Can't extract sequence number");

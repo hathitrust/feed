@@ -7,7 +7,7 @@
 # Delete any old bundles.
 cd /htprep/datasets/meta
 for prefix in `/bin/ls -1 *-* | /bin/cut -f 1 -d "-"| /bin/sort | /usr/bin/uniq`; do
-  list=(`/bin/ls -1t $prefix*`)
+  list=(`/bin/ls -1t $prefix-*`)
   count=${#list[*]}
   if [ $count -gt 1 ]; then
     for ((i=1;i<$count;i++)); do

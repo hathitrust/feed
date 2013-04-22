@@ -129,7 +129,9 @@ our $config = {
                 my $expectedLevels = ceil(log($maxdim / 150.0)/log(2));
                 my $actualLevels = $self->_findone('codingStyleDefault','decompositionLevels');
 
-                if ($expectedLevels == $actualLevels) {
+                # allow for different rounding rules..
+                if ($actualLevels == $expectedLevels
+                    or $actualLevels == $expectedLevels - 1) {
                     return 1;
                 } else {
                     $self->set_error("BadValue", 
