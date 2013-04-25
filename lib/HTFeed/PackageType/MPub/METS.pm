@@ -142,7 +142,11 @@ sub _extract_old_premis {
                     $eventconfig->{'executor_type'} = 'MARC21 Code';
                     $eventconfig->{'executor'} = 'Ca-MvGOO';
                     $from_tz = 'America/Los_Angeles';
-                } elsif($agentid eq 'UM' or $agentid eq 'SPO' or $agentid =~ /Digital.Conversion/) {
+                } elsif($agentid eq 'UM' 
+                        or $agentid eq 'SPO' 
+                        or $agentid =~ /Digital.Conversion/
+                        or $agentid =~ /MPublishing/
+                ) {
                     $eventconfig->{'executor_type'} = 'MARC21 Code';
                     $eventconfig->{'executor'} = 'MiU';
                     $from_tz = 'America/Detroit';
