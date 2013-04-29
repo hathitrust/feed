@@ -59,6 +59,9 @@ our $config = {
 		packed		=> 'HTFeed::PackageType::DLXS::METS',
         metsed		=> 'HTFeed::Stage::Handle',
         handled		=> 'HTFeed::Stage::Collate',
+
+        needs_uplift => 'HTFeed::Stage::RepositoryUnpack',
+        uplift_unpacked => 'HTFeed::Stage::ReMETS'
     },
 
     # What PREMIS events to include in the source METS file
