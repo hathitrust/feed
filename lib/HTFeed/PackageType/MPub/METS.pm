@@ -120,33 +120,36 @@ sub _extract_old_premis {
 
     # FIXME: $volume->record_premis_event('mets_update');
     my $had_premis1 = 0;
-    foreach my $event ($xpc->findnodes('//premis1:event')) {
+    foreach my $event ($xpc->findnodes('//premis1:event | //premis11:event')) {
         $had_premis1 = 1;
-        my $premis1_type = $xpc->findvalue('./premis1:eventType',$event);
+        my $premis1_type = $xpc->findvalue('./premis1:eventType | ./premis11:eventType',$event);
         if(my $eventcodes = $premis1_event_map{$premis1_type}) {
             foreach my $eventcode (@$eventcodes) {
                 my $eventconfig = $nspkg->get_event_configuration($eventcode);
                 my $from_tz = undef;
-                $eventconfig->{date} = $xpc->findvalue('./premis1:eventDateTime',$event);
+                $eventconfig->{date} = $xpc->findvalue('./premis1:eventDateTime | ./premis11:eventDateTime',$event);
                 # tool is not represented in PREMIS1; don't make up one
                 delete $eventconfig->{'tools'};
 
-                my @agents = $xpc->findnodes('./premis1:linkingAgentIdentifier',$event);
+                my @agents = $xpc->findnodes('./premis1:linkingAgentIdentifier | ./premis11:linkingAgentIdentifier',$event);
                 if(@agents != 1) {
                     $self->set_error("BadField",field => "linkingAgentIdentifier",
                         detail => "Expected 1 linking agent, found " . scalar(@agents));
                 }
                 my $agent = $agents[0];
-                my $agentid = $xpc->findvalue('./premis1:linkingAgentIdentifierValue',$agent);
+                my $agentid = $xpc->findvalue('./premis1:linkingAgentIdentifierValue | ./premis11:linkingAgentIdentifierValue',$agent);
                 if($agentid eq 'Google, Inc.') {
                     $eventconfig->{'executor_type'} = 'MARC21 Code';
                     $eventconfig->{'executor'} = 'Ca-MvGOO';
                     $from_tz = 'America/Los_Angeles';
                 } elsif($agentid eq 'UM' 
+                        or $agentid =~ /University.*Michigan/i
                         or $agentid =~ /^SPO$/i
                         or $agentid =~ /Digital.Conversion/i
                         or $agentid =~ /MPublishing/i
                         or $agentid =~ /Trigonix/i
+                        or $agentid =~ /UM Press/i
+                        or $agentid =~ /UNKNOWN/i
                 ) {
                     $eventconfig->{'executor_type'} = 'MARC21 Code';
                     $eventconfig->{'executor'} = 'MiU';
