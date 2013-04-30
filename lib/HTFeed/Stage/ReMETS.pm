@@ -56,11 +56,6 @@ sub run {
     }
     $mets_stage->run();
 
-    # assure success
-    if($mets_stage->succeeded()) {
-        $self->_set_done();
-    }
-
     # compare new METS to old mets. must have:
 
     my $new_mets_file = $mets_stage->{outfile};
@@ -120,6 +115,10 @@ sub run {
     foreach my $old_file ($old_xpc->findnodes("//mets:file")) {
         my $file_name = $old_xpc->findvalue('./mets:FLocat/@xlink:href',$old_file);
         my $new_file = ($new_xpc->findnodes("//mets:file[mets:FLocat/\@xlink:href='$file_name']"))[0];
+
+        if(not defined $new_file) {
+            $self->set_error("BadFile",file->$file_name,detail=>"Missing reference to file in uplifted METS");
+        }
 
         foreach my $attribute ($old_file->attributes(), $new_file->attributes()) {
             my $attr_name = $attribute->nodeName();
@@ -198,7 +197,7 @@ sub run {
         $self->_set_done();
         return $self->succeeded();
     }
-
+    
 }
 
 sub clean_always {
