@@ -155,6 +155,12 @@ sub _update_event_date {
             $from_tz = 'America/Los_Angeles';
         } elsif($agent eq 'IA' or $agent eq 'CaSfIA' or $agent =~ /Internet Archive/) {
             $from_tz = 'UTC';
+        } elsif($agent eq 'SpMaUC') {
+            $from_tz = 'Europe/Madrid';
+        } else {
+            $self->set_error("BadField",field=>"linkingAgentIdentifierValue",
+                actual => $agent, 
+                detail => "Unknown time zone for agent ID");
         }
 
         if(defined $from_tz) {

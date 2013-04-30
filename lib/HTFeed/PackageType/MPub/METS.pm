@@ -115,7 +115,8 @@ sub _extract_old_premis {
         'message digest calculation' => [qw(page_md5_create)],
         'fixity check' => [qw(page_md5_fixity)],
         'ingestion' => [qw(ingestion zip_compression zip_md5_create)],
-        'validation' => [qw(package_validation)]
+        'validation' => [qw(package_validation)],
+        'dummy ocr creation' => [qw(dummy_ocr_creation)]
     );
 
     # FIXME: $volume->record_premis_event('mets_update');
@@ -142,23 +143,26 @@ sub _extract_old_premis {
                     $eventconfig->{'executor_type'} = 'MARC21 Code';
                     $eventconfig->{'executor'} = 'Ca-MvGOO';
                     $from_tz = 'America/Los_Angeles';
-                } elsif($agentid eq 'UM' 
-                        or $agentid =~ /University.*Michigan/i
-                        or $agentid =~ /^SPO$/i
-                        or $agentid =~ /Digital.Conversion/i
-                        or $agentid =~ /MPublishing/i
-                        or $agentid =~ /Trigonix/i
-                        or $agentid =~ /UM Press/i
-                        or $agentid =~ /UNKNOWN/i
-                ) {
+#                } elsif($agentid eq 'UM' 
+#                        or $agentid =~ /University.*Michigan/i
+#                        or $agentid =~ /^SPO$/i
+#                        or $agentid =~ /Digital.Conversion/i
+#                        or $agentid =~ /MPublishing/i
+#                        or $agentid =~ /Trigonix/i
+#                        or $agentid =~ /UM Press/i
+#                        or $agentid =~ /UNKNOWN/i
+#                ) {
+                } else {
+                    # assume MPub/DCU is always MiU
                     $eventconfig->{'executor_type'} = 'MARC21 Code';
                     $eventconfig->{'executor'} = 'MiU';
                     $from_tz = 'America/Detroit';
-                } else {
-                    $self->set_error("BadField",field=>"linkingAgentIdentifierValue",
-                        actual => $agentid, 
-                        detail => "Unknown agent ID");
                 }
+#                } else {
+#                    $self->set_error("BadField",field=>"linkingAgentIdentifierValue",
+#                        actual => $agentid, 
+#                        detail => "Unknown agent ID");
+#                }
 
                 # if date doesn't have a time zone and we know what time zone it should be
                 if($eventconfig->{date} =~ /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/ and defined $from_tz) {

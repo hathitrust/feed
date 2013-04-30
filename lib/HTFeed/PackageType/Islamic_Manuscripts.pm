@@ -31,6 +31,15 @@ our $config = {
 	   		jhove => 1,
 	   		utf8 => 0
 		},
+        ocr => {
+            prefix => 'OCR',
+            use => 'ocr',
+            file_pattern => qr/\d{8}\.txt$/,
+            required => 0,
+            content => 1,
+            jhove => 0,
+            utf8 => 1
+        },
     },
 
 	# no checksums
