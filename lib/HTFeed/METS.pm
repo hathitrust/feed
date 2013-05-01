@@ -139,7 +139,8 @@ sub _update_event_date {
 
     my $event = shift;
     my $xc = shift;
-    my $date = shift;
+    my $eventinfo = shift;
+    my $date = $eventinfo->{date};
 
     my $volume = $self->{volume};
 
@@ -148,6 +149,17 @@ sub _update_event_date {
     if($date =~ /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/) {
         my $from_tz = undef;
         my $agent = $xc->findvalue("./premis:linkingAgentIdentifier[premis:linkingAgentRole/text()='Executor']/premis:linkingAgentIdentifierValue",$event);
+
+        if( (not defined $agent or $agent eq '') and $self->{is_uplift} 
+                and $eventinfo->{eventtype} eq 'image header modification') {
+
+            ### XXX: REMOVE WHEN FINISHED UPLIFT
+            my $new_agent = new PREMIS::LinkingAgent( 'MARC21 Code', 'MiU', 'Executor' );
+            $event->appendChild($new_agent->to_node());
+            $agent = 'MiU';
+            
+        }
+
         if($agent eq 'MiU' or $agent eq 'UM' or $agent =~ /Michigan/) {
             $from_tz = 'America/Detroit';
         }
@@ -240,7 +252,7 @@ sub _extract_old_premis {
                         $eventdetail_node->appendText($new_eventinfo->{detail});
 
                         # update eventDate
-                        my $new_date = $self->_update_event_date($new_event,$xc,$eventinfo->{date});
+                        my $new_date = $self->_update_event_date($new_event,$xc,$eventinfo);
 
                         # create new event UUID
                         my $uuid = $volume->make_premis_uuid($new_eventinfo->{type},$new_date);
@@ -272,7 +284,7 @@ sub _extract_old_premis {
                     }
 
                     # update eventDate
-                    my $event_date = $self->_update_event_date($event,$xc,$eventinfo->{date});
+                    my $event_date = $self->_update_event_date($event,$xc,$eventinfo);
 
                     # update event UUID
                     my $uuid = $volume->make_premis_uuid($eventinfo->{eventtype},$event_date);
