@@ -326,6 +326,20 @@ sub _extract_old_premis {
              );
         }
 
+        # XXX: remove hacky bugfix after uplift
+        if(not defined $self->{old_event_types}->{capture} and $self->{is_uplift} 
+           and $volume->get_packagetype() eq 'ia') {
+
+           require HTFeed::PackageType::IA::SourceMETS;
+           
+           my $xpc = $volume->get_source_mets_xpc();
+           if(HTFeed::PackageType::IA::SourceMETS::_add_capture_event($self,$xpc)) {
+               $self->{old_event_types}->{capture} = 1;
+           }
+
+        }
+            
+
         # at a minimum there should be capture, message digest calculation,
         # fixity check, validation and ingestion.
         foreach my $required_event_type ("capture","message digest calculation","validation","ingestion") {

@@ -95,7 +95,6 @@ sub _add_capture_event {
     my $volume = $self->{volume};
     my $premis = $self->{premis};
     my $xpc = $volume->get_scandata_xpc();
-    my $ia_id = $volume->get_ia_id();
 
     my $eventdate = $xpc->findvalue("//scribe:scanLog/scribe:scanEvent[1]/scribe:endTimeStamp | //scanLog/scanEvent[1]/endTimeStamp");
     my $scribe = $xpc->findvalue("//scribe:scanLog/scribe:scanEvent[1]/scribe:scribe | //scanLog/scanEvent[1]/scribe");
@@ -111,6 +110,7 @@ sub _add_capture_event {
 
     # if we still can't find it just use the file timestamp
     if(not defined $eventdate or $eventdate eq '') {
+        my $ia_id = $volume->get_ia_id();
         my $download_directory = $volume->get_download_directory();
         $eventdate = strftime("%Y%m%d%H%M%S",gmtime((stat("$download_directory/${ia_id}_scandata.xml"))[9]));
     }
@@ -134,8 +134,11 @@ sub _add_capture_event {
         if($scribe) {
             $event->add_linking_agent(new PREMIS::LinkingAgent("tool",$scribe,"image capture"));
         }
+
+        return 1;
     } else {
         $self->set_error("BadField",field => "capture time", file => "scandata.xml", actual => $eventdate);
+        return 0;
     }
 }
 
