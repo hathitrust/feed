@@ -7,6 +7,7 @@ use base qw(HTFeed::Stage::ImageRemediate);
 use Log::Log4perl qw(get_logger);
 use File::Basename;
 use HTFeed::Config qw(get_tool_version);
+use HTFeed::METS; # for premis timezone conversion
 use POSIX qw(strftime);
 
 # minimum dimensions for JP2 are set to trade paperback digitized at 400 DPI
@@ -170,11 +171,11 @@ sub _add_capture_event {
     my $self = shift;
     my $volume = $self->{volume};
 
-    # FIXME: record time zone here
     my $capture_date = $self->{capture_date};
     if($capture_date =~ /^(\d{4}).(\d{2}).(\d{2}).(\d{2}).(\d{2}).(\d{2})(.*)/) {
         $capture_date = "$1-$2-$3T$4:$5:$6$7";
     }
+    $capture_date = HTFeed::METS::convert_tz($self,$capture_date,"America/Detroit");
     my $eventid = $volume->make_premis_uuid('capture',$capture_date);
 
     my $event = new PREMIS::Event( $eventid, 'UUID', 
@@ -206,6 +207,11 @@ sub _add_image_remediate_event {
     my $event = new PREMIS::Event( $eventid, 'UUID', 
                                    $eventconfig->{'type'}, $volume->_get_current_date(),
                                    $eventconfig->{'detail'});
+
+    $event->add_linking_agent(
+        new PREMIS::LinkingAgent( $eventconfig->{'executor_type'}, 
+            $eventconfig->{'executor'}, 
+            'Executor' ) );
 
     my $tools_config = $eventconfig->{'tools'};
     foreach my $agent (@$tools_config) {
