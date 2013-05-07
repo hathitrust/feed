@@ -85,6 +85,19 @@ my %volume_id_map = (
     UMMU => $UNKNOWN,
 );
 
+# get mapping from original sequence numbers to corrected filenames
+sub get_seq_mapping {
+    my $self = shift;
+
+    if(not defined $self->{'seq_mapping'}) {
+        # parse pageview.dat
+        $self->get_srcmets_page_data();
+    }
+
+    return $self->{'seq_mapping'};
+
+}
+
 sub get_srcmets_page_data {
     my $self = shift;
     my $file = shift;
@@ -94,6 +107,11 @@ sub get_srcmets_page_data {
 
     if(not defined $self->{'page_data'}) {
         my $pagedata = {};
+        my $seq_mapping = {};
+        # seq in pageview.dat can have skips in it; we create a mapping
+        # from the old filenames/sequence numbers to a sequence starting at
+        # 00000001 with no gaps in it.
+        my $new_seq = '00000000';
 
         my $pageview = $self->get_preingest_directory() . "/pageview.dat";
         if(-e $pageview) {
@@ -101,9 +119,16 @@ sub get_srcmets_page_data {
             <$pageview_fh>; # skip first line - column headers
             while(my $line = <$pageview_fh>) {
                 next if $line =~ /^\s*#/; # skip comments
+                $new_seq++;
                 # clear line endings
                 $line =~ s/[\r\n]//;
-                my(undef,$order,$detected_pagenum,undef,$tags) = split(/\t/,$line);
+                my($file,$old_seq,$detected_pagenum,undef,$tags) = split(/\t/,$line);
+
+                if($file !~ /^$old_seq/) {
+                    $self->set_error("NotEqualValues",field=> "page_data", file => $pageview,
+                        expected => $old_seq, actual => $file, detail => "Mismatched filename and seqnum");
+                }
+
                 $detected_pagenum =~ s/^0+//; # remove leading zeroes from pagenum
                 if($detected_pagenum =~ /^R(\d{3})$/i) {
                     $detected_pagenum = roman($1);
@@ -112,14 +137,19 @@ sub get_srcmets_page_data {
                     $tags = join(', ',split(/\s/,$tags));
                 }
 
-                $order = '0000' . $order if $order =~ /^\d{4}$/;
+                $old_seq = '0000' . $old_seq if $old_seq =~ /^\d{4}$/;
+                $new_seq = sprintf("%08d",$new_seq);
 
-                $pagedata->{$order} = {
+                $pagedata->{$new_seq} = {
                     orderlabel => $detected_pagenum,
                     label => $tags
-                }
+                };
+
+                $seq_mapping->{$old_seq} = $new_seq;
+
             }
             $self->{page_data} = $pagedata;
+            $self->{seq_mapping} = $seq_mapping;
         }
     }
 

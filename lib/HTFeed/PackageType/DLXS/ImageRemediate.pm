@@ -21,6 +21,7 @@ sub run{
     my $volume = $self->{volume};
     my $preingest_path = $volume->get_preingest_directory();
     my $stage_path = $volume->get_staging_directory();
+    my $seq_mapping = $volume->get_seq_mapping();
 
     $self->{real_capture_date} = 0;
     $self->{real_artist} = 0;
@@ -32,8 +33,14 @@ sub run{
         # return extra fields to set that depend on the file
         sub {
             my $file = shift;
-            my $renamed_file = $file;
-            $renamed_file =~ s/^(\d{4})....\.tif$/0000$1.tif/ if $volume->has_moa_filenames();
+            my $seq = $file;
+            $seq =~ s/\.tif$//;
+            $seq =~ s/^(\d{4})....\.tif$/0000$1.tif/ if $volume->has_moa_filenames();
+            my $new_seq = $seq_mapping->{$seq};
+            $self->set_error("BadField",field => "seqnum", actual => $seq,
+                detail => "Can't find seq in pageview.dat") if not defined $new_seq;
+            my $renamed_file = $new_seq . ".tif";
+
             # three fields to remediate: docname, datetime, artist.
             # docname: remediate only if missing; set to $barcode/$filename.
             # datetime: remediate from docname if possible. otherwise use loadcd.log
@@ -57,6 +64,12 @@ sub run{
         my $jp2_fields = $self->get_exiftool_fields($jp2_submitted);
         # change to form 0000010.jp2 instead of p0000010.jp2
         $jp2_remediated =~ s/^p/0/;
+        $jp2_remediated =~ s/^.jp2$//;
+        $jp2_remediated = $seq_mapping->{$jp2_remediated};
+        $self->set_error("BadField",field => "seqnum", actual => $jp2_submitted,
+            detail => "Can't find seq in pageview.dat") if not defined $jp2_remediated;
+        $jp2_remediated = $jp2_remediated . ".jp2";
+
         # there shouldn't be any JP2s for MOA material?
         # $jp2_remediated =~ s/^(\d{4})....\.jp2$/0000$1.jp2/ if $jp2_remediated !~ /^0000/; 
         my $force_fields = {'XMP-dc:source' => join('/',$volume->get_objid(),$jp2_remediated) };

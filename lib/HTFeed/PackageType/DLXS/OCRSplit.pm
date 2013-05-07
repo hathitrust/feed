@@ -161,6 +161,7 @@ sub splinter_xml {
     my $start = 0;
 
 
+    my $seq_mapping = $volume->get_seq_mapping();
     foreach my $objnode ($doc->findnodes("//PB")) {
         my @objtext = ();
         my $seq = $objnode->getAttribute('SEQ');
@@ -176,7 +177,11 @@ sub splinter_xml {
 
         # write text
 
-        my $outfile_txt = sprintf( "%s/%08d.txt", $staging_directory, $seq );
+        my $new_seq = $seq_mapping->{$seq};
+        $self->set_error("BadField",field => "seqnum", actual => $seq,
+            detail => "Can't find seq in pageview.dat") if not defined $new_seq;
+
+        my $outfile_txt = sprintf( "%s/%08d.txt", $staging_directory, $seq_mapping->{$seq} );
 
         open(my $out_fh, ">:utf8", $outfile_txt ) or croak ( "Can't open $outfile_txt: $!");
         # If there was no OCR for this page, we'll just end up with a 0-byte file
