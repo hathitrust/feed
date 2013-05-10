@@ -21,7 +21,9 @@ sub _extract_old_premis {
         'validation' => [qw(package_validation)]
     );
 
+    my $had_premis1 = 0;
     foreach my $event ($xpc->findnodes('//premis1:event')) {
+        $had_premis1 = 1;
         my $premis1_type = $xpc->findvalue('./premis1:eventType',$event);
         if(my $eventcodes = $premis1_event_map{$premis1_type}) {
             foreach my $eventcode (@$eventcodes) {
@@ -41,16 +43,29 @@ sub _extract_old_premis {
                 if($agentid eq 'UM' or $agentid eq 'dlps') {
                     $eventconfig->{'executor_type'} = 'MARC21 Code';
                     $eventconfig->{'executor'} = 'MiU';
+                    # stick a time zone on the date
+                    if($eventconfig->{date} =~ /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/) {
+                        $eventconfig->{date} = $self->convert_tz($eventconfig->{date},'America/Detroit');
+                    }
                 } else {
                     $self->set_error("BadField",field=>"linkingAgentIdentifierValue",
                         actual => $agentid, 
                         detail => "Unknown agent ID");
                 }
 
+                my $outcomeDetail = $xpc->findvalue('.//premis1:eventOutcomeDetail',$event);
+                if(defined $outcomeDetail and $outcomeDetail ne '') {
+                    my $outcome = PREMIS::Outcome->new($outcomeDetail);
+                    $eventconfig->{outcomes} = [$outcome];
+                }
+
+                $self->{old_event_types}->{$eventconfig->{type}} = $event;
                 $self->add_premis_event($eventconfig);
             }
         }
     }
+    $volume->record_premis_event('premis_migration') if($had_premis1);
+    $self->{had_premis1} = 1 if ($had_premis1);
 
     # get any PREMIS2 events if they are there..
     return $self->SUPER::_extract_old_premis();

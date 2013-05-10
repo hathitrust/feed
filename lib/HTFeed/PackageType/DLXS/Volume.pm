@@ -7,6 +7,7 @@ use HTFeed::PackageType::MPub::Volume;
 use HTFeed::Config;
 use Roman qw(roman);
 use File::Basename;
+use Carp qw(croak);
 
 my %pagetag_map = (
     APP => 'APPENDIX',
@@ -102,9 +103,6 @@ sub get_srcmets_page_data {
     my $self = shift;
     my $file = shift;
 
-    (my $seqnum) = ($file =~ /(\d+)\./);
-    croak("Can't extract sequence number from file $file") unless $seqnum;
-
     if(not defined $self->{'page_data'}) {
         my $pagedata = {};
         my $seq_mapping = {};
@@ -153,10 +151,17 @@ sub get_srcmets_page_data {
         }
     }
 
-    $self->set_error("MissingField",field => "page_data", file => $seqnum, 
-        detail => "No page data found for seq=$seqnum") 
-        if not defined $self->{page_data}{$seqnum};
-    return $self->{page_data}{$seqnum};
+
+    if(defined $file) {
+        (my $seqnum) = ($file =~ /(\d+)\./);
+        croak("Can't extract sequence number from file $file") unless $seqnum;
+
+        $self->set_error("MissingField",field => "page_data", file => $seqnum, 
+            detail => "No page data found for seq=$seqnum") 
+            if not defined $self->{page_data}{$seqnum};
+        return $self->{page_data}{$seqnum};
+    }
+
 }
 
 sub get_page_data {
