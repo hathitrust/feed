@@ -115,10 +115,15 @@ sub get_preingest_directory {
 
 sub get_scandata_xpc {
     my $self = shift;
-    my $xpc = $self->get_source_mets_xpc();
-    if(defined $xpc) {
-        $xpc->registerNs('scribe','http://archive.org/scribe/xml');
-        return $xpc;
+
+    # use source METS if we have it, otherwise try downloaded scandata.xml
+    my $mets = $self->get_source_mets_file();
+    if(defined $mets) {
+        my $xpc = $self->get_source_mets_xpc();
+        if(defined $xpc) {
+            $xpc->registerNs('scribe','http://archive.org/scribe/xml');
+            return $xpc;
+        }
     }
     if(not defined $self->{scandata_xpc}) {
         my $path = $self->get_download_directory();
@@ -134,9 +139,13 @@ sub get_scandata_xpc {
 
 sub get_meta_xpc {
     my $self = shift;
-    my $xpc = $self->get_source_mets_xpc();
-    if(defined $xpc) {
-        return $xpc;
+    # use source METS if we have it, otherwise try downloaded meta.xml
+    my $mets = $self->get_source_mets_file();
+    if(defined $mets) {
+        my $xpc = $self->get_source_mets_xpc();
+        if(defined $xpc) {
+            return $xpc;
+        }
     }
     if(not defined $self->{meta_xpc}) {
         my $path = $self->get_download_directory();
