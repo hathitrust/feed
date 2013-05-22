@@ -5,7 +5,7 @@ use warnings;
 
 use FindBin;
 use lib "$FindBin::Bin/../lib";
-use HTFeed::Log { root_loger => 'INFO, scree' };
+use HTFeed::Log { root_logger => 'DEBUG, screen' };
 use HTFeed::RunLite qw(runlite);
 use METS;
 use HTFeed::METS;
