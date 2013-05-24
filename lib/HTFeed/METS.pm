@@ -461,6 +461,14 @@ sub _add_source_mets_events {
     {
         my $eventconfig = $volume->get_nspkg()->get_event_configuration($eventcode);
         my $eventtype = $eventconfig->{type};
+
+        if(not defined $src_premis_events->{$eventtype}) {
+            $self->set_error("MissingField", 
+                field => "premis $eventtype", 
+                file => $volume->get_source_mets_file(), 
+                detail => "Missing required PREMIS event in source METS")
+            unless (defined $eventconfig->{optional} and $eventconfig->{optional});
+        }
         next unless defined $src_premis_events->{$eventtype};
         foreach my $src_event ( @{ $src_premis_events->{$eventtype} } ) {
             my $eventid = $xc->findvalue( "./premis:eventIdentifier[premis:eventIdentifierType='UUID']/premis:eventIdentifierValue",
@@ -470,6 +478,7 @@ sub _add_source_mets_events {
                 $self->{included_events}{$eventid} = $src_event;
                 $premis->add_event($src_event);
             }
+            
         }
     }
 }
