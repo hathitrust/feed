@@ -115,8 +115,8 @@ sub get_all_directory_files {
         my $stagedir = $self->get_staging_directory();
         opendir(my $dh,$stagedir) or croak("Can't opendir $stagedir: $!");
         foreach my $file (readdir $dh) {
-            # ignore ., ..
-            push(@{ $self->{directory_files} },$file) unless $file =~ /^\.+$/;
+            # ignore ., .., Mac .DS_Store files
+            push(@{ $self->{directory_files} },$file) unless ($file =~ /^\.+$/ or $file eq '.DS_Store');
         }
         closedir($dh) or croak("Can't closedir $stagedir: $!");
         @{ $self->{directory_files} } = sort( @{ $self->{directory_files} } );
