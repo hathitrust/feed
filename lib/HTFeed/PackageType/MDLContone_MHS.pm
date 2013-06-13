@@ -1,4 +1,4 @@
-package HTFeed::PackageType::MDLContone::MHS;
+package HTFeed::PackageType::MDLContone_MHS;
 use HTFeed::XPathValidator qw(:closures);
 use base qw(HTFeed::PackageType::MDLContone);
 use warnings;
@@ -55,6 +55,9 @@ our $config = {
         packed     => 'HTFeed::PackageType::MDLContone::Composite::METS',
         metsed     => 'HTFeed::Stage::Handle',
         handled    => 'HTFeed::Stage::Collate',
+
+        needs_uplift => 'HTFeed::Stage::RepositoryUnpack',
+        uplift_unpacked => 'HTFeed::Stage::ReMETS'
     },
 
 

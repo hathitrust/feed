@@ -2,6 +2,7 @@
 
 package HTFeed::PackageType::MDLContone::METS;
 use base qw(HTFeed::METS);
+use HTFeed::XMLNamespaces qw(:namespaces);
 use strict;
 
 sub _add_struct_map {
@@ -48,5 +49,14 @@ sub _add_dmdsecs {
         $self->set_error("BadField",file=> $volume->get_source_mets_file(),field => 'mets:structMap',detail=> '$count DMD1 DC dmdSecs found in source METS');
     }
     # MIU: add TEIHDR; do not add second call number??
+}
+
+sub _add_schemas {
+    my $self = shift;
+    $self->SUPER::_add_schemas(@_);
+    my $mets = $self->{mets};
+
+    $mets->add_schema( "dc", NS_DC );
+
 }
 1;

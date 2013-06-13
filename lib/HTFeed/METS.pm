@@ -87,6 +87,10 @@ sub _add_header {
                 detail=>"can't get METS creation time",
                 file=>$volume->get_repository_mets_path());
         }
+        # time stamp w/o timezone in METS creation date
+        if($createdate =~ /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/) {
+            $createdate = $self->convert_tz($createdate,'America/Detroit');
+        }
         $header = new METS::Header(
             createdate => $createdate,
             lastmoddate => _get_createdate(),
@@ -169,6 +173,8 @@ sub _update_event_date {
             $from_tz = 'UTC';
         } elsif($agent eq 'SpMaUC') {
             $from_tz = 'Europe/Madrid';
+        } elsif($agent eq 'MnU') {
+            $from_tz = 'America/Chicago';
         } else {
             $self->set_error("BadField",field=>"linkingAgentIdentifierValue",
                 actual => $agent, 
@@ -181,6 +187,16 @@ sub _update_event_date {
             $eventdateTimeNode->removeChildNodes();
             $eventdateTimeNode->appendText($date);
         }
+    } elsif($date =~ /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2}$/) {
+        # Date::Manip 5 will parse using the offset to the equivalent time in
+        # the default time zone, then convert from default TZ to UTC
+
+        # Date::Manip 6 will use the included time zone information
+
+        $date = $self->convert_tz($date,''); 
+        my $eventdateTimeNode = ($xc->findnodes('./premis:eventDateTime',$event))[0];
+        $eventdateTimeNode->removeChildNodes();
+        $eventdateTimeNode->appendText($date);
     }
 
     return $date;

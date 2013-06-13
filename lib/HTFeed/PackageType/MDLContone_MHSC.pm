@@ -1,4 +1,4 @@
-package HTFeed::PackageType::MDLContone::MHSComposite;
+package HTFeed::PackageType::MDLContone_MHSC;
 
 use base qw(HTFeed::PackageType::MDLContone::MHS);
 use warnings;
@@ -18,6 +18,9 @@ our $config = {
         packed     => 'HTFeed::PackageType::MDLContone::Composite::METS',
         metsed     => 'HTFeed::Stage::Handle',
         handled    => 'HTFeed::Stage::Collate',
+
+        needs_uplift => 'HTFeed::Stage::RepositoryUnpack',
+        uplift_unpacked => 'HTFeed::Stage::ReMETS'
     },
 
 };

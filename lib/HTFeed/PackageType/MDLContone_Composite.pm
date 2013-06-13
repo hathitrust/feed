@@ -1,4 +1,4 @@
-package HTFeed::PackageType::MDLContone::Composite;
+package HTFeed::PackageType::MDLContone_Composite;
 
 use warnings;
 use strict;
@@ -68,6 +68,9 @@ our $config = {
         packed     => 'HTFeed::PackageType::MDLContone::Composite::METS',
         metsed     => 'HTFeed::Stage::Handle',
         handled    => 'HTFeed::Stage::Collate',
+
+        needs_uplift => 'HTFeed::Stage::RepositoryUnpack',
+        uplift_unpacked => 'HTFeed::Stage::ReMETS'
     },
 
     module_validators => {

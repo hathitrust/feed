@@ -63,6 +63,9 @@ our $config = {
         packed     => 'HTFeed::PackageType::MDLContone::METS',
         metsed     => 'HTFeed::Stage::Handle',
         handled    => 'HTFeed::Stage::Collate',
+
+        needs_uplift => 'HTFeed::Stage::RepositoryUnpack',
+        uplift_unpacked => 'HTFeed::Stage::ReMETS'
     },
 
     # Validation overrides
