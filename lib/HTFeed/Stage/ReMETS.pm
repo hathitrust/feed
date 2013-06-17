@@ -117,7 +117,7 @@ sub run {
         my $new_file = ($new_xpc->findnodes("//mets:file[mets:FLocat/\@xlink:href='$file_name']"))[0];
 
         if(not defined $new_file) {
-            $self->set_error("BadFile",file->$file_name,detail=>"Missing reference to file in uplifted METS");
+            $self->set_error("BadFile",file=>$file_name,detail=>"Missing reference to file in uplifted METS");
         }
 
         foreach my $attribute ($old_file->attributes(), $new_file->attributes()) {
