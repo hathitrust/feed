@@ -115,6 +115,9 @@ sub get_srcmets_page_data {
         if(-e $pageview) {
             open(my $pageview_fh,"<$pageview") or croak("Can't open pageview.dat: $!");
             <$pageview_fh>; # skip first line - column headers
+
+            my $prev_old_seq;
+            my $prev_detected_pagenum;
             while(my $line = <$pageview_fh>) {
                 next if $line =~ /^\s*#/; # skip comments
                 $new_seq++;
@@ -144,6 +147,29 @@ sub get_srcmets_page_data {
                 };
 
                 $seq_mapping->{$old_seq} = $new_seq;
+
+                # if there was a skip in the sequence, was there a skip 
+                # in the page numbers?
+                if(defined $prev_old_seq and $old_seq != $prev_old_seq + 1) {
+                    unless (defined $detected_pagenum 
+                        and defined $prev_detected_pagenum
+                        and $detected_pagenum =~ /^\d+$/
+                        and $prev_detected_pagenum =~ /^\d+$/
+                        and $prev_detected_pagenum == $detected_pagenum + 1) {
+                    
+                    # not legitimate skip: one or the other side has no
+                    # page number, or page numbers are not sequential
+                    $prev_detected_pagenum = '' if not defined $prev_detected_pagenum;
+                    $detected_pagenum = '' if not defined $detected_pagenum;
+                    $self->set_error("BadValue",field=>"page_data",file=>$pageview,
+                        detail => "Sequence skip between seq=$prev_old_seq/page='$prev_detected_pagenum' and seq=$old_seq/page='$detected_pagenum'");
+
+                    }
+                }
+
+
+                $prev_old_seq = $old_seq;
+                $prev_detected_pagenum = $detected_pagenum;
 
             }
             $self->{page_data} = $pagedata;
