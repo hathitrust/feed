@@ -5,8 +5,7 @@ use strict;
 use Carp;
 
 use HTFeed::Config;
-use Shell::Comm;
-$Shell::Comm::DIR = get_config('staging_root');
+use List::Compare;
 
 sub new {
     my $class = CORE::shift;
@@ -163,30 +162,15 @@ sub _mk_vol{
     );
 }
 
-#sub union {
-#}
-
 sub intersection {
-    return _comm(@_,'12');
+    my $lc = _get_list_compare_obj(@_);
+    my @new_htids = $lc->get_intersection;
+    return HTFeed::VolumeGroup->new(htids=>\@new_htids);
 }
 
-sub difference {
-    return _comm(@_,'23');
-}
-
-#sub _sort_unique {
-#    my $array = CORE::shift;
-#    my %set;
-#    foreach my $e (@{$array}) {$set{$e}++};
-#    my @keys = (sort (keys %set));
-#    return \@keys;
-#}
-
-sub _comm {
+sub _get_list_compare_obj {
     my $a = CORE::shift;
     my $b = CORE::shift;
-
-    my $cmd = CORE::shift;
 
     croak 'set operations on VolumeGroups with non matching packagetypes not currectly supported'
         unless ($a->{packagetype} eq $b->{packagetype});
@@ -194,9 +178,7 @@ sub _comm {
     my $a_htids = $a->get_htids();
     my $b_htids = $b->get_htids();
 
-	my $new_htids = comm($a_htids,$b_htids,$cmd);
-
-    return HTFeed::VolumeGroup->new(htids=>$new_htids);
+    return List::Compare->new($a_htids, $b_htids);
 }
 
 # $vg->write_id_file($path)
