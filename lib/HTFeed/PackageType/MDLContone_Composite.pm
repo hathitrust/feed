@@ -1,8 +1,8 @@
-package HTFeed::PackageType::MDLContone::Composite;
+package HTFeed::PackageType::MDLContone_Composite;
 
 use warnings;
 use strict;
-use base qw(HTFeed::PackageType);
+use base qw(HTFeed::PackageType::MDLContone);
 
 our $identifier = 'mdlcontone_composite';
 
@@ -68,6 +68,9 @@ our $config = {
         packed     => 'HTFeed::PackageType::MDLContone::Composite::METS',
         metsed     => 'HTFeed::Stage::Handle',
         handled    => 'HTFeed::Stage::Collate',
+
+        needs_uplift => 'HTFeed::Stage::RepositoryUnpack',
+        uplift_unpacked => 'HTFeed::Stage::ReMETS'
     },
 
     module_validators => {
