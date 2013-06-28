@@ -2,7 +2,7 @@ package HTFeed::PackageType::MDLContone_Composite;
 
 use warnings;
 use strict;
-use base qw(HTFeed::PackageType);
+use base qw(HTFeed::PackageType::MDLContone);
 
 our $identifier = 'mdlcontone_composite';
 
