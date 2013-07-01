@@ -289,14 +289,27 @@ sub _extract_old_premis {
 
                     # update eventDetail
                     my $eventdetail_node = ($xc->findnodes("./premis:eventDetail",$event))[0];
-                    my $text = $eventdetail_node->textContent();
                     my $newtext = $event_map{$eventinfo->{eventtype}};
-                    if(defined $newtext
-                            and $newtext ne $text) {
-                        $eventdetail_node->removeChildNodes();
-                        $eventdetail_node->appendText($event_map{$eventinfo->{eventtype}});
-                        $need_uplift_event = 1;
-                        get_logger()->info("Updated detail for $eventinfo->{eventtype} from '$text' to '$newtext'");
+                    if(defined $eventdetail_node) {
+                        my $text = $eventdetail_node->textContent();
+                        if(defined $newtext
+                                and $newtext ne $text) {
+                            $eventdetail_node->removeChildNodes();
+                            $eventdetail_node->appendText($event_map{$eventinfo->{eventtype}});
+                            $need_uplift_event = 1;
+                            get_logger()->info("Updated detail for $eventinfo->{eventtype} from '$text' to '$newtext'");
+                        }
+                    } else {
+                        # eventDetail node may be missing in some cases e.g. audio manual quality inspection :(
+                        if(not defined $newtext) {
+                            $self->set_error("BadField",field => 'eventDetail', detail => "Missing eventDetail for $eventinfo->{eventtype}");
+                        }
+                        my $eventDateTime = ($xc->findnodes("./premis:eventDateTime",$event))[0];
+                        if(not defined $eventDateTime) {
+                            $self->set_error("BadField",field => 'eventDateTime', detail => "Missing eventDateTime for $eventinfo->{eventtype}");
+                        }
+                        $eventDateTime->parentNode()->insertAfter(PREMIS::createElement( "eventDetail", $newtext ),
+                                                                $eventDateTime);
                     }
 
                     # update eventDate

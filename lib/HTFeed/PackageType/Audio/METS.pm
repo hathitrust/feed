@@ -90,6 +90,13 @@ sub _add_content_fgs {
     }
 }
 
+sub _add_header {
+    my $self = shift;
+    # set correct METS profile for audio 
+    $self->{profile} = "http://www.hathitrust.org/documents/hathitrust-audio-mets-profile1.0.xml";
+    $self->SUPER::_add_header();
+}
+
 
 
 1; 
