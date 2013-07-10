@@ -120,10 +120,11 @@ sub get_srcmets_page_data {
             my $prev_detected_pagenum;
             while(my $line = <$pageview_fh>) {
                 next if $line =~ /^\s*#/; # skip comments
+                next if $line =~ /^\s*$/; # skip blank lines
                 $new_seq++;
                 # clear line endings
                 $line =~ s/[\r\n]//;
-                my($file,$old_seq,$detected_pagenum,undef,$tags) = split(/\t/,$line);
+                my($file,$old_seq,$detected_pagenum,undef,$tags) = split(/\s+/,$line);
 
                 if($file !~ /^$old_seq/) {
                     $self->set_error("NotEqualValues",field=> "page_data", file => $pageview,
@@ -155,7 +156,7 @@ sub get_srcmets_page_data {
                         and defined $prev_detected_pagenum
                         and $detected_pagenum =~ /^\d+$/
                         and $prev_detected_pagenum =~ /^\d+$/
-                        and $prev_detected_pagenum == $detected_pagenum + 1) {
+                        and $prev_detected_pagenum + 1 == $detected_pagenum) {
                     
                     # not legitimate skip: one or the other side has no
                     # page number, or page numbers are not sequential

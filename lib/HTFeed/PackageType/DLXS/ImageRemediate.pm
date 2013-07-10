@@ -64,7 +64,7 @@ sub run{
         my $jp2_fields = $self->get_exiftool_fields($jp2_submitted);
         # change to form 0000010.jp2 instead of p0000010.jp2
         $jp2_remediated =~ s/^p/0/;
-        $jp2_remediated =~ s/^.jp2$//;
+        $jp2_remediated =~ s/\.jp2$//;
         $jp2_remediated = $seq_mapping->{$jp2_remediated};
         $self->set_error("BadField",field => "seqnum", actual => $jp2_submitted,
             detail => "Can't find seq in pageview.dat") if not defined $jp2_remediated;
