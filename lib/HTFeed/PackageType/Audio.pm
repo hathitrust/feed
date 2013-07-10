@@ -74,6 +74,9 @@ our $config = {
         packed            => 'HTFeed::PackageType::Audio::METS',
         metsed            => 'HTFeed::Stage::Handle',
         handled           => 'HTFeed::Stage::Collate',
+
+        needs_uplift => 'HTFeed::Stage::RepositoryUnpack',
+        uplift_unpacked => 'HTFeed::Stage::ReMETS'
     },
 
     # The HTFeed::ModuleValidator subclass to use for validating
