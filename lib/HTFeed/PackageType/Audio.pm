@@ -110,6 +110,18 @@ our $config = {
             type => 'manual quality review',
         },
     
+        page_md5_create => {
+            detail => 'Calculation of MD5 checksums for audio files',
+        },
+
+        page_md5_fixity => {
+            detail => 'Validation of MD5 checksums for audio files',
+        },
+
+        package_validation => {
+            detail => 'Validation of technical characteristics of audio files',
+        },
+
     },
 
 	SIP_filename_pattern => '%s.zip',

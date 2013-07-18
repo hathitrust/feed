@@ -370,11 +370,14 @@ sub _extract_old_premis {
             
         # at a minimum there should be capture, message digest calculation,
         # fixity check, validation and ingestion.
-        if(not defined $self->{had_premis1})  {
-            foreach my $required_event_type ("capture","message digest calculation","fixity check","validation","ingestion") {
-                $self->set_error("BadField",detail=>"Could not extract old PREMIS event",
-                    field=>"premis event $required_event_type",file=>$mets_in_repos)
-                if not defined $self->{old_event_types}->{$required_event_type};
+        # XXX: remove hacky bugfix after uplift
+        if($volume->get_packagetype() ne 'audio') {
+            if(not defined $self->{had_premis1})  {
+                foreach my $required_event_type ("capture","message digest calculation","fixity check","validation","ingestion") {
+                    $self->set_error("BadField",detail=>"Could not extract old PREMIS event",
+                        field=>"premis event $required_event_type",file=>$mets_in_repos)
+                    if not defined $self->{old_event_types}->{$required_event_type};
+                }
             }
         }
 
@@ -394,7 +397,6 @@ sub _add_premis_events {
     my $nspkg           = $volume->get_nspkg();
 
     EVENTCODE: foreach my $eventcode ( @{$events} ) {
-
         # query database for: datetime, outcome
         my $eventconfig = $nspkg->get_event_configuration($eventcode);
         my ( $eventid, $datetime, $outcome,$custom ) =
@@ -411,7 +413,6 @@ sub _add_premis_events {
         } elsif (not defined $eventconfig->{optional} or !$eventconfig->{optional}) {
             $self->set_error("MissingField",field=>"premis_$eventcode",detail=>"No PREMIS event recorded with config ID $eventcode");
         }
-
     }
 
 }

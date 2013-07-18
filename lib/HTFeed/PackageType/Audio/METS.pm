@@ -97,6 +97,45 @@ sub _add_header {
     $self->SUPER::_add_header();
 }
 
+sub _extract_old_premis {
+    my $self = shift;
+    my $volume = $self->{volume};
+    my $events = $self->SUPER::_extract_old_premis();
+
+    # if there was no message digest calculation event, add one
+    my $mets_in_repos = $volume->get_repository_mets_path();
+    my $xc = $volume->get_repository_mets_xpc();
+
+    if(defined $xc) {
+        my @message_calc = $xc->findnodes("//premis:event/premis:eventType[text()='message digest calculation']");
+        if(!@message_calc) {
+            # missing message digest calculation: try to add it
+            my $last_ingest = undef;
+
+            foreach my $ingest_date_node ($xc->findnodes("//premis:event[premis:eventType[text()='ingestion']]/premis:eventDateTime")) {
+                my $ingest_date = $ingest_date_node->textContent();
+                if(not defined $last_ingest or $ingest_date gt $last_ingest) {
+                    $last_ingest = $ingest_date
+                }
+            }
+            $self->set_error("MissingField",field=>"ingest date",file=>$mets_in_repos,detail=>"Can't get last ingest date from source METS") if not defined $last_ingest;
+
+            $last_ingest = $self->convert_tz($last_ingest,"America/Detroit") 
+                if defined $last_ingest and $last_ingest and $last_ingest !~ /Z$/;
+            my $eventid = $volume->make_premis_uuid('message digest calculation',$last_ingest);
+            my $nspkg           = $volume->get_nspkg();
+            # add premis event
+            my $eventconfig =   $nspkg->get_event_configuration('page_md5_create');
+            $eventconfig->{eventid} = $eventid;
+            $eventconfig->{date} = $last_ingest;
+            $self->add_premis_event($eventconfig);
+
+        }
+    }
+
+    return $events;
+}
+
 
 
 1; 
