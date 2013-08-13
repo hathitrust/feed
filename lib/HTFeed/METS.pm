@@ -289,14 +289,27 @@ sub _extract_old_premis {
 
                     # update eventDetail
                     my $eventdetail_node = ($xc->findnodes("./premis:eventDetail",$event))[0];
-                    my $text = $eventdetail_node->textContent();
                     my $newtext = $event_map{$eventinfo->{eventtype}};
-                    if(defined $newtext
-                            and $newtext ne $text) {
-                        $eventdetail_node->removeChildNodes();
-                        $eventdetail_node->appendText($event_map{$eventinfo->{eventtype}});
-                        $need_uplift_event = 1;
-                        get_logger()->info("Updated detail for $eventinfo->{eventtype} from '$text' to '$newtext'");
+                    if(defined $eventdetail_node) {
+                        my $text = $eventdetail_node->textContent();
+                        if(defined $newtext
+                                and $newtext ne $text) {
+                            $eventdetail_node->removeChildNodes();
+                            $eventdetail_node->appendText($event_map{$eventinfo->{eventtype}});
+                            $need_uplift_event = 1;
+                            get_logger()->info("Updated detail for $eventinfo->{eventtype} from '$text' to '$newtext'");
+                        }
+                    } else {
+                        # eventDetail node may be missing in some cases e.g. audio manual quality inspection :(
+                        if(not defined $newtext) {
+                            $self->set_error("BadField",field => 'eventDetail', detail => "Missing eventDetail for $eventinfo->{eventtype}");
+                        }
+                        my $eventDateTime = ($xc->findnodes("./premis:eventDateTime",$event))[0];
+                        if(not defined $eventDateTime) {
+                            $self->set_error("BadField",field => 'eventDateTime', detail => "Missing eventDateTime for $eventinfo->{eventtype}");
+                        }
+                        $eventDateTime->parentNode()->insertAfter(PREMIS::createElement( "eventDetail", $newtext ),
+                                                                $eventDateTime);
                     }
 
                     # update eventDate
@@ -357,11 +370,14 @@ sub _extract_old_premis {
             
         # at a minimum there should be capture, message digest calculation,
         # fixity check, validation and ingestion.
-        if(not defined $self->{had_premis1})  {
-            foreach my $required_event_type ("capture","message digest calculation","fixity check","validation","ingestion") {
-                $self->set_error("BadField",detail=>"Could not extract old PREMIS event",
-                    field=>"premis event $required_event_type",file=>$mets_in_repos)
-                if not defined $self->{old_event_types}->{$required_event_type};
+        # XXX: remove hacky bugfix after uplift
+        if($volume->get_packagetype() ne 'audio') {
+            if(not defined $self->{had_premis1})  {
+                foreach my $required_event_type ("capture","message digest calculation","fixity check","validation","ingestion") {
+                    $self->set_error("BadField",detail=>"Could not extract old PREMIS event",
+                        field=>"premis event $required_event_type",file=>$mets_in_repos)
+                    if not defined $self->{old_event_types}->{$required_event_type};
+                }
             }
         }
 
@@ -381,7 +397,6 @@ sub _add_premis_events {
     my $nspkg           = $volume->get_nspkg();
 
     EVENTCODE: foreach my $eventcode ( @{$events} ) {
-
         # query database for: datetime, outcome
         my $eventconfig = $nspkg->get_event_configuration($eventcode);
         my ( $eventid, $datetime, $outcome,$custom ) =
@@ -398,7 +413,6 @@ sub _add_premis_events {
         } elsif (not defined $eventconfig->{optional} or !$eventconfig->{optional}) {
             $self->set_error("MissingField",field=>"premis_$eventcode",detail=>"No PREMIS event recorded with config ID $eventcode");
         }
-
     }
 
 }
