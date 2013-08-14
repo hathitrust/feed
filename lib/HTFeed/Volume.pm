@@ -599,6 +599,16 @@ sub clear_premis_events {
 
 }
 
+sub remove_premis_event {
+    my $self = shift;
+    my $eventcode = shift;
+
+    my $ns = $self->get_namespace();
+    my $objid = $self->get_objid();
+    my $sth = HTFeed::DBTools::get_dbh()->prepare("DELETE FROM feed_premis_events WHERE namespace = ? and id = ? and eventtype_id = ?");
+    $sth->execute($ns,$objid,$eventcode);
+}
+
 
 # remove staging directory
 sub _clean_vol_path {

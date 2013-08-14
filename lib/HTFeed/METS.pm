@@ -948,24 +948,22 @@ sub convert_tz {
     if($Date::Manip::VERSION < 6.00) {
         # version 5 functional interface, doesn't track timezone
         my $parsed = ParseDate($date);
-        die("Can't parse date $date") unless defined $parsed;
+        $self->set_error("BadValue",actual=>"$date",field=>"date",detail=>"Can't parse date") unless defined $parsed;
 
         my $utc_date = Date_ConvTZ($parsed,$from_tz,'UTC');
-
-        die("Date_ConvTZ($parsed,$from_tz,'UTC') failed") if(not defined $utc_date);
+        $self->set_error("BadValue",actual=>"$date $from_tz",field=>"date",detail=>"Can't convert to UTC") unless defined $utc_date;
 
         return UnixDate($utc_date,'%OZ');
     } else {
         # version 6 interface, much better with timezones
-        my $date = new Date::Manip::Date ("$date $from_tz");
-        die("Can't parse date $date: " . $date->err()) if $date->err();
+        my $dm_date = new Date::Manip::Date ("$date $from_tz");
+        $self->set_error("BadValue",actual=>"$date $from_tz",field=>"date",detail=>"Can't parse date: " . $dm_date->err()) if $dm_date->err();
 
-        $date->convert('UTC');
-        die("Can't convert date $date to UTC from $from_tz: " . $date->err()) if $date->err();
+        $dm_date->convert('UTC');
+        $self->set_error("BadValue",actual=>"$date $from_tz",field=>"date",detail=>"Can't convert to UTC: " . $dm_date->err()) if $dm_date->err();
         
-        my $res = $date->printf('%OZ');
-
-        die("Can't convert date $date to UTC from $from_tz: " . $date->err()) if not defined $res or !$res;
+        my $res = $dm_date->printf('%OZ');
+        $self->set_error("BadValue",actual=>"$date $from_tz",field=>"date",detail=>"Can't convert to UTC: " . $dm_date->err()) if not defined $res or !$res;
 
         return $res;
     }
