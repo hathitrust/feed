@@ -34,8 +34,8 @@ sub run{
         sub {
             my $file = shift;
             my $seq = $file;
-            $seq =~ s/\.tif$//;
             $seq =~ s/^(\d{4})....\.tif$/0000$1.tif/ if $volume->has_moa_filenames();
+            $seq =~ s/\.tif$//;
             my $new_seq = $seq_mapping->{$seq};
             $self->set_error("BadField",field => "seqnum", actual => $seq,
                 detail => "Can't find seq in pageview.dat") if not defined $new_seq;
