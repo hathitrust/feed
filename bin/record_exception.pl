@@ -7,6 +7,7 @@ use HTFeed::Volume;
 use XML::LibXML;
 use List::MoreUtils qw(uniq);
 use PREMIS;
+use Pod::Usage;
 use strict;
 
 # get some options:
@@ -26,7 +27,7 @@ my $replace = 0;
 my $remove = 0;
 
 GetOptions(
-    'help|?' => \$help,
+    'help|h' => \$help,
     'display!' => \$display,
     'replace|r!' => \$replace,
 ) or pod2usage(2);
@@ -117,3 +118,32 @@ if($replace and !@new_exceptions) {
     $volume->remove_premis_event('note_from_mom');
     print "$objid: Removed all exceptions\n";
 }
+
+__END__
+
+=head1 NAME
+
+record_exception.pl - add "note from mom" validation exception for legacy DLXS items
+
+=head1 SYNOPSIS
+
+record_exception.pl [-r] [--no-display] objid [jpeg2000_dimensions] [tiff_resolution]
+
+objid is the DLXS ID of the item, e.g. abc1234.0001.001 or 1234567.0001.001
+
+valid exceptions are:
+
+    jpeg2000_dimensions: inhibits validation JPEG2000 minimum image dimensions
+
+    tiff_resolution: inhibits validation of TIFF resolution
+
+
+OPTIONS
+
+    -r, --replace - By default the tool will add to the existing exceptions for the
+    item, or just display the existing exceptions if none are provided. If this
+    option is specified, the tool will replace existing exceptions with those given
+    on the command line or remove them entirely if no exceptions are supplied.
+
+    --no-display - inhibits display of existing exceptions for the volume
+=cut
