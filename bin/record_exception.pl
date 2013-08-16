@@ -1,4 +1,9 @@
 #!/usr/bin/perl
+use FindBin;
+use lib "$FindBin::Bin/../lib";
+
+use warnings;
+use strict;
 
 use Getopt::Long;
 use HTFeed::DBTools;
@@ -8,7 +13,6 @@ use XML::LibXML;
 use List::MoreUtils qw(uniq);
 use PREMIS;
 use Pod::Usage;
-use strict;
 
 # get some options:
 #   - volume we are recording the exception for
