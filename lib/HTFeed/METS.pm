@@ -35,6 +35,7 @@ sub new {
     $self->{pagedata} = sub { $self->{volume}->get_page_data(@_); };
     $self->{premis} = new PREMIS;
     $self->{old_event_types} = {};
+    $self->{profile} = get_config('mets_profile');
 
     return $self;
 }
@@ -42,7 +43,7 @@ sub new {
 sub run {
     my $self = shift;
     my $mets = new METS( objid => $self->{volume}->get_identifier(),
-                         profile => get_config('mets_profile') );
+                         profile => $self->{profile} );
     $self->{'mets'}    = $mets;
     $self->{'amdsecs'} = [];
 
