@@ -5,6 +5,17 @@ use HTFeed::METSFromSource;
 # get the default behavior from HTFeed::METSFromSource
 use base qw(HTFeed::METSFromSource);
 use Log::Log4perl qw(get_logger);
+
+sub new {
+    my $class = shift;
+
+    my $self = $class->SUPER::new(
+        @_,
+    );
+    $self->{profile} = "http://www.hathitrust.org/documents/hathitrust-audio-mets-profile1.0.xml";
+
+    return $self;
+}
  
 sub _add_dmdsecs {
     return;
@@ -88,13 +99,6 @@ sub _add_content_fgs {
 			$mets->add_filegroup($mets_filegroup);
 		}
     }
-}
-
-sub _add_header {
-    my $self = shift;
-    # set correct METS profile for audio 
-    $self->{profile} = "http://www.hathitrust.org/documents/hathitrust-audio-mets-profile1.0.xml";
-    $self->SUPER::_add_header();
 }
 
 sub _extract_old_premis {
