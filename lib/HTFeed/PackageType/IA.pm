@@ -146,8 +146,7 @@ our $config = {
     core_package_items => [ 
     '%s_jp2.zip',
     '%s_djvu.xml',
-    '%s_meta.xml',
-    '%s_marc.xml'  ],
+    '%s_meta.xml' ],
 
     # Optional items for download
     non_core_package_items => [ 

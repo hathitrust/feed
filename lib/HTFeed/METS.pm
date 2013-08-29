@@ -805,6 +805,24 @@ sub _remediate_marc {
     my $self = shift;
     my $xc = shift;
 
+    foreach my $fakeleader ($xc->findnodes('.//marc:controlfield[@tag="LDR"]')) {
+        $fakeleader->removeAttribute('tag');
+        $fakeleader->setNodeName('leader');
+    }
+
+    # remove internal aleph stuff
+    foreach my $controlfield ($xc->findnodes('.//marc:controlfield')) {
+        if($controlfield->getAttribute('tag') !~ /^\d{2}[A-Z0-9]$/) {
+            $controlfield->parentNode()->removeChild($controlfield);
+        }
+    }
+
+    foreach my $datafield ($xc->findnodes('.//marc:datafield')) {
+        if($datafield->getAttribute('tag') =~ /^[A-Z]{3}$/) {
+            $datafield->parentNode()->removeChild($datafield);
+        }
+    }
+
     my @leaders = $xc->findnodes(".//marc:leader");
     if(@leaders != 1) {
         $self->set_error("BadField",field=>"marc:leader",detail=>"Zero or more than one leader found");
