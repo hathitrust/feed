@@ -14,8 +14,10 @@ use Getopt::Long qw(:config no_ignore_case);
 use Pod::Usage;
 
 my $one_line = 0; # -1
-my $reset = 0; # -r
-my $force_reset = 0; # -R
+my $reset_punted = 0; # -r
+my $reset_most = 0; # -R
+my $force_reset = 0; # --force-reset
+my $reset_level = 0;
 my $insert = 0; # -i
 my $verbose = 0; # -v
 my $quiet = 0; # -q
@@ -31,8 +33,9 @@ my $default_namespace = undef; # -n
 # read flags
 GetOptions(
     '1' => \$one_line,
-    'reset|r' => \$reset,
-    'force-reset|R' => \$force_reset,
+    'reset-punted|r' => \$reset_punted,
+    'reset|R' => \$reset_most,
+    'force-reset' => \$force_reset,
     'insert|i' => \$insert,
     'verbose|v' => \$verbose,
     'quiet|q' => \$quiet,
@@ -45,11 +48,16 @@ GetOptions(
     'use-blacklist|b!' => \$use_blacklist,
 )  or pod2usage(2);
 
+# highest level wins
+$reset_level = 1 if $reset_punted;
+$reset_level = 2 if $reset_most;
+$reset_level = 3 if $force_reset;
+
+
 pod2usage(1) if $help;
 
 # check options
 pod2usage(-msg => '-1 and -d flags incompatible', -exitval => 2) if ($one_line and $dot_packagetype);
-#pod2usage(-msg => '-r/-R incompatible with -i', -exitval => 2) if (($reset or $force_reset) and $insert);
 pod2usage(-msg => '-p and -n exclude -d and -1', -exitval => 2) if (($default_packagetype or $default_namespace) and ($one_line or $dot_packagetype));
 
 if ($one_line){
@@ -111,7 +119,7 @@ else{
 # add volumes to queue
 my $results;
 
-if(!($reset or $force_reset) or $insert) {
+if(!($reset_level) or $insert) {
     if(defined $priority){
         print_results('queued',enqueue_volumes(volumes=>\@volumes,status=>$state,ignore=>$insert,priority=>$priority,use_blacklist=>$use_blacklist));        
     }
@@ -120,8 +128,8 @@ if(!($reset or $force_reset) or $insert) {
     }
 }
 
-if($reset or $force_reset){
-    print_results('reset',reset_volumes(volumes => \@volumes, status => $state, force => $force_reset));
+if($reset_level){
+    print_results('reset',reset_volumes(volumes => \@volumes, status => $state, reset_level => $reset_level));
     
 }
 
@@ -171,9 +179,12 @@ enqueue.pl [-v|-q] [-r|-R|-i] [-y priority] -1 packagetype namespace objid
         incompatible with -d, -1
     
     GENERAL OPTIONS
-    -r reset - resets punted,collated,rights,done volumes in list to ready
 
-    -R reset force - resets all volumes in list to ready (use with care)
+    -r, --reset-punted - resets punted volumes in list to ready
+
+    -R, --reset - resets punted,collated,rights,done volumes in list to ready
+
+    --force-reset - resets all volumes in list to ready (use with care)
 
     -i insert - volumes are added if they are not already in the queue, but no error is raised for duplicate volumes
 

@@ -118,9 +118,13 @@ sub enqueue_volumes{
     return \@results;
 }
 
-# reset_volumes(\@volumes, $force)
+# reset_volumes(\@volumes, $reset_level)
 # 
-# reset punted and done volumes, reset all volumes if $force
+# reset punted and done volumes. reset level determines which:
+#  0: nothing
+#  1: punted
+#  2: punted, collated, rights, done
+#  3: everything (including "in-flight" volumes; use with care)
 =item reset
 reset volumes
 =synopsis
@@ -146,28 +150,32 @@ sub reset_volumes {
     my %args = (
         volume  => undef,
         volumes => undef,
-        force   => undef,
+        reset_level   => undef,
         status  => undef,
         @_
     );
     
     die q{Use 'volume' or 'volumes' arg, not both}
         if (defined $args{volume} and defined $args{volumes});
+
+    die "Reset level should be >0 and <=3" if not defined $args{reset_level} or $args{reset_level} < 1 or $args{reset_level} > 3;
     
     my $volumes = $args{volumes};
     $volumes = [$args{volume}]
         if (defined $args{volume});
 
-    my $force = $args{force};
+    my $reset_level = $args{reset_level};
     my $status = $args{status};
     
     my $dbh = HTFeed::DBTools::get_dbh();
     my $sth;
-    if($force){
+    if($reset_level == 3){
         $sth = $dbh->prepare(q(UPDATE feed_queue SET node = NULL, status = ?, failure_count = 0 WHERE namespace = ? and id = ?;));
-    }
-    else{
-        $sth = $dbh->prepare(q(UPDATE feed_queue SET node = NULL, status = ?, failure_count = 0 WHERE status in ('punted','collated','rights','done','uplift_done','needs_uplift') and namespace = ? and id = ? and node is null;));
+    } else {
+        my $statuses = "";
+        $statuses = "('punted')" if $reset_level == 1;
+        $statuses = "('punted','collated','rights','done')" if $reset_level == 2;
+        $sth = $dbh->prepare(q(UPDATE feed_queue SET node = NULL, status = ?, failure_count = 0 WHERE status in $statuses and namespace = ? and id = ? and node is null;));
     }
     
     my @results;
