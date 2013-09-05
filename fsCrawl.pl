@@ -16,11 +16,15 @@ use POSIX qw(strftime);
 use Getopt::Long;
 
 my $insert =
-"insert into feed_audit (namespace, id, zip_size, zip_date, mets_size, mets_date, lastchecked) values(?,?,?,?,?,?,CURRENT_TIMESTAMP) \
-               ON DUPLICATE KEY UPDATE zip_size=?, zip_date =?,mets_size=?,mets_date=?,lastchecked = CURRENT_TIMESTAMP";
+"insert into feed_audit (namespace, id, sdr_partition, zip_size, zip_date, mets_size, mets_date, lastchecked) values(?,?,?,?,?,?,?,CURRENT_TIMESTAMP) \
+               ON DUPLICATE KEY UPDATE sdr_partition = ?, zip_size=?, zip_date =?,mets_size=?,mets_date=?,lastchecked = CURRENT_TIMESTAMP";
 my $update =
 "update feed_audit set md5check_ok = ?, lastmd5check = CURRENT_TIMESTAMP where namespace = ? and id = ?";
-my $mets_ins =
+
+my $update_mets = 
+"update feed_audit set page_count = ?, image_size = ? where namespace = ? and id = ?";
+
+my $insert_detail =
 "insert into feed_audit_detail (namespace, id, path, status, detail) values (?,?,?,?,?)";
 
 my $checkpoint_sel = 
@@ -39,6 +43,9 @@ GetOptions(
 );
 
 my $base = shift @ARGV or die("Missing base directory..");
+
+my $sdr_partition = ($base =~ qr#/?sdr(\d+)/?#);
+
 open( RUN, "find $base -follow -type f|" )
   or die("Can't open pipe to find: $!");
 
@@ -120,13 +127,19 @@ while ( my $line = <RUN> ) {
                 set_status( $namespace, $objid, $path, "SYMLINK_INVALID",
                     $link_target );
             }
+
         }
 
         #insert
         execute_stmt(
-            $insert,  $namespace, $objid,    $zipsize,
-            $zipdate, $metssize,  $metsdate, $zipsize,
-            $zipdate, $metssize,  $metsdate
+            $insert,  
+            
+            $namespace, $objid, 
+         
+            $sdr_partition, $zipsize, $zipdate, $metssize,  $metsdate, 
+            
+            # duplicate parameters for duplicate key update
+            $sdr_partition, $zipsize, $zipdate, $metssize,  $metsdate
         );
 
         # does barcode have a zip & xml, and do they match?
@@ -253,7 +266,7 @@ sub zipcheck {
                 $filetypes{$extension}++;
             }
             while ( my ( $ext, $count ) = each(%filetypes) ) {
-                mets_ins( $namespace, $objid, "FILETYPE", $ext, $count );
+                mets_log( $namespace, $objid, "FILETYPE", $ext, $count );
             }
         }
 
@@ -269,7 +282,7 @@ sub zipcheck {
                 $premisversion = "premis1";
             }
 
-            mets_ins( $namespace, $objid, "PREMIS_VERSION", $premisversion );
+            mets_log( $namespace, $objid, "PREMIS_VERSION", $premisversion );
         }
 
         {    # PREMIS event ID types
@@ -284,7 +297,7 @@ sub zipcheck {
                 $event_id_types{ $mets->findvalue( '.', $eventtype ) }++;
             }
             foreach my $event_id_type ( keys(%event_id_types) ) {
-                mets_ins( $namespace, $objid, "PREMIS_EVENT_TYPE",
+                mets_log( $namespace, $objid, "PREMIS_EVENT_TYPE",
                     $event_id_type, $event_id_types{$event_id_type} );
             }
         }
@@ -300,7 +313,7 @@ sub zipcheck {
                 $agent_id_types{ $mets->findvalue( '.', $agenttype ) }++;
             }
             foreach my $agent_id_type ( keys(%agent_id_types) ) {
-                mets_ins( $namespace, $objid, "PREMIS_AGENT_TYPE",
+                mets_log( $namespace, $objid, "PREMIS_AGENT_TYPE",
                     $agent_id_type, $agent_id_types{$agent_id_type} );
             }
 
@@ -321,7 +334,7 @@ sub zipcheck {
                 my $date = $mets->findvalue(
                     './premis:eventDateTime | ./premis1:eventDateTime',
                     $event );
-                mets_ins( $namespace, $objid, "CAPTURE", $executor, $date );
+                mets_log( $namespace, $objid, "CAPTURE", $executor, $date );
             }
         }
         {    # Processing agent
@@ -339,7 +352,7 @@ sub zipcheck {
                 my $date = $mets->findvalue(
                     './premis:eventDateTime | ./premis1:eventDateTime',
                     $event );
-                mets_ins( $namespace, $objid, "MD5SUM", $executor, $date );
+                mets_log( $namespace, $objid, "MD5SUM", $executor, $date );
             }
         }
 
@@ -353,14 +366,14 @@ sub zipcheck {
                 my $date = $mets->findvalue(
                     './premis:eventDateTime | ./premis1:eventDateTime',
                     $event );
-                mets_ins( $namespace, $objid, "INGEST", $date );
+                mets_log( $namespace, $objid, "INGEST", $date );
             }
         }
 
         {    # MARC present
             my $marc_present =
               $mets->findvalue('count(//marc:record | //record)');
-            mets_ins( $namespace, $objid, "MARC", $marc_present );
+            mets_log( $namespace, $objid, "MARC", $marc_present );
         }
 
         {    # METS valid
@@ -371,7 +384,7 @@ sub zipcheck {
                 $error =~ s/\n/ /mg;
             }
 
-            mets_ins( $namespace, $objid, "METS_VALID", $mets_valid, $error );
+            mets_log( $namespace, $objid, "METS_VALID", $mets_valid, $error );
         }
 
         {
@@ -388,18 +401,26 @@ sub zipcheck {
                             push( @mdbits, "$attr=$attrval" );
                         }
                     }
-                    mets_ins( $namespace, $objid, "METS_MDSEC",
+                    mets_log( $namespace, $objid, "METS_MDSEC",
                         join( "; ", @mdbits ) );
                 }
             }
         }
 
-        {    # Page tagging
+        {    # Page tagging, image size
             my $has_pagetags = $mets->findvalue(
                 'count(//mets:div[@TYPE="page"]/@LABEL[string() != ""])');
-            mets_ins( $namespace, $objid, "PAGETAGS", $has_pagetags );
+            mets_log( $namespace, $objid, "PAGETAGS", $has_pagetags );
             my $pages = $mets->findvalue('count(//mets:div[@TYPE="page"])');
-            mets_ins( $namespace, $objid, "PAGES", $pages );
+            mets_log( $namespace, $objid, "PAGES", $pages );
+
+
+            my $image_size = $mets->findvalue('sum(//mets:fileGrp[@USE="image"]/mets:file/@SIZE)');
+            mets_log( $namespace, $objid, "IMAGE_SIZE", $image_size);
+
+            execute_stmt($update_mets,$pages,$image_size,$namespace,$objid);
+
+
         }
 
         extract_source_mets($volume);
@@ -409,7 +430,7 @@ sub zipcheck {
 
 sub set_status {
     warn( join( " ", @_ ), "\n" );
-    execute_stmt( $mets_ins, @_ );
+    execute_stmt( $insert_detail, @_ );
 }
 
 sub execute_stmt {
@@ -448,7 +469,7 @@ sub extract_source_mets {
     else {
 
         # source METS found
-        mets_ins( $namespace, $objid, "SOURCE_METS", $srcmets[0] );
+        mets_log( $namespace, $objid, "SOURCE_METS", $srcmets[0] );
         system("cd /tmp; unzip -j '$zipfile' '$srcmets[0]'");
         my ($smets_name) = ( $srcmets[0] =~ /\/([^\/]+)$/ );
         my $tmp_smets_loc = "/tmp/$smets_name";
@@ -468,13 +489,13 @@ sub extract_source_mets {
                 $mdsecs{ join( '; ', @mdbits ) } = 1;
             }
             foreach my $mdsec ( sort( keys(%mdsecs) ) ) {
-                mets_ins( $namespace, $objid, "SRC_METS_MDSEC", $mdsec );
+                mets_log( $namespace, $objid, "SRC_METS_MDSEC", $mdsec );
             }
 
             # Try to get Google reading order
             foreach my $tag (qw(gbs:pageOrder gbs:pageSequence gbs:coverTag)) {
                 my $val = $xpc->findvalue("//$tag");
-                mets_ins( $namespace, $objid, "GBS_READING", $tag, $val );
+                mets_log( $namespace, $objid, "GBS_READING", $tag, $val );
             }
 
             foreach my $techmd ( $xpc->findnodes("//mets:techMD") ) {
@@ -485,7 +506,7 @@ sub extract_source_mets {
                     my $count = $xpc->findvalue(
 "count(//mets:file[contains(\@ADMID,\"$imagemethod_id\")])"
                     );
-                    mets_ins( $namespace, $objid, "IMAGE_METHOD", $method,
+                    mets_log( $namespace, $objid, "IMAGE_METHOD", $method,
                         $count );
                 }
             }
@@ -501,7 +522,7 @@ sub extract_source_mets {
     }
 }
 
-sub mets_ins {
+sub mets_log {
     my $namespace = shift;
     my $objid     = shift;
     my $key       = shift;
