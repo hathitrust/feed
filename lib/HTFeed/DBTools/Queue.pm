@@ -65,6 +65,7 @@ sub enqueue_volumes{
     my $dbh = HTFeed::DBTools::get_dbh();
     my $sth;
     my $blacklist_sth = $dbh->prepare("SELECT namespace, id FROM feed_blacklist WHERE namespace = ? and id = ?");
+    my $digifeed_sth = $dbh->prepare("SELECT namespace, id from feed_mdp_rejects WHERE namespace = ? and id = ?");
     if($ignore){
         $sth = $dbh->prepare(q(INSERT IGNORE INTO feed_queue (pkg_type, namespace, id, priority, status) VALUES (?,?,?,?,?);));
     }else {
@@ -77,6 +78,7 @@ sub enqueue_volumes{
             # First make sure volume is not on the blacklist.
             my $namespace = $volume->get_namespace();
             my $objid = $volume->get_objid();
+            my $pkg_type = $volume->get_packagetype();
             # use default first state from pkgtype def if not given one
             if(not defined $status) {
                 $status = $volume->get_nspkg()->get('default_queue_state');
@@ -92,8 +94,18 @@ sub enqueue_volumes{
                 }
             }
 
+            # use list of 'mdp rejects' in determining whether to queue as digifeed
+            # or google
+            my $digifeed = 0;
+            if($volume->get_packagetype() eq 'google' and $namespace eq 'mdp') {
+                $digifeed_sth->execute($namespace,$objid);
+                if($digifeed_sth->fetchrow_array()) {
+                    $pkg_type = 'digifeed';
+                }
+            }
+
             if(!$blacklisted) {
-                my $res = $sth->execute($volume->get_packagetype(), $volume->get_namespace(), $volume->get_objid(), initial_priority($volume,$priority_modifier), $status);
+                my $res = $sth->execute($pkg_type, $namespace, $objid, initial_priority($volume,$priority_modifier), $status);
                 push @results, $res;
             }
         };
@@ -106,9 +118,13 @@ sub enqueue_volumes{
     return \@results;
 }
 
-# reset_volumes(\@volumes, $force)
+# reset_volumes(\@volumes, $reset_level)
 # 
-# reset punted and done volumes, reset all volumes if $force
+# reset punted and done volumes. reset level determines which:
+#  0: nothing
+#  1: punted
+#  2: punted, collated, rights, done
+#  3: everything (including "in-flight" volumes; use with care)
 =item reset
 reset volumes
 =synopsis
@@ -134,28 +150,32 @@ sub reset_volumes {
     my %args = (
         volume  => undef,
         volumes => undef,
-        force   => undef,
+        reset_level   => undef,
         status  => undef,
         @_
     );
     
     die q{Use 'volume' or 'volumes' arg, not both}
         if (defined $args{volume} and defined $args{volumes});
+
+    die "Reset level should be >0 and <=3" if not defined $args{reset_level} or $args{reset_level} < 1 or $args{reset_level} > 3;
     
     my $volumes = $args{volumes};
     $volumes = [$args{volume}]
         if (defined $args{volume});
 
-    my $force = $args{force};
+    my $reset_level = $args{reset_level};
     my $status = $args{status};
     
     my $dbh = HTFeed::DBTools::get_dbh();
     my $sth;
-    if($force){
+    if($reset_level == 3){
         $sth = $dbh->prepare(q(UPDATE feed_queue SET node = NULL, status = ?, failure_count = 0 WHERE namespace = ? and id = ?;));
-    }
-    else{
-        $sth = $dbh->prepare(q(UPDATE feed_queue SET node = NULL, status = ?, failure_count = 0 WHERE status in ('punted','collated','rights','done','uplift_done','needs_uplift') and namespace = ? and id = ? and node is null;));
+    } else {
+        my $statuses = "";
+        $statuses = "('punted')" if $reset_level == 1;
+        $statuses = "('punted','collated','rights','done')" if $reset_level == 2;
+        $sth = $dbh->prepare(q(UPDATE feed_queue SET node = NULL, status = ?, failure_count = 0 WHERE status in $statuses and namespace = ? and id = ? and node is null;));
     }
     
     my @results;
