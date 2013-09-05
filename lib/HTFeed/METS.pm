@@ -832,13 +832,15 @@ sub _remediate_marc {
     my $leader = $leaders[0];
     my $value = $leader->findvalue(".");
 
+    $value =~ s/\^/ /g;
+
     if ($value !~ /^
-        [\d ]{5} # 00-04: Record length
+        [\d ]{5}       # 00-04: Record length
         [\dA-Za-z ]{1} # 05: Record status
-        [\dA-Za-z]{1} # 06: Type of record
+        [\dA-Za-z]{1}  # 06: Type of record
         [\dA-Za-z ]{3} # 07: Bibliographic level
-        # 08: Type of control
-        # 09: Character
+                       # 08: Type of control
+                       # 09: Character
         (2| )          # 10: Indicator count
         (2| )          # 11: Subfield code count
         [\d ]{5}       # 12: Base address of data
@@ -919,10 +921,10 @@ sub _remediate_marc {
             # default to unspecified
             substr($value,20,4) = '    ';
         }
-
-        $leader->removeChildNodes();
-        $leader->appendText($value);
     }
+
+    $leader->removeChildNodes();
+    $leader->appendText($value);
 
     foreach my $datafield ($xc->findnodes('./marc:datafield')) {
         # ind1/ind2 might have nbsp or control characters instead of regular space
