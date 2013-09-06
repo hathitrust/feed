@@ -43,6 +43,8 @@ sub run {
         my @passed = ();
         foreach my $file ($doc->findnodes("//file")) {
             my $filename = $file->getAttribute("name");
+            # ignore marc.xml since we are getting that from aleph now
+            next if $filename =~ /_marc\.xml$/;
             my $md5 = $file->findvalue("./md5");
 
             # files that always seem to be wrong
