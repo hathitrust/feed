@@ -128,12 +128,13 @@ sub enqueue_volumes{
 =item reset
 reset volumes
 =synopsis
-reset_volumes($volume);
-reset_volumes([$volume,...]);
+reset_volumes($volume,reset_level => $reset_level);
+reset_volumes([$volume,...],reset_level => $reset_level);
 reset_volumes(
         (volume => $volume | volumes => ($volume,...),),
         [force => 1]
         [status => $status]
+        [reset_level => $reset_level]
 );
 =cut
 sub reset_volumes {
