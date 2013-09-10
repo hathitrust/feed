@@ -128,12 +128,13 @@ sub enqueue_volumes{
 =item reset
 reset volumes
 =synopsis
-reset_volumes($volume);
-reset_volumes([$volume,...]);
+reset_volumes($volume,reset_level => $reset_level);
+reset_volumes([$volume,...],reset_level => $reset_level);
 reset_volumes(
         (volume => $volume | volumes => ($volume,...),),
         [force => 1]
         [status => $status]
+        [reset_level => $reset_level]
 );
 =cut
 sub reset_volumes {
@@ -175,7 +176,7 @@ sub reset_volumes {
         my $statuses = "";
         $statuses = "('punted')" if $reset_level == 1;
         $statuses = "('punted','collated','rights','done')" if $reset_level == 2;
-        $sth = $dbh->prepare(q(UPDATE feed_queue SET node = NULL, status = ?, failure_count = 0 WHERE status in $statuses and namespace = ? and id = ? and node is null;));
+        $sth = $dbh->prepare(qq(UPDATE feed_queue SET node = NULL, status = ?, failure_count = 0 WHERE status in $statuses and namespace = ? and id = ? and node is null;));
     }
     
     my @results;

@@ -19,9 +19,14 @@ sub run{
     my $objid = $volume->get_objid();
     my $ia_id = $volume->get_ia_id();
 
-
     my $file = sprintf('%s/%s_jp2.zip',$download_dir,$ia_id);
-    $self->unzip_file($file,$preingest_dir);
+    if(-e $file) {
+        $self->unzip_file($file,$preingest_dir);
+    }
+    else { 
+        $file =~ s/\.zip$/.tar/;
+        $self->untar_file($file,$preingest_dir,"--strip-components 1");
+    }
 
     $self->_set_done();
     return $self->succeeded();

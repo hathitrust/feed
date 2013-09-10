@@ -25,6 +25,11 @@ sub untgz_file {
     return _extract_file(q(tar -zx -f '%s' -C '%s' %s 2>&1),@_);
 }
 
+sub untar_file {
+    # extract - not using Archive::Tar because it is very slow
+    return _extract_file(q(tar -x -f '%s' -C '%s' %s 2>&1),@_);
+}
+
 sub _extract_file {
     my $command = shift;
     my $requester = shift; # not necessarily self..
