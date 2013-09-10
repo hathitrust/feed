@@ -38,6 +38,10 @@ sub run{
         $self->download(url => $url . $filename, path => $pt_path, filename => $filename, not_found_ok => 1) or push(@noncore_missing,$filename);
     }
 
+    # handle jp2 - try tar if zip is not found
+    if(!$self->download(url => $url . "${ia_id}_jp2.zip", path => $pt_path, filename => "${ia_id}_jp2.zip", not_found_ok => 1)) {
+        $self->download(url => $url . "${ia_id}_jp2.tar", path => $pt_path, filename => "${ia_id}_jp2.tar", not_found_ok => 0);
+    }
 
     # handle scandata..
 

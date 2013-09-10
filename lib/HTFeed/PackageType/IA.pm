@@ -144,7 +144,6 @@ our $config = {
 
     # Required items for download; %s will be replaced by IA ID
     core_package_items => [ 
-    '%s_jp2.zip',
     '%s_djvu.xml',
     '%s_meta.xml' ],
 
