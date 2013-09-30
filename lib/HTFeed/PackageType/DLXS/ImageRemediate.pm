@@ -142,7 +142,11 @@ sub get_tiff_info {
         # next try DocumentName
         my $docname = $tiff_fields->{'IFD0:DocumentName'};
         if(defined $docname and $docname =~ qr#^(\d{2})/(\d{2})/(\d{4}),(\d{2}):(\d{2}):(\d{2}),"(.*)"#) {
-            $load_date = "$3:$1:$2 $4:$5:$6" if not defined $load_date;
+            if($docname =~ /\Q&quot;,|NEH_\E/) {
+                $load_date = "$3:$2:$1 $4:$5:$6" if not defined $load_date;
+            } else {
+                $load_date = "$3:$1:$2 $4:$5:$6" if not defined $load_date;
+            }
             $artist = $7 if not defined $artist;
         }
 
