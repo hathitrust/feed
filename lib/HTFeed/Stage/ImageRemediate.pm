@@ -225,6 +225,10 @@ sub _remediate_tiff {
         $self->{newFields}{'IFD0:ModifyDate'} = "$1:$2:$3 00:00:00";
         $remediate_exiftool = 1;
     }
+    # two digit date from 1990s
+    elsif(defined $datetime and $datetime =~ /^(\d{2})\/(\d{2})\/(9\d)$/) {
+        $self->{newFields}{'IFD0:ModifyDate'} = "19$3:$1:$2 00:00:00";
+    }
     elsif(defined $datetime and $datetime eq '' and defined $set_if_undefined_headers->{'IFD0:ModifyDate'}) {
         $self->{newFields}{'IFD0:ModifyDate'} = $set_if_undefined_headers->{'IFD0:ModifyDate'};
         $remediate_exiftool = 1;

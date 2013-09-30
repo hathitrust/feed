@@ -175,8 +175,16 @@ sub get_tiff_info {
         $self->{default_artist} = 1;
         push(@{$self->{default_artist_files}},basename($tiff));
     }
+
+    if($load_date =~ /^(\d{2})\/(\d{2})\/(9\d)$/) {
+        # two digit date from the 1990s
+        $load_date = "19$3-$1-$2 00:00:00";
+    }
+
     $self->{'capture_date'} = $load_date if not defined $self->{'capture_date'};
     $self->{'artist'} = $artist if not defined $self->{'artist'};
+
+
     return ($load_date,$artist,$tiff_fields);
 }
 
