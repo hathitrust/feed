@@ -160,7 +160,8 @@ sub set_new_if_undefined($$$) {
     my $self = shift;
     my ( $newFieldName, $newFieldVal ) = @_;
 
-    if ( not defined $self->{oldFields}->{$newFieldName} ) {
+    if ( not defined $self->{oldFields}->{$newFieldName} 
+            or $self->{oldFields}->{$newFieldName} eq '') {
         $self->{newFields}->{$newFieldName} = $newFieldVal;
     }
 }
