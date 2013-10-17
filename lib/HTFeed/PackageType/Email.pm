@@ -42,9 +42,9 @@ our $config = {
     },
 
 	# required files
-    ead => qr/^EAD_\w+\.xml$/,
-    manifest => qr/^Manifest_\w+\.xml$/,
-    source_premis => qr/^PREMIS_\w+\.csv$/,
+    ead => qr/^\w+\.ead\.xml$/,
+    manifest => qr/^\w+\.manifest\.xml$/,
+    source_premis => qr/^\w+\.premis\.csv$/,
 
     stage_map => {
         'ready'         => 'HTFeed::PackageType::Email::Fetch',

@@ -141,17 +141,25 @@ sub get_tiff_info {
         
         # next try DocumentName
         my $docname = $tiff_fields->{'IFD0:DocumentName'};
+        my $eurodate = 0;
+        if($docname =~ /\Q",|NEH_\E/) {
+            $eurodate = 1;
+        }
         if(defined $docname and $docname =~ qr#^(\d{2})/(\d{2})/(\d{4}),(\d{2}):(\d{2}):(\d{2}),"(.*)"#) {
-            $load_date = "$3:$1:$2 $4:$5:$6" if not defined $load_date;
-            $artist = $7 if not defined $artist;
+            if($eurodate) {
+                $load_date = "$3:$2:$1 $4:$5:$6" if not defined $load_date or $load_date eq '';
+            } else {
+                $load_date = "$3:$1:$2 $4:$5:$6" if not defined $load_date or $load_date eq '';
+            }
+            $artist = $7 if not defined $artist or $artist eq '';
         }
 
-        $self->{real_artist} = 1 if defined $artist;
+        $self->{real_artist} = 1 if defined $artist and $artist ne '';
         $self->{real_capture_date} = 1 if defined $load_date and $load_date ne '';
     }
 
     my $loadcd_info = $volume->get_loadcd_info();
-    $artist = $loadcd_info->{artist} if not defined $artist and defined $loadcd_info->{artist};
+    $artist = $loadcd_info->{artist} if (not defined $artist or $artist eq '') and defined $loadcd_info->{artist};
 
     if(defined $loadcd_info->{load_date} and (not defined $load_date or $load_date eq '')) {
         $load_date = $loadcd_info->{load_date};
@@ -170,7 +178,7 @@ sub get_tiff_info {
         $self->{missing_capture_date_method} = 'file timestamp';
         push(@{$self->{missing_capture_date_files}},basename($tiff));
     }
-    if(not defined $artist) {
+    if(not defined $artist or $artist eq '') {
         $artist = "University of Michigan";
         $self->{default_artist} = 1;
         push(@{$self->{default_artist_files}},basename($tiff));
