@@ -374,12 +374,23 @@ sub _remediate_jpeg2000 {
     if ( !$force_headers->{'Resolution'} ) {
         my $xres = $self->{oldFields}->{'Jpeg2000:CaptureXResolution'};
         my $yres = $self->{oldFields}->{'Jpeg2000:CaptureYResolution'};
+
+        if(not defined $xres and not defined $yres) {
+            $xres = $self->{oldFields}->{'Jpeg2000:DisplayXResolution'};
+            $yres = $self->{oldFields}->{'Jpeg2000:DisplayYResolution'};
+        }
+
         get_logger()->warn("Non-square pixels??! XRes $xres YRes $yres")
         if ( ( $xres or $yres ) and $xres != $yres );
 
         if ($xres) {
             my $xresunit = $self->{oldFields}->{'Jpeg2000:CaptureXResolutionUnit'};
-            my $yresunit = $self->{oldFields}->{'Jpeg2000:CaptureXResolutionUnit'};
+            my $yresunit = $self->{oldFields}->{'Jpeg2000:CaptureYResolutionUnit'};
+            
+            if(not defined $xresunit and not defined $yresunit) {
+                $xresunit = $self->{oldFields}->{'Jpeg2000:DisplayXResolutionUnit'};
+                $yresunit = $self->{oldFields}->{'Jpeg2000:DisplayYResolutionUnit'};
+            }
 
             get_logger()->warn("Resolution unit awry")
             if ( not $xresunit or not $yresunit or $xresunit ne $yresunit );
