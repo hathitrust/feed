@@ -149,22 +149,24 @@ sub get_srcmets_page_data {
 
                 $seq_mapping->{$old_seq} = $new_seq;
 
-                # if there was a skip in the sequence, was there a skip 
-                # in the page numbers?
-                if(defined $prev_old_seq and $old_seq != $prev_old_seq + 1) {
-                    unless (defined $detected_pagenum 
-                        and defined $prev_detected_pagenum
-                        and $detected_pagenum =~ /^\d+$/
-                        and $prev_detected_pagenum =~ /^\d+$/
-                        and $prev_detected_pagenum + 1 == $detected_pagenum) {
-                    
-                    # not legitimate skip: one or the other side has no
-                    # page number, or page numbers are not sequential
-                    $prev_detected_pagenum = '' if not defined $prev_detected_pagenum;
-                    $detected_pagenum = '' if not defined $detected_pagenum;
-                    $self->set_error("BadValue",field=>"page_data",file=>$pageview,
-                        detail => "Sequence skip between seq=$prev_old_seq/page='$prev_detected_pagenum' and seq=$old_seq/page='$detected_pagenum'");
+                if($self->should_check_validator('sequence_skip')) {
+                    # if there was a skip in the sequence, was there a skip 
+                    # in the page numbers?
+                    if(defined $prev_old_seq and $old_seq != $prev_old_seq + 1) {
+                        unless (defined $detected_pagenum 
+                                and defined $prev_detected_pagenum
+                                and $detected_pagenum =~ /^\d+$/
+                                and $prev_detected_pagenum =~ /^\d+$/
+                                and $prev_detected_pagenum + 1 == $detected_pagenum) {
 
+                            # not legitimate skip: one or the other side has no
+                            # page number, or page numbers are not sequential
+                            $prev_detected_pagenum = '' if not defined $prev_detected_pagenum;
+                            $detected_pagenum = '' if not defined $detected_pagenum;
+                            $self->set_error("BadValue",field=>"page_data",file=>$pageview,
+                                detail => "Sequence skip between seq=$prev_old_seq/page='$prev_detected_pagenum' and seq=$old_seq/page='$detected_pagenum'");
+
+                        }
                     }
                 }
 
@@ -277,6 +279,24 @@ sub get_loadcd_info {
              };
     } else {
         $self->set_error("BadFile",file=>$loadcd_file,detail=>"Can't parse header",actual=>$header);
+    }
+}
+
+# return true if we should do particular validation checks - false if we're
+# using the 'note from mom' for that check or disabling validation for this volume
+sub should_check_validator {
+    my $self = shift;
+
+    my $validator = shift;
+
+    # TODO: handle note from mom
+    
+    my @skip_validation = @{$self->get_nspkg()->get('skip_validation')};
+
+    if(grep {$_ eq $validator} @skip_validation) {
+        return 0;
+    } else {
+        return 1;
     }
 }
 

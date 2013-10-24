@@ -93,24 +93,26 @@ sub run{
             push(@{$self->{default_artist_files}},basename($jp2_remediated));
         }
 
-        # Assume we scanned at 400 DPI; does that lead to a ridiculous physical size?
-        # If not set resolution to 400 if it is not already present
-        my $xsize  = $jp2_fields->{'Jpeg2000:ImageWidth'};
-        my $ysize = $jp2_fields->{'Jpeg2000:ImageHeight'};
-        if($xsize >= $MIN_XSIZE and $ysize >= $MIN_YSIZE) {
-            $set_if_undefined->{'Resolution'} = '400/1';
-        } else {
-            $self->set_error("BadFile",
-                file => $jp2_submitted,
-                field => "Composite:ImageSize",
-                actual => $jp2_fields->{'Composite:ImageSize'},
-                expected => ">${MIN_XSIZE}x${MIN_YSIZE}"
-            );
-        }
+        if($volume->should_check_validator('jpeg2000_size')) {
+            # Assume we scanned at 400 DPI; does that lead to a ridiculous physical size?
+            # If not set resolution to 400 if it is not already present
+            my $xsize  = $jp2_fields->{'Jpeg2000:ImageWidth'};
+            my $ysize = $jp2_fields->{'Jpeg2000:ImageHeight'};
+            if($xsize >= $MIN_XSIZE and $ysize >= $MIN_YSIZE) {
+                $set_if_undefined->{'Resolution'} = '400/1';
+            } else {
+                $self->set_error("BadFile",
+                    file => $jp2_submitted,
+                    field => "Composite:ImageSize",
+                    actual => $jp2_fields->{'Composite:ImageSize'},
+                    expected => ">${MIN_XSIZE}x${MIN_YSIZE}"
+                );
+            }
 
-        if(not defined $jp2_fields->{'Jpeg2000:CaptureXResolution'}) {
-            $self->{jpeg2000_resolution} = 1;
-            push(@{$self->{jpeg2000_resolution_files}}, basename($jp2_remediated));
+            if(not defined $jp2_fields->{'Jpeg2000:CaptureXResolution'}) {
+                $self->{jpeg2000_resolution} = 1;
+                push(@{$self->{jpeg2000_resolution_files}}, basename($jp2_remediated));
+            }
         }
 
         $self->remediate_image( $jp2_submitted, $jp2_remediated, $force_fields, $set_if_undefined );

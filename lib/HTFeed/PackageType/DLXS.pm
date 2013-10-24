@@ -117,10 +117,10 @@ our $config = {
     validation => {
         'HTFeed::ModuleValidator::JPEG2000_hul' => {
             'camera'               => undef,
-             'resolution'      => v_and(
-                 v_ge( 'xmp', 'xRes', 300 ), # should work even though resolution is specified as NNN/1
-                 v_same( 'xmp', 'xRes', 'xmp', 'yRes' )
-             ),
+            'resolution'      => v_and(
+                v_ge( 'xmp', 'xRes', 300 ), # should work even though resolution is specified as NNN/1
+                v_same( 'xmp', 'xRes', 'xmp', 'yRes' )
+            ),
             'decomposition_levels' => sub {
                 my $self = shift;
 
@@ -164,5 +164,8 @@ our $config = {
 
     # Create a preingest directory
     use_preingest => 1,
+
+    skip_validation => [
+    ],
 
 };

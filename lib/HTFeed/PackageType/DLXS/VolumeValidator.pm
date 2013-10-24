@@ -5,6 +5,7 @@ package HTFeed::PackageType::DLXS::VolumeValidator;
 use base qw(HTFeed::VolumeValidator);
 use File::Basename;
 use HTFeed::XMLNamespaces qw(register_namespaces);
+use Log::Log4perl qw(get_logger);
 
 use strict;
 
@@ -13,7 +14,11 @@ sub new {
 
     my $self = $class->SUPER::new(@_);
 
-    $self->{stages}{validate_consistency} =  \&_validate_consistency;
+    if($self->{volume}->should_check_validator('missing_files')) {
+        $self->{stages}{validate_consistency} =  \&_validate_consistency;
+    } else {
+        delete $self->{stages}{validate_consistency};
+    }
 
     return $self;
 
@@ -63,6 +68,44 @@ sub _validate_consistency {
                 detail => "JP2 for seq=$sequence_number exists but TIFF does not.")
         }
     }
+}
+
+sub run {
+    my $self = shift;
+
+    my $volume = $self->{volume};
+
+
+    # Run each enabled stage
+    foreach my $stage ( @{$self->{run_stages}} ) {
+        if ( exists( $self->{stages}{$stage} ) ) {
+            my $sub = $self->{stages}{$stage};
+            get_logger()->debug("Running validation stage $stage");
+
+            &{$sub}($self);
+
+
+        }
+        else {
+            croak("Undefined validation stage $stage requested");
+        }
+    }
+
+    # do this last
+    $self->_set_done();
+    if ( !$self->failed() ) {
+        my $outcome = PREMIS::Outcome->new('pass');
+        my @skip_validation = @{$volume->get_nspkg()->get('skip_validation')};
+        my $skip_validation_note = $volume->get_nspkg()->get('skip_validation_note');
+        if(@skip_validation) {
+            $outcome->add_detail_note($skip_validation_note . "\nThe following validation checks were skipped: " . join(', ', @skip_validation) . ".");
+        }
+        $self->{volume}->record_premis_event( 'package_validation',
+            outcome => $outcome );
+            
+    }
+
+    return;
 }
 
 
