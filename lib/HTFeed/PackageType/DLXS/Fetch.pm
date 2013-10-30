@@ -23,7 +23,10 @@ sub run {
 	my $base="$fetch_base/quod_obj";
     my $path_prefix = '';
 
-	if(-e "$base/$objid") {
+    if(-e "$fetch_base/quod2ht/fixed/$objid") {
+        $source = "$fetch_base/quod2ht/fixed/$objid";
+    }
+	elsif(-e "$base/$objid") {
         $source = "$base/$objid" 
     } else {
         $path_prefix = join('/',(split('',$objid))[0..2]);
