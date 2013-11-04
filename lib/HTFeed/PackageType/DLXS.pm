@@ -168,4 +168,6 @@ our $config = {
     skip_validation => [
     ],
 
+    skip_validation_note => ''
+
 };
