@@ -32,6 +32,7 @@ my %error_codes = (
     MissingFile         => 'Missing file',
     NotEqualValues      => 'Mismatched field values',
     NotMatchedValue     => 'Mismatched/invalid value for field',
+    NoBibData           => 'Missing bibliographic data',
     ToolVersionError	=> 'Can\'t get tool version',
     VolumePunted	    => 'Volume punted',
     RunStage		    => 'Running stage',
