@@ -33,17 +33,23 @@ sub _set_validators {
     $self->{validators} = {
         'format' => {
             desc  => "Baseline JPEG 2000 format",
-            valid => v_eq( 'repInfo', 'format', 'JPEG 2000' )
+            valid => v_eq( 'repInfo', 'format', 'JPEG 2000' ),
+            detail =>
+'This checks that JHOVE properly identified your image as being in the JPEG2000 format. If it failed, your image may not be a JPEG2000 image. If it can be opened with an image editor or viewer, try converting it to JPEG2000 image. If the image cannot be opened, it is likely severely corrupted and should be rescanned or regenerated from the source image.'
         },
 
         'status' => {
             desc  => "JHOVE status",
-            valid => v_eq( 'repInfo', 'status', 'Well-Formed and valid' )
+            valid => v_eq( 'repInfo', 'status', 'Well-Formed and valid' ),
+            detail =>
+'This checks that the JPEG2000 is well-formed and valid according to the JPEG2000 specification. It may be possible to remediate the image if it is well-formed but not valid. Malformed JPEG2000s most likely will need to be regenerated from the source image.'
         },
 
         'module' => {
             desc  => "JHOVE reporting module",
-            valid => v_eq( 'repInfo', 'module', 'JPEG2000-hul' )
+            valid => v_eq( 'repInfo', 'module', 'JPEG2000-hul' ),
+            detail =>
+'This checks that JHOVE used its JPEG2000 plugin to extract metadata from the image. That should always be the case, so please send a bug report if you see this message.'
         },
 
         'mime_type' => {
@@ -51,40 +57,55 @@ sub _set_validators {
             valid => v_and(
                 v_eq( 'repInfo', 'mimeType', 'image/jp2' ),
                 v_eq( 'mix',     'mime',     'image/jp2' )
-            )
+            ),
+            detail =>
+'This checks that JHOVE is reporting the images have the proper MIME type. If this check fails, the image may be in an incorrect format and likely will need to be regenerated from the source image.'
         },
 
         'brand' => {
             desc  => "JPEG2000 brand",
-            valid => v_eq( 'jp2Meta', 'brand', 'jp2 ' )
+            valid => v_eq( 'jp2Meta', 'brand', 'jp2 ' ),
+            detail =>
+'This checks that the JPEG2000 image uses only features from Part 1 of the JPEG2000 specification. If this value is "jpx" or "jpf", the image uses features from Part 2 of the JPEG2000 specifications and cannot be supported in HathiTrust. Notably, recent versions of Photoshop with native JPEG2000 support are incapable of creating a JPEG2000 image that passes this check.'
         },
 
         'minor_version' => {
             desc  => "JPEG2000 minor version",
-            valid => v_eq( 'jp2Meta', 'minorVersion', '0' )
+            valid => v_eq( 'jp2Meta', 'minorVersion', '0' ),
+            detail =>
+'This checks that the JPEG2000 image matches the expected version of the JPEG2000 standard. If this check fails, please send a bug report with additional details about how the JPEG2000 image was generated.'
         },
 
         'compatibility' => {
             desc  => "JPEG2000 compatibility",
-            valid => v_eq( 'jp2Meta', 'compatibility', 'jp2 ' )
+            valid => v_eq( 'jp2Meta', 'compatibility', 'jp2 ' ),
+            detail =>
+'This checks that the JPEG2000 image is compatible with Part 1 of the JPEG2000 specification. If this check fails, likely the image uses features from Part 2 of the JPEG2000 specification and will need to be regenerated from the source image.'
         },
 
         'compression' => {
             desc  => "JPEG2000 compression",
             valid => v_and(
                 v_eq( 'mix', 'compression', '34712' ),   # JPEG 2000 compression
-                v_eq( 'xmp', 'compression', '34712' )
-            )
+                v_eq( 'xmp', 'compression', '34712' ),
+            ),
+            detail =>
+'This checks that the JPEG2000 image is actually compressed with JPEG2000 compression. If the XMP metadata is incorrect it can be remediated. If the JPEG2000 compression header does not report that the image uses JPEG2000 compression, the image is likely severely corrupted and will need to be regenerated from the source image'
+
         },
 
         'orientation' => {
             desc  => "image orientation",
-            valid => v_eq( 'xmp', 'orientation', '1' )
+            valid => v_eq( 'xmp', 'orientation', '1' ),
+            detail =>
+'This checks that the orientation in which the image should be displayed matches the "natural" order of pixels in the image. If not, this can be remediated by setting the value to 1 (normal) and rotating the image as needed.'
         },
 
         'resolution_unit' => {
             desc  => "resolution unit",
-            valid => v_eq( 'xmp', 'resUnit', '2' )
+            valid => v_eq( 'xmp', 'resUnit', '2' ),
+            detail =>
+'This checks that the resolution unit is present set to 2 (inches). If not, this can be remediated by setting the resolution unit to 2 (inches) and adding or updating the XResolution and YResolution fields as needed.'
         },    # inches
 
         'resolution' => {
@@ -92,19 +113,25 @@ sub _set_validators {
             valid => v_and(
                 v_in( 'xmp', 'xRes', [ '300/1', '400/1', '500/1', '600/1' ] ),
                 v_same( 'xmp', 'xRes', 'xmp', 'yRes' )
-            )
+            ),
+            detail =>
+'This checks that the image has square pixels and is scanned at a resolution of at least 300 DPI. If the value is missing, it can be added if the value is known. If it is present and the reported resolution is not equivalent (e.g. 118 pixels per centimeter) the image will need to be rescanned or regenerated from a higher-resolution master image.'
         },
 
         'layers' => {
             desc  => "number of quality layers",
-            valid => v_eq( 'codingStyleDefault', 'layers', '1' )
+            valid => v_eq( 'codingStyleDefault', 'layers', '1' ),
+            detail =>
+'This checks that the number of different "quality layers" in the JPEG2000 image (for progressive loading or faster display at lower resolution) is set to the expected value. This should be consistent between the various images in the deposit.'
         },
 
         'decomposition_levels' => {
             desc  => "number of decomposition levels",
             valid => v_between(
                 'codingStyleDefault', 'decompositionLevels', '5', '32'
-            )
+            ),
+            detail =>
+'This checks that the JPEG2000 image was created with the expected number of decomposition levels.'
         },
 
         'colorspace' =>
@@ -163,7 +190,9 @@ END
                     )
                     and return
                   );
-              }
+            },
+            detail =>
+'This checks that greyscale JPEG2000 images are have one sample per pixel and 8 bits per sample and that full color images have three samples per pixel (one each for RGB) and 8 bits per sample. JPEG2000 images with 16 bits per sample (e.g. 48 bit color depth), alpha channels, embedded ICC color profiles, etc, are not supported. If the image itself is correct but the XMP metadata is wrong or missing, this is remediable.'
           },
         'dimensions' => {
             desc  => "consistency of image dimensions",
@@ -189,7 +218,9 @@ xmp_width\t$x2
 xmp_length\t$y2
 END
                   );
-              }
+            },
+            detail =>
+'This checks that the JPEG2000 image has nonzero dimensions and that the XMP metadata is present and properly reports the image dimensions. This is remediable if the XMP metadata is wrong or missing.'
         },
         'extract_info' => {
             desc  => "extract creation date, artist, document name",
@@ -201,13 +232,17 @@ END
                 $self->_setartist( $self->_findone( "xmp", "artist" ) );
                 $self->_setdocumentname(
                     $self->_findone( "xmp", "documentName" ) );
-              }
+            },
+            detail =>
+'This checks that the image has creation date and scanning artist metadata as well as that it properly embeds its own source volume and filename. If not, these fields can be remediated if appropriate information is supposed.'
         },
         'camera' => {
             desc => "scanner make and model",
             valid =>
               v_and( v_exists( 'xmp', 'make' ), v_exists( 'xmp', 'model' ) )
-          }
+        },
+        detail =>
+'This checks that the image contains information about the make and model of scanner or camera used to create it. If not, this information can be added if known.'
 
     };
 }

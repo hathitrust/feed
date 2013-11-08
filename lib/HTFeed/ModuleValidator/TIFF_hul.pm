@@ -223,7 +223,7 @@ sub _set_validators {
             },
 
             detail =>
-'This checks that the TIFF image contains information about the make and model of scanner or camera used to create it. If not, this information can be added if known.'
+'This checks that the image contains information about the make and model of scanner or camera used to create it. If not, this information can be added if known.'
 
           }
 
