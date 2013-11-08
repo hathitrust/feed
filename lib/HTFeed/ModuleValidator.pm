@@ -228,7 +228,7 @@ sub _setupXMPcontext {
         return 0;
     }
     else {
-        $self->_setcontext( name => "xmp", xpc => $xpc );
+        $self->_setcontext( name => "xmp", xpc => $xpc, desc => 'XMP metadata');
         return 1;
     }
 }
@@ -287,13 +287,13 @@ sub _compile{
 	my $self = shift;
 	
 	foreach my $key ( keys %{$self->{contexts}} ){
-##		print "compiling $self->{contexts}->{$key}->[0]\n";
-		$self->{contexts}->{$key}->[0] = XML::LibXML::XPathExpression->new($self->{contexts}->{$key}->[0]);
+#		print "compiling $self->{contexts}->{$key}->{query}\n";
+		$self->{contexts}->{$key}->{query} = XML::LibXML::XPathExpression->new($self->{contexts}->{$key}->{query});
 	}
 	foreach my $ikey ( keys %{$self->{queries}} ){
 		foreach my $jkey ( keys %{$self->{queries}->{$ikey}} ){
-##			print "compiling $self->{queries}->{$ikey}->{$jkey}\n";
-			$self->{queries}->{$ikey}->{$jkey} = XML::LibXML::XPathExpression->new($self->{queries}->{$ikey}->{$jkey});
+#			print "compiling $self->{queries}->{$ikey}->{$jkey}->{query}\n";
+			$self->{queries}->{$ikey}->{$jkey} = XML::LibXML::XPathExpression->new($self->{queries}->{$ikey}->{$jkey}->{query});
 		}
 	}
 	return 1;
@@ -303,12 +303,12 @@ sub _compile{
 sub context{
 	my $self = shift;
 	my $key = shift;
-	return $self->{contexts}->{$key}->[0];
+	return $self->{contexts}->{$key}->{query};
 }
 sub context_parent{
 	my $self = shift;
 	my $key = shift;
-	return $self->{contexts}->{$key}->[1];
+	return $self->{contexts}->{$key}->{parent};
 }
 sub query{
 	my $self = shift;

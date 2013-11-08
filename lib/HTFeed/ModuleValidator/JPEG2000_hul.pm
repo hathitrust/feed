@@ -28,83 +28,130 @@ sub _set_required_querylib {
 
 sub _set_validators {
     my $self = shift;
-    # prevent leaking $self since the closure has an implicit reference to self..
+
+   # prevent leaking $self since the closure has an implicit reference to self..
     $self->{validators} = {
-        'format' => v_eq( 'repInfo', 'format', 'JPEG 2000' ),
+        'format' => {
+            desc  => "Baseline JPEG 2000 format",
+            valid => v_eq( 'repInfo', 'format', 'JPEG 2000' )
+        },
 
-        'status' => v_eq( 'repInfo', 'status', 'Well-Formed and valid' ),
+        'status' => {
+            desc  => "JHOVE status",
+            valid => v_eq( 'repInfo', 'status', 'Well-Formed and valid' )
+        },
 
-        'module' => v_eq( 'repInfo', 'module', 'JPEG2000-hul' ),
+        'module' => {
+            desc  => "JHOVE reporting module",
+            valid => v_eq( 'repInfo', 'module', 'JPEG2000-hul' )
+        },
 
-        'mime_type' => v_and(
-            v_eq( 'repInfo', 'mimeType', 'image/jp2' ),
-            v_eq( 'mix',     'mime',     'image/jp2' )
-        ),
+        'mime_type' => {
+            desc  => "MIME type",
+            valid => v_and(
+                v_eq( 'repInfo', 'mimeType', 'image/jp2' ),
+                v_eq( 'mix',     'mime',     'image/jp2' )
+            )
+        },
 
-        'brand' => v_eq( 'jp2Meta', 'brand', 'jp2 ' ),
+        'brand' => {
+            desc  => "JPEG2000 brand",
+            valid => v_eq( 'jp2Meta', 'brand', 'jp2 ' )
+        },
 
-        'minor_version' => v_eq( 'jp2Meta', 'minorVersion', '0' ),
+        'minor_version' => {
+            desc  => "JPEG2000 minor version",
+            valid => v_eq( 'jp2Meta', 'minorVersion', '0' )
+        },
 
-        'compatibility' => v_eq( 'jp2Meta', 'compatibility', 'jp2 ' ),
+        'compatibility' => {
+            desc  => "JPEG2000 compatibility",
+            valid => v_eq( 'jp2Meta', 'compatibility', 'jp2 ' )
+        },
 
-        'compression' => v_and(
-            v_eq( 'mix', 'compression', '34712' ),    # JPEG 2000 compression
-            v_eq( 'xmp', 'compression', '34712' )
-        ),
+        'compression' => {
+            desc  => "JPEG2000 compression",
+            valid => v_and(
+                v_eq( 'mix', 'compression', '34712' ),   # JPEG 2000 compression
+                v_eq( 'xmp', 'compression', '34712' )
+            )
+        },
 
-        'orientation' => v_eq( 'xmp', 'orientation', '1' ),
+        'orientation' => {
+            desc  => "image orientation",
+            valid => v_eq( 'xmp', 'orientation', '1' )
+        },
 
-        'resolution_unit' => v_eq( 'xmp', 'resUnit', '2' ),    # inches
+        'resolution_unit' => {
+            desc  => "resolution unit",
+            valid => v_eq( 'xmp', 'resUnit', '2' )
+        },    # inches
 
-        'resolution' => v_and(
-            v_in( 'xmp', 'xRes', [ '300/1', '400/1', '500/1', '600/1' ] ),
-            v_same( 'xmp', 'xRes', 'xmp', 'yRes' )
-        ),
+        'resolution' => {
+            desc  => "resolution",
+            valid => v_and(
+                v_in( 'xmp', 'xRes', [ '300/1', '400/1', '500/1', '600/1' ] ),
+                v_same( 'xmp', 'xRes', 'xmp', 'yRes' )
+            )
+        },
 
-        'layers' => v_eq( 'codingStyleDefault', 'layers', '1' ),
+        'layers' => {
+            desc  => "number of quality layers",
+            valid => v_eq( 'codingStyleDefault', 'layers', '1' )
+        },
 
-        'decomposition_levels' =>
-          v_between( 'codingStyleDefault', 'decompositionLevels', '5', '32' ),
+        'decomposition_levels' => {
+            desc  => "number of decomposition levels",
+            valid => v_between(
+                'codingStyleDefault', 'decompositionLevels', '5', '32'
+            )
+        },
 
-        'colorspace' => sub {
-            my $self = shift;
+        'colorspace' =>
 
-            # check colorspace
-            my $xmp_colorSpace = $self->_findone( "xmp", "colorSpace" );
-            my $xmp_samplesPerPixel =
-              $self->_findone( "xmp", "samplesPerPixel" );
-            my $mix_samplesPerPixel =
-              $self->_findone( "mix", "samplesPerPixel" );
-            my $meta_colorSpace = $self->_findone( "jp2Meta", "colorSpace" );
-            my $mix_bitsPerSample = $self->_findone( "mix", "bitsPerSample" );
-            my $xmp_bitsPerSample_grey =
-              $self->_findvalue( "xmp", "bitsPerSample_grey" );
-            my $xmp_bitsPerSample_color =
-              $self->_findvalue( "xmp", "bitsPerSample_color" );
+          {
+            desc  => "validity and consistency of color space & sample depth",
+            valid => sub {
+                my $self = shift;
 
-            # Greyscale: 1 sample per pixels, 8 bits per sample
-            (
-                     ( "1" eq $xmp_colorSpace )
-                  && ( "1"         eq $xmp_samplesPerPixel )
-                  && ( "1"         eq $mix_samplesPerPixel )
-                  && ( "Greyscale" eq $meta_colorSpace )
-                  && ( "8"         eq $mix_bitsPerSample )
-                  && ( "8"         eq $xmp_bitsPerSample_grey
-                    or "8" eq $xmp_bitsPerSample_color )
-              )
+                # check colorspace
+                my $xmp_colorSpace = $self->_findone( "xmp", "colorSpace" );
+                my $xmp_samplesPerPixel =
+                  $self->_findone( "xmp", "samplesPerPixel" );
+                my $mix_samplesPerPixel =
+                  $self->_findone( "mix", "samplesPerPixel" );
+                my $meta_colorSpace =
+                  $self->_findone( "jp2Meta", "colorSpace" );
+                my $mix_bitsPerSample =
+                  $self->_findone( "mix", "bitsPerSample" );
+                my $xmp_bitsPerSample_grey =
+                  $self->_findvalue( "xmp", "bitsPerSample_grey" );
+                my $xmp_bitsPerSample_color =
+                  $self->_findvalue( "xmp", "bitsPerSample_color" );
 
-              # sRGB: 3 samples per pixel, each sample 8 bits
-              or ( ( "2" eq $xmp_colorSpace )
-                && ( "3"     eq $xmp_samplesPerPixel )
-                && ( "3"     eq $mix_samplesPerPixel )
-                && ( "sRGB"  eq $meta_colorSpace )
-                && ( "8,8,8" eq $mix_bitsPerSample )
-                && ( "888"   eq $xmp_bitsPerSample_color ) )
-              or (
-                $self->set_error(
-                    "NotMatchedValue",
-                    field  => 'colorspace',
-                    actual => <<END
+                # Greyscale: 1 sample per pixels, 8 bits per sample
+                (
+                         ( "1" eq $xmp_colorSpace )
+                      && ( "1"         eq $xmp_samplesPerPixel )
+                      && ( "1"         eq $mix_samplesPerPixel )
+                      && ( "Greyscale" eq $meta_colorSpace )
+                      && ( "8"         eq $mix_bitsPerSample )
+                      && ( "8"         eq $xmp_bitsPerSample_grey
+                        or "8" eq $xmp_bitsPerSample_color )
+                  )
+
+                  # sRGB: 3 samples per pixel, each sample 8 bits
+                  or ( ( "2" eq $xmp_colorSpace )
+                    && ( "3"     eq $xmp_samplesPerPixel )
+                    && ( "3"     eq $mix_samplesPerPixel )
+                    && ( "sRGB"  eq $meta_colorSpace )
+                    && ( "8,8,8" eq $mix_bitsPerSample )
+                    && ( "888"   eq $xmp_bitsPerSample_color ) )
+                  or (
+                    $self->set_error(
+                        "NotMatchedValue",
+                        field  => 'colorspace',
+                        actual => <<END
 xmp_colorSpace\t$xmp_colorSpace
 xmp_samplesPerPixel\t$xmp_samplesPerPixel
 mix_samplesPerPixel\t$mix_samplesPerPixel
@@ -113,42 +160,54 @@ mix_bitsPerSample\t$mix_bitsPerSample
 xmp_bitsPerSample_grey\t$xmp_bitsPerSample_grey
 xmp_bitsPerSample_color\t$xmp_bitsPerSample_color
 END
-                ) and return
-              );
-        },
-        'dimensions' => sub {
-            my $self = shift;
+                    )
+                    and return
+                  );
+              }
+          },
+        'dimensions' => {
+            desc  => "consistency of image dimensions",
+            valid => sub {
+                my $self = shift;
 
-            my $x1 = $self->_findone( "mix", "width" );
-            my $y1 = $self->_findone( "mix", "length" );
-            my $x2 = $self->_findone( "xmp", "width" );
-            my $y2 = $self->_findone( "xmp", "length" );
+                my $x1 = $self->_findone( "mix", "width" );
+                my $y1 = $self->_findone( "mix", "length" );
+                my $x2 = $self->_findone( "xmp", "width" );
+                my $y2 = $self->_findone( "xmp", "length" );
 
-            (        ( $x1 > 0 && $y1 > 0 && $x2 > 0 && $y2 > 0 )
-                  && ( $x1 == $x2 )
-                  && ( $y1 == $y2 ) )
-              or $self->set_error(
-                "NotMatchedValue",
-                field    => 'dimensions',
-                expected => 'must be consistant and nonzero',
-                actual   => <<END
+                (        ( $x1 > 0 && $y1 > 0 && $x2 > 0 && $y2 > 0 )
+                      && ( $x1 == $x2 )
+                      && ( $y1 == $y2 ) )
+                  or $self->set_error(
+                    "NotMatchedValue",
+                    field    => 'dimensions',
+                    expected => 'must be consistant and nonzero',
+                    actual   => <<END
 mix_width\t$x1
 mix_length\t$y1
 xmp_width\t$x2
 xmp_length\t$y2
 END
-              );
+                  );
+              }
         },
-        'extract_info' => sub {
-            my $self = shift;
+        'extract_info' => {
+            desc  => "extract creation date, artist, document name",
+            valid => sub {
+                my $self = shift;
 
-            # check for presence, record values
-            $self->_setdatetime( $self->_findone( "xmp", "dateTime" ) );
-            $self->_setartist( $self->_findone( "xmp", "artist" ) );
-            $self->_setdocumentname( $self->_findone( "xmp", "documentName" ) );
+                # check for presence, record values
+                $self->_setdatetime( $self->_findone( "xmp", "dateTime" ) );
+                $self->_setartist( $self->_findone( "xmp", "artist" ) );
+                $self->_setdocumentname(
+                    $self->_findone( "xmp", "documentName" ) );
+              }
         },
-        'camera' =>
-          v_and( v_exists( 'xmp', 'make' ), v_exists( 'xmp', 'model' ) )
+        'camera' => {
+            desc => "scanner make and model",
+            valid =>
+              v_and( v_exists( 'xmp', 'make' ), v_exists( 'xmp', 'model' ) )
+          }
 
     };
 }
@@ -286,8 +345,8 @@ sub _setupXMP {
     $self->_setupXMPcontext($xmp_xml);
 }
 
-
 package HTFeed::QueryLib::JPEG2000_hul;
+
 #JPEG2000-hul HTFeed query plugin
 
 use warnings;
@@ -301,73 +360,254 @@ sub new {
     # store all queries
     my $self = {
         contexts => {
-            repInfo => [ "/jhove:jhove/jhove:repInfo", "root" ],
-            jp2Meta => [ "jhove:properties/jhove:property[jhove:name='JPEG2000Metadata']/jhove:values", "repInfo" ],
-            codestream => [ "jhove:property[jhove:name='Codestreams']/jhove:values/jhove:property[jhove:name='Codestream']/jhove:values", "jp2Meta" ],
-            codingStyleDefault => [ "jhove:property[jhove:name='CodingStyleDefault']/jhove:values", "codestream" ],
-            mix => [ "jhove:property[jhove:name='NisoImageMetadata']/jhove:values/jhove:value/mix:mix", "codestream" ],
-            uuidBox => [ "jhove:property[jhove:name='UUIDs']/jhove:values/jhove:property[jhove:name='UUIDBox']/jhove:values", "jp2Meta" ],
+            repInfo => {
+                desc   => 'JHOVE',
+                query  => "/jhove:jhove/jhove:repInfo",
+                parent => "root"
+            },
+            jp2Meta => {
+                desc => 'JHOVE JPEG2000 Metadata',
+                query =>
+"jhove:properties/jhove:property[jhove:name='JPEG2000Metadata']/jhove:values",
+                parent => "repInfo"
+            },
+            codestream => {
+                desc => 'JHOVE JPEG2000 Codestream Metadata',
+                query =>
+"jhove:property[jhove:name='Codestreams']/jhove:values/jhove:property[jhove:name='Codestream']/jhove:values",
+                parent => "jp2Meta"
+            },
+            codingStyleDefault => {
+                desc => 'JHOVE JPEG2000 Coding Style Default metadata',
+                query =>
+"jhove:property[jhove:name='CodingStyleDefault']/jhove:values",
+                parent => "codestream"
+            },
+            mix => {
+                desc => 'JHOVE NISO/MIX image metadata',
+                query =>
+"jhove:property[jhove:name='NisoImageMetadata']/jhove:values/jhove:value/mix:mix",
+                parent => "codestream"
+            },
+            uuidBox => {
+                desc => 'JHOVE UUID box',
+                query =>
+"jhove:property[jhove:name='UUIDs']/jhove:values/jhove:property[jhove:name='UUIDBox']/jhove:values",
+                parent => "jp2Meta"
+            },
         },
 
         queries => {
 
             # top level
             repInfo => {
-                format   => "jhove:format",
-                status   => "jhove:status",
-                module   => "jhove:sigMatch/jhove:module",
-                mimeType => "jhove:mimeType",
+                format => {
+                    desc       => 'Format',
+                    query      => "jhove:format",
+                    remediable => 0
+                },
+                status => {
+                    desc       => 'Status',
+                    query      => "jhove:status",
+                    remediable => 0
+                },
+                module => {
+                    desc       => 'ReportingModule',
+                    query      => "jhove:sigMatch/jhove:module",
+                    remediable => 0
+                },
+                mimeType => {
+                    desc       => 'MIMEtype',
+                    query      => "jhove:mimeType",
+                    remediable => 0
+                },
             },
 
             # jp2Meta children
             jp2Meta => {
-                brand => "jhove:property[jhove:name='Brand']/jhove:values/jhove:value",
-                minorVersion => "jhove:property[jhove:name='MinorVersion']/jhove:values/jhove:value",
-                compatibility => "jhove:property[jhove:name='Compatibility']/jhove:values/jhove:value",
-                colorSpace => "jhove:property[jhove:name='ColorSpecs']/jhove:values/jhove:property[jhove:name='ColorSpec']/jhove:values/jhove:property[jhove:name='EnumCS']/jhove:values/jhove:value",
+                brand => {
+                    desc => "Brand",
+                    query =>
+"jhove:property[jhove:name='Brand']/jhove:values/jhove:value",
+                    remediable => 0
+                },
+                minorVersion => {
+                    desc => "MinorVersion",
+                    query =>
+"jhove:property[jhove:name='MinorVersion']/jhove:values/jhove:value",
+                    remediable => 0
+                },
+                compatibility => {
+                    desc => "Compatibility",
+                    query =>
+"jhove:property[jhove:name='Compatibility']/jhove:values/jhove:value",
+                    remediable => 0
+                },
+                colorSpace => {
+                    desc => "ColorSpecs/ColorSpec/EnumCS",
+                    query =>
+"jhove:property[jhove:name='ColorSpecs']/jhove:values/jhove:property[jhove:name='ColorSpec']/jhove:values/jhove:property[jhove:name='EnumCS']/jhove:values/jhove:value",
+                    remediable => 0
+                },
             },
 
             # codingStyleDefault children
             codingStyleDefault => {
-                layers => "jhove:property[jhove:name='NumberOfLayers']/jhove:values/jhove:value",
-                decompositionLevels => "jhove:property[jhove:name='NumberDecompositionLevels']/jhove:values/jhove:value",
-                transformation => "jhove:property[jhove:name='Transformation']/jhove:values/jhove:value",
+                layers => {
+                    desc => "NumberOfLayers",
+                    query =>
+"jhove:property[jhove:name='NumberOfLayers']/jhove:values/jhove:value",
+                    remediable => 1
+                },
+                decompositionLevels => {
+                    desc => "NumberDecompositionLevels",
+                    query =>
+"jhove:property[jhove:name='NumberDecompositionLevels']/jhove:values/jhove:value",
+                    remediable => 1
+                },
+                transformation => {
+                    desc => "Transformation",
+                    query =>
+"jhove:property[jhove:name='Transformation']/jhove:values/jhove:value",
+                    remediable => 0
+                },
             },
 
             # mix children
             mix => {
-                mime => "mix:BasicImageParameters/mix:Format/mix:MIMEType",
-                compression => "mix:BasicImageParameters/mix:Format/mix:Compression/mix:CompressionScheme",
-                width => "mix:ImagingPerformanceAssessment/mix:SpatialMetrics/mix:ImageWidth",
-                length => "mix:ImagingPerformanceAssessment/mix:SpatialMetrics/mix:ImageLength",
-                bitsPerSample => "mix:ImagingPerformanceAssessment/mix:Energetics/mix:BitsPerSample",
-                samplesPerPixel => "mix:ImagingPerformanceAssessment/mix:Energetics/mix:SamplesPerPixel",
+                mime => {
+                    desc  => "MIMEType",
+                    query => "mix:BasicImageParameters/mix:Format/mix:MIMEType",
+                    remediable => 0
+                },
+                compression => {
+                    desc => "CompressionScheme",
+                    query =>
+"mix:BasicImageParameters/mix:Format/mix:Compression/mix:CompressionScheme",
+                    remediable => 0
+                },
+                width => {
+                    desc => "ImageWidth",
+                    query =>
+"mix:ImagingPerformanceAssessment/mix:SpatialMetrics/mix:ImageWidth",
+                    remediable => 0
+                },
+                length => {
+                    desc => "ImageLength",
+                    query =>
+"mix:ImagingPerformanceAssessment/mix:SpatialMetrics/mix:ImageLength",
+                    remediable => 0
+                },
+                bitsPerSample => {
+                    desc => "BitsPerSample",
+                    query =>
+"mix:ImagingPerformanceAssessment/mix:Energetics/mix:BitsPerSample",
+                    remediable => 0
+                },
+                samplesPerPixel => {
+                    desc => "SamplesPerPixel",
+                    query =>
+"mix:ImagingPerformanceAssessment/mix:Energetics/mix:SamplesPerPixel",
+                    remediable => 0
+                },
             },
 
             # uuidBox children
             uuidBox => {
-                xmp => "jhove:property[jhove:name='Data']/jhove:values/jhove:value" ,    # XMP text
-                uuid => "jhove:property[jhove:name='UUID']/jhove:values/jhove:value" ,    # holds identifyer accompanying an XMP field
+                xmp => {
+                    desc => "XMP data",
+                    query =>
+"jhove:property[jhove:name='Data']/jhove:values/jhove:value",
+                    remediable => 1
+                },    # XMP text
+                uuid => {
+                    desc => "UUID",
+                    query =>
+"jhove:property[jhove:name='UUID']/jhove:values/jhove:value",
+                    remediable => 1
+                },    # holds identifyer accompanying an XMP field
             },
 
             # XMP children
             xmp => {
-                width               => "//tiff:ImageWidth",
-                length              => "//tiff:ImageLength",
-                bitsPerSample_grey  => "//tiff:BitsPerSample//*[not(*)] | //tiff:BitsPerSample[not(*)]",
-                bitsPerSample_color => "//tiff:BitsPerSample//*[not(*)] | //tiff:BitsPerSample[not(*)]",
-                compression         => "//tiff:Compression",
-                colorSpace          => "//tiff:PhotometricInterpretation",
-                orientation         => "//tiff:Orientation",
-                samplesPerPixel     => "//tiff:SamplesPerPixel",
-                xRes                => "//tiff:XResolution",
-                yRes                => "//tiff:YResolution",
-                resUnit             => "//tiff:ResolutionUnit",
-                dateTime            => "//tiff:DateTime",
-                artist              => "//tiff:Artist",
-                make                => "//tiff:Make",
-                model               => "//tiff:Model",
-                documentName        => "//dc:source",
+                width => {
+                    desc       => "tiff:ImageWidth",
+                    query      => "//tiff:ImageWidth",
+                    remediable => 1
+                },
+                length => {
+                    desc       => "tiff:ImageLength",
+                    query      => "//tiff:ImageLength",
+                    remediable => 1
+                },
+                bitsPerSample_grey => {
+                    desc => "tiff:BitsPerSample",
+                    query =>
+"//tiff:BitsPerSample//*[not(*)] | //tiff:BitsPerSample[not(*)]",
+                    remediable => 1
+                },
+                bitsPerSample_color => {
+                    desc => "tiff:BitsPerSample",
+                    query =>
+"//tiff:BitsPerSample//*[not(*)] | //tiff:BitsPerSample[not(*)]",
+                    remediable => 1
+                },
+                compression => {
+                    desc       => "tiff:Compression",
+                    query      => "//tiff:Compression",
+                    remediable => 1
+                },
+                colorSpace => {
+                    desc       => "tiff:PhotometricInterpretation",
+                    query      => "//tiff:PhotometricInterpretation",
+                    remediable => 1
+                },
+                orientation => {
+                    desc       => "tiff:Orientation",
+                    query      => "//tiff:Orientation",
+                    remediable => 1
+                },
+                samplesPerPixel => {
+                    desc       => "tiff:SamplesPerPixel",
+                    query      => "//tiff:SamplesPerPixel",
+                    remediable => 1
+                },
+                xRes => {
+                    desc       => "tiff:XResolution",
+                    query      => "//tiff:XResolution",
+                    remediable => 1
+                },
+                yRes => {
+                    desc       => "tiff:YResolution",
+                    query      => "//tiff:YResolution",
+                    remediable => 1
+                },
+                resUnit => {
+                    desc       => "tiff:ResolutionUnit",
+                    query      => "//tiff:ResolutionUnit",
+                    remediable => 1
+                },
+                dateTime => {
+                    desc       => "tiff:DateTime",
+                    query      => "//tiff:DateTime",
+                    remediable => 1
+                },
+                artist => {
+                    desc       => "tiff:Artist",
+                    query      => "//tiff:Artist",
+                    remediable => 1
+                },
+                make => {
+                    desc       => "tiff:Make",
+                    query      => "//tiff:Make",
+                    remediable => 1
+                },
+                model => {
+                    desc       => "tiff:Model",
+                    query      => "//tiff:Model",
+                    remediable => 1
+                },
+                documentName => { desc => "dc:source", query => "//dc:source" },
             },
         },
     };
