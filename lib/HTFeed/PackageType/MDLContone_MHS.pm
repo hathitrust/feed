@@ -14,7 +14,7 @@ our $config = {
     # Regular expression that distinguishes valid files in the file package
     # HTML OCR is valid for the package type but only expected/required for UC1
     valid_file_pattern => qr/^( 
-    [a-z0-9-]+.(jp2|jpg) |
+    [a-z0-9-]+.(jp2) |
     mdl\.[a-z0-9.-]+.(xml) |
     $)/x,
 
@@ -30,7 +30,7 @@ our $config = {
         image => {
             prefix       => 'IMG',
             use          => 'image',
-            file_pattern => qr/\.(jp2|jpg)$/,
+            file_pattern => qr/\.(jp2)$/,
             required     => 1,
             content      => 1,
             jhove        => 1,
@@ -44,7 +44,6 @@ our $config = {
     # files with the given extensions
     module_validators => {
         'jp2' => 'HTFeed::ModuleValidator::JPEG2000_hul',
-        'jpg' => 'HTFeed::ModuleValidator::JPEG_hul',
     },
 
     # what stage to run given the current state
