@@ -130,10 +130,13 @@ sub _findvalue{
     my $query = shift;
 
     # check/get query
-    my $queryObj = $self->{qlib}->query($base, $query) or croak ("_findvalue: invalid args");
+    my $query_info = $self->{qlib}->query_info($base, $query) or croak ("_findvalue: invalid args");
+    my $queryObj = $query_info->{query};
+    my $context_name = $self->{qlib}->context_name($base);
 
+    my $context_info = 
     # verbose logging for debug
-    get_logger()->trace("looking for text of $query in $base...");
+    get_logger()->trace("  looking for value of $query_info->{desc} in $context_name (remediable=$query_info->{remediable})...");
 
     # get root xpc, context node
     my $context_node = $self->{contexts}->{$base}->{node};

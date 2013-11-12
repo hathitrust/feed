@@ -133,7 +133,7 @@ sub _set_validators {
             },
 
             detail =>
-'This checks that the image has creation date and scanning artist metadata as well as that it properly embeds its own source volume and filename. If not, these fields can be remediated if appropriate information is supposed.'
+'This checks that the image has creation date and scanning artist metadata as well as that it properly embeds its own source volume and filename. If not, these fields can be remediated if appropriate information is supplied.'
 
         },
 

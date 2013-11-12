@@ -249,6 +249,7 @@ sub set_error {
     if(get_config('stop_on_error')) {
         croak("STAGE_ERROR");
     }
+    
     return 1;
 }
 
@@ -259,14 +260,22 @@ sub run {
     while ( my ( $valname, $validator ) = each( %{ $self->{validators} } ) ) {
         next unless defined $validator;
         get_logger( ref($self) )->trace(
-            "Running validator $valname",
+            "Validating $validator->{desc}",
             objid     => $self->{volume_id},
             namespace => $self->{volume}->get_namespace(),
             file      => $self->{filename},
             @_
         );
 
-        &{$validator}($self);
+        if(!&{$validator->{valid}}($self)) {
+            get_logger( ref($self) ) ->warn("Validation failed",
+                objid     => $self->{volume_id},
+                namespace => $self->{volume}->get_namespace(),
+                file      => $self->{filename},
+                field     => $validator->{desc},
+                detail    => $validator->{detail},
+            );
+        }
     }
 
     return $self->succeeded();
@@ -293,7 +302,7 @@ sub _compile{
 	foreach my $ikey ( keys %{$self->{queries}} ){
 		foreach my $jkey ( keys %{$self->{queries}->{$ikey}} ){
 #			print "compiling $self->{queries}->{$ikey}->{$jkey}->{query}\n";
-			$self->{queries}->{$ikey}->{$jkey} = XML::LibXML::XPathExpression->new($self->{queries}->{$ikey}->{$jkey}->{query});
+			$self->{queries}->{$ikey}->{$jkey}->{query} = XML::LibXML::XPathExpression->new($self->{queries}->{$ikey}->{$jkey}->{query});
 		}
 	}
 	return 1;
@@ -310,10 +319,21 @@ sub context_parent{
 	my $key = shift;
 	return $self->{contexts}->{$key}->{parent};
 }
+sub context_name {
+    my $self = shift;
+    my $key = shift;
+    return $self->{contexts}->{$key}->{name};
+}
 sub query{
 	my $self = shift;
 	my $parent = shift;
 	my $key = shift;
+	return $self->{queries}->{$parent}->{$key}->{query};
+}
+sub query_info {
+    my $self = shift;
+    my $parent = shift;
+    my $key = shift;
 	return $self->{queries}->{$parent}->{$key};
 }
 
