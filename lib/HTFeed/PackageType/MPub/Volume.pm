@@ -5,16 +5,6 @@ use strict;
 use base qw(HTFeed::Volume);
 use HTFeed::Config;
 
-# no source METS expected for this content 
-
-sub get_source_mets_xpc {
-    return;
-}
-
-sub get_source_mets_file {
-    return;
-}
-
 # use checksum.md5 instead of source METS
 sub get_checksums{
 
@@ -43,7 +33,7 @@ sub get_checksums{
     return $self->{checksums};
 }
 
-sub get_page_data {
+sub get_srcmets_page_data {
     my $self = shift;
     my $file = shift;
 
