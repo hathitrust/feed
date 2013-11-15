@@ -63,14 +63,10 @@ our $config = {
     # What stage to run given the current state.
     stage_map => {
         ready		=> 'HTFeed::PackageType::MPub::Fetch',
-        fetched		=> 'HTFeed::VolumeValidator',
+		fetched		=> 'HTFeed::PackageType::MPub::SourceMETS',
+        src_metsed	=> 'HTFeed::VolumeValidator',
 		validated	=> 'HTFeed::Stage::Pack',
-		packed		=> 'HTFeed::PackageType::MPub::METS',
-        metsed		=> 'HTFeed::Stage::Handle',
-        handled		=> 'HTFeed::Stage::Collate',
-
-        needs_uplift => 'HTFeed::Stage::RepositoryUnpack',
-        uplift_unpacked => 'HTFeed::Stage::ReMETS'
+        packed		=> 'HTFeed::Stage::Done',
 	},
 
     # What PREMIS events to include (by internal PREMIS identifier, 
@@ -85,6 +81,23 @@ our $config = {
         'premis_migration', #optional
     ],
 
+    # What PREMIS events to include in the source METS file
+    source_premis_events => [
+        # capture - included manually
+        # image_compression - included manually
+        'source_mets_creation',
+        'page_md5_create',
+        'mets_validation',
+    ],
+
+     # What PREMIS event types  to extract from the source METS and include in the HT METS
+    source_premis_events_extract => [
+        'capture',       
+        'image_compression',
+        'source_mets_creation',
+        'page_md5_create',
+    ],
+
     # Often times a checksum.md5 file will not be provided!
     premis_overrides => {
         'page_md5_fixity' => 
@@ -97,6 +110,7 @@ our $config = {
           }
     },
 
+    source_mets_file => qr/^39015\d{9}.xml$/,
 
 };
 
