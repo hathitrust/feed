@@ -196,6 +196,9 @@ sub _set_validators {
                     $self->_require_same( "xmp", "xRes", "xmp", "yRes" );
 
                 }
+
+                # if we made it here, it's all good?
+                return 1;
             },
             detail =>
 'This checks that if the TIFF image has XMP metadata that it is consistent with the baseline TIFF metadata. If not, this can normally be remediated by updating or removing the XMP metadata.'

@@ -68,7 +68,7 @@ sub _findnodes{
         return $nodelist;
     }
 
-    $self->set_error("MissingField", field => "${base}_${qn}");
+    $self->set_error("MissingField", $self->get_details($base,$qn));
     return;
 }
 
@@ -105,7 +105,7 @@ sub _findonenode{
 
     # detect error in _findnodes, fail
     unless ($nodelist){
-        $self->set_error("MissingField", field => "${base}_${qn}");
+        $self->set_error("MissingField", $self->get_details($base,$qn));
         return;
     }
 
@@ -114,7 +114,7 @@ sub _findonenode{
         my $error_msg = "";
         $error_msg .= $nodelist->size();
         $error_msg .= " hits for context query; exactly one expected";
-        $self->set_error("BadField", field => "${base}_${qn}", detail => $error_msg);
+        $self->set_error("BadField", $self->get_details($base,$qn), detail => $error_msg);
         return;
     }
 
@@ -170,7 +170,7 @@ sub _validateone{
         return 1;
     }
     else{
-        $self->set_error("BadValue", field => "${base}_${qn}", actual => $actual, expected => $expected);
+        $self->set_error("BadValue", $self->get_details($base,$qn), actual => $actual, expected => $expected);
         return;
     }
 }
@@ -185,8 +185,8 @@ sub _require_same {
     if(defined($found1) and defined($found2) and $found1 eq $found2) {
         return 1;
     } else {
-        $self->set_error("NotEqualValues", field => "${base1}_${qn1},${base2}_${qn2}", actual => 
-            {"${base1}_${qn1}" => $found1,
+        $self->set_error("NotEqualValues", $self->get_details($base1,$qn1,$base2,$qn2), 
+            actual => {"${base1}_${qn1}" => $found1,
                 "${base2}_${qn2}" => $found2});
         return;
     }
@@ -239,7 +239,7 @@ sub _openonecontext{
         my $error_msg = "";
         $error_msg .= $nodelist->size();
         $error_msg .= " hits for context query: $cn exactly one expected";
-        $self->set_error("BadValue", detail => $error_msg, field => $cn);
+        $self->set_error("BadValue", detail => $error_msg, $self->get_details($cn));
         return;
     }
     my $node = $nodelist->pop();
@@ -295,7 +295,7 @@ sub {
     if (\$actual $op \$expected) {
     return 1;
     } else {
-    \$self->set_error("BadValue", field => "\${ctx}_\${query}", actual => \$actual, expected => "$op \$expected");
+    \$self->set_error("BadValue", \$self->get_details(\$ctx, \$query), actual => \$actual, expected => "$op \$expected");
     return;
     }
 }
@@ -328,8 +328,40 @@ sub v_in {
             return 1 if ($actual eq $expected);
         }
 
-        $self->set_error("BadValue", field => "${ctx}_$query", actual => $actual, expected => "one of (" . join(", ",@$allowed) . ")");
+        $self->set_error("BadValue", $self->get_details($ctx,$query), actual => $actual, expected => "one of (" . join(", ",@$allowed) . ")");
     }
+}
+
+# get additional information about fields that failed from the querylib module
+# for logging errors
+sub get_details {
+    my $self = shift;
+    my $ctx = shift;
+    my $query = shift;
+    my $ctx2 = shift;
+    my $query2 = shift;
+
+    my $desc = $self->{qlib}->context_name($ctx);
+    my $remediable = 0;
+    if(defined $query) {
+        my $query_info = $self->{qlib}->query_info($ctx, $query) or croak ("_findvalue: invalid args");
+        $desc = "$desc - $query_info->{desc}";
+        $remediable = 1 if $query_info->{remediable} == 1;
+    }
+
+    if(defined $ctx2) {
+        my $desc2 = $self->{qlib}->context_name($ctx2);
+        if(defined $query2) {
+            my $query_info = $self->{qlib}->query_info($ctx2, $query2) or croak ("_findvalue: invalid args");
+            $desc2 = "$desc2 - $query_info->{desc}";
+            $remediable = 0 unless $remediable and $query_info->{remediable} == 1;
+        }
+        $desc .= ", $desc2";
+    }
+
+
+    return (field => $desc, remediable => $remediable);
+
 }
 
 

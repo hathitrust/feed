@@ -94,7 +94,7 @@ sub import{
         $root_log_config = $root_log_config_from_use;
     }
     
-    print "Logging with root logger config '$root_log_config'\n";
+#    print "Logging with root logger config '$root_log_config'\n";
     _init();
 
     # log file

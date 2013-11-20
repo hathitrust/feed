@@ -163,7 +163,8 @@ sub _setdocumentname {
     if( not defined $documentname or $documentname eq '') {
         $self->set_error(
             "MissingField",
-            field => 'documentname'
+            field    => 'DocumentName / dc:source',
+            remediable => 1,
         );
         return 0;
     }
@@ -174,7 +175,8 @@ sub _setdocumentname {
         }
         $self->set_error(
             "NotMatchedValue",
-            field    => 'documentname',
+            field    => 'DocumentName / dc:source',
+            remediable => 1,
             expected => $self->{documentname},
             actual   => $documentname
         );
@@ -194,7 +196,8 @@ sub _setdocumentname {
     unless ( $documentname =~ m|\Q$pattern\E|i ) {
         $self->set_error(
             "BadValue",
-            field    => 'documentname',
+            field    => 'DocumentName / dc:source',
+            remediable => 1,
             expected => $pattern,
             actual   => $documentname
         );
