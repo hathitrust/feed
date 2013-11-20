@@ -5,6 +5,7 @@ use strict;
 use Carp;
 use XML::LibXML;
 use Log::Log4perl qw(get_logger);
+use Data::Dumper qw(Dumper);
 
 use base qw(HTFeed::XPathValidator);
 
@@ -87,7 +88,7 @@ sub new {
     my $overrides =
       $object->{volume}->get_nspkg()->get_validation_overrides($class);
     while ( my ( $k, $v ) = each(%$overrides) ) {
-        $object->{validators}{$k} = $v;
+        $object->{validators}{$k}{valid} = $v;
     }
 
     return $object;
@@ -106,6 +107,7 @@ sub _setdatetime {
             "BadValue",
             field  => 'datetime',
             actual => $datetime,
+            remediable => 1,
             expected => 'yyyy-mm-ddThh:mm:ss[+-]hh:mm'
         );
         return 0;
@@ -261,7 +263,7 @@ sub run {
     my $self = shift;
 
     while ( my ( $valname, $validator ) = each( %{ $self->{validators} } ) ) {
-        next unless defined $validator;
+        next unless defined $validator->{valid};
         get_logger( ref($self) )->trace(
             "Validating $validator->{desc}",
             objid     => $self->{volume_id},
@@ -300,11 +302,13 @@ sub _compile{
 	
 	foreach my $key ( keys %{$self->{contexts}} ){
 #		print "compiling $self->{contexts}->{$key}->{query}\n";
+        next unless defined $self->{contexts}->{$key}->{query};
 		$self->{contexts}->{$key}->{query} = XML::LibXML::XPathExpression->new($self->{contexts}->{$key}->{query});
 	}
 	foreach my $ikey ( keys %{$self->{queries}} ){
 		foreach my $jkey ( keys %{$self->{queries}->{$ikey}} ){
 #			print "compiling $self->{queries}->{$ikey}->{$jkey}->{query}\n";
+            next unless defined $self->{contexts}->{$ikey}->{$jkey}->{query};
 			$self->{queries}->{$ikey}->{$jkey}->{query} = XML::LibXML::XPathExpression->new($self->{queries}->{$ikey}->{$jkey}->{query});
 		}
 	}
@@ -325,7 +329,7 @@ sub context_parent{
 sub context_name {
     my $self = shift;
     my $key = shift;
-    return $self->{contexts}->{$key}->{name};
+    return $self->{contexts}->{$key}->{desc};
 }
 sub query{
 	my $self = shift;

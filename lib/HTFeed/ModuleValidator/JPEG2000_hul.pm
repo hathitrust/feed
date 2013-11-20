@@ -6,6 +6,7 @@ use strict;
 use HTFeed::ModuleValidator;
 use HTFeed::XPathValidator qw(:closures);
 use Scalar::Util qw(weaken);
+use Log::Log4perl qw(get_logger);
 use base qw(HTFeed::ModuleValidator);
 
 =head1 NAME
@@ -115,7 +116,7 @@ sub _set_validators {
                 v_same( 'xmp', 'xRes', 'xmp', 'yRes' )
             ),
             detail =>
-'This checks that the image has square pixels and is scanned at a resolution of at least 300 DPI. If the value is missing, it can be added if the value is known. If it is present and the reported resolution is not equivalent (e.g. 118 pixels per centimeter) the image will need to be rescanned or regenerated from a higher-resolution master image.'
+'This checks that the image has square pixels and is scanned at a resolution of at least 300 pixels per inch. If the value is missing or does not reflect the actual image resolution, this can be corrected if the value is known. If the resolution information is present, correct, and not equivalent to 300 or more pixels per inch (e.g. 118 pixels per centimeter) the image will need to be rescanned or regenerated from a higher-resolution master image.'
         },
 
         'layers' => {
@@ -177,7 +178,8 @@ sub _set_validators {
                   or (
                     $self->set_error(
                         "NotMatchedValue",
-                        field  => 'colorspace',
+                        field  => 'color space / bits per sample / samples per pixel',
+                        remediable => 2,
                         actual => <<END
 xmp_colorSpace\t$xmp_colorSpace
 xmp_samplesPerPixel\t$xmp_samplesPerPixel
@@ -204,20 +206,27 @@ END
                 my $x2 = $self->_findone( "xmp", "width" );
                 my $y2 = $self->_findone( "xmp", "length" );
 
-                (        ( $x1 > 0 && $y1 > 0 && $x2 > 0 && $y2 > 0 )
+                unless (        ( $x1 > 0 && $y1 > 0 && $x2 > 0 && $y2 > 0 )
                       && ( $x1 == $x2 )
-                      && ( $y1 == $y2 ) )
-                  or $self->set_error(
+                      && ( $y1 == $y2 ) ) {
+
+                      $x1 = '(missing)' unless defined $x1;
+                      $x2 = '(missing)' unless defined $x2;
+                      $y1 = '(missing)' unless defined $y1;
+                      $y2 = '(missing)' unless defined $y2;
+                  $self->set_error(
                     "NotMatchedValue",
                     field    => 'dimensions',
-                    expected => 'must be consistant and nonzero',
+                    remediable => 2,
+                    expected => 'consistant and nonzero',
                     actual   => <<END
-mix_width\t$x1
-mix_length\t$y1
-xmp_width\t$x2
-xmp_length\t$y2
+JPEG2000 ImageWidth $x1
+JPEG2000 ImageLength $y1
+XMP tiff:imageWidth $x2
+XMP tiff:imageLength $y2
 END
-                  );
+                );
+                }
             },
             detail =>
 'This checks that the JPEG2000 image has nonzero dimensions and that the XMP metadata is present and properly reports the image dimensions. This is remediable if the XMP metadata is wrong or missing.'
@@ -239,10 +248,10 @@ END
         'camera' => {
             desc => "scanner make and model",
             valid =>
-              v_and( v_exists( 'xmp', 'make' ), v_exists( 'xmp', 'model' ) )
+              v_and( v_exists( 'xmp', 'make' ), v_exists( 'xmp', 'model' ) ),
+            detail =>
+    'This checks that the image contains information about the make and model of scanner or camera used to create it. If not, this information can be added if known.'
         },
-        detail =>
-'This checks that the image contains information about the make and model of scanner or camera used to create it. If not, this information can be added if known.'
 
     };
 }
@@ -266,11 +275,14 @@ sub run {
         return;
     }
 
-    $self->_setupXMP;
-
-    # make sure we have an xmp before we continue
-    if ( $self->failed ) {
-        return;
+    if(!$self->_setupXMP) {
+            get_logger( ref($self) ) ->warn("Validation failed",
+                objid     => $self->{volume_id},
+                namespace => $self->{volume}->get_namespace(),
+                file      => $self->{filename},
+                field     => 'extract XMP',
+                detail    => "This attempts to find and extract the XMP XML metadata embedded in the JPEG2000 image. This can be remediated by using exiftool to add an XMP with the required metadata. Since the XMP is missing, all metadata values that are stored in the XMP will be missing, and a large number of validation errors will follow."
+            );
     }
 
     return $self->SUPER::run();
@@ -293,10 +305,11 @@ sub _setupXMP {
             # fail
             $self->set_error(
                 'BadField',
-                detail => 'UUIDBox not found',
-                field  => 'xmp'
+                detail => 'JPEG2000 image appears to be entirely missing XMP',
+                remediable => 1,
+                field  => 'XMP metadata'
             );
-            return;
+            return 0;
         }
 
         my $uuidbox_node;
@@ -317,13 +330,14 @@ sub _setupXMP {
             if ( $found_uuid->size() != 16 ) {
                 $self->set_error(
                     'BadValue',
-                    field  => 'xmp_uuid',
+                    field  => 'JPEG 2000 UUID box',
+                    remediable => 1,
                     actual => $found_uuid,
                     detail => 'UUID size must be 16'
                 );
 
                 # punt, we won't be getting any further anyway
-                return;
+                return 0;
             }
             else {
                 my $found_entry;
@@ -350,9 +364,10 @@ sub _setupXMP {
             $self->set_error(
                 'BadField',
                 detail => "$xmps_found possible XMPs found, expected 1",
-                field  => 'xmp'
+                remediable => 1,
+                field  => 'XMP'
             );
-            return;
+            return 0;
         }
 
         # set the uidBox context to the last uuidBox with xmp
@@ -378,6 +393,8 @@ sub _setupXMP {
 
     # setup xmp context
     $self->_setupXMPcontext($xmp_xml);
+
+    return 1;
 }
 
 package HTFeed::QueryLib::JPEG2000_hul;
@@ -430,6 +447,10 @@ sub new {
 "jhove:property[jhove:name='UUIDs']/jhove:values/jhove:property[jhove:name='UUIDBox']/jhove:values",
                 parent => "jp2Meta"
             },
+            xmp => {
+                desc => 'XMP',
+                # parent & query are set elsewhere
+            }
         },
 
         queries => {
@@ -610,12 +631,12 @@ sub new {
                 xRes => {
                     desc       => "tiff:XResolution",
                     query      => "//tiff:XResolution",
-                    remediable => 1
+                    remediable => 2
                 },
                 yRes => {
                     desc       => "tiff:YResolution",
                     query      => "//tiff:YResolution",
-                    remediable => 1
+                    remediable => 2
                 },
                 resUnit => {
                     desc       => "tiff:ResolutionUnit",
@@ -642,7 +663,7 @@ sub new {
                     query      => "//tiff:Model",
                     remediable => 1
                 },
-                documentName => { desc => "dc:source", query => "//dc:source" },
+                documentName => { desc => "dc:source", query => "//dc:source", remediable => 1},
             },
         },
     };

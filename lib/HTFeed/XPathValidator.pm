@@ -142,8 +142,13 @@ sub _findvalue{
     my $context_node = $self->{contexts}->{$base}->{node};
     my $xpc = $self->{contexts}->{$base}->{xpc};
 
+    return unless defined $xpc;
     # run query
-    return $xpc->findvalue($queryObj,$context_node);
+    if($xpc && $queryObj) {
+        return $xpc->findvalue($queryObj,$context_node);
+    }
+    $self->set_error("MissingField", $self->get_details($base,$query));
+    return;
 }
 
 # (base, qn)
@@ -346,7 +351,7 @@ sub get_details {
     if(defined $query) {
         my $query_info = $self->{qlib}->query_info($ctx, $query) or croak ("_findvalue: invalid args");
         $desc = "$desc - $query_info->{desc}";
-        $remediable = 1 if $query_info->{remediable} == 1;
+        $remediable = $query_info->{remediable} if $query_info->{remediable};
     }
 
     if(defined $ctx2) {
@@ -354,7 +359,7 @@ sub get_details {
         if(defined $query2) {
             my $query_info = $self->{qlib}->query_info($ctx2, $query2) or croak ("_findvalue: invalid args");
             $desc2 = "$desc2 - $query_info->{desc}";
-            $remediable = 0 unless $remediable and $query_info->{remediable} == 1;
+            $remediable = 0 unless $remediable and $query_info->{remediable};
         }
         $desc .= ", $desc2";
     }

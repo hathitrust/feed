@@ -87,7 +87,7 @@ sub _set_validators {
                 v_eq( 'mix', 'yRes', '600' )
             ),
             detail =>
-'This checks that the image has square pixels and is scanned at a resolution of 600 DPI. If not, and the reported resolution is not equivalent to 600 DPI (e.g. 236 dots per centimeter) the image will need to be rescanned or regenerated from a higher-resolution master image. Upsampling to 600 DPI bitonal images from >= 300 DPI contone images is also acceptable.'
+'This checks that the image has square pixels and is scanned at a resolution of 600 pixels per inch. If the value is missing or does not reflect the actual image resolution, this can be corrected if the value is known. If the resolution information is present, correct, and not equivalent to 600 or more pixels per inch (e.g. 236 pixels per centimeter) the image will need to be rescanned or regenerated from a higher-resolution master image. Upsampling to 600 DPI bitonal images from >= 300 DPI contone images is also acceptable.'
         },
 
         'resolution_unit' => {
@@ -301,8 +301,11 @@ sub new {
 "jhove:property[jhove:name='NisoImageMetadata']/jhove:values/jhove:value/mix:mix",
                 parent => "tiffMeta"
             },
+            xmp => {
+                desc => 'XMP metadata',
+                # set up in modulevalidator
+            }
 
-            # xmp is a custom context set up in modulevalidator
         },
         queries => {
 
@@ -330,7 +333,7 @@ sub new {
                 },
                 errors => {
                     desc       => 'Errors',
-                    remediable => 0,
+                    remediable => 2,
                     query => 'jhove:messages/jhove:message[@severity="error"]'
                 }
             },
@@ -387,19 +390,19 @@ sub new {
                 },
                 xRes => {
                     desc       => 'XSamplingFrequency',
-                    remediable => 0,
+                    remediable => 2,
                     query =>
 "mix:ImagingPerformanceAssessment/mix:SpatialMetrics/mix:XSamplingFrequency"
                 },
                 yRes => {
                     desc       => 'YSamplingFrequency',
-                    remediable => 0,
+                    remediable => 2,
                     query =>
 "mix:ImagingPerformanceAssessment/mix:SpatialMetrics/mix:YSamplingFrequency"
                 },
                 resUnit => {
                     desc       => 'SamplingFrequencyUnit',
-                    remediable => 0,
+                    remediable => 2,
                     query =>
 "mix:ImagingPerformanceAssessment/mix:SpatialMetrics/mix:SamplingFrequencyUnit"
                 },
@@ -469,12 +472,12 @@ sub new {
                 },
                 xRes => {
                     desc       => 'tiff:XResolution',
-                    remediable => 1,
+                    remediable => 2,
                     query      => "//tiff:XResolution"
                 },
                 yRes => {
                     desc       => 'tiff:YResolution',
-                    remediable => 1,
+                    remediable => 2,
                     query      => "//tiff:YResolution"
                 },
                 resUnit => {

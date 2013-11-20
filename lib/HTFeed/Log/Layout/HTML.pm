@@ -26,6 +26,8 @@ sub new {
     return $self;
 }
 
+my $last_error;
+
 sub render {
     my($self, $message, $category, $priority, $caller_level) = @_;
     
@@ -43,8 +45,8 @@ sub render {
         delete $fields{stage};
 
         if($error_code eq 'BadFile') {
-            $error_message = "<p>$error_expanded. Check the above messages to see if the errors can be remediated.</p>";
-        } elsif(grep {$error_code eq $_} qw(BadField BadValue MissingField NotEqualFields NotMatchedValue)) {
+            $error_message = "<h4>$error_expanded. Check the above messages to see if the errors can be remediated.</h4>";
+        } elsif(grep {$error_code eq $_} qw(BadField BadValue MissingField NotEqualValues NotMatchedValue)) {
             $error_message = "<p>";
             $error_message .= process_remediable(\%fields);
             $error_message .= process_message($error_code,$error_expanded,\%fields);
@@ -53,6 +55,8 @@ sub render {
             $error_message .= "</p>";
         } elsif($error_code eq 'Validation failed') {
             # validator failed - might validate multiple fields
+            $error_message = "<p><b>Additional information</b>: The test \"$fields{field}\" failed. $fields{detail}</p>";
+            $error_message .= "</p>";
         } else {
             # unknown error
             $error_message = "<p>";
@@ -87,16 +91,22 @@ sub render {
         $error_message = "<p>" . shift(@$message) . "</p>";
     }
     
-    return $error_message;
+    if($last_error eq $error_message) {
+        # don't return an error if this is a dupe
+        return "";
+    } else {
+        $last_error = $error_message;
+        return $error_message;
+    }
 }
 
 sub process_detail {
     my $fields = shift;
     my $error_message = "";
     if($fields->{detail}) {
-        $error_message .= ": $fields->{detail}; ";
+        $error_message .= "$fields->{detail}; ";
     }  else {
-        $error_message .= ": ";
+        $error_message .= "";
     }
     return $error_message;
 }
@@ -106,7 +116,12 @@ sub process_message {
     my $error_expanded = shift;
     my $fields = shift;
 
-    return "$error_expanded $fields->{field}";
+    my $error_message = "$error_expanded $fields->{field}";
+    if(keys(%$fields) > 2) {
+        # more than fields and remediable
+        $error_message .= ": ";
+    }
+    return $error_message;
 }
 
 sub process_expected {
@@ -114,18 +129,24 @@ sub process_expected {
     my $error_message = "";
 
     if(defined $fields->{expected}) {
-        $error_message .= "expected <tt>$fields->{expected}</tt>; ";
+        if(defined $fields->{actual}) {
+            $error_message .= "saw $fields->{actual}; ";
+        } else {
+            $error_message .= "value was missing; ";
+        }
+        $error_message .= "expected $fields->{expected}.";
     }
     if(defined $fields->{actual}) {
-        $error_message .= "saw <tt>$fields->{actual}</tt>.";
     }
     return $error_message;
 }
 
 sub process_remediable {
     my $fields = shift;
-    if($fields->{remediable}) {
-        return '<span style="color:#e6cb1b; font-weight:bold">Remediable:</span> ';
+    if($fields->{remediable} == 1) {
+        return '<span style="color:#e3cb1e; font-weight:bold">Remediable:</span> ';
+    } elsif($fields->{remediable} == 2) {
+        return '<span style="color:#e3901e; font-weight:bold">Possibly remediable:</span> ';
     } else {
         return '<span style="color:#E3001E; font-weight:bold">Nonremediable:</span> ';
     }
