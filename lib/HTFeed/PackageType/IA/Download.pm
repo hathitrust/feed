@@ -12,7 +12,6 @@ sub run{
     my $self = shift;
 
     my $volume = $self->{volume};
-    my $namespace = $volume->get_namespace();
     my $arkid = $volume->get_objid();
     my $ia_id = $volume->get_ia_id();
 
@@ -29,9 +28,6 @@ sub run{
         my $filename = sprintf($item,$ia_id);
         $self->download(url => $url . $filename, path => $pt_path, filename => $filename);
     }
-    # handle marcxml - just get it from aleph
-    $self->download(url => "http://mirlyn-aleph.lib.umich.edu/cgi-bin/bc2meta?id=$namespace.$arkid&schema=marcxml&type=bc&idtag=955", 
-            path => $pt_path, filename => "${ia_id}_marc.xml");
 
     foreach my $item (@$non_core_package_items){
         my $filename = sprintf($item,$ia_id);
