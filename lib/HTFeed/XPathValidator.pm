@@ -176,7 +176,7 @@ sub _validateone{
     }
     else{
         $self->set_error("BadValue", $self->get_details($base,$qn), actual => $actual, expected => $expected);
-        return;
+        return 0;
     }
 }
 
@@ -189,12 +189,12 @@ sub _require_same {
     my $found2 = $self->_findone($base2,$qn2);
     if(defined($found1) and defined($found2) and $found1 eq $found2) {
         return 1;
-    } else {
+    } elsif(defined($found1) and defined($found2)) {
         $self->set_error("NotEqualValues", $self->get_details($base1,$qn1,$base2,$qn2), 
             actual => {"${base1}_${qn1}" => $found1,
                 "${base2}_${qn2}" => $found2});
-        return;
     }
+    return 0;
 }
 
 # (name => "name",node => $node,xpc => $xpc)
@@ -293,14 +293,16 @@ sub v_same {
 sub _make_op_compare {
     my ($ctx,$query,$expected,$op) = @_;
     croak('Usage: _make_op_compare $ctx $query $expected $op') unless defined $ctx and defined $query and defined $expected and defined $op;
-    return eval <<EOT
+    return eval <<EOT;
 sub {
     my \$self = shift;
     my \$actual = \$self->_findone(\$ctx, \$query);
     if (\$actual $op \$expected) {
     return 1;
     } else {
-    \$self->set_error("BadValue", \$self->get_details(\$ctx, \$query), actual => \$actual, expected => "$op \$expected");
+        my \$report_op = '$op ';
+        \$report_op = '' if \$report_op eq 'eq ';
+    \$self->set_error("BadValue", \$self->get_details(\$ctx, \$query), actual => \$actual, expected => "\$report_op\$expected");
     return;
     }
 }
@@ -350,7 +352,7 @@ sub get_details {
     my $remediable = 0;
     if(defined $query) {
         my $query_info = $self->{qlib}->query_info($ctx, $query) or croak ("_findvalue: invalid args");
-        $desc = "$desc - $query_info->{desc}";
+        $desc = "in $desc - $query_info->{desc}";
         $remediable = $query_info->{remediable} if $query_info->{remediable};
     }
 
@@ -358,8 +360,12 @@ sub get_details {
         my $desc2 = $self->{qlib}->context_name($ctx2);
         if(defined $query2) {
             my $query_info = $self->{qlib}->query_info($ctx2, $query2) or croak ("_findvalue: invalid args");
-            $desc2 = "$desc2 - $query_info->{desc}";
-            $remediable = 0 unless $remediable and $query_info->{remediable};
+            $desc2 = "in $desc2 - $query_info->{desc}";
+            if( ($query_info->{remediable} or $remediable)
+                and not ($query_info->{remediable} and $remediable)) {
+                # if one or the other field is remediable, say 'possibly remediable'
+                $remediable = 2;
+            } 
         }
         $desc .= ", $desc2";
     }

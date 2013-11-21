@@ -180,21 +180,13 @@ sub _set_validators {
                         "NotMatchedValue",
                         field  => 'color space / bits per sample / samples per pixel',
                         remediable => 2,
-                        actual => <<END
-xmp_colorSpace\t$xmp_colorSpace
-xmp_samplesPerPixel\t$xmp_samplesPerPixel
-mix_samplesPerPixel\t$mix_samplesPerPixel
-jp2Meta_colorSpace\t$meta_colorSpace
-mix_bitsPerSample\t$mix_bitsPerSample
-xmp_bitsPerSample_grey\t$xmp_bitsPerSample_grey
-xmp_bitsPerSample_color\t$xmp_bitsPerSample_color
-END
+                        actual => "XMP metadata: tiff:PhotometricInterpretation=$xmp_colorSpace, tiff:samplesPerPixel=$xmp_samplesPerPixel, tiff:BitsPerSample=$xmp_bitsPerSample_color; JHOVE output: JPEG2000 EnumCS=$meta_colorSpace SamplesPerPixel=$mix_samplesPerPixel BitsPerSample=$mix_bitsPerSample"
                     )
                     and return
                   );
             },
             detail =>
-'This checks that greyscale JPEG2000 images are have one sample per pixel and 8 bits per sample and that full color images have three samples per pixel (one each for RGB) and 8 bits per sample. JPEG2000 images with 16 bits per sample (e.g. 48 bit color depth), alpha channels, embedded ICC color profiles, etc, are not supported. If the image itself is correct but the XMP metadata is wrong or missing, this is remediable.'
+'This checks that greyscale JPEG2000 images are have one sample per pixel and 8 bits per sample and that full color images have three samples per pixel (one each for RGB) and 8 bits per sample. It also checks that the baseline JPEG2000 metadata is consistent with the XMP metadata. JPEG2000 images with 16 bits per sample (e.g. 48 bit color depth), alpha channels, embedded ICC color profiles, etc, are not supported. If the image itself is correct but the XMP metadata is wrong or missing, this is remediable.'
           },
         'dimensions' => {
             desc  => "consistency of image dimensions",
@@ -513,13 +505,13 @@ sub new {
                     desc => "NumberOfLayers",
                     query =>
 "jhove:property[jhove:name='NumberOfLayers']/jhove:values/jhove:value",
-                    remediable => 1
+                    remediable => 2
                 },
                 decompositionLevels => {
                     desc => "NumberDecompositionLevels",
                     query =>
 "jhove:property[jhove:name='NumberDecompositionLevels']/jhove:values/jhove:value",
-                    remediable => 1
+                    remediable => 2
                 },
                 transformation => {
                     desc => "Transformation",

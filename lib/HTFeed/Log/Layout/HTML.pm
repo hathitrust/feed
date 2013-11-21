@@ -136,7 +136,8 @@ sub process_expected {
         }
         $error_message .= "expected $fields->{expected}.";
     }
-    if(defined $fields->{actual}) {
+    if(defined $fields->{actual} and not defined $fields->{expected}) {
+        $error_message .= "saw $fields->{actual}";
     }
     return $error_message;
 }

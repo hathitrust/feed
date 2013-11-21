@@ -145,6 +145,7 @@ sub _set_validators {
                 # find xmp
                 my $xmp_found = 1;
                 my $xmp_xml = $self->_findxmp() or $xmp_found = 0;
+                my $validation_ok = 1;
 
                 if ($xmp_found) {
 
@@ -156,49 +157,56 @@ sub _set_validators {
                         qw(bitsPerSample compression colorSpace orientation samplesPerPixel resUnit length width artist )
                       )
                     {
-                        $self->_require_same( 'mix', $field, 'xmp', $field );
+                        $self->_require_same( 'mix', $field, 'xmp', $field ) or $validation_ok = 0;
                     }
                     $self->_require_same( 'tiffMeta', 'documentName', 'xmp',
-                        'documentName' );
+                        'documentName' ) or $validation_ok = 0;
 
-                    my $xmp_datetime = $self->_findone( "xmp", "dateTime" );
-                    my $mix_datetime = $self->_findone( "mix", "dateTime" );
+                    my $xmp_datetime = $self->_findone( "xmp", "dateTime" ) or $validation_ok = 0;
+                    my $mix_datetime = $self->_findone( "mix", "dateTime" ) or $validation_ok = 0;
 
                     # xmp has timezone, mix doesn't..
-                    if ( not defined $xmp_datetime
-                        or $xmp_datetime !~
+                    if ( defined $xmp_datetime and defined $mix_datetime
+                            and $xmp_datetime !~
                         /^\Q$mix_datetime\E(\+\d{2}:\d{2})?/ )
                     {
                         $self->set_error(
                             "NotMatchedValue",
-                            field  => 'dateTime',
+                            field  => 'ModifyDate, XMP tiff:DateTime',
                             actual => {
                                 xmp_datetime => $xmp_datetime,
                                 mix_datetime => $mix_datetime
-                            }
+                            },
+                            remediable => 1,
                         );
+                        $validation_ok = 0;
                     }
 
                     # mix lists as just '600', XMP lists as '600/1'
                     my $xres = $self->_findone( "xmp", "xRes" );
-                    if ( $xres =~ /^(\d+)\/1$/ ) {
-                        $self->_validateone( "mix", "xRes", $1 );
-                    }
-                    else {
-                        $self->set_error(
-                            "BadValue",
-                            field  => "xmp_xRes",
-                            actual => "$xres",
-                            detail => "Should be in format NNN/1"
-                        );
-                    }
+                    my $yres = $self->_findone( "xmp", "yRes" );
+                    if(defined $xres) {
+                        if ( $xres =~ /^(\d+)\/1$/ ) {
+                            $self->_validateone( "mix", "xRes", $1 ) or $validation_ok = 0;
+                        }
+                        else {
+                            $self->set_error(
+                                "BadValue",
+                                field  => "XMP tiff:XResolution",
+                                actual => "$xres",
+                                detail => "Should be in format NNN/1",
+                                remediable => 1,
+                            );
+                            $validation_ok = 0;
+                        }
 
-                    $self->_require_same( "xmp", "xRes", "xmp", "yRes" );
+                        $self->_require_same( "xmp", "xRes", "xmp", "yRes" ) or $validation_ok = 0;
+                    }
 
                 }
 
                 # if we made it here, it's all good?
-                return 1;
+                return $validation_ok;
             },
             detail =>
 'This checks that if the TIFF image has XMP metadata that it is consistent with the baseline TIFF metadata. If not, this can normally be remediated by updating or removing the XMP metadata.'
@@ -290,13 +298,13 @@ sub new {
 
             # finds the TIFF IFD
             tiffMeta => {
-                name => 'JHOVE TIFF metadata',
+                desc => 'JHOVE TIFF metadata',
                 query =>
 "jhove:properties/jhove:property[jhove:name='TIFFMetadata']//jhove:property[jhove:name='IFD']/jhove:values[jhove:property/jhove:values/jhove:value='TIFF']/jhove:property[jhove:name='Entries']/jhove:values",
                 parent => "repInfo"
             },
             mix => {
-                name => 'JHOVE NISO/MIX image metadata',
+                desc => 'JHOVE NISO/MIX image metadata',
                 query =>
 "jhove:property[jhove:name='NisoImageMetadata']/jhove:values/jhove:value/mix:mix",
                 parent => "tiffMeta"
@@ -402,7 +410,7 @@ sub new {
                 },
                 resUnit => {
                     desc       => 'SamplingFrequencyUnit',
-                    remediable => 2,
+                    remediable => 1,
                     query =>
 "mix:ImagingPerformanceAssessment/mix:SpatialMetrics/mix:SamplingFrequencyUnit"
                 },
