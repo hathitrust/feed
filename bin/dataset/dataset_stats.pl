@@ -7,6 +7,9 @@ use warnings;
 use strict;
 use v5.10.1;
 
+use FindBin;
+use lib "$FindBin::Bin/../../lib";
+
 use HTFeed::Config;
 use HTFeed::Dataset::Subset;
 
@@ -35,3 +38,5 @@ foreach my $set (get_config('dataset'=>'full_set'), @subset_list) {
     
     say "$id_list_date\t$id_list_size\t$set";
 }
+
+__END__
