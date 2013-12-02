@@ -1,3 +1,9 @@
 [submodule "metslib"]
 	path = metslib
 	url = /htapps/repos/metslib.git
+[submodule "vendor/plack-lib/lib"]
+	path = vendor/plack-lib/lib
+	url = /htapps/repos/plack-lib.git
+[submodule "vendor/common-lib/lib"]
+	path = vendor/common-lib/lib
+	url = /htapps/repos/mdp-lib.git

@@ -12,6 +12,7 @@ use Data::Dumper;
 use HTFeed::Log {root_logger => 'INFO, html'};
 use HTFeed::Config qw(set_config);
 use HTFeed::TestVolume;
+use HTFeed::VolumeValidator;
 use Log::Log4perl qw(get_logger);
 use File::Temp qw(tempfile);
 use File::Basename qw(basename dirname);
@@ -24,10 +25,14 @@ my $namespace = $q->param('namespace');
 my $packagetype = $q->param('packagetype');
 my $objid = $q->param('objid');
 
-$namespace = 'mdp' unless defined $namespace;
-$packagetype = 'google' unless defined $packagetype;
+$namespace = 'namespace' unless defined $namespace;
+$packagetype = 'singleimage' unless defined $packagetype;
 
 my $suffix;
+
+#use Data::Dumper;
+#print Dumper($q);
+#exit(0);
 
 print <<EOT;
 <html>
@@ -50,7 +55,7 @@ if($upload_filename =~ /(\.jp2|\.tif)$/) {
     $suffix = $1;
 } else {
     print "Only JPEG2000 (.jp2) and TIFF (.tif) files are supported!";
-    exit(1);
+    exit(0);
 }
 
 my ($temp_fh, $temp_filename) = tempfile(SUFFIX => $suffix);
@@ -108,3 +113,5 @@ print <<EOT;
 </body>
 </html>
 EOT
+
+exit 0;
