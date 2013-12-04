@@ -1,13 +1,25 @@
-#!/usr/bin/perl
+#!/usr/bin/env /l/local/bin/plackup
+
+use strict;
+use warnings;
 
 BEGIN {
     $ENV{HTFEED_CONFIG} = '/htapps/aelkiss.babel/feed/etc/config_dev.yaml';
-    print "Content-type: text/html\n\n";
+#     $ENV{DEBUG_LOCAL} = 1;
 }
 
+
+# Permit created directories at 777 and created files at 666.
+umask 0000;
+
 use strict;
-use lib "/htapps/aelkiss.babel/feed/lib";
-use CGI;
+use lib "$ENV{SDRROOT}/mdp-lib/Utils";
+use lib "$ENV{SDRROOT}/feed/lib";
+use Vendors __FILE__;
+use Attribute::Handlers;
+use Plack::Builder;
+use Plack::Builder::Conditionals::Choke;
+use Plack::Handler::CGI;
 use Data::Dumper;
 use HTFeed::Log {root_logger => 'INFO, html'};
 use HTFeed::Config qw(set_config);
@@ -17,101 +29,129 @@ use Log::Log4perl qw(get_logger);
 use File::Temp qw(tempfile);
 use File::Basename qw(basename dirname);
 use HTFeed::XMLNamespaces qw(register_namespaces);
+use IO::String;
 
-my $q = new CGI;
-$CGI::POST_MAX = 1024*1024*16384;
-my $upload_filename = $q->param('file');
-my $namespace = $q->param('namespace');
-my $packagetype = $q->param('packagetype');
-my $objid = $q->param('objid');
+my $app = sub {
+    my $env = shift;
+    my $out_string = "";
+    my $out_fh = IO::String->new($out_string);
+    select($out_fh);
+    my $req = Plack::Request->new($env);
 
-$namespace = 'namespace' unless defined $namespace;
-$packagetype = 'singleimage' unless defined $packagetype;
+    my $namespace = $req->param('namespace');
+    my $packagetype = $req->param('packagetype');
+    my $objid = $req->param('objid');
 
-my $suffix;
+    my $file = $req->uploads->{file};
+    my $upload_filename = $file->basename();
 
-#use Data::Dumper;
-#print Dumper($q);
-#exit(0);
+    $namespace = 'namespace' unless defined $namespace;
+    $packagetype = 'singleimage' unless defined $packagetype;
 
-print <<EOT;
-<html>
-<head>
-<style>
-body {
-  font-family: Trebuchet MS, Helvetica, sans-serif;
-}
-p {
-    font-size: 10pt;
-}
+    my $suffix;
 
-</style>
-</head>
-<body>
-<h3>Validation report for $upload_filename</h3>
+    #use Data::Dumper;
+    #print Dumper($q);
+    #exit(0);
+
+    print <<EOT;
+    <html>
+    <head>
+    <style>
+    body {
+      font-family: Trebuchet MS, Helvetica, sans-serif;
+    }
+    p {
+        font-size: 10pt;
+    }
+
+    </style>
+    </head>
+    <body>
+    <h3>Validation report for $upload_filename</h3>
 EOT
 
-if($upload_filename =~ /(\.jp2|\.tif)$/) {
-    $suffix = $1;
-} else {
-    print "Only JPEG2000 (.jp2) and TIFF (.tif) files are supported!";
-    exit(0);
-}
+    if($upload_filename =~ /(\.jp2|\.tif)$/) {
+        $suffix = $1;
+    } else {
+        print "Only JPEG2000 (.jp2) and TIFF (.tif) files are supported!";
+        exit(0);
+    }
 
-my ($temp_fh, $temp_filename) = tempfile(SUFFIX => $suffix);
+    open(my $temp_fh, "<", $file->path()) or die("Can't open uploaded file: $!");
 
-my $upload_fh = $q->upload('file');
+    # now try to run jhove?!?
 
-while(<$upload_fh>) {
-    print $temp_fh $_;
-}
+    # run validation
+    my $volume;
+    my $dir = dirname($file->path());
+    $volume = HTFeed::TestVolume->new(namespace => $namespace,packagetype => $packagetype,dir=>$dir,objid=>$objid) if (defined $objid);
+    $volume = HTFeed::TestVolume->new(namespace => $namespace,packagetype => $packagetype,dir=>$dir) if (! defined $objid);
 
-close($temp_fh);
-close($upload_fh);
+    my $vol_val = HTFeed::VolumeValidator->new(volume => $volume);
 
-# now try to run jhove?!?
+    $vol_val->run_jhove($volume,$dir,[basename($file->path())], sub {
+            my ($volume,$file,$node) = @_;
 
-# run validation
-my $volume;
-my $dir = dirname($temp_filename);
-$volume = HTFeed::TestVolume->new(namespace => $namespace,packagetype => $packagetype,dir=>$dir,objid=>$objid) if (defined $objid);
-$volume = HTFeed::TestVolume->new(namespace => $namespace,packagetype => $packagetype,dir=>$dir) if (! defined $objid);
+            my $xpc = XML::LibXML::XPathContext->new($node);
+            register_namespaces($xpc);
 
-my $vol_val = HTFeed::VolumeValidator->new(volume => $volume);
+            get_logger()->trace("validating $file");
+            my $mod_val = HTFeed::ModuleValidator->new(
+                xpc => $xpc,
 
-$vol_val->run_jhove($volume,$dir,[basename($temp_filename)], sub {
-        my ($volume,$file,$node) = @_;
+                #node    => $node,
+                volume   => $volume,
+                # use original filename
+                filename => $upload_filename
+            );
+            $mod_val->run();
 
-        my $xpc = XML::LibXML::XPathContext->new($node);
-        register_namespaces($xpc);
+            # check, log success
+            if ( $mod_val->succeeded() ) {
+                print qq(<h4 style="color: #228022">File validation succeeded!</h4>);
+                get_logger()->debug( "File validation succeeded",
+                    file => $file );
+            }
+            else {
+                $vol_val->set_error( "BadFile", file => $file );
+            }
+        });
 
-        get_logger()->trace("validating $file");
-        my $mod_val = HTFeed::ModuleValidator->new(
-            xpc => $xpc,
+    close($temp_fh);
+    unlink($file->path());
 
-            #node    => $node,
-            volume   => $volume,
-            # use original filename
-            filename => $q->param('file')
-        );
-        $mod_val->run();
-
-        # check, log success
-        if ( $mod_val->succeeded() ) {
-            print qq(<h4 style="color: #228022">File validation succeeded!</h4>);
-            get_logger()->debug( "File validation succeeded",
-                file => $file );
-        }
-        else {
-            $vol_val->set_error( "BadFile", file => $file );
-        }
-    });
-
-unlink($temp_filename);
-
-print <<EOT;
-</body>
-</html>
+    print <<EOT;
+    </body>
+    </html>
 EOT
 
-exit 0;
+    close($out_fh);
+    my $res = $req->new_response(200);
+    $res->content_type('text/html');
+    $res->body($out_string);
+    return $res->finalize;
+};
+
+$app = builder {
+
+    enable "PopulateENV", app_name => 'feed';
+
+    enable_if { (Debug::DUtils::under_server() && $ENV{HT_DEV}) } 'StackTrace';
+
+    enable_if { (Debug::DUtils::under_server() && ! $ENV{HT_DEV}) }
+        "HTErrorDocument", 500 => "/mdp-web/production_error.html";
+
+    enable_if { (Debug::DUtils::under_server() && ! $ENV{HT_DEV}) } "HTTPExceptions", rethrow => 0;
+
+    enable 'Choke::Cache::Filesystem';
+
+    # probably do some generous throttling
+    enable
+        'Choke::Requests',
+                credit_rate    => [ 0.5, 'sec' ],
+                max_debt       => [ 50, '+30 sec' ]
+        ;
+
+    $app;
+};
