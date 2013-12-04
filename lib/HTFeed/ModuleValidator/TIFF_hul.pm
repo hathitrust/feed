@@ -291,7 +291,7 @@ sub new {
     my $self = {
         contexts => {
             repInfo => {
-                name   => 'JHOVE',
+                desc   => 'JHOVE',
                 query  => "/jhove:jhove/jhove:repInfo",
                 parent => "root"
             },
