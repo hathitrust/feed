@@ -5,6 +5,7 @@ use strict;
 use Carp;
 use XML::LibXML;
 use Log::Log4perl qw(get_logger);
+use Data::Dumper qw(Dumper);
 
 use base qw(HTFeed::XPathValidator);
 
@@ -87,7 +88,7 @@ sub new {
     my $overrides =
       $object->{volume}->get_nspkg()->get_validation_overrides($class);
     while ( my ( $k, $v ) = each(%$overrides) ) {
-        $object->{validators}{$k} = $v;
+        $object->{validators}{$k}{valid} = $v;
     }
 
     return $object;
@@ -106,6 +107,7 @@ sub _setdatetime {
             "BadValue",
             field  => 'datetime',
             actual => $datetime,
+            remediable => 1,
             expected => 'yyyy-mm-ddThh:mm:ss[+-]hh:mm'
         );
         return 0;
@@ -163,7 +165,8 @@ sub _setdocumentname {
     if( not defined $documentname or $documentname eq '') {
         $self->set_error(
             "MissingField",
-            field => 'documentname'
+            field    => 'DocumentName / dc:source',
+            remediable => 1,
         );
         return 0;
     }
@@ -174,7 +177,8 @@ sub _setdocumentname {
         }
         $self->set_error(
             "NotMatchedValue",
-            field    => 'documentname',
+            field    => 'DocumentName / dc:source',
+            remediable => 1,
             expected => $self->{documentname},
             actual   => $documentname
         );
@@ -194,7 +198,8 @@ sub _setdocumentname {
     unless ( $documentname =~ m|\Q$pattern\E|i ) {
         $self->set_error(
             "BadValue",
-            field    => 'documentname',
+            field    => 'DocumentName / dc:source',
+            remediable => 1,
             expected => $pattern,
             actual   => $documentname
         );
@@ -228,7 +233,7 @@ sub _setupXMPcontext {
         return 0;
     }
     else {
-        $self->_setcontext( name => "xmp", xpc => $xpc );
+        $self->_setcontext( name => "xmp", xpc => $xpc, desc => 'XMP metadata');
         return 1;
     }
 }
@@ -249,6 +254,7 @@ sub set_error {
     if(get_config('stop_on_error')) {
         croak("STAGE_ERROR");
     }
+    
     return 1;
 }
 
@@ -257,16 +263,24 @@ sub run {
     my $self = shift;
 
     while ( my ( $valname, $validator ) = each( %{ $self->{validators} } ) ) {
-        next unless defined $validator;
+        next unless defined $validator->{valid};
         get_logger( ref($self) )->trace(
-            "Running validator $valname",
+            "Validating $validator->{desc}",
             objid     => $self->{volume_id},
             namespace => $self->{volume}->get_namespace(),
             file      => $self->{filename},
             @_
         );
 
-        &{$validator}($self);
+        if(!&{$validator->{valid}}($self)) {
+            get_logger( ref($self) ) ->warn("Validation failed",
+                objid     => $self->{volume_id},
+                namespace => $self->{volume}->get_namespace(),
+                file      => $self->{filename},
+                field     => $validator->{desc},
+                detail    => $validator->{detail},
+            );
+        }
     }
 
     return $self->succeeded();
@@ -287,13 +301,15 @@ sub _compile{
 	my $self = shift;
 	
 	foreach my $key ( keys %{$self->{contexts}} ){
-##		print "compiling $self->{contexts}->{$key}->[0]\n";
-		$self->{contexts}->{$key}->[0] = XML::LibXML::XPathExpression->new($self->{contexts}->{$key}->[0]);
+#		print "compiling $self->{contexts}->{$key}->{query}\n";
+        next unless defined $self->{contexts}->{$key}->{query};
+		$self->{contexts}->{$key}->{query} = XML::LibXML::XPathExpression->new($self->{contexts}->{$key}->{query});
 	}
 	foreach my $ikey ( keys %{$self->{queries}} ){
 		foreach my $jkey ( keys %{$self->{queries}->{$ikey}} ){
-##			print "compiling $self->{queries}->{$ikey}->{$jkey}\n";
-			$self->{queries}->{$ikey}->{$jkey} = XML::LibXML::XPathExpression->new($self->{queries}->{$ikey}->{$jkey});
+#			print "compiling $self->{queries}->{$ikey}->{$jkey}->{query}\n";
+            next unless defined $self->{contexts}->{$ikey}->{$jkey}->{query};
+			$self->{queries}->{$ikey}->{$jkey}->{query} = XML::LibXML::XPathExpression->new($self->{queries}->{$ikey}->{$jkey}->{query});
 		}
 	}
 	return 1;
@@ -303,17 +319,28 @@ sub _compile{
 sub context{
 	my $self = shift;
 	my $key = shift;
-	return $self->{contexts}->{$key}->[0];
+	return $self->{contexts}->{$key}->{query};
 }
 sub context_parent{
 	my $self = shift;
 	my $key = shift;
-	return $self->{contexts}->{$key}->[1];
+	return $self->{contexts}->{$key}->{parent};
+}
+sub context_name {
+    my $self = shift;
+    my $key = shift;
+    return $self->{contexts}->{$key}->{desc};
 }
 sub query{
 	my $self = shift;
 	my $parent = shift;
 	my $key = shift;
+	return $self->{queries}->{$parent}->{$key}->{query};
+}
+sub query_info {
+    my $self = shift;
+    my $parent = shift;
+    my $key = shift;
 	return $self->{queries}->{$parent}->{$key};
 }
 

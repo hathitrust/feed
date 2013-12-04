@@ -12,7 +12,7 @@ BEGIN{
     our $identifier = "namespace";
     our $config = {
         description => "Base class for HathiTrust namespaces",
-        packagetypes => []
+        packagetypes => ['singleimage']
     };
 
 }
