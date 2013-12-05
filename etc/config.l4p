@@ -32,5 +32,11 @@ log4perl.appender.file.mode         = write
 log4perl.appender.file.layout       = HTFeed::Log::Layout::PrettyPrint
 log4perl.appender.file.warp_message = 0
 
+# html (for validator)
+log4perl.appender.html                 = Log::Log4perl::Appender::Screen
+log4perl.appender.html.layout          = HTFeed::Log::Layout::HTML
+log4perl.appender.html.stderr         = 0
+log4perl.appender.html.warp_message    = 0
+
 # general config
 log4perl.oneMessagePerAppender = 1
