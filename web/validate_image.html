@@ -1,0 +1,27 @@
+<html>
+
+    <head>
+        <style>
+            body {
+                font-family: "Trebuchet MS", "Sans-Serif";
+                font-size: 10pt;
+            }
+            img {
+                vertical-align: middle
+            }
+        </style>
+    </head>
+    <body>
+        <h2><img src="http://www.hathitrust.org/sites/www.hathitrust.org/themes/hathitrust_unicorn/unicorn/img/HT-logo.png" />Single Image Validator</h2>
+
+
+        <form method="POST" action="/cgi/feed/validate_image" enctype="multipart/form-data">
+            <p><b> Object ID: </b> <input type="text" id="objid" name="objid"/></p>
+
+            <p><b> File: </b> <input type="file" id="file" name="file" /></p>
+
+            <input type="submit" value="Submit" name="submit"/>
+        </form>
+
+    </body>
+</html>
