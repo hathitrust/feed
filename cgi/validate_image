@@ -107,6 +107,14 @@ EOT
             );
             $mod_val->run();
 
+
+            my $documentname = $mod_val->{documentname};
+            if(defined $documentname and $documentname) {
+                print qq(<p><b>Found DocumentName: '$documentname'.</b> This should be in the format OBJID/$upload_filename where OBJID is the HathiTrust object ID, for example 39015012345678 or ark:/13960/t1a2b3c4d</p>);
+            } 
+            else {
+                print qq(<p><b>DocumentName not found.</b> It should be in the DocumentName TIFF header (for TIFFs) and/or the dc:source XMP tag. It should be in the format OBJID/$upload_filename where OBJID is the HathiTrust object ID, for example 39015012345678 or ark:/13960/t1a2b3c4d</p>);
+            } 
             # check, log success
             if ( $mod_val->succeeded() ) {
                 print qq(<h4 style="color: #228022">File validation succeeded!</h4>);
@@ -115,6 +123,7 @@ EOT
             }
             else {
                 $vol_val->set_error( "BadFile", file => $file );
+                print qq(<h4>Try <a href="http://www.sno.phy.queensu.ca/~phil/exiftool/">ExifTool</a> by Phil Harvey for adding and changing metadata in images!</h4>);
             }
         });
 
