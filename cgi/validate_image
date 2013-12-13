@@ -80,7 +80,7 @@ my $app = sub {
     <h3>Validation report for $upload_filename</h3>
 EOT
 
-     if ( $upload_filename =~ /(\.jp2|\.tiff?)$/ ) {
+     if ( $upload_filename =~ /(\.jp2|\.tif)$/ ) {
          $suffix = $1;
  
          open( my $temp_fh, "<", $file->path() )
