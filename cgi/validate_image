@@ -5,9 +5,9 @@ use warnings;
 
 BEGIN {
     $ENV{HTFEED_CONFIG} = '/htapps/aelkiss.babel/feed/etc/config_dev.yaml';
-#     $ENV{DEBUG_LOCAL} = 1;
-}
 
+    $ENV{DEBUG_LOCAL} = 1;
+}
 
 # Permit created directories at 777 and created files at 666.
 umask 0000;
@@ -21,7 +21,7 @@ use Plack::Builder;
 use Plack::Builder::Conditionals::Choke;
 use Plack::Handler::CGI;
 use Data::Dumper;
-use HTFeed::Log {root_logger => 'INFO, html'};
+use HTFeed::Log { root_logger => 'INFO, html' };
 use HTFeed::Config qw(set_config);
 use HTFeed::TestVolume;
 use HTFeed::VolumeValidator;
@@ -32,20 +32,29 @@ use HTFeed::XMLNamespaces qw(register_namespaces);
 use IO::String;
 
 my $app = sub {
-    my $env = shift;
+    my $env        = shift;
     my $out_string = "";
-    my $out_fh = IO::String->new($out_string);
+    my $out_fh     = IO::String->new($out_string);
     select($out_fh);
     my $req = Plack::Request->new($env);
 
-    my $namespace = $req->param('namespace');
+    my $namespace   = $req->param('namespace');
     my $packagetype = $req->param('packagetype');
-    my $objid = $req->param('objid');
+    my $objid       = $req->param('objid');
 
     my $file = $req->uploads->{file};
+    if(not defined $file ) {
+        my $res = $req->new_response(500);
+        $res->content_type('text/html');
+        $res->body("<h2>No file uploaded</h2>");
+        return $res->finalize;
+    }
+
+
     my $upload_filename = $file->basename();
 
-    $namespace = 'namespace' unless defined $namespace;
+
+    $namespace   = 'namespace'   unless defined $namespace;
     $packagetype = 'singleimage' unless defined $packagetype;
 
     my $suffix;
@@ -71,68 +80,89 @@ my $app = sub {
     <h3>Validation report for $upload_filename</h3>
 EOT
 
-    if($upload_filename =~ /(\.jp2|\.tif)$/) {
-        $suffix = $1;
-    } else {
-        print "Only JPEG2000 (.jp2) and TIFF (.tif) files are supported!";
-        exit(0);
-    }
-
-    open(my $temp_fh, "<", $file->path()) or die("Can't open uploaded file: $!");
-
-    # now try to run jhove?!?
-
-    # run validation
-    my $volume;
-    my $dir = dirname($file->path());
-    $volume = HTFeed::TestVolume->new(namespace => $namespace,packagetype => $packagetype,dir=>$dir,objid=>$objid) if (defined $objid);
-    $volume = HTFeed::TestVolume->new(namespace => $namespace,packagetype => $packagetype,dir=>$dir) if (! defined $objid);
-
-    my $vol_val = HTFeed::VolumeValidator->new(volume => $volume);
-
-    $vol_val->run_jhove($volume,$dir,[basename($file->path())], sub {
-            my ($volume,$file,$node) = @_;
-
-            my $xpc = XML::LibXML::XPathContext->new($node);
-            register_namespaces($xpc);
-
-            get_logger()->trace("validating $file");
-            my $mod_val = HTFeed::ModuleValidator->new(
-                xpc => $xpc,
-
-                #node    => $node,
-                volume   => $volume,
-                # use original filename
-                filename => $upload_filename
-            );
-            $mod_val->run();
-
-
-            my $documentname = $mod_val->{documentname};
-            if(defined $documentname and $documentname) {
-                print qq(<p><b>Found DocumentName: '$documentname'.</b> This should be in the format OBJID/$upload_filename where OBJID is the HathiTrust object ID, for example 39015012345678 or ark:/13960/t1a2b3c4d</p>);
-            } 
-            else {
-                print qq(<p><b>DocumentName not found.</b> It should be in the DocumentName TIFF header (for TIFFs) and/or the dc:source XMP tag. It should be in the format OBJID/$upload_filename where OBJID is the HathiTrust object ID, for example 39015012345678 or ark:/13960/t1a2b3c4d</p>);
-            } 
-            # check, log success
-            if ( $mod_val->succeeded() ) {
-                print qq(<h4 style="color: #228022">File validation succeeded!</h4>);
-                get_logger()->debug( "File validation succeeded",
-                    file => $file );
-            }
-            else {
-                $vol_val->set_error( "BadFile", file => $file );
-                print qq(<h4>Try <a href="http://www.sno.phy.queensu.ca/~phil/exiftool/">ExifTool</a> by Phil Harvey for adding and changing metadata in images!</h4>);
-            }
-        });
-
-    close($temp_fh);
-    unlink($file->path());
-
-    print <<EOT;
-    </body>
-    </html>
+     if ( $upload_filename =~ /(\.jp2|\.tiff?)$/ ) {
+         $suffix = $1;
+ 
+         open( my $temp_fh, "<", $file->path() )
+           or die("Can't open uploaded file: $!");
+ 
+         # now try to run jhove?!?
+ 
+         # run validation
+         my $volume;
+         my $dir = dirname( $file->path() );
+         $volume = HTFeed::TestVolume->new(
+             namespace   => $namespace,
+             packagetype => $packagetype,
+             dir         => $dir,
+             objid       => $objid
+         ) if ( defined $objid );
+         $volume = HTFeed::TestVolume->new(
+             namespace   => $namespace,
+             packagetype => $packagetype,
+             dir         => $dir
+         ) if ( !defined $objid );
+ 
+         my $vol_val = HTFeed::VolumeValidator->new( volume => $volume );
+ 
+         $vol_val->run_jhove(
+             $volume, $dir,
+             [ basename( $file->path() ) ],
+             sub {
+                 my ( $volume, $file, $node ) = @_;
+ 
+                 my $xpc = XML::LibXML::XPathContext->new($node);
+                 register_namespaces($xpc);
+ 
+                 get_logger()->trace("validating $file");
+                 my $mod_val = HTFeed::ModuleValidator->new(
+                     xpc => $xpc,
+ 
+                     #node    => $node,
+                     volume => $volume,
+ 
+                     # use original filename
+                     filename => $upload_filename
+                 );
+                 $mod_val->run();
+ 
+                 my $documentname = $mod_val->{documentname};
+                 if ( defined $documentname and $documentname ) {
+                     print
+ qq(<p><b>Found DocumentName: '$documentname'.</b> This should be in the format OBJID/$upload_filename where OBJID is the HathiTrust object ID, for example 39015012345678 or ark:/13960/t1a2b3c4d</p>);
+                 }
+                 else {
+                     print
+ qq(<p><b>DocumentName not found.</b> It should be in the DocumentName TIFF header (for TIFFs) and/or the dc:source XMP tag. It should be in the format OBJID/$upload_filename where OBJID is the HathiTrust object ID, for example 39015012345678 or ark:/13960/t1a2b3c4d</p>);
+                 }
+ 
+                 # check, log success
+                 if ( $mod_val->succeeded() ) {
+                     print
+ qq(<h4 style="color: #228022">File validation succeeded!</h4>);
+                     get_logger()
+                       ->debug( "File validation succeeded", file => $file );
+                 }
+                 else {
+                     $vol_val->set_error( "BadFile", file => $file );
+                     print
+ qq(<h4>Try <a href="http://www.sno.phy.queensu.ca/~phil/exiftool/">ExifTool</a> by Phil Harvey for adding and changing metadata in images!</h4>);
+                 }
+             }
+         );
+ 
+         close($temp_fh);
+         unlink( $file->path() );
+ 
+     }
+     else {
+         print
+           "<h4>Only JPEG2000 (.jp2) and TIFF (.tif) files are supported!</h4>";
+     }
+ 
+     print <<EOT;
+     </body>
+     </html>
 EOT
 
     close($out_fh);
@@ -146,21 +176,22 @@ $app = builder {
 
     enable "PopulateENV", app_name => 'feed';
 
-    enable_if { (Debug::DUtils::under_server() && $ENV{HT_DEV}) } 'StackTrace';
+    enable_if { ( Debug::DUtils::under_server() && $ENV{HT_DEV} ) }
+    'StackTrace';
 
-    enable_if { (Debug::DUtils::under_server() && ! $ENV{HT_DEV}) }
-        "HTErrorDocument", 500 => "/mdp-web/production_error.html";
+    enable_if { ( Debug::DUtils::under_server() && !$ENV{HT_DEV} ) }
+    "HTErrorDocument", 500 => "/mdp-web/production_error.html";
 
-    enable_if { (Debug::DUtils::under_server() && ! $ENV{HT_DEV}) } "HTTPExceptions", rethrow => 0;
+    enable_if { ( Debug::DUtils::under_server() && !$ENV{HT_DEV} ) }
+    "HTTPExceptions", rethrow => 0;
 
     enable 'Choke::Cache::Filesystem';
 
     # probably do some generous throttling
     enable
-        'Choke::Requests',
-                credit_rate    => [ 0.5, 'sec' ],
-                max_debt       => [ 50, '+30 sec' ]
-        ;
+      'Choke::Requests',
+      credit_rate => [ 0.5, 'sec' ],
+      max_debt    => [ 50,  '+30 sec' ];
 
     $app;
 };
