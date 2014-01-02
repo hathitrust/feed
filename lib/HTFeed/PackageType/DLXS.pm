@@ -66,6 +66,7 @@ our $config = {
 
     # What PREMIS events to include in the source METS file
     source_premis_events => [
+        'note_from_mom',
          'capture',
 #        'file_rename',
 #        'source_md5_fixity',
@@ -85,6 +86,7 @@ our $config = {
         'ocr_normalize',
         'page_md5_create',
         'source_mets_creation',
+        'note_from_mom' ## CHECK -- ARE WE REALLY DOING THIS
     ],
 
     premis_events => [

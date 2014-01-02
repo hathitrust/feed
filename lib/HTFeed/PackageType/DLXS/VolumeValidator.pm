@@ -53,7 +53,6 @@ sub _validate_consistency {
         }
         $prev_sequence_number = $sequence_number;
     }
-    
 
     # Make sure that every jp2 has a corresponding TIFF.
     while ( my ( $sequence_number, $files ) = each( %{$files} ) ) {
@@ -72,18 +71,14 @@ sub _validate_consistency {
 
 sub run {
     my $self = shift;
-
     my $volume = $self->{volume};
-
 
     # Run each enabled stage
     foreach my $stage ( @{$self->{run_stages}} ) {
         if ( exists( $self->{stages}{$stage} ) ) {
             my $sub = $self->{stages}{$stage};
             get_logger()->debug("Running validation stage $stage");
-
             &{$sub}($self);
-
 
         }
         else {
