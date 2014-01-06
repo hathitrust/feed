@@ -24,11 +24,6 @@ our $config = {
             'decomposition_levels' => undef,
         },
 
-        # disable TIFF resolution checks
-        'HTFeed::ModuleValidator::TIFF_hul' => {
-            'resolution' => undef,
-            'resolution_unit' => undef,
-        }
     },
 
 

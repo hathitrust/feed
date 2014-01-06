@@ -28,22 +28,22 @@ sub _set_required_querylib {
 sub _set_validators {
     my $self = shift;
     $self->{validators} = {
-        'format'    => v_eq( 'repInfo', 'format',   'WAVE' ),
-        'status'    => v_eq( 'repInfo', 'status',   'Well-Formed and valid' ),
-        'module'    => v_eq( 'repInfo', 'module',   'WAVE-hul' ),
-        'mime_type' => v_eq( 'repInfo', 'mimeType', 'audio/x-wave' ),
-        'profile1'  => v_eq( 'repInfo', 'profile1', 'PCMWAVEFORMAT' ),
-        'profile2'  => v_in(
+        'format'    => { desc => 'Baseline WAVE format', detail => '', valid => v_eq( 'repInfo', 'format',   'WAVE' ) },
+        'status'    => { desc => 'JHOVE status', detail => '', valid => v_eq( 'repInfo', 'status',   'Well-Formed and valid' ) },
+        'module'    => { desc => 'JHOVE reporting module', detail => '', valid => v_eq( 'repInfo', 'module',   'WAVE-hul' ) },
+        'mime_type' => { desc => 'MIME type', detail => '', valid => v_eq( 'repInfo', 'mimeType', 'audio/x-wave' ) },
+        'profile1'  => { desc => 'WAVE profile', detail => '', valid => v_eq( 'repInfo', 'profile1', 'PCMWAVEFORMAT' ) },
+        'profile2'  => { desc => 'WAVE profile (broadcast wave)', detail => '', valid => v_in(
             'repInfo', 'profile2',
             [ 'Broadcast Wave Version 0', 'Broadcast Wave Version 1' ]
-        ),
-        'codingHistory' => v_exists( 'waveMeta', 'codingHistory' ),
-        'description'   => v_exists( 'waveMeta', 'description' ),
-        'originator'    => v_in(
+        ) },
+        'codingHistory' => { desc => 'WAVE Coding History', detail => '', valid => v_exists( 'waveMeta', 'codingHistory' ) },
+        'description'   => { desc => 'WAVE Description', detail => '', valid => v_exists( 'waveMeta', 'description' ) },
+        'originator'    => { desc => 'WAVE originator', detail => '', valid => v_in(
             'waveMeta', 'originator',
             [ 'University of Michigan', 'University of Michigan Library' ]
-        ),
-        'originationDate' => sub {
+        ) },
+        'originationDate' => { desc => 'WAVE origination date', detail => '', valid => sub {
             my $self = shift;
             my $date = $self->_findone( "waveMeta", "originationDate" );
             if ( $date =~
@@ -56,15 +56,15 @@ m!^(19|20)\d\d[: /.](0[1-9]|1[012])[: /.](0[1-9]|[12][0-9]|3[01])!
                     actual => $date
                 );
             }
-        },
-        'sampleRate'        => v_exists( 'aes', 'sampleRate' ),
-        'audioDataEncoding' => v_exists( 'aes', 'audioDataEncoding' ),
-        'byteOrder'         => v_exists( 'aes', 'byteOrder' ),
-        'numChannels'       => v_exists( 'aes', 'numChannels' ),
-        'analogDigitalFlag' => v_exists( 'aes', 'analogDigitalFlag' ),
-        'primaryID'         => v_exists( 'aes', 'primaryID' ),
-        'bitDepth'          => v_exists( 'aes', 'bitDepth' ),
-        'useType'           => v_exists( 'aes', 'useType' ),
+        } },
+        'sampleRate'        => { desc => 'AES sample rate', detail => '', valid => v_exists( 'aes', 'sampleRate' ) },
+        'audioDataEncoding' => { desc => 'AES audio data encoding', detail => '', valid => v_exists( 'aes', 'audioDataEncoding' ) },
+        'byteOrder'         => { desc => 'AES byte order', detail => '', valid => v_exists( 'aes', 'byteOrder' ) },
+        'numChannels'       => { desc => 'AES number of channels', detail => '', valid => v_exists( 'aes', 'numChannels' ) },
+        'analogDigitalFlag' => { desc => 'AES analog/digital flag', detail => '', valid => v_exists( 'aes', 'analogDigitalFlag' ) },
+        'primaryID'         => { desc => 'AES primary ID', detail => '', valid => v_exists( 'aes', 'primaryID' ) },
+        'bitDepth'          => { desc => 'AES bit depth', detail => '', valid => v_exists( 'aes', 'bitDepth' ) },
+        'useType'           => { desc => 'AES use type', detail => '', valid => v_exists( 'aes', 'useType' ) },
     };
 }
 
@@ -114,7 +114,7 @@ sub new {
             },
             aes => {
                 desc  => '',
-                query => query =>
+                query => 
 "jhove:property[jhove:name='AESAudioMetadata']/jhove:values/jhove:value/aes:audioObject",
                 parent => "waveMeta"
             },
@@ -165,7 +165,7 @@ sub new {
                     desc       => '',
                     remediable => 0,
                     query =>
-"jhove:property/jhove:values/jhove:property[jhove:name='OriginationDate']"
+"jhove:property/jhove:values/jhove:property[jhove:name='OriginationDate']/jhove:values/jhove:value"
                 },
                 codingHistory => {
                     desc       => '',

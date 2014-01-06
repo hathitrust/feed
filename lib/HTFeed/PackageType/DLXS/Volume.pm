@@ -200,7 +200,7 @@ sub get_page_data {
     (my $seqnum) = ($file =~ /(\d+)\./);
     croak("Can't extract sequence number from file $file") unless $seqnum;
 
-    if(not defined $self->{'page_data'}) {
+    if(not defined $self->{'page_data'} ) {
         $self->record_premis_event('page_feature_mapping');
         my $pagedata = {};
 
@@ -282,23 +282,6 @@ sub get_loadcd_info {
     }
 }
 
-# return true if we should do particular validation checks - false if we're
-# using the 'note from mom' for that check or disabling validation for this volume
-sub should_check_validator {
-    my $self = shift;
-
-    my $validator = shift;
-
-    # TODO: handle note from mom
-    
-    my @skip_validation = @{$self->get_nspkg()->get('skip_validation')};
-
-    if(grep {$_ eq $validator} @skip_validation) {
-        return 0;
-    } else {
-        return 1;
-    }
-}
 
 
 1;

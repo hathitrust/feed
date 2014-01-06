@@ -7,21 +7,51 @@
                 font-size: 10pt;
             }
             img {
-                vertical-align: middle
+                vertical-align: middle;
+            }
+            h2 {
+                margin-bottom: 1.5em;
             }
         </style>
     </head>
     <body>
-        <h2><img src="http://www.hathitrust.org/sites/www.hathitrust.org/themes/hathitrust_unicorn/unicorn/img/HT-logo.png" />Single Image Validator</h2>
+        <div style="margin: 50px auto auto auto; width: 500px">
+            <h2><img style="margin-right: 2em" src="http://www.hathitrust.org/sites/www.hathitrust.org/themes/hathitrust_unicorn/unicorn/img/HT-logo.png" />Single Image Validator</h2>
+
+            <hr />
+
+            <p>This validator checks whether a single TIFF or JPEG2000 image meets
+            HathiTrust specifications.</p>
+
+            <p> It will also report whether any missing metadata or incorrect
+            technical characteristics may be remediable or whether the image must
+            be rescanned or regenerated from a master image.</p>
+
+            <p> We recommend <a
+                href="http://www.sno.phy.queensu.ca/~phil/exiftool/">ExifTool</a>
+            by Phil Harvey for changing metadata in images, <a>ImageMagick</a> for
+            repairing TIFF images, and <a
+                href="http://www.kakadusoftware.com/">Kakadu</a> (commercial
+            software; demo for noncommercial purposes available) for generating
+            JPEG2000 images.</p>
+
+            <p>For more information about HathiTrust specifications and ingest,
+            see: <a href="http://www.hathitrust.org/ingest">Getting Content Into
+                HathiTrust</a>.</p>
+
+            <hr />
+
+            <form method="POST" action="/cgi/feed/validate_image" enctype="multipart/form-data">
+                <p><b> Upload a file to validate: </b> 
+                <input type="file" id="file" name="file" />
+                <input type="submit" value="Submit" name="submit"/>
+                </p>
 
 
-        <form method="POST" action="/cgi/feed/validate_image" enctype="multipart/form-data">
-            <p><b> Object ID: </b> <input type="text" id="objid" name="objid"/></p>
+            </form>
 
-            <p><b> File: </b> <input type="file" id="file" name="file" /></p>
+            <hr />
 
-            <input type="submit" value="Submit" name="submit"/>
-        </form>
-
+        </div>
     </body>
 </html>

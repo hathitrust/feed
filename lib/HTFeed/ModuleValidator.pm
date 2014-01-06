@@ -86,7 +86,7 @@ sub new {
     $object->_set_validators();
 
     my $overrides =
-      $object->{volume}->get_nspkg()->get_validation_overrides($class);
+      $object->{volume}->get_validation_overrides($class);
     while ( my ( $k, $v ) = each(%$overrides) ) {
         $object->{validators}{$k}{valid} = $v;
     }
