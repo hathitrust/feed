@@ -5,6 +5,7 @@ use strict;
 use Carp;
 use Log::Log4perl qw(get_logger);
 use HTFeed::XMLNamespaces qw(register_namespaces);
+use HTFeed::XPathValidator qw(:closures);
 use HTFeed::Namespace;
 use HTFeed::FileGroup;
 use XML::LibXML;
@@ -218,6 +219,54 @@ sub get_source_mets_xpc {
     }
     return $self->{source_mets_xpc};
 
+}
+
+# merges per-volume validation overrides (from note from mom) with
+# package type validation overrides
+sub get_validation_overrides {
+    my $self = shift;
+    my $module = shift;
+
+    my $overrides = $self->get_nspkg()->get_validation_overrides($module);
+
+    # if there is a 'note from mom' for TIFF resolution, just check that
+    # they are present and equal
+    if($module eq 'HTFeed::ModuleValidator::TIFF_hul' and
+        !$self->should_check_validator('tiff_resolution')) {
+        $overrides->{resolution} = v_same('mix','xRes','mix','yRes');
+    }
+
+    return $overrides;
+}
+
+# return true if we should do particular validation checks - false if we're
+# using the 'note from mom' for that check or disabling validation for this volume
+sub should_check_validator {
+    my $self = shift;
+
+    my $validator = shift;
+
+    my @skip_validation = @{$self->get_nspkg()->get('skip_validation')};
+    # get exceptions from 'note from mom' PREMIS event
+    if(not defined $self->{note_from_mom} and 
+        defined $self->get_source_mets_file()) {
+        $self->{note_from_mom} = [];
+        my $src_mets_xpc = $self->get_source_mets_xpc();
+        foreach my $exception_node ($src_mets_xpc->findnodes('//premis:event[premis:eventType="manual inspection"]//ht:exceptionsAllowed/@category')) {
+            push(@{$self->{note_from_mom}},$exception_node->getValue());
+        }
+    }
+
+    if(defined $self->{note_from_mom}) {
+        push(@skip_validation,@{$self->{note_from_mom}});
+    }
+
+
+    if(grep {$_ eq $validator} @skip_validation) {
+        return 0;
+    } else {
+        return 1;
+    }
 }
 
 # Returns an XML::LibXML::XPathContext with namespaces set up
