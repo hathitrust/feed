@@ -91,7 +91,11 @@ BEGIN {
         migrate_events => {},
 
         # use kdu_munge when remediating JPEG2000 images
-        use_kdu_munge => 1
+        use_kdu_munge => 1,
+
+        # do not skip any validation by default
+        skip_validation => [],
+        skip_validation_note => ''
 
     };
 }
