@@ -39,9 +39,39 @@ sub _add_capture_event {
     my $eventconfig = $volume->get_nspkg()->get_event_configuration($eventcode);
     $eventconfig->{'eventid'} = $volume->make_premis_uuid($eventconfig->{'type'},$capture_date);
     $eventconfig->{'executor'} = $volume->get_meta('capture_agent');
+    $self->set_error('MissingValue',file=>'meta.yml',field=>'capture_agent') unless defined $eventconfig->{'executor'};
     $eventconfig->{'executor_type'} = 'MARC21 Code';
-    $eventconfig->{'date'} = $volume->get_meta('capture_date');
-    my $event = $self->add_premis_event($eventconfig);
+    $eventconfig->{'date'} = $capture_date;
+    my $capture_event = $self->add_premis_event($eventconfig);
+
+    # also add image compression event if info present in meta.yml
+    my $image_compression_date = $volume->get_meta('image_compression_date');
+    my $image_compression_agent = $volume->get_meta('image_compression_agent');
+    my $image_compression_tool = $volume->get_meta('image_compression_tool');
+    if(defined $image_compression_date or defined $image_compression_agent or defined $image_compression_tool) {
+        $self->set_error('MissingValue',file=>'meta.yml',field=>'image_compression_date') unless defined $image_compression_date;
+        $self->set_error('MissingValue',file=>'meta.yml',field=>'image_compression_agent') unless defined $image_compression_agent;
+        $self->set_error('MissingValue',file=>'meta.yml',field=>'image_compression_tool') unless defined $image_compression_tool;
+
+        $eventconfig = $volume->get_nspkg()->get_event_configuration('image_compression');
+        $eventconfig->{'eventid'} = $volume->make_premis_uuid($eventconfig->{'type'},$image_compression_date);
+        $eventconfig->{'executor'} = $image_compression_agent;
+        $eventconfig->{'executor_type'} = 'MARC21 Code';
+        $eventconfig->{'date'} = $image_compression_date;
+
+        # make sure image compression tool is an array
+        if(!ref($image_compression_tool) ) {
+            $image_compression_tool = [$image_compression_tool];
+        }
+        if(ref($image_compression_tool) ne 'ARRAY') {
+            $self->set_error('BadValue',file=>'meta.yml',field=>'image_compression_tool',expected=>'string or array',actual=>$image_compression_tool);
+        }
+        $eventconfig->{tools} = $image_compression_tool;
+        
+        $self->add_premis_event($eventconfig);
+    }
+
+    return $capture_event;
 }
 
 sub _add_dmdsecs {
