@@ -159,10 +159,45 @@ sub get_all_content_files {
     return $self->{content_files};
 }
 
+# by default get checksums from source METS
 sub get_checksums {
+    return get_checksum_mets();
+}
+
+# get checksums from checksum.md5 (call in subclasses)
+sub get_checksum_md5 {
+	my $self = shift;
+    my $path = shift;
+    $path = $self->get_staging_directory() if not defined $path;
+
+	if (not defined $self->{checksums_file} ){
+        my $checksum_file = $self->get_nspkg()->get('checksum_file');
+        my $checksum_path = "$path/$checksum_file";
+
+        my $checksum;
+        my $filename;
+
+		my $checksums = {};
+
+		open(FILE, $checksum_path) or die $!;		
+		foreach my $line(<FILE>) {
+			$line =~ /(\w+)(\s+)(\w+\.\w{3})/;
+			$checksum = $1;
+			$filename = $3;
+			$checksums->{$filename} = $checksum;
+		}	
+		$self->{checksums_file} = $checksums;
+        close(FILE);
+	}
+    return $self->{checksums_file};
+
+}
+
+
+sub get_checksum_mets {
     my $self = shift;
 
-    if ( not defined $self->{checksums} ) {
+    if ( not defined $self->{checksums_mets} ) {
 
         my $checksums = {};
         # try to extract from source METS
@@ -174,10 +209,10 @@ sub get_checksums {
             $checksums->{$filename} = $checksum;
         }
 
-        $self->{checksums} = $checksums;
+        $self->{checksums_mets} = $checksums;
     }
 
-    return $self->{checksums};
+    return $self->{checksums_mets};
 }
 
 # override in Volume subclass to fetch checksums from a different METS file

@@ -256,6 +256,8 @@ sub _remediate_tiff {
 
     }
 
+    # TODO: bail and convert to JPEG2000 if it is a contone
+
     my $ret = !$bad;
 
     if($remediate_imagemagick and !$bad) {
@@ -569,6 +571,76 @@ sub remediate_tiffs {
                 $force_headers,
                 $set_if_undefined_headers);
         },"-m TIFF-hul");
+}
+
+sub convert_tiff_to_jpeg2000 {
+    my $self = shift;
+    my $volume = $self->{volume};
+    my $staging_dir = $volume->get_staging_directory();
+    my $seq = shift;
+
+    my $infile = "$seq.tif";
+    my $outfile = "$seq.jp2";
+    my ($field,$val);
+
+    # first read old fields; we need the length to set levels properly
+    $self->{oldFields} = $self->get_exiftool_fields($infile);
+
+    # From Roger:
+    #
+    # $levels would be derived from the largest dimension; minimum is 5.
+    #
+    # - 0     < x <= 6400  : nlev=5
+    # - 6400  < x <= 12800 : nlev=6
+    # - 12800 < x <= 25600 : nlev=7
+    my $maxdim = max($self->{oldFields}->{'IFD0:ImageWidth'},
+        $self->{oldFields}->{'IFD0:ImageHeight'});
+    my $levels = max(5,ceil(log($maxdim/100)/log(2)) - 1);
+
+    # try to compress the TIFF -> JPEG2000
+    get_logger()->info("Compressing $infile to $outfile");
+    my $kdu_compress = get_config('kdu_compress');
+
+    # Settings for kdu_compress recommended from Roger Espinosa. "-slope"
+    # is a VBR compression mode; the value of 42988 corresponds to pre-6.4
+    # slope of 51180, the current (as of 5/6/2011) recommended setting for
+    # Google digifeeds.
+    #
+    # 43300 corresponds to the old recommendation of 51492 for general material.
+
+    system(qq($kdu_compress -quiet -i '$infile' -o '$staging_dir/$outfile' Clevels=$levels Clayers=8 Corder=RLCP Cuse_sop=yes Cuse_eph=yes "Cmodes=RESET|RESTART|CAUSAL|ERTERM|SEGMARK" -no_weights -slope 42988))
+#        system(qq($kdu_compress -quiet -i '$infile' -o '$staging_dir/$outfile' Clevels=$levels Clayers=8 Corder=RLCP Cuse_sop=yes Cuse_eph=yes "Cmodes=RESET|RESTART|CAUSAL|ERTERM|SEGMARK" -no_weights -slope 43300))
+
+        and $self->set_error("OperationFailed",
+        operation=>"kdu_compress",
+        file=>$infile,
+        detail=>"kdu_compress returned $?");
+
+    # then set new metadata fields
+    foreach $field  ( qw(ImageWidth ImageHeight BitsPerSample 
+        PhotometricInterpretation Orientation 
+        SamplesPerPixel XResolution YResolution 
+        ResolutionUnit Artist Make Model) ) {
+        $self->copy_old_to_new("IFD0:$field","XMP-tiff:$field");
+    }
+
+    $self->copy_old_to_new("IFD0:ModifyDate","XMP-tiff:DateTime");
+    $self->set_new_if_undefined("XMP-dc:source","$staging_dir/$outfile");
+    $self->set_new_if_undefined("XMP-tiff:Compression","JPEG 2000");
+
+# FIXME: set make, model, artist from meta.yml
+#    $self->set_new_if_undefined("XMP-tiff:Artist","Universidad Complutense de Madrid");
+    $self->set_new_if_undefined("XMP-tiff:Orientation","normal");
+
+    my $exifTool = new Image::ExifTool;
+    while ( ( $field, $val ) = each(%{$self->{newFields}}) ) {
+        my ( $success, $errStr ) = $exifTool->SetNewValue( $field, $val );
+        if ( defined $errStr ) {
+            croak("Error setting new tag $field => $val: $errStr\n");
+        }
+    }
+
+    $self->update_tags($exifTool,"$staging_dir/$outfile");
 }
 
 1;
