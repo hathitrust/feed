@@ -3,6 +3,7 @@ package HTFeed::PackageType::Simple;
 use warnings;
 use strict;
 use base qw(HTFeed::PackageType);
+use HTFeed::XPathValidator qw(:closures);
 
 our $identifier = 'simple';
 
@@ -115,6 +116,13 @@ our $config = {
         'ingestion',
         'premis_migration', #optional
     ],
+
+    # we are creating the JPEG2000 images here, so NumberOfLayers should be 8
+    validation => {
+      'HTFeed::ModuleValidator::JPEG2000_hul' => {
+          'layers' => v_eq( 'codingStyleDefault', 'layers', '8' ),
+      }
+    },
 
     SIP_filename_pattern => '%s.zip',
 #    SIP_filename_pattern => '',
