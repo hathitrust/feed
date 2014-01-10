@@ -591,8 +591,31 @@ sub get_zip_filename {
     return "$pt_objid.zip";
 }
 
+# get page data from source METS by default
 sub get_page_data {
-    return undef;
+    my $self = shift;
+    my $file = shift;
+
+    (my $seqnum) = ($file =~ /(\d+)\./);
+    croak("Can't extract sequence number from file $file") unless $seqnum;
+
+    if(not defined $self->{'page_data'} ) {
+        my $pagedata = {};
+
+        my $xc = $self->get_source_mets_xpc();
+        foreach my $page ($xc->findnodes('//METS:structMap/METS:div/METS:div')) {
+            my $order = sprintf("%08d",$page->getAttribute('ORDER'));
+            my $detected_pagenum = $page->getAttribute('ORDERLABEL');
+            my $tag = $page->getAttribute('LABEL');
+            $pagedata->{$order} = {
+                orderlabel => $detected_pagenum,
+                label => $tag
+            }
+        }
+        $self->{page_data} = $pagedata;
+    }
+
+    return $self->{page_data}{$seqnum};
 }
 
 sub get_mets_path {
