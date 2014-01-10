@@ -42,11 +42,12 @@ our $config = {
             jhove => 1,
             utf8 => 0
         },
+        # FIXME -- should configure at submission level
         ocr => { 
             prefix => 'TXT',
             use => 'ocr',
             file_pattern => qr/\d{8}\.txt$/,
-            required => 1,
+            required => 0,
             content => 1,
             jhove => 0,
             utf8 => 1
@@ -118,10 +119,15 @@ our $config = {
     ],
 
     # we are creating the JPEG2000 images here, so NumberOfLayers should be 8
+    # Validation 
     validation => {
-      'HTFeed::ModuleValidator::JPEG2000_hul' => {
-          'layers' => v_eq( 'codingStyleDefault', 'layers', '8' ),
-      }
+        'HTFeed::ModuleValidator::JPEG2000_hul' => {
+            'camera' => undef,
+            'layers' => v_eq( 'codingStyleDefault', 'layers', '8' ),
+        },
+        'HTFeed::ModuleValidator::TIFF_hul' => {
+            'camera' => undef,
+        }
     },
 
     SIP_filename_pattern => '%s.zip',
