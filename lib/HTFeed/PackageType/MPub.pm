@@ -66,7 +66,9 @@ our $config = {
 		fetched		=> 'HTFeed::PackageType::MPub::SourceMETS',
         src_metsed	=> 'HTFeed::VolumeValidator',
 		validated	=> 'HTFeed::Stage::Pack',
-        packed		=> 'HTFeed::Stage::Done',
+        packed      => 'HTFeed::METS',
+        metsed      => 'HTFeed::Stage::Handle',
+        handled     => 'HTFeed::Stage::Collate',
 	},
 
     # What PREMIS events to include (by internal PREMIS identifier, 
