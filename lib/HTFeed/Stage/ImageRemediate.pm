@@ -254,6 +254,19 @@ sub _remediate_tiff {
 
     }
 
+ # ModifyDate, if given
+    if(defined $set_if_undefined_headers->{'DateTime'}) {
+        $set_if_undefined_headers->{'IFD0:ModifyDate'} = $set_if_undefined_headers->{'DateTime'};
+        $set_if_undefined_headers->{'XMP-tiff:DateTime'} = $set_if_undefined_headers->{'DateTime'} if defined $self->{oldFields}{'XMP:XMP'};
+        delete $set_if_undefined_headers->{'DateTime'};
+    }
+    if(defined $self->{newFields}{'DateTime'}) {
+        $self->{newFields}{'IFD0:ModifyDate'} = $self->{newFields}{'DateTime'};
+        $self->{newFields}{'XMP-tiff:DateTime'} = $self->{newFields}{'DateTime'} if defined $self->{oldFields}{'XMP:XMP'};
+        delete $self->{newFields}{'DateTime'};
+    }
+
+
  # get existing DateTime field, normalize to TIFF 6.0 spec "YYYY:MM:DD HH:MM:SS"
     my $datetime = $self->{oldFields}{'IFD0:ModifyDate'};
     if (    defined $datetime
@@ -282,6 +295,15 @@ sub _remediate_tiff {
         $self->{newFields}{'IFD0:ModifyDate'} =
           $set_if_undefined_headers->{'IFD0:ModifyDate'};
         $remediate_exiftool = 1;
+    }
+
+    # Fix resolution, if needed
+    my $force_res = $self->{force_headers}{'Resolution'};
+    if(defined($force_res)) {
+        $self->{newFields}{'IFD0:ResolutionUnit'} = 'inch';
+        $self->{newFields}{'IFD0:XResolution'} = $force_res;
+        $self->{newFields}{'IFD0:XResolution'} = $force_res;
+        delete $self->{newFields}{Resolution};
     }
 
 # Prevalidate other fields -- don't bother checking unless there is not some other error
@@ -318,6 +340,8 @@ sub _remediate_tiff {
 
     }
 
+
+
     my $ret = !$bad;
 
     if ( $remediate_imagemagick and !$bad ) {
@@ -332,6 +356,34 @@ sub _remediate_tiff {
     while ( my ( $field, $val ) = each(%$set_if_undefined_headers) ) {
         $self->set_new_if_undefined( $field, $val );
     }
+
+    # Fix the XMP, if needed
+    if(defined($self->{oldFields}{'XMP:XMP'})) {
+        # force required fields
+        $self->{newFields}{'XMP-tiff:BitsPerSample'} = 1;
+        $self->{newFields}{'XMP-tiff:Compression'} = 'T6/Group 4 Fax';
+        $self->{newFields}{'XMP-tiff:PhotometricInterpretation'} = 'WhiteIsZero';
+        $self->{newFields}{'XMP-tiff:Orientation'} = 'Horizontal (normal)';
+        $self->{newFields}{'XMP-tiff:SamplesPerPixel'} = 1;
+        $self->{newFields}{'XMP-tiff:ResolutionUnit'} = 1;
+
+        # copy other fields; use new value if it was provided
+        foreach my $field (qw(ResolutionUnit ImageHeight ImageWidth Artist XResolution YResolution)) {
+            if(defined $self->{newFields}{"IFD0:$field"}) {
+                $self->{newFields}{"XMP-tiff:$field"} = $self->{newFields}{"IFD0:$field"};
+            } else {
+                $self->{newFields}{"XMP-tiff:$field"} = $self->{oldFields}{"IFD0:$field"};
+            }
+        }
+
+        if(defined $self->{newFields}{"IFD0:DocumentName"}) {
+            $self->{newFields}{"XMP-dc:source"} = $self->{newFields}{"IFD0:DocumentName"};
+        } else {
+            $self->{newFields}{"XMP-dc:source"} = $self->{oldFields}{"IFD0:DocumentName"};
+        }
+
+    }
+
     $ret = $ret
       && $self->repair_tiff_exiftool( $infile, $outfile, $self->{newFields} );
 

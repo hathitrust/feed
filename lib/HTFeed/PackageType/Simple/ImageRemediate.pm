@@ -12,7 +12,8 @@ use File::Copy qw(move);
 use Carp;
 
 my %tiff_field_map = (
-    capture_date => 'IFD0:ModifyDate',
+    # will be automatically reformatted for IFD0:ModifyDate and XMP-tiff:DateTime
+    capture_date => 'DateTime', 
     scanner_user => 'IFD0:Artist',
     scanner_make => 'IFD0:Make',
     scanner_model => 'IFD0:Model',
