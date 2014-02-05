@@ -110,6 +110,11 @@ EOT
              [ basename( $file->path() ) ],
              sub {
                  my ( $volume, $file, $node ) = @_;
+
+                 if(not defined $node) {
+                     print qq(<p><b><a href="http://sourceforge.net/projects/jhove/">JHOVE</a> was not able to produce a validation report for your image. Most likely it is corrupted and will need to be rescanned or regenerated from a master image.</b></p>);
+                     return;
+                 }
  
                  my $xpc = XML::LibXML::XPathContext->new($node);
                  register_namespaces($xpc);
@@ -124,16 +129,22 @@ EOT
                      # use original filename
                      filename => $upload_filename
                  );
-                 $mod_val->run();
- 
-                 my $documentname = $mod_val->{documentname};
-                 if ( defined $documentname and $documentname ) {
-                     print
- qq(<p><b>Found DocumentName: '$documentname'.</b> This should be in the format OBJID/$upload_filename where OBJID is the HathiTrust object ID, for example 39015012345678 or ark:/13960/t1a2b3c4d</p>);
-                 }
-                 else {
-                     print
- qq(<p><b>DocumentName not found.</b> It should be in the DocumentName TIFF header (for TIFFs) and/or the dc:source XMP tag. It should be in the format OBJID/$upload_filename where OBJID is the HathiTrust object ID, for example 39015012345678 or ark:/13960/t1a2b3c4d</p>);
+                 eval {
+                     $mod_val->run();
+     
+                     my $documentname = $mod_val->{documentname};
+                     if ( defined $documentname and $documentname ) {
+                         print
+     qq(<p><b>Found DocumentName: '$documentname'.</b> This should be in the format OBJID/$upload_filename where OBJID is the HathiTrust object ID, for example 39015012345678 or ark:/13960/t1a2b3c4d</p>);
+                     }
+                     else {
+                         print
+     qq(<p><b>DocumentName not found.</b> It should be in the DocumentName TIFF header (for TIFFs) and/or the dc:source XMP tag. It should be in the format OBJID/$upload_filename where OBJID is the HathiTrust object ID, for example 39015012345678 or ark:/13960/t1a2b3c4d</p>);
+                     }
+                 };
+
+                 if($@) {
+                     print qq(<p><b><a href="http://sourceforge.net/projects/jhove/">JHOVE</a> was not able to produce a validation report for your image. Most likely it is corrupted and will need to be rescanned or regenerated from a master image.</b></p>);
                  }
  
                  # check, log success
