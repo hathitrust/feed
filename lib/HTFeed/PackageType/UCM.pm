@@ -90,6 +90,7 @@ our $config = {
               v_ge( 'xmp', 'xRes', 300 ), # should work even though resolution is specified as NNN/1
               v_same( 'xmp', 'xRes', 'xmp', 'yRes' )
           ),
+          'camera' => undef,
       }
     },
 

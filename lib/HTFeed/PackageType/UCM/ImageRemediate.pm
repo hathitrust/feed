@@ -4,7 +4,7 @@ use warnings;
 use strict;
 use base qw(HTFeed::Stage::ImageRemediate);
 use List::Util qw(max min);
-use POSIX qw(ceil);
+use POSIX qw(ceil strftime);
 use HTFeed::Config qw(get_config);
 use Log::Log4perl qw(get_logger);
 use Carp;
@@ -100,6 +100,9 @@ sub run{
         $self->set_new_if_undefined("XMP-tiff:Compression","JPEG 2000");
         $self->set_new_if_undefined("XMP-tiff:Artist","Universidad Complutense de Madrid");
         $self->set_new_if_undefined("XMP-tiff:Orientation","normal");
+        # set DateTime from file modify date if missing
+        $self->set_new_if_undefined("XMP-tiff:DateTime",strftime("%Y:%m:%d %H:%M:%S", localtime((stat($infile))[9])));
+
 
         my $exifTool = new Image::ExifTool;
         while ( ( $field, $val ) = each(%{$self->{newFields}}) ) {
