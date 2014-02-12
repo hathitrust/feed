@@ -161,7 +161,8 @@ sub get_all_content_files {
 
 # by default get checksums from source METS
 sub get_checksums {
-    return get_checksum_mets();
+    my $self = shift;
+    return $self->get_checksum_mets();
 }
 
 # get checksums from checksum.md5 (call in subclasses)
