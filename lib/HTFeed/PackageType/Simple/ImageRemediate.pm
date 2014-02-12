@@ -6,6 +6,7 @@ use base qw(HTFeed::Stage::ImageRemediate);
 use List::Util qw(max min);
 use POSIX qw(ceil);
 use HTFeed::Config qw(get_config);
+use HTFeed::Stage::Fetch;
 use Log::Log4perl qw(get_logger);
 use File::Basename qw(basename);
 use File::Copy qw(move);
@@ -78,10 +79,12 @@ sub run{
 
     $volume->record_premis_event('image_header_modification');
 
-    # move files that do not need remediation
+    # remove newlines & move OCR
+    my $fetch = HTFeed::Stage::Fetch->new(volume => $volume);
     foreach my $file (glob("$preingest_dir/[0-9]*{txt,html,xml}")) {
         move($file,$staging_dir);
     }
+    $fetch->fix_line_endings(get_config('staging'=>'ingest'));
 
 
     $self->_set_done();
