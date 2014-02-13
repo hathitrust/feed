@@ -97,11 +97,12 @@ sub run{
 
         $self->copy_old_to_new("IFD0:ModifyDate","XMP-tiff:DateTime");
         $self->set_new_if_undefined("XMP-dc:source","$staging_dir/$outfile");
-        $self->set_new_if_undefined("XMP-tiff:Compression","JPEG 2000");
         $self->set_new_if_undefined("XMP-tiff:Artist","Universidad Complutense de Madrid");
-        $self->set_new_if_undefined("XMP-tiff:Orientation","normal");
         # set DateTime from file modify date if missing
-        $self->set_new_if_undefined("XMP-tiff:DateTime",strftime("%Y:%m:%d %H:%M:%S", localtime((stat($infile))[9])));
+        $self->set_new_if_undefined("XMP-tiff:DateTime",strftime("%Y:%m:%d %H:%M:%SZ", gmtime((stat($infile))[9])));
+        # force it!
+        $self->{newFields}{"XMP-tiff:Orientation"} = "normal";
+        $self->{newFields}{"XMP-tiff:Compression"} = "JPEG 2000";
 
 
         my $exifTool = new Image::ExifTool;
