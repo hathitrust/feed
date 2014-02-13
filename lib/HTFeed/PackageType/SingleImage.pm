@@ -57,7 +57,9 @@ our $config = {
               v_same( 'mix', 'xRes', 'mix', 'yRes' )
           ),
         }
-    }
+    },
+
+    source_mets_file => qr/\w+\.xml$/,
 
 };
 

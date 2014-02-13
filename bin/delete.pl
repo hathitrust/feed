@@ -20,7 +20,7 @@ my $note = '';
 my $user = '';
 my $reason = '';
 
-#get_deletion_confirmation() or die();
+get_deletion_confirmation() or die();
 
 
 

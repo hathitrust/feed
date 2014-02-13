@@ -297,6 +297,9 @@ sub _make_op_compare {
 sub {
     my \$self = shift;
     my \$actual = \$self->_findone(\$ctx, \$query);
+    if('$op' ne 'eq' and \$actual =~ /^(\\d+)/) {
+        \$actual = \$1;
+    }
     if (\$actual $op \$expected) {
     return 1;
     } else {
