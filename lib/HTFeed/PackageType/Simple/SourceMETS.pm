@@ -81,6 +81,56 @@ sub _add_dmdsecs {
     my $preingest_directory = $volume->get_preingest_directory();
     $self->_add_marc_from_file("$preingest_directory/marc.xml");
 
+    # add reading order info
+    #  <METS:techMD ID="PD1">
+    #    <METS:mdWrap LABEL="reading order" MDTYPE="OTHER" OTHERMDTYPE="Google">
+    #      <METS:xmlData>
+    #        <gbs:scanningOrder>left-to-right</gbs:scanningOrder>
+    #        <gbs:readingOrder>left-to-right</gbs:readingOrder>
+    #        <gbs:coverTag>follows-reading-order</gbs:coverTag>
+    #      </METS:xmlData>
+    #    </METS:mdWrap>
+    #  </METS:techMD>
+
+    my $scanning = $volume->get_meta('scanning_order');
+    my $reading = $volume->get_meta('reading_order');
+
+    if( (defined $scanning or defined $reading)
+            and not (defined $scanning and defined $reading)) {
+        $self->set_error('MissingValue',file=>'meta.yml',field=>'scanning_order,reading_order',detail=>"Both scanning_order and reading order must be set if either is"); 
+    }
+
+    if(defined $scanning and defined $reading) {
+
+        if($scanning ne 'left-to-right' and $scanning ne 'right-to-left') {
+            $self->set_error('BadValue',file=>'meta.yml',field=>'scanning_order',
+                actual=>$scanning,expected=>'left-to-right or right-to-left');
+        }
+
+        if($reading ne 'left-to-right' and $reading ne 'right-to-left') {
+            $self->set_error('BadValue',file=>'meta.yml',field=>'reading_order',
+                actual=>$reading,expected=>'left-to-right or right-to-left');
+        }
+
+        my $mets = $self->{mets};
+        $mets->add_schema( "gbs", "http://books.google.com/gbs");
+        my $xml = <<EOT;
+<gbs:scanningOrder xmlns:gbs="http://books.google.com/gbs">$scanning</gbs:scanningOrder>
+<gbs:readingOrder xmlns:gbs="http://books.google.com/gbs">$reading</gbs:readingOrder>
+<gbs:coverTag xmlns:gbs="http://books.google.com/gbs">follows-reading-order</gbs:coverTag>
+EOT
+        my $dmdsec = new METS::MetadataSection( 'dmdSec', 'id' => $self->_get_subsec_id("DMD"));
+        my $parser = new XML::LibXML;
+        my $parsed_xml = $parser->parse_balanced_chunk( $xml );
+        $dmdsec->set_xml_node(
+            $parsed_xml,
+            mdtype => 'OTHER',
+            othermdtype => 'Google',
+            label  => 'reading order'
+        );
+        $self->{mets}->add_dmd_sec($dmdsec);
+
+    }
 
 }
 

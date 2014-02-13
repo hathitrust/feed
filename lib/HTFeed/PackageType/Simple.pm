@@ -83,7 +83,7 @@ our $config = {
         images_remediated => 'HTFeed::PackageType::Simple::SourceMETS',
         src_metsed        => 'HTFeed::VolumeValidator',
         validated  => 'HTFeed::Stage::Pack',
-        packed     => 'HTFeed::METS',
+        packed     => 'HTFeed::PackageType::Simple::METS',
         metsed     => 'HTFeed::Stage::Handle',
         handled    => 'HTFeed::Stage::Collate',
     },
@@ -138,6 +138,23 @@ our $config = {
     checksum_file => 'checksum.md5',
 
     use_preingest => 1,
+
+    validation => {
+        'HTFeed::ModuleValidator::JPEG2000_hul' => {
+            # allow most common # of layers
+          'layers' => v_in( 'codingStyleDefault', 'layers', ['1','8'] ),
+          'resolution'      => v_and(
+              v_ge( 'xmp', 'xRes', 300 ), # should work even though resolution is specified as NNN/1
+              v_same( 'xmp', 'xRes', 'xmp', 'yRes' )
+          ),
+        },
+        'HTFeed::ModuleValidator::TIFF_hul' => {
+          'resolution'      => v_and(
+              v_ge( 'mix', 'xRes', 600 ),
+              v_same( 'mix', 'xRes', 'mix', 'yRes' )
+          ),
+        }
+    }
 };
 
 __END__
