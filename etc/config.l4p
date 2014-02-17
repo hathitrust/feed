@@ -18,10 +18,10 @@ log4perl.appender.screen.stderr         = 0
 log4perl.appender.screen.layout         = HTFeed::Log::Layout::PrettyPrintPID
 log4perl.appender.screen.color.TRACE    = white
 log4perl.appender.screen.color.DEBUG    = white
-log4perl.appender.screen.color.INFO     = bright_cyan
-log4perl.appender.screen.color.ERROR    = bright_red
-log4perl.appender.screen.color.WARN     = bright_yellow
-log4perl.appender.screen.color.FATAL    = bright_red
+log4perl.appender.screen.color.INFO     = bold cyan
+log4perl.appender.screen.color.ERROR    = bold red
+log4perl.appender.screen.color.WARN     = bold yellow
+log4perl.appender.screen.color.FATAL    = bold red
 # make sure HTFeed::Log::Layout::PrettyPrint gets an array and not a string
 log4perl.appender.screen.warp_message    = 0
 
