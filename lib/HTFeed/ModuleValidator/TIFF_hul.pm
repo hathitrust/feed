@@ -503,7 +503,11 @@ sub new {
                     remediable => 1,
                     query      => "//tiff:Artist"
                 },
-                make => { desc => '', remediable => 1, query => "//tiff:Make" },
+                make => { 
+                    desc => 'tiff:Make', 
+                    remediable => 1, 
+                    query => "//tiff:Make" 
+                },
                 model => {
                     desc       => 'tiff:Model',
                     remediable => 1,

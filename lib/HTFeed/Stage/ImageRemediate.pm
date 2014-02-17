@@ -256,8 +256,15 @@ sub _remediate_tiff {
 
  # ModifyDate, if given
     if(defined $set_if_undefined_headers->{'DateTime'}) {
-        $set_if_undefined_headers->{'IFD0:ModifyDate'} = $set_if_undefined_headers->{'DateTime'};
-        $set_if_undefined_headers->{'XMP-tiff:DateTime'} = $set_if_undefined_headers->{'DateTime'} if defined $self->{oldFields}{'XMP:XMP'};
+        # If the old TIFF has an XMP and has IFD0:ModifyDate but does NOT have the XMP-tiff:DateTime
+        # field, we need to make sure those match
+        if(defined $self->{oldFields}{'XMP:XMP'} and defined $self->{oldFields}{'IFD0:ModifyDate'}
+                and not defined $self->{oldFields}{'XMP-tiff:DateTime'}) {
+            $self->{newFields}{'DateTime'} = $set_if_undefined_headers->{'DateTime'};
+        } else {
+            $set_if_undefined_headers->{'IFD0:ModifyDate'} = $set_if_undefined_headers->{'DateTime'};
+            $set_if_undefined_headers->{'XMP-tiff:DateTime'} = $set_if_undefined_headers->{'DateTime'} if defined $self->{oldFields}{'XMP:XMP'};
+        }
         delete $set_if_undefined_headers->{'DateTime'};
     }
     if(defined $self->{newFields}{'DateTime'}) {
@@ -368,7 +375,8 @@ sub _remediate_tiff {
         $self->{newFields}{'XMP-tiff:ResolutionUnit'} = 1;
 
         # copy other fields; use new value if it was provided
-        foreach my $field (qw(ResolutionUnit ImageHeight ImageWidth Artist XResolution YResolution)) {
+        foreach my $field (qw(ResolutionUnit ImageHeight ImageWidth Artist 
+                              XResolution YResolution Make Model)) {
             if(defined $self->{newFields}{"IFD0:$field"}) {
                 $self->{newFields}{"XMP-tiff:$field"} = $self->{newFields}{"IFD0:$field"};
             } else {
