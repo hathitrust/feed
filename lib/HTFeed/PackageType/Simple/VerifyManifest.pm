@@ -25,8 +25,10 @@ sub run {
     # don't try to get source METS; use preingest directory
     my $success = $vol_val->_validate_checksums(0,$volume->get_preingest_directory());
 
+    $self->{failed} = $vol_val->{failed};
+
     $self->_set_done();
-    return $vol_val->succeeded();
+    return $self->succeeded();
 }
 
 sub stage_info{
