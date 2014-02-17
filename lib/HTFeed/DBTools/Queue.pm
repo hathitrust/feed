@@ -57,7 +57,7 @@ sub enqueue_volumes{
     my $volumes             = $args{volumes};
     $volumes = [$args{volume}]
         if (defined $args{volume});
-    my $status              = $args{status};
+    my $arg_status              = $args{status};
     my $ignore              = $args{ignore};
     my $use_blacklist       = $args{use_blacklist};
     my $priority_modifier   = $args{priority};
@@ -83,6 +83,7 @@ sub enqueue_volumes{
             my $namespace = $volume->get_namespace();
             my $objid = $volume->get_objid();
             my $pkg_type = $volume->get_packagetype();
+            my $status = $arg_status;
             # use default first state from pkgtype def if not given one
             if(not defined $status) {
                 $status = $volume->get_nspkg()->get('default_queue_state');
