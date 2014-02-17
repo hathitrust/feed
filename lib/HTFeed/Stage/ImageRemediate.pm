@@ -775,6 +775,11 @@ sub convert_tiff_to_jpeg2000 {
     get_logger()->trace("Compressing $infile to $outfile");
     my $kdu_compress = get_config('kdu_compress');
 
+    if(not defined $self->{recorded_image_compression}) {
+        $volume->record_premis_event('image_compression');
+        $self->{recorded_image_compression} = 1;
+    }
+
     # Settings for kdu_compress recommended from Roger Espinosa. "-slope"
     # is a VBR compression mode; the value of 42988 corresponds to pre-6.4
     # slope of 51180, the current (as of 5/6/2011) recommended setting for

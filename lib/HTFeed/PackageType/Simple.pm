@@ -94,6 +94,7 @@ our $config = {
         # capture - included manually
         'page_md5_fixity',
         'image_header_modification',
+        'image_compression', # optional
         'source_mets_creation',
         'page_md5_create',
         'mets_validation',
