@@ -20,7 +20,13 @@ sub get_meta {
         $self->{meta_yml} = $yaml if defined $yaml;
     }
 
-    return $self->{meta_yml}{$key};
+    my $value = $self->{meta_yml}{$key};
+    # accept TIFF-format type dates
+    if($key =~ /date/) {
+        $value =~ s/^(\d{4}).(\d{2}).(\d{2}).(\d{2}).(\d{2}).(\d{2})/$1-$2-$3T$4:$5:$6/;
+    }
+
+    return $value;
 }
 
 # get pagedata - from yaml
