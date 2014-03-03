@@ -45,7 +45,7 @@ sub _add_techmds {
         $notes_txt->set_mdwrap($mdwraps[0]);
     } else {
         my $count = scalar(@mdwraps);
-        $self->set_error("BadField",field=>"production notes",decription=>"Found $count production notes techMDs, expected 1");
+        $self->set_error("BadField",field=>"production notes",description=>"Found $count production notes techMDs, expected 1");
 #        $notes_txt->set_md_ref(
 #            label => 'production notes',
 #            loctype => 'OTHER',

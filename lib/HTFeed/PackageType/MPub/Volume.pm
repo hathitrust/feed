@@ -7,30 +7,10 @@ use HTFeed::Config;
 
 # use checksum.md5 instead of source METS
 sub get_checksums{
+    my $self = shift;
 
-	my $self = shift;
-    my $path = $self->get_staging_directory();
-    my $checksum_file = $self->get_nspkg()->get('checksum_file');
-	my $checksum_path = "$path/$checksum_file";
+    return $self->get_checksum_md5();
 
-	my $checksum;
-	my $filename;
-
-	if (not defined $self->{checksums} ){
-
-		my $checksums = {};
-
-		open(FILE, $checksum_path) or die $!;		
-		foreach my $line(<FILE>) {
-			$line =~ /(\w+)(\s{2})(\w+\.\w{3})/;
-			$checksum = $1;
-			$filename = $3;
-			$checksums->{$filename} = $checksum;
-		}	
-		$self->{checksums} = $checksums;
-	}
-	close(FILE);
-    return $self->{checksums};
 }
 
 sub get_srcmets_page_data {

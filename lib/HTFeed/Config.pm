@@ -131,6 +131,10 @@ sub _dump {
 sub get_tool_version {
 
     my $package_id = shift;
+
+    # if it is not all uppercase, just return what was passed; it's already been
+    # expanded by something else.
+    return $package_id unless $package_id =~ /^[A-Z0-9_]+$/;
     my $to_eval    = get_config( 'premis_tools', $package_id );
     if ( !$to_eval ) {
         croak("Configuration error: $package_id missing from premis_tools");

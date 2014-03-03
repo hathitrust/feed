@@ -158,11 +158,14 @@ sub _validate_consistency {
 
 sub _validate_checksums {
     my $self             = shift;
+    my $use_source_mets  = shift;
+    $use_source_mets = 1 if not defined $use_source_mets;
     my $volume           = $self->{volume};
     my $checksums        = $volume->get_checksums();
     my $checksum_file    = $volume->get_nspkg()->get('checksum_file');
-    my $source_mets_file = $volume->get_source_mets_file();
-    my $path             = $volume->get_staging_directory();
+    my $source_mets_file = $volume->get_source_mets_file() if $use_source_mets;
+    my $path             = shift; 
+    $path = $volume->get_staging_directory() if not defined $path;
 
     # make sure we check every file in the directory except for the checksum file
     # and make sure we check every file in the checksum file
