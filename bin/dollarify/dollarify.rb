@@ -5,21 +5,28 @@ require 'zip'
 require 'fileutils'
 require "rexml/document"
 require "digest/md5"
+require "pry"
 
 ######## UNZIP ############
 
 namespace = 'uc1'
 id = ARGV[0]
-puts "extracting zip"
+puts "extracting zip #{id}"
 dollarify_home = "/ram/dollarify"
 if not File.directory? dollarify_home
     Dir.mkdir(dollarify_home)
+end
+
+if not File.directory? "#{dollarify_home}/#{id}"
+    Dir.mkdir("#{dollarify_home}/#{id}")
 end
 
 Dir.chdir(dollarify_home)
 
 pairtree = Pairtree.at("/sdr1/obj/#{namespace}",:prefix=>"#{namespace}.",:create => false)
 obj = pairtree["#{namespace}.#{id}"]
+
+
 Zip::File.open(obj.open("#{id}.zip").path) do |zip|
 
     zip.entries.each do |entry|
@@ -46,13 +53,13 @@ end
 
 
 # fix image DocumentName & dc:source
-puts "Fixing images"
+puts "Fixing images #{id}"
 docnameprefix = "UCAL_#{newid.upcase()}".sub('$','$$')
 system("exiftool -overwrite_original '-IFD0:DocumentName<#{docnameprefix}/$filename' '-XMP-dc:source<#{docnameprefix}/$filename' *.tif")
 system("exiftool -overwrite_original '-XMP-dc:source<#{docnameprefix}/$filename' *.jp2")
 
 # fix mets
-puts "Fixing mets"
+puts "Fixing mets #{id}"
 file = File.new("UCAL_#{newid.upcase()}.xml")
 doc = REXML::Document.new file
 
@@ -92,7 +99,7 @@ formatter = REXML::Formatters::Default.new()
 formatter.write(doc,File.new("UCAL_#{newid.upcase()}.xml",mode="w"))
 
 ######### REZIP ###########
-puts "rezipping"
+puts "rezipping: #{id}"
 
 Zip::File.open("#{dollarify_home}/#{newid}.zip", Zip::File::CREATE) do |zip|
     Dir.entries("#{dollarify_home}/#{id}").each do |file|
@@ -100,7 +107,5 @@ Zip::File.open("#{dollarify_home}/#{newid}.zip", Zip::File::CREATE) do |zip|
     end
 end
 
-system("ls -lR /ram/dollarify")
+puts "cleaning up: #{id}"
 FileUtils::rm_rf("/ram/dollarify/#{id}")
-system("ls -lR /ram/dollarify")
-
