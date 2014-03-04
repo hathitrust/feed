@@ -803,13 +803,9 @@ qq($kdu_compress -quiet -i '$infile.unc.tif' -o '$outfile' Clevels=$levels Claye
         detail    => "kdu_compress returned $?"
       );
 
-    # then set new metadata fields
-    foreach $field (
-        qw(ImageWidth ImageHeight BitsPerSample
-        PhotometricInterpretation Orientation
-        SamplesPerPixel XResolution YResolution
-        ResolutionUnit Artist Make Model)
-      )
+    # then set new metadata fields - the rest will automatically be 
+    # set from the JP2
+    foreach $field ( qw( XResolution YResolution ResolutionUnit Artist Make Model))
     {
         $self->copy_old_to_new( "IFD0:$field", "XMP-tiff:$field" );
     }
