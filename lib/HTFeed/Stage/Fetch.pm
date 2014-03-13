@@ -56,7 +56,7 @@ sub fix_line_endings {
 
 	my $dir = "$base/$objid";
 
-    foreach my $filename (glob("$dir/*.txt"), "$dir/checksum.md5", "$dir/pageview.dat") {
+    foreach my $filename (glob("$dir/*.txt"), glob("$dir/*.xml"), glob("$dir/*.html"), "$dir/checksum.md5", "$dir/pageview.dat") {
         next unless -e $filename;
 
         if( -e "$filename.bak" ) {
