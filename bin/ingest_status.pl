@@ -105,7 +105,7 @@ foreach my $volume (@volumes) {
         next;
     }
 
-    print "$namespace.$objid: $queue_info->{status}";
+    print "$namespace.$objid: $queue_info->{pkg_type}; $queue_info->{status}";
 
     if(!$quiet) {
         my $err_sth;
