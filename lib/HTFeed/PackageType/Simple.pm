@@ -119,18 +119,6 @@ our $config = {
         'premis_migration', #optional
     ],
 
-    # we are creating the JPEG2000 images here, so NumberOfLayers should be 8
-    # Validation 
-    validation => {
-        'HTFeed::ModuleValidator::JPEG2000_hul' => {
-            'camera' => undef,
-            'layers' => v_eq( 'codingStyleDefault', 'layers', '8' ),
-        },
-        'HTFeed::ModuleValidator::TIFF_hul' => {
-            'camera' => undef,
-        }
-    },
-
     SIP_filename_pattern => '%s.zip',
 #    SIP_filename_pattern => '',
 
@@ -142,6 +130,7 @@ our $config = {
 
     validation => {
         'HTFeed::ModuleValidator::JPEG2000_hul' => {
+            'camera' => undef,
             # allow most common # of layers
           'layers' => v_in( 'codingStyleDefault', 'layers', ['1','8'] ),
           'resolution'      => v_and(
@@ -150,6 +139,7 @@ our $config = {
           ),
         },
         'HTFeed::ModuleValidator::TIFF_hul' => {
+            'camera' => undef,
           'resolution'      => v_and(
               v_ge( 'mix', 'xRes', 600 ),
               v_same( 'mix', 'xRes', 'mix', 'yRes' )
