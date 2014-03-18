@@ -5,9 +5,9 @@ use Readonly;
 use Exporter;
 use base qw(Exporter);
 
-our @EXPORT_OK   = qw(register_namespaces NS_EAD NS_HT NS_METS NS_PREMIS1 NS_PREMIS11 NS_PREMIS NS_MARC NS_MIX NS_JHOVE NS_XLINK NS_DC NS_XSI SCHEMA_PREMIS SCHEMA_MARC SCHEMA_EAD );
+our @EXPORT_OK   = qw(register_namespaces NS_EAD NS_HT NS_METS NS_PREMIS NS_MARC NS_MIX NS_JHOVE NS_XLINK NS_DC NS_XSI SCHEMA_PREMIS SCHEMA_MARC SCHEMA_EAD );
 our %EXPORT_TAGS = ( 'namespaces' =>
-      [qw(NS_EAD NS_HT NS_METS NS_PREMIS NS_PREMIS1 NS_MARC NS_MIX NS_JHOVE NS_XLINK NS_DC NS_XSI )],
+      [qw(NS_EAD NS_HT NS_METS NS_PREMIS NS_MARC NS_MIX NS_JHOVE NS_XLINK NS_DC NS_XSI )],
       'schemas' => 
       [qw(SCHEMA_PREMIS SCHEMA_MARC SCHEMA_EAD)]
   );
@@ -22,8 +22,6 @@ use constant {
     NS_MODS   => 'http://www.loc.gov/mods/v3',
     NS_OAI_DC => 'http://www.openarchives.org/OAI/2.0/oai_dc/',
     NS_PREMIS => 'info:lc/xmlns/premis-v2',
-    NS_PREMIS1 => 'http://www.loc.gov/standards/premis',
-    NS_PREMIS11 => 'http://www.loc.gov/standards/premis/v1',
     NS_RDF    => 'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
     NS_TIFF   => 'http://ns.adobe.com/tiff/1.0/',
     NS_XLINK  => 'http://www.w3.org/1999/xlink',
@@ -60,8 +58,6 @@ sub register_namespaces {
     $xpc->registerNs( 'mods',   NS_MODS );
     $xpc->registerNs( 'oai_dc', NS_OAI_DC );
     $xpc->registerNs( 'premis', NS_PREMIS );
-    $xpc->registerNs( 'premis1', NS_PREMIS1 );
-    $xpc->registerNs( 'premis11', NS_PREMIS11 );
     $xpc->registerNs( 'rdf',    NS_RDF );
     $xpc->registerNs( 'tiff',   NS_TIFF );
     $xpc->registerNs( 'xlink',  NS_XLINK );
