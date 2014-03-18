@@ -14,6 +14,7 @@ use HTFeed::PackageType;
 use HTFeed::METS;
 use POSIX qw(strftime);
 use Getopt::Long;
+use URI::Escape;
 
 my $insert =
 "insert into feed_audit (namespace, id, sdr_partition, zip_size, zip_date, mets_size, mets_date, lastchecked) values(?,?,?,?,?,?,?,CURRENT_TIMESTAMP) \
@@ -234,6 +235,13 @@ sub zipcheck {
         my $mets_zipsum = $mets->findvalue(
             "//mets:file[mets:FLocat/\@xlink:href='$zipname']/\@CHECKSUM");
 
+        if(not defined $mets_zipsum or length($mets_zipsum) ne 32) {
+            # zip name may be uri-escaped in some cases
+            $zipname = uri_escape($zipname);
+            $mets_zipsum = $mets->findvalue(
+                "//mets:file[mets:FLocat/\@xlink:href='$zipname']/\@CHECKSUM");
+        }
+
         if ( not defined $mets_zipsum or length($mets_zipsum) ne 32 ) {
             set_status( $namespace, $objid, $volume->get_repository_mets_path(),
                 "MISSING_METS_CHECKSUM", undef );
@@ -278,9 +286,6 @@ sub zipcheck {
             if ( $mets->findnodes('//mets:mdWrap//premis:premis') ) {
                 $premisversion = "premis2";
             }
-            if ( $mets->findnodes('//mets:mdWrap//premis1:object') ) {
-                $premisversion = "premis1";
-            }
 
             mets_log( $namespace, $objid, "PREMIS_VERSION", $premisversion );
         }
@@ -290,7 +295,7 @@ sub zipcheck {
             my %event_id_types = ();
             foreach my $eventtype (
                 $mets->findnodes(
-'//premis:eventIdentifierType | //premis1:eventIdentifierType'
+'//premis:eventIdentifierType'
                 )
               )
             {
@@ -306,7 +311,7 @@ sub zipcheck {
             my %agent_id_types = ();
             foreach my $agenttype (
                 $mets->findnodes(
-'//premis:linkingAgentIdentifierType | //premis1:linkingAgentIdentifierType'
+'//premis:linkingAgentIdentifierType'
                 )
               )
             {
@@ -322,17 +327,16 @@ sub zipcheck {
         {    # Capturing agent
             foreach my $event (
                 $mets->findnodes(
-'//premis:event[premis:eventType="capture"] | //premis1:event[premis1:eventType="capture"]'
+'//premis:event[premis:eventType="capture"]'
                 )
               )
             {
                 my $executor = $mets->findvalue(
-'./premis:linkingAgentIdentifier[premis:linkingAgentRole="Executor"]/premis:linkingAgentIdentifierValue |'
-                      . './premis1:linkingAgentIdentifier/premis1:linkingAgentIdentifierValue',
+'./premis:linkingAgentIdentifier[premis:linkingAgentRole="Executor"]/premis:linkingAgentIdentifierValue',
                     $event
                 );
                 my $date = $mets->findvalue(
-                    './premis:eventDateTime | ./premis1:eventDateTime',
+                    './premis:eventDateTime',
                     $event );
                 mets_log( $namespace, $objid, "CAPTURE", $executor, $date );
             }
@@ -340,17 +344,16 @@ sub zipcheck {
         {    # Processing agent
             foreach my $event (
                 $mets->findnodes(
-'//premis:event[premis:eventType="message digest calculation"] | //premis1:event[premis1:eventType="message digest calculation"]'
+'//premis:event[premis:eventType="message digest calculation"]'
                 )
               )
             {
                 my $executor = $mets->findvalue(
-'./premis:linkingAgentIdentifier[premis:linkingAgentRole="Executor"]/premis:linkingAgentIdentifierValue |'
-                      . './premis1:linkingAgentIdentifier/premis1:linkingAgentIdentifierValue',
+'./premis:linkingAgentIdentifier[premis:linkingAgentRole="Executor"]/premis:linkingAgentIdentifierValue',
                     $event
                 );
                 my $date = $mets->findvalue(
-                    './premis:eventDateTime | ./premis1:eventDateTime',
+                    './premis:eventDateTime',
                     $event );
                 mets_log( $namespace, $objid, "MD5SUM", $executor, $date );
             }
@@ -359,12 +362,12 @@ sub zipcheck {
         {    # Ingest date
             foreach my $event (
                 $mets->findnodes(
-'//premis:event[premis:eventType="ingestion"] | //premis1:event[premis1:eventType="ingestion"]'
+'//premis:event[premis:eventType="ingestion"]'
                 )
               )
             {
                 my $date = $mets->findvalue(
-                    './premis:eventDateTime | ./premis1:eventDateTime',
+                    './premis:eventDateTime',
                     $event );
                 mets_log( $namespace, $objid, "INGEST", $date );
             }
