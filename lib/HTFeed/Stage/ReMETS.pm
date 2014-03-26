@@ -104,11 +104,6 @@ sub run {
         }
     }
 
-    # make sure there are no PREMIS1 events in the new file
-    foreach my $event_node ($new_xpc->findnodes("//premis1:event")) {
-        $self->set_error("BadFile",file=>$new_mets_file,detail=>"Unexpected PREMIS1 event found");
-    }
-
     # for each //mets:file
     #   the //mets:file with that ID in the new METS must have the same attributes except CREATED
     #     the mets:FLocat/xlink:href must match as well

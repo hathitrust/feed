@@ -161,8 +161,8 @@ sub get_last_ingest_date{
         }
 
         my @dates;
-        foreach my $event ($mets->findnodes('//premis:event[premis:eventType="ingestion"] | //premis1:event[premis1:eventType="ingestion"]')) {
-            my $date = $mets->findvalue('./premis:eventDateTime | ./premis1:eventDateTime',$event);
+        foreach my $event ($mets->findnodes('//premis:event[premis:eventType="ingestion"]')) {
+            my $date = $mets->findvalue('./premis:eventDateTime',$event);
             push @dates, $date;
         }
         @dates = sort @dates;

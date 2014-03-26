@@ -55,7 +55,10 @@ sub _extract_file {
     my $cmd = sprintf($command, $infile, $outdir, $otheroptions); 
     my $rstring = `$cmd`;
     my $rval = $?;
-    if($rval or $rstring) {
+
+    # 1 is a non-fatal warning for both tar and unzip -- ignore it and let
+    # manifest / validation stuff figure it out
+    if($rval != 0 and $rval != (1 << 8)) { 
         $requester->set_error('OperationFailed',operation=>'unzip',exitstatus=>$rval,detail=>$rstring);
         return;
     }

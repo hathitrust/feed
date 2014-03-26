@@ -107,7 +107,6 @@ sub tombstone {
     my $mets_xpc = $volume->get_repository_mets_xpc();
 
     # add premis event!
-    # this is also valid PREMIS1 if you use the right namespace!
     # <PREMIS:event>
     #     <PREMIS:eventIdentifier>
     #         <PREMIS:eventIdentifierType>UUID</PREMIS:eventIdentifierType>
@@ -136,7 +135,7 @@ sub tombstone {
     my $eventid = $volume->make_premis_uuid('deletion',$delete_date);
     my $delete_event = new PREMIS::Event($eventid,'UUID','deletion',$delete_date,'Deletion of content data object from repository');
     my $outcome = new PREMIS::Outcome();
-	
+
     $outcome->add_detail_note($note);
 
     # add delete reason
@@ -149,7 +148,7 @@ sub tombstone {
     $ext_node->appendChild($reason_node);
 
     $delete_event->add_outcome($outcome);
-	
+
 
     # always just use michigan for the capture event.
     $delete_event->add_linking_agent(
@@ -158,26 +157,7 @@ sub tombstone {
             'Executor' ) );
 
     my $premis_mdsec;
-    if(($premis_mdsec) = $mets_xpc->findnodes('//mets:mdWrap[@MDTYPE="PREMIS"]/METS:xmlData[premis1:event]')) {
-        # PREMIS1: transmute the event namespace and then stop.
-        sub change_namespace {
-            my $node = shift;
-	    $node->setNamespaceDeclURI('PREMIS',NS_PREMIS1) if ($node->nodeType == XML_ELEMENT_NODE);
-            #$node->setNamespace(NS_PREMIS1,'PREMIS',1) if($node->nodeType == XML_ELEMENT_NODE);
-            map { change_namespace($_) } $node->childNodes();
-        }
-
-	# change ID to old format
-	my $id_node = PREMIS::createElement("eventIdentifier");
-	$id_node->appendChild( PREMIS::createElement("eventIdentifierValue", "deletion1"));
-        $delete_event->{'identifier'} = $id_node;
-        my $delete_event_node = $delete_event->to_node();
-	
-        change_namespace($delete_event_node);
-        $premis_mdsec->appendChild($delete_event_node);
-
-
-    } elsif (($premis_mdsec) = $mets_xpc->findnodes('//mets:mdWrap[@MDTYPE="PREMIS"]/METS:xmlData/PREMIS:premis')) {
+    if (($premis_mdsec) = $mets_xpc->findnodes('//mets:mdWrap[@MDTYPE="PREMIS"]/METS:xmlData/PREMIS:premis')) {
         # PREMIS2: leave as is
         $premis_mdsec->appendChild($delete_event->to_node());
 
