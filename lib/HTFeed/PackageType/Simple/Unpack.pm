@@ -14,7 +14,7 @@ sub run {
 
 	my $volume = $self->{volume};
 	my $packagetype = $volume->get_packagetype();
-	my $objid = $volume->get_objid();
+	my $pt_objid = $volume->get_pt_objid();
 
 	my $download_dir = get_config('staging'=>'download');
 
@@ -22,7 +22,7 @@ sub run {
 
 	my $dest = $volume->get_preingest_directory();
 
-    my $file = sprintf('%s/%s.zip',$download_dir,$objid);
+    my $file = sprintf('%s/%s.zip',$download_dir,$pt_objid);
     if(-e $file) {
         $self->unzip_file($file,$dest);
         $self->_set_done();
