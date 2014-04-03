@@ -476,7 +476,7 @@ sub _remediate_jpeg2000 {
 
     # For IA, ColorSpace should always be sRGB. Only set these fields if they
     # aren't already defined.
-    if ( $self->{oldFields}->{'Jpeg2000:ColorSpace'} eq 'sRGB' ) {
+    if ( defined $self->{oldFields}->{'Jpeg2000:ColorSpace'} and $self->{oldFields}->{'Jpeg2000:ColorSpace'} eq 'sRGB' ) {
         $self->set_new_if_undefined( 'XMP-tiff:BitsPerSample', '8, 8, 8' );
         $self->set_new_if_undefined( 'XMP-tiff:PhotometricInterpretation',
             'RGB' );
@@ -486,7 +486,7 @@ sub _remediate_jpeg2000 {
     # Other package types may have grayscale JP2s that need remediation.
     # Final image validation should kick these out if grayscale is not
     # expected.
-    if ( $self->{oldFields}->{'Jpeg2000:ColorSpace'} eq 'Grayscale' ) {
+    if ( defined $self->{oldFields}->{'Jpeg2000:ColorSpace'} and $self->{oldFields}->{'Jpeg2000:ColorSpace'} eq 'Grayscale' ) {
         $self->set_new_if_undefined( 'XMP-tiff:BitsPerSample', '8' );
         $self->set_new_if_undefined( 'XMP-tiff:PhotometricInterpretation',
             'BlackIsZero' );
