@@ -21,6 +21,7 @@ sub get_meta {
     }
 
     my $value = $self->{meta_yml}{$key};
+    return if not defined $value;
     # accept TIFF-format type dates
     if($key =~ /date/) {
         $value =~ s/^(\d{4}).(\d{2}).(\d{2}).(\d{2}).(\d{2}).(\d{2})/$1-$2-$3T$4:$5:$6/;
