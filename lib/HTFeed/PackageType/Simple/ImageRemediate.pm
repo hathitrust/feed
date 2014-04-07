@@ -81,7 +81,7 @@ sub run{
 
     # remove newlines & move OCR
     my $fetch = HTFeed::Stage::Fetch->new(volume => $volume);
-    foreach my $file (glob("$preingest_dir/[0-9]*{txt,html,xml}")) {
+    foreach my $file (glob("$preingest_dir/[0-9]*[0-9].{txt,html,xml}")) {
         move($file,$staging_dir);
     }
     $fetch->fix_line_endings(get_config('staging'=>'ingest'));
