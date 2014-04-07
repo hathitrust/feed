@@ -182,7 +182,7 @@ sub get_checksum_md5 {
 
 		open(FILE, $checksum_path) or die $!;		
 		foreach my $line(<FILE>) {
-			next unless $line =~ /(\w+)(\s+\*?)(\w+\.\w{3})/;
+			next unless $line =~ /(\w+)(\s+\*?)(\S+)/;
 			$checksum = $1;
 			$filename = $3;
 			$checksums->{$filename} = $checksum;
@@ -685,8 +685,8 @@ sub get_preingest_directory {
     my $self = shift;
 
     if($self->{nspkg}->get('use_preingest')) {
-        my $objid = $self->get_objid();
-        return sprintf("%s/%s", get_config('staging'=>'preingest'), $objid);
+        my $pt_objid = $self->get_pt_objid();
+        return sprintf("%s/%s", get_config('staging'=>'preingest'), $pt_objid);
     } else { return; }
 }
 
