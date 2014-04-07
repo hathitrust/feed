@@ -2,7 +2,7 @@ package HTFeed::PackageType::Kirtas::Volume;
 
 use warnings;
 use strict;
-use base qw(HTFeed::Volume);
+use base qw(HTFeed::PackageType::Simple::Volume);
 use HTFeed::XMLNamespaces qw(:namespaces);
 use HTFeed::Config qw(get_config);
 use List::MoreUtils qw(uniq);
@@ -31,7 +31,7 @@ sub reset {
     $self->SUPER::reset;
 }
 
-sub get_page_data {
+sub get_srcmets_page_data {
     my $self = shift;
     my $file = shift;
 
@@ -40,6 +40,10 @@ sub get_page_data {
         $self->{page_data} = $self->_extract_page_tags();
     }
 
+    # handle mismatched image types
+    if($file =~ /\.jp2$/ and not defined $self->{'page_data'}{$file}) {
+        $file =~ s/\.jp2$/.tif/;
+    }
     return $self->{'page_data'}{$file};
 
 }
@@ -106,7 +110,10 @@ sub _get_fptr_filename {
     my $fptr = shift;
     my $xc = shift;
     my $fileid = $fptr->getAttribute('FILEID');
-    my $filename = $xc->findvalue(qq(//METS:file[\@ID='$fileid']/METS:FLocat/\@xlink:href));
+    my $filename = $xc->findvalue(qq(//mets:file[\@ID='$fileid']/mets:FLocat/\@xlink:href));
+
+    # strip path from fptr
+    $filename =~ s#.*/## if defined $filename;
 
     return $filename;
 }
@@ -114,7 +121,7 @@ sub _get_fptr_filename {
 sub _extract_page_tags {
 
     my $self = shift;
-    my $xc   = $self->get_source_mets_xpc();
+    my $xc   = $self->get_kirtas_mets_xpc();
 
     my $pagedata       = {};
     my $pagenumber_map = {};
@@ -144,6 +151,7 @@ sub _extract_page_tags {
         my $fptr ( $struct_div->getChildrenByTagNameNS( NS_METS, 'fptr' ) )
         {
             my $filename = $self->_get_fptr_filename($fptr,$xc);
+            next unless $filename;
             $self->_set_pagenumber( $filename, $orderlabel, $pagenumber_map );
             $pagetag_map->{$filename} = $pagetags;
         }
@@ -173,6 +181,7 @@ sub _extract_page_tags {
                 $struct_div->getChildrenByTagNameNS( NS_METS, 'fptr' ) )
             {
                 my $filename = $self->_get_fptr_filename($fptr,$xc);
+                next unless $filename;
 
                 $self->_set_pagenumber( $filename, $orderlabel, $pagenumber_map )
                 if defined $orderlabel;
@@ -215,10 +224,13 @@ sub _extract_page_tags {
         my $rawtags = $pagetag_map->{$filename};
         my @tags    = uniq( sort(@$rawtags) );
 
-        $pagedata->{$filename} = {
-            orderlabel => $pagenum,
-            label      => join( ', ', @tags )
-        };
+        $pagedata->{$filename} = {} if not defined $pagedata->{filename};
+        if($pagenum and $pagenum ne '') {
+            $pagedata->{$filename}{orderlabel} = $pagenum;
+        }
+        if(@tags) {
+            $pagedata->{$filename}{label} = join(', ',@tags);
+        }
 
     }
 
@@ -244,7 +256,7 @@ sub _map_preface_chapter {
     elsif ( $tag eq '??_COVER' ) {
 
         # Try to figure out which cover this is..
-        if ($self->{at_start}) {
+        if ($self->{at_start} or !$self->{in_body}) {
             $tag = 'FRONT_COVER';
         }
         else {
@@ -293,6 +305,7 @@ sub _extract_page_number {
 
     if ( $struct_div->hasAttribute($attribute) ) {
         my $pagenum = $struct_div->getAttribute($attribute);
+        return if $pagenum =~ /^\s*$/; # ignore empty pagenums
         get_logger()->warn( "missing attribute $attribute on div " . $struct_div->toString() )
         if not defined $pagenum;
         get_logger()->warn("Unexpected page number $pagenum")
@@ -371,7 +384,7 @@ sub get_kirtas_mets_xpc {
     my $directory = $self->get_preingest_directory();
     my $objid = $self->get_objid();
     if(not defined $self->{kirtas_mets_xc}) {
-        my $mets = "$directory/metadata/${objid}_mets.xml";
+        my $mets = (glob("$directory/*.mets.xml"))[0];
 
         $self->{kirtas_mets_xc} = $self->_parse_xpc($mets);
 
