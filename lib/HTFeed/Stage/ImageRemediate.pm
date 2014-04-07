@@ -789,8 +789,18 @@ sub convert_tiff_to_jpeg2000 {
 
     # first decompress & strip ICC profiles
     my $imagemagick = get_config('imagemagick');
-    system( qq( $imagemagick -compress None $infile -strip $infile.unc.tif) )
-            and $self->set_error("OperationFailed", operation => "imagemagick", file => $infile, detail => "convert -compress None -strip failed: returned $?");
+    my $imagemagick_cmd = qq($imagemagick);
+    # make sure it's 24-bit RGB or 8-bit grayscale and keep it that way
+    if($self->{oldFields}->{'IFD0:SamplesPerPixel'} eq '3'
+        and $self->{oldFields}->{'IFD0:BitsPerSample'} eq '8') {
+        $imagemagick_cmd .= qq(-type TrueColor)
+    } elsif($self->{oldFields}->{'IFD0:BitsPerSample'} eq '8' 
+            and $self->{oldFields}->{'IFD0:SamplesPerPixel'} eq '1') {
+        $imagemagick_cmd .= qq(-type Grayscale -depth 8)
+    }
+
+    system( $imagemagick_cmd. qq( -compress None $infile -strip $infile.unc.tif) )
+            and $self->set_error("OperationFailed", operation => "imagemagick", file => $infile, detail => "decompress and ICC profile strip failed: returned $?");
 
     system(
 qq($kdu_compress -quiet -i '$infile.unc.tif' -o '$outfile' Clevels=$levels Clayers=8 Corder=RLCP Cuse_sop=yes Cuse_eph=yes "Cmodes=RESET|RESTART|CAUSAL|ERTERM|SEGMARK" -no_weights -slope 42988)
