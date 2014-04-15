@@ -31,12 +31,15 @@ sub fetch_from_source {
 	my $source = shift;
 	my $dest = shift;
 
-	if(! -e $dest) {
+    # Make sure dest really exists and is a directory
+	if(! -d $dest) {
 		mkdir $dest or die("Can't mkdir $dest $!");
 	}
 	
-    get_logger()->trace("Fetching from source: cp -LR '$source' '$dest'");
-	system("cp -LR '$source' '$dest'")
+    # -T forces $dest not to be treated specially because it is a directory
+    # that already exists
+    get_logger()->trace("Fetching from source: cp -LRT '$source/*' '$dest'");
+	system("cp -LRT '$source' '$dest'")
         and $self->set_error('OperationFailed', operation=>'copy', detail=>"copy $source $dest failed with status: $?");
 }
 

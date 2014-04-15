@@ -29,7 +29,7 @@ sub run {
         }
     }
 
-    my $dest = get_config('staging' => 'ingest');
+    my $dest = $volume->get_staging_directory();
 
     $self->fetch_from_source($source,$dest);
     $self->fix_line_endings($dest);

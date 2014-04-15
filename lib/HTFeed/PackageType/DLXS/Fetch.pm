@@ -38,7 +38,7 @@ sub run {
         return;
     }
 
-	my $dest = get_config('staging' => 'preingest');
+	my $dest = $volume->get_preingest_directory();
 
 	$self->fetch_from_source($source,$dest);
 	$self->fix_line_endings($dest);

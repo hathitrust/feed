@@ -16,7 +16,7 @@ sub run {
 	my $fetch_dir = get_config('staging' => 'fetch');
 
 	my $source = "$fetch_dir/$packagetype/$objid";
-	my $dest = get_config('staging' => 'ingest');
+	my $dest = $volume->get_staging_directory();
 
 	$self->fetch_from_source($source,$dest);
 
