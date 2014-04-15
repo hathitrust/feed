@@ -149,6 +149,7 @@ our $config = {
             }
         },
         'HTFeed::ModuleValidator::TIFF_hul' => {
+            'camera'          => undef,
             'resolution'      => v_and(
                 v_in( 'mix', 'xRes', ['600','602','597']),
                 v_same( 'mix', 'xRes', 'mix', 'yRes' )

@@ -48,7 +48,7 @@ sub run{
             my $force_fields = {'IFD0:DocumentName' => join('/',$volume->get_objid(),$renamed_file) };
             my $set_if_undefined = {};
             if(my ($datetime,$artist) = $self->get_tiff_info("$preingest_path/$file",'tiff')) {
-                $set_if_undefined->{'IFD0:ModifyDate'} = $datetime;
+                $set_if_undefined->{'DateTime'} = $datetime;
                 $set_if_undefined->{'IFD0:Artist'} = $artist;
             }
 
@@ -144,7 +144,7 @@ sub get_tiff_info {
         # next try DocumentName
         my $docname = $tiff_fields->{'IFD0:DocumentName'};
         my $eurodate = 0;
-        if($docname =~ /\Q",|NEH_\E/) {
+        if(defined $docname and $docname =~ /\Q",|NEH_\E/) {
             $eurodate = 1;
         }
         if(defined $docname and $docname =~ qr#^(\d{2})/(\d{2})/(\d{4}),(\d{2}):(\d{2}):(\d{2}),"(.*)"#) {
