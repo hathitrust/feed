@@ -53,11 +53,8 @@ in directory $destination
 
 sub fix_line_endings {
     my $self = shift;
-    my $base = shift;
+    my $dir = shift;
 	my $volume = $self->{volume};
-	my $pt_objid = $volume->get_pt_objid();
-
-	my $dir = "$base/$pt_objid";
 
     foreach my $filename (glob("$dir/*.txt"), glob("$dir/*.xml"), glob("$dir/*.html"), "$dir/checksum.md5", "$dir/pageview.dat") {
         next unless -e $filename;

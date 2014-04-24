@@ -84,7 +84,7 @@ sub run{
     foreach my $file (glob("$preingest_dir/[0-9]*[0-9].{txt,html,xml}")) {
         move($file,$staging_dir);
     }
-    $fetch->fix_line_endings(get_config('staging'=>'ingest'));
+    $fetch->fix_line_endings($staging_dir);
 
 
     $self->_set_done();
