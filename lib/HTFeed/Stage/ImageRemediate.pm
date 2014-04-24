@@ -793,10 +793,10 @@ sub convert_tiff_to_jpeg2000 {
     # make sure it's 24-bit RGB or 8-bit grayscale and keep it that way
     if($self->{oldFields}->{'IFD0:SamplesPerPixel'} eq '3'
         and $self->{oldFields}->{'IFD0:BitsPerSample'} eq '8') {
-        $imagemagick_cmd .= qq(-type TrueColor)
+        $imagemagick_cmd .= qq( -type TrueColor)
     } elsif($self->{oldFields}->{'IFD0:BitsPerSample'} eq '8' 
             and $self->{oldFields}->{'IFD0:SamplesPerPixel'} eq '1') {
-        $imagemagick_cmd .= qq(-type Grayscale -depth 8)
+        $imagemagick_cmd .= qq( -type Grayscale -depth 8)
     }
 
     system( $imagemagick_cmd. qq( -compress None $infile -strip $infile.unc.tif) )
