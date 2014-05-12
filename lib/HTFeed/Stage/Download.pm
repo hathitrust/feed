@@ -70,7 +70,7 @@ sub download{
         }
     }
     elsif($not_found_ok and $response->code() eq 404){
-        get_logger()->trace("$url not found");
+        get_logger()->trace("OperationFailed",file=>$filename,operation=>'download',detail => $response->status_line);
         return 0;
     }
     else{
