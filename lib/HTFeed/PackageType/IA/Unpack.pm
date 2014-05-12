@@ -28,6 +28,18 @@ sub run{
         $self->untar_file($file,$preingest_dir,"--strip-components 1");
     }
 
+    opendir(my $dh, $preingest_dir) or die "Can't opendir $preingest_dir: $!";
+    while(my $filename = readdir $dh) {
+
+        # clean up wacky filenames to what is expected for deletecheck
+        if ($filename =~ /(\d{4}).jp2$/) {
+            my $newname = "${ia_id}_$1.jp2";
+            rename("$preingest_dir/$filename","$preingest_dir/$newname") or die "Can't rename $filename to $newname: $!";
+        }
+
+    }
+    closedir $dh;
+
     $self->_set_done();
     return $self->succeeded();
 }
