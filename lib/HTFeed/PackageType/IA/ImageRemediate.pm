@@ -36,9 +36,10 @@ sub run {
             $set_if_undefined_fields->{'XMP-tiff:DateTime'} = $capture_time;
         }
 
-        if ( my $resolution = $scandata_xpc->findvalue("//scribe:bookData/scribe:dpi | //bookData/dpi") ) {
-            $set_if_undefined_fields->{'Resolution'} = $resolution;
-        }
+        my $resolution = $scandata_xpc->findvalue("//scribe:bookData/scribe:dpi | //bookData/dpi");
+        $resolution = $volume->get_nspkg()->get('resolution') if not defined $resolution or !$resolution;
+
+        $set_if_undefined_fields->{'Resolution'} = $resolution if defined $resolution;
 
         $self->remediate_image(
             $jp2_submitted,     $jp2_remediated,
