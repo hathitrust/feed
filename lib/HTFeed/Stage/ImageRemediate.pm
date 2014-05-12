@@ -532,23 +532,22 @@ sub _remediate_jpeg2000 {
             get_logger()->warn("Resolution unit awry")
               if ( not $xresunit or not $yresunit or $xresunit ne $yresunit );
 
-            $xresunit eq 'um'
-              and $force_headers->{'Resolution'} =
-              sprintf( "%.0f", $xres * 25400 );
-            $xresunit eq '0.01 mm'
-              and $force_headers->{'Resolution'} =
-              sprintf( "%.0f", $xres * 2540 );
-            $xresunit eq '0.1 mm'
-              and $force_headers->{'Resolution'} =
-              sprintf( "%.0f", $xres * 254 );
-            $xresunit eq 'mm'
-              and $force_headers->{'Resolution'} =
-              sprintf( "%.0f", $xres * 25.4 );
-            $xresunit eq 'cm'
-              and $force_headers->{'Resolution'} =
-              sprintf( "%.0f", $xres * 2.54 );
-            $xresunit eq 'in'
-              and $force_headers->{'Resolution'} = sprintf( "%.0f", $xres );
+              use feature "switch";
+            my $factor = undef;
+            $xresunit eq 'um' and $factor = 25400;
+            $xresunit eq '0.01 mm' and $factor = 2540;
+            $xresunit eq '0.1 mm' and $factor = 254;
+            $xresunit eq 'mm' and $factor = 25.4;
+            $xresunit eq 'cm' and $factor = 2.54;
+            $xresunit eq 'in' and $factor = 1;
+
+            if(defined $factor) {
+                my $resolution = sprintf("%.0f",$xres * $factor);
+                # Absurdly low DPI is likely to be an error or default, so don't
+                # use it and try to get it from somewhere else if it is < 100
+                $force_headers->{Resolution} = $resolution if($resolution >= 100);
+            }
+            
         }
 
     }
