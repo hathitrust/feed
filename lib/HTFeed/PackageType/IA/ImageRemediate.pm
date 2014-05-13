@@ -37,9 +37,14 @@ sub run {
         }
 
         my $resolution = $scandata_xpc->findvalue("//scribe:bookData/scribe:dpi | //bookData/dpi");
-        $resolution = $volume->get_nspkg()->get('resolution') if not defined $resolution or !$resolution;
 
-        $set_if_undefined_fields->{'Resolution'} = $resolution if defined $resolution;
+        # ignore missing resolution config
+        eval {
+            $resolution = $volume->get_nspkg()->get('resolution') if not defined $resolution or !$resolution;
+        };
+
+
+        $set_if_undefined_fields->{'Resolution'} = $resolution if defined $resolution and $resolution;
 
         $self->remediate_image(
             $jp2_submitted,     $jp2_remediated,

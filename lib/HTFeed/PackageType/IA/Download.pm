@@ -92,18 +92,20 @@ sub download {
         use re 'eval';
         # allow interpolation in $replace
         my ($string,$search,$replace) = @_;
-        $replace = '"$+{begin}' . $replace . '$+{end}"';
-        $string =~ s#(?<begin>/[^/]+)$search(?<end>[^/]+)$#$replace#ee;
-        return $string;
+        my (@components) = split('/',$string);
+        my $lastcomponent = pop @components;
+        $lastcomponent =~ s#$search#$replace#ee;
+        return join('/',@components,$lastcomponent);
     }
     
     my @subs = ( 
         sub { my $x = shift; return $x; }, # noop
         # Clark Art: e.g. MAB.31962000741953Images -> MAB.31962000741953__Images
-        sub { my $x = shift; $x = filename_replace($x,'Images','_Images'); return $x; },
-        sub { my $x = shift; $x = filename_replace($x,'Images','__Images'); return $x; },
+        sub { my $x = shift; $x = filename_replace($x,qr(Images(_\d{8})?),'"_Images"'); return $x; },
+        sub { my $x = shift; $x = filename_replace($x,qr(Images(_\d{8})?),'"__Images"'); return $x; },
+        sub { my $x = shift; $x = filename_replace($x,qr(MAB.*(31962\d+).*_),'"MAB_$1_"'); return $x },
         # Emory: e.g. 02783702.9242.emory.edu -> 02783702_9242
-        sub { my $x = shift; $x = filename_replace($x,'.emory.edu',''); $x = filename_replace($x,qr((?<id1>\d+)\.(?<id2>\d+)),'$+{id1}_$+{id2}'); return $x; }
+        sub { my $x = shift; $x = filename_replace($x,'.emory.edu',''); $x = filename_replace($x,qr((\d+)\.(\d+)),'"$1_$2"'); return $x; }
     );
 
     foreach my $sub (@subs) {
