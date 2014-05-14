@@ -41,6 +41,7 @@ sub _add_capture_event {
     $eventconfig->{'executor'} = $volume->get_meta('capture_agent');
     $self->set_error('MissingValue',file=>'meta.yml',field=>'capture_agent') unless defined $eventconfig->{'executor'};
     $eventconfig->{'executor_type'} = 'MARC21 Code';
+    $eventconfig->{'executor_type'} = 'HathiTrust Agent ID' if($eventconfig->{'executor'} =~ /^ZZ-HT/);
     $eventconfig->{'date'} = $capture_date;
     my $capture_event = $self->add_premis_event($eventconfig);
 
