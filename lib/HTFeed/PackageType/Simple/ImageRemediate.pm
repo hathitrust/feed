@@ -79,9 +79,9 @@ sub run{
 
     $volume->record_premis_event('image_header_modification');
 
-    # remove newlines & move OCR
+    # remove newlines & move OCR, supplementary files
     my $fetch = HTFeed::Stage::Fetch->new(volume => $volume);
-    foreach my $file (glob("$preingest_dir/[0-9]*[0-9].{txt,html,xml}")) {
+    foreach my $file (glob("$preingest_dir/[0-9]*[0-9].{txt,html,xml,pdf}")) {
         move($file,$staging_dir);
     }
     $fetch->fix_line_endings($staging_dir);

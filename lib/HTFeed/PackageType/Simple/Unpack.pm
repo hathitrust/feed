@@ -30,9 +30,6 @@ sub run {
         $self->set_error("MissingFile",file=>$file);
     }
 
-    # move all ocr/hocr files to staging directory
-    my $staging = $volume->get_staging_directory();
-
 	return $self->succeeded();
 }
 
