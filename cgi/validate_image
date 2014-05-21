@@ -4,7 +4,7 @@ use strict;
 use warnings;
 
 BEGIN {
-    $ENV{HTFEED_CONFIG} = '/htapps/aelkiss.babel/feed/etc/config_dev.yaml';
+    $ENV{HTFEED_CONFIG} = '/htapps/babel/feed/etc/config_singleimage.yaml';
 
     $ENV{DEBUG_LOCAL} = 1;
 }

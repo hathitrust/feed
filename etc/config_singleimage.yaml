@@ -1,0 +1,28 @@
+# shouldn't actually be used
+repository:
+  # The directory in which symbolic links will be created to each volume
+  link_dir: /tmp
+  # The directory into which volumes will be loaded 
+  obj_dir: /tmp
+
+#staging_root: /ram/feed_prevalidate
+sip_root: /tmp
+staging_root: /ram/feed_dev
+
+feed_bin: /htapps/babel/feed/bin
+feed_var: /htapps/babel/feed/var
+sqlite:
+  datasource: "dbi:SQLite:dbname=$feed_var/db/feed.db"
+  username: ""
+  password: ""
+
+database: $sqlite
+
+jhove: /l/local/bin/jhove
+jhoveconf: /l/local/jhove/conf/jhove.conf
+
+stop_on_error: 0
+
+clam_av: /l/local/clamav-0.97.5/share/clamav/main.cvd
+
+kdu_compress: /l/local/bin/kdu_compress
