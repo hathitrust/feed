@@ -1,12 +1,32 @@
+package HTFeed::PackageType::IA::Download::LinkParser;
+use base qw(HTML::Parser);
+use strict;
+# parse links
+
+sub start { 
+    my ($self, $tagname, $attr, $attrseq, $origtext) = @_;
+    if ($tagname eq 'a') {
+        push(@{$self->{links}}, $attr->{href});
+    }
+}
+
+sub links {
+    my $self = shift;
+    return $self->{links};
+}
+
 package HTFeed::PackageType::IA::Download;
 
 use warnings;
 use strict;
 use base qw(HTFeed::Stage::Download);
+use LWP;
 use HTFeed::Config qw(get_config);
 use File::Pairtree qw(id2ppath s2ppchars);
 use File::Path qw(make_path);
 use HTFeed::Stage::Unpack qw(unzip_file);
+
+my $download_base = "http://www.archive.org/download/";
 
 sub run{
     my $self = shift;
@@ -18,24 +38,23 @@ sub run{
     my $core_package_items = $volume->get_nspkg()->get('core_package_items');
     my $non_core_package_items = $volume->get_nspkg()->get('non_core_package_items');
 
-    my $url = "http://www.archive.org/download/$ia_id/";
+    my $url = "${download_base}${ia_id}/";
     my $pt_path = $volume->get_download_directory();
+    $self->{pt_path} = $pt_path;
 
 
     my @noncore_missing = ();
 
-    foreach my $item (@$core_package_items){
-        my $filename = sprintf($item,$ia_id);
-        $self->download(url => $url . $filename, path => $pt_path, filename => $filename);
+    foreach my $suffix (@$core_package_items){
+        $self->download(suffix => $suffix);
     }
 
-    foreach my $item (@$non_core_package_items){
-        my $filename = sprintf($item,$ia_id);
-        $self->download(url => $url . $filename, path => $pt_path, filename => $filename, not_found_ok => 1) or push(@noncore_missing,$filename);
+    foreach my $suffix (@$non_core_package_items){
+        $self->download(suffix => $suffix, not_found_ok => 1) or push(@noncore_missing,$suffix);
     }
 
     # if MARC-XML is not on IA try to get it locally
-    if(!$self->download(url=> $url . "${ia_id}_marc.xml", path => $pt_path, filename => "${ia_id}_marc.xml", not_found_ok => 1)) {
+    if(!$self->download(suffix => "marc.xml", not_found_ok => 1)) {
         my $possible_path = get_config('sip_root') . "/marc/${ia_id}_marc.xml";
         if(-e get_config('sip_root') . "/marc/${ia_id}_marc.xml") {
             system("cp","$possible_path","$pt_path/${ia_id}_marc.xml");
@@ -45,14 +64,14 @@ sub run{
     }
 
     # handle jp2 - try tar if zip is not found
-    if(!$self->download(url => $url . "${ia_id}_jp2.zip", path => $pt_path, filename => "${ia_id}_jp2.zip", not_found_ok => 1)) {
-        $self->download(url => $url . "${ia_id}_jp2.tar", path => $pt_path, filename => "${ia_id}_jp2.tar", not_found_ok => 0);
+    if(!$self->download(suffix => "jp2.zip", not_found_ok => 1)) {
+        $self->download(suffix => "jp2.tar");
     }
 
     # handle scandata..
 
-    if(!$self->download(url => $url . "${ia_id}_scandata.xml", path => $pt_path, filename => "${ia_id}_scandata.xml", not_found_ok => 1)) {
-        $self->download(url => $url . "scandata.zip", path => $pt_path, filename => "scandata.zip", not_found_ok => 0) or return;
+    if(!$self->download(suffix => "scandata.xml", not_found_ok => 1)) {
+        $self->download(suffix => "scandata.zip", filename => "scandata.zip") or return;
         unzip_file($self,"$pt_path/scandata.zip",$pt_path,"scandata.xml");
         if(!-e "$pt_path/scandata.xml") {
             $self->set_error("MissingFile",file => 'scandata.zip/scandata.xml');
@@ -84,44 +103,46 @@ sub download {
     my $self = shift;
     my %args = @_;
     my $not_found_ok = $args{not_found_ok};
-    my $orig_url = $args{url};
+    my $ia_id = $self->{volume}->get_ia_id();
+    my $suffix = $args{suffix};
 
-    # replace the pattern '$search' with the pattern '$replace', but
-    # only in the filename part of the URL
-    sub filename_replace {
-        use re 'eval';
-        # allow interpolation in $replace
-        my ($string,$search,$replace) = @_;
-        my (@components) = split('/',$string);
-        my $lastcomponent = pop @components;
-        $lastcomponent =~ s#$search#$replace#ee;
-        return join('/',@components,$lastcomponent);
-    }
-    
-    my @subs = ( 
-        sub { my $x = shift; return $x; }, # noop
-        # Clark Art: e.g. MAB.31962000741953Images -> MAB.31962000741953__Images
-        sub { my $x = shift; $x = filename_replace($x,qr(Images(_\d{8})?),'"_Images"'); return $x; },
-        sub { my $x = shift; $x = filename_replace($x,qr(Images(_\d{8})?),'"__Images"'); return $x; },
-        sub { my $x = shift; $x = filename_replace($x,qr(MAB.*(31962\d+).*_),'"MAB_$1_"'); return $x },
-        # Emory: e.g. 02783702.9242.emory.edu -> 02783702_9242
-        sub { my $x = shift; $x = filename_replace($x,'.emory.edu',''); $x = filename_replace($x,qr((\d+)\.(\d+)),'"$1_$2"'); return $x; }
-    );
+    $not_found_ok = 0 if not defined $not_found_ok;
 
-    foreach my $sub (@subs) {
-        my $new_url = &$sub($orig_url);
-        if( $self->SUPER::download(filename => $args{filename}, path => $args{path}, url => $new_url,  not_found_ok => 1)) {
-            return 1;
+    my $filename = $args{filename};
+    $filename = "${ia_id}_$suffix" if not defined $filename;
+
+    foreach my $link (@{$self->get_links()}) {
+        if ($link =~ /$suffix$/) {
+
+            return $self->SUPER::download(path => $self->{pt_path}, 
+                filename => $filename, 
+                url => "$download_base/$ia_id/$link", 
+                not_found_ok => $not_found_ok);
         }
     }
 
-    if(!$not_found_ok) {
-        $self->set_error("OperationFailed",file => $args{filename},operation=>'download',detail => "No variants for $args{filename} found");
-    }
-    return 0;
-
 }
 
+sub get_links {
+    my $self = shift;
+
+    if(not defined $self->{links}) {
+        my $ua = LWP::UserAgent->new;
+        my $ia_id = $self->{volume}->get_ia_id();
+        my $url = "http://www.archive.org/download/$ia_id/";
+
+        my $req = HTTP::Request->new('GET', $url);
+        my $res = $ua->request($req);
+
+        my $parser = HTFeed::PackageType::IA::Download::LinkParser->new;
+        $parser->parse($res->content);
+
+        $self->{links} = $parser->links;
+    }
+
+    return $self->{links};
+
+}
 
 1;
 

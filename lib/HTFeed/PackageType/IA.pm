@@ -144,13 +144,13 @@ our $config = {
 
     # Required items for download; %s will be replaced by IA ID
     core_package_items => [ 
-    '%s_djvu.xml',
-    '%s_meta.xml' ],
+    'djvu.xml',
+    'meta.xml' ],
 
     # Optional items for download
     non_core_package_items => [ 
-    '%s_files.xml',
-    '%s_scanfactors.xml' ],
+    'files.xml',
+    'scanfactors.xml' ],
 
     # migrate old 'transformation' events 
     migrate_events => {
