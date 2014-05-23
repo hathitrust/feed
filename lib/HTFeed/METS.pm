@@ -807,10 +807,12 @@ sub _remediate_marc {
         $fakeleader->setNodeName('leader');
     }
 
-    # remove internal aleph stuff
+    # remove internal aleph stuff; save control fields for rearrangement
+    my @controlfields = ();
     foreach my $controlfield ($xc->findnodes('.//marc:controlfield')) {
-        if($controlfield->getAttribute('tag') !~ /^\d{2}[A-Z0-9]$/) {
-            $controlfield->parentNode()->removeChild($controlfield);
+        $controlfield->parentNode()->removeChild($controlfield);
+        if($controlfield->getAttribute('tag') =~ /^\d{2}[A-Z0-9]$/) {
+            push(@controlfields,$controlfield);
         }
     }
 
@@ -827,6 +829,7 @@ sub _remediate_marc {
     }
 
     my $leader = $leaders[0];
+
     my $value = $leader->findvalue(".");
 
     $value =~ s/\^/ /g;
@@ -922,6 +925,11 @@ sub _remediate_marc {
 
     $leader->removeChildNodes();
     $leader->appendText($value);
+
+    # reinsert control fields in the correct place
+    while (my $controlfield = pop @controlfields) {
+        $leader->parentNode()->insertAfter($controlfield,$leader);
+    }
 
     foreach my $datafield ($xc->findnodes('./marc:datafield')) {
         # ind1/ind2 might have nbsp or control characters instead of regular space
