@@ -663,6 +663,62 @@ sub prevalidate_field {
 
 }
 
+=item expand_lossless_jpeg2000()
+
+$self->expand_lossless_jpeg2000($volume, $path, $files)
+
+Runs JHOVE to find any losslessly compressed JPEG2000 images and expands them 
+to TIFF. The TIFF remediation will then recompress the TIFF to a JPEG2000 image
+that meets spec.
+
+$files is a reference to an array of filenames
+$path is the base directory containing all the files in $files
+
+If the JPEG2000 image is named FILENAME.jp2, it will be decompressed to
+FILENAME.tif, and FILENAME.jp2 will be removed.
+
+=cut
+
+sub expand_lossless_jpeg2000 {
+    my ($self, $volume, $path, $files) = @_;
+
+    my $transformation_xp = XML::LibXML::XPathExpression->new(
+                    "/jhove:jhove/jhove:repInfo/" .
+                    "jhove:properties/jhove:property[jhove:name='JPEG2000Metadata']/jhove:values/" .
+                    "jhove:property[jhove:name='Codestreams']/jhove:values/jhove:property[jhove:name='Codestream']/jhove:values/" .
+                    "jhove:property[jhove:name='CodingStyleDefault']/jhove:values/" . 
+                    "jhove:property[jhove:name='Transformation']/jhove:values/jhove:value"
+                );
+
+
+    $self->run_jhove(
+        $volume,
+        $path,
+        $files,
+        sub {
+            my ( $volume, $file, $node ) = @_;
+            my $xpc = XML::LibXML::XPathContext->new($node);
+            register_namespaces($xpc);
+
+            my $transformation = $xpc->findvalue($transformation_xp);
+            if (not defined $transformation) {
+                # malformed JPEG2000 image
+                $self->set_error("BadFile",file => $file, detail => "Can't find Transformation in JHOVE output");
+            } elsif ($transformation eq '1') {
+                # lossless compression
+                my $outfile = $file;
+                $outfile =~ s/\.jp2$/.tif/;
+
+                system("/l/local/bin/kdu_expand -i '$path/$file' -o '$path/$outfile'");
+
+                unlink("$path/$file");
+            }
+
+        },
+        "-m JPEG2000-hul"
+    );
+}
+
 =item remediate_tiffs()
 
 $self->remediate_tiffs($volume,$path,$tiffs,$headers_sub);

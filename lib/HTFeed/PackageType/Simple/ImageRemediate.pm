@@ -33,7 +33,10 @@ sub run{
     my $preingest_dir = $volume->get_preingest_directory();
     my $staging_dir = $volume->get_staging_directory();
 
-    # remediate TIFFs
+    # decompress any lossless JPEG2000 images
+#    $self->expand_lossless_jpeg2000($volume,$preingest_dir,[map { basename($_) } glob("$preingest_dir/*.jp2")]);
+
+     #remediate TIFFs
     my @tiffs = map { basename($_) } glob("$preingest_dir/*.tif");
     $self->remediate_tiffs($volume,$preingest_dir,\@tiffs,
 
