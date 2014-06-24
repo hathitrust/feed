@@ -244,6 +244,11 @@ END
             detail =>
     'This checks that the image contains information about the make and model of scanner or camera used to create it. If not, this information can be added if known.'
         },
+        'transformation' => {
+            desc => 'JPEG2000 transformation',
+            valid => v_eq('codingStyleDefault','transformation','0'),
+            detail => 'HathiTrust normally expects lossy-compressed JPEG2000 images. If it is compressed losslessly, it can be recompressed.'
+        }
 
     };
 }
@@ -517,7 +522,7 @@ sub new {
                     desc => "Transformation",
                     query =>
 "jhove:property[jhove:name='Transformation']/jhove:values/jhove:value",
-                    remediable => 0
+                    remediable => 1
                 },
             },
 
