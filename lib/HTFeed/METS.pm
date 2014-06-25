@@ -165,6 +165,7 @@ sub _update_event_date {
             
         }
 
+        $from_tz = $volume->get_nspkg()->get('default_timezone');
         if($agent eq 'MiU' or $agent eq 'UM' or $agent =~ /Michigan/) {
             $from_tz = 'America/Detroit';
         }
@@ -176,7 +177,7 @@ sub _update_event_date {
             $from_tz = 'Europe/Madrid';
         } elsif($agent eq 'MnU') {
             $from_tz = 'America/Chicago';
-        } else {
+        } elsif(not defined $from_tz or $from_tz eq '') {
             $self->set_error("BadField",field=>"linkingAgentIdentifierValue",
                 actual => $agent, 
                 detail => "Unknown time zone for agent ID");

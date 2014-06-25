@@ -42,7 +42,7 @@ sub _add_capture_event {
     $self->set_error('MissingValue',file=>'meta.yml',field=>'capture_agent') unless defined $eventconfig->{'executor'};
     $eventconfig->{'executor_type'} = 'MARC21 Code';
     $eventconfig->{'executor_type'} = 'HathiTrust Agent ID' if($eventconfig->{'executor'} =~ /^ZZ-HT/);
-    $eventconfig->{'date'} = $capture_date;
+    $eventconfig->{'date'} = $self->_add_time_zone($capture_date);
     my $capture_event = $self->add_premis_event($eventconfig);
 
     # also add image compression event if info present in meta.yml
@@ -58,7 +58,7 @@ sub _add_capture_event {
         $eventconfig->{'eventid'} = $volume->make_premis_uuid($eventconfig->{'type'},$image_compression_date);
         $eventconfig->{'executor'} = $image_compression_agent;
         $eventconfig->{'executor_type'} = 'MARC21 Code';
-        $eventconfig->{'date'} = $image_compression_date;
+        $eventconfig->{'date'} = $self->_add_time_zone($image_compression_date);
 
         # make sure image compression tool is an array
         if(!ref($image_compression_tool) ) {
@@ -135,4 +135,23 @@ EOT
 
 }
 
+# convert timezone to namespace default time zone if one is not already
+# present
+sub _add_time_zone {
+    my $self = shift;
+    my $time = shift;
+
+    unless ($time =~ /Z$/ or $time =~ /[+-]\d{2}:\d{2}$/) {
+        my $tz = $self->{volume}->get_nspkg()->get('default_timezone');
+        if (defined $tz and $tz ne '') {
+            $time = $self->convert_tz($time,$tz);
+        }  else {
+            $self->set_error('MissingValue',field => 'default_timezone',
+                detail => 'Saw time without timezone in meta.yml and no default time zone for namespace specified');
+        }
+
+    }
+
+    return $time;
+}
 1;

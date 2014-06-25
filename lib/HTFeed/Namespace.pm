@@ -12,7 +12,9 @@ BEGIN{
     our $identifier = "namespace";
     our $config = {
         description => "Base class for HathiTrust namespaces",
-        packagetypes => ['singleimage']
+        packagetypes => ['singleimage'],
+        # timezone to use when not specified in dates. none by default
+        default_timezone => ''
     };
 
 }
