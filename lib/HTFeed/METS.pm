@@ -932,7 +932,7 @@ sub _remediate_marc {
         $leader->parentNode()->insertAfter($controlfield,$leader);
     }
 
-    foreach my $datafield ($xc->findnodes('./marc:datafield')) {
+    foreach my $datafield ($xc->findnodes('.//marc:datafield')) {
         # ind1/ind2 might have nbsp or control characters instead of regular space
         # @i1 => @ind1
         # @i2 => @ind2
