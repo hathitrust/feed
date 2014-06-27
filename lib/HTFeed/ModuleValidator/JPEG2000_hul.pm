@@ -55,10 +55,7 @@ sub _set_validators {
 
         'mime_type' => {
             desc  => "MIME type",
-            valid => v_and(
-                v_eq( 'repInfo', 'mimeType', 'image/jp2' ),
-                v_eq( 'mix',     'mime',     'image/jp2' )
-            ),
+            valid => v_eq( 'repInfo', 'mimeType', 'image/jp2' ),
             detail =>
 'This checks that JHOVE is reporting the images have the proper MIME type. If this check fails, the image may be in an incorrect format and likely will need to be regenerated from the source image.'
         },
@@ -87,7 +84,7 @@ sub _set_validators {
         'compression' => {
             desc  => "JPEG2000 compression",
             valid => v_and(
-                v_eq( 'mix', 'compression', '34712' ),   # JPEG 2000 compression
+                v_eq( 'mix', 'compression', 'Unknown' ),   # JPEG 2000 compression
                 v_eq( 'xmp', 'compression', '34712' ),
             ),
             detail =>
@@ -151,7 +148,7 @@ sub _set_validators {
                 my $meta_colorSpace =
                   $self->_findone( "jp2Meta", "colorSpace" );
                 my $mix_bitsPerSample =
-                  $self->_findone( "mix", "bitsPerSample" );
+                  $self->_findvalue( "mix", "bitsPerSample" );
                 my $xmp_bitsPerSample_grey =
                   $self->_findvalue( "xmp", "bitsPerSample_grey" );
                 my $xmp_bitsPerSample_color =
@@ -173,7 +170,7 @@ sub _set_validators {
                     && ( "3"     eq $xmp_samplesPerPixel )
                     && ( "3"     eq $mix_samplesPerPixel )
                     && ( "sRGB"  eq $meta_colorSpace )
-                    && ( "8,8,8" eq $mix_bitsPerSample )
+                    && ( "888"   eq $mix_bitsPerSample )
                     && ( "888"   eq $xmp_bitsPerSample_color ) )
                   or (
                     $self->set_error(
@@ -528,39 +525,32 @@ sub new {
 
             # mix children
             mix => {
-                mime => {
-                    desc  => "MIMEType",
-                    query => "mix:BasicImageParameters/mix:Format/mix:MIMEType",
-                    remediable => 0
-                },
                 compression => {
                     desc => "CompressionScheme",
                     query =>
-"mix:BasicImageParameters/mix:Format/mix:Compression/mix:CompressionScheme",
+"mix:BasicDigitalObjectInformation/mix:Compression/mix:compressionScheme",
                     remediable => 0
                 },
                 width => {
                     desc => "ImageWidth",
                     query =>
-"mix:ImagingPerformanceAssessment/mix:SpatialMetrics/mix:ImageWidth",
+"mix:BasicImageInformation/mix:BasicImageCharacteristics/mix:imageWidth",
                     remediable => 0
                 },
                 length => {
-                    desc => "ImageLength",
+                    desc => "ImageHeight",
                     query =>
-"mix:ImagingPerformanceAssessment/mix:SpatialMetrics/mix:ImageLength",
+"mix:BasicImageInformation/mix:BasicImageCharacteristics/mix:imageHeight",
                     remediable => 0
                 },
                 bitsPerSample => {
                     desc => "BitsPerSample",
-                    query =>
-"mix:ImagingPerformanceAssessment/mix:Energetics/mix:BitsPerSample",
+                    query => "mix:ImageAssessmentMetadata/mix:ImageColorEncoding/mix:BitsPerSample/mix:bitsPerSampleValue",
                     remediable => 0
                 },
                 samplesPerPixel => {
                     desc => "SamplesPerPixel",
-                    query =>
-"mix:ImagingPerformanceAssessment/mix:Energetics/mix:SamplesPerPixel",
+                    query => "mix:ImageAssessmentMetadata/mix:ImageColorEncoding/mix:samplesPerPixel",
                     remediable => 0
                 },
             },

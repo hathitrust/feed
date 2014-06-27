@@ -18,7 +18,7 @@ use constant {
     NS_JHOVE  => 'http://hul.harvard.edu/ois/xml/ns/jhove',
     NS_MARC   => 'http://www.loc.gov/MARC21/slim',
     NS_METS   => 'http://www.loc.gov/METS/',
-    NS_MIX    => 'http://www.loc.gov/mix/',
+    NS_MIX    => 'http://www.loc.gov/mix/v20',
     NS_MODS   => 'http://www.loc.gov/mods/v3',
     NS_OAI_DC => 'http://www.openarchives.org/OAI/2.0/oai_dc/',
     NS_PREMIS => 'info:lc/xmlns/premis-v2',

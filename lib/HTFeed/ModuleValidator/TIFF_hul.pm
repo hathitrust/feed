@@ -50,24 +50,21 @@ sub _set_validators {
 
         'mime_type' => {
             desc  => 'MIME type',
-            valid => v_and(
-                v_eq( 'mix',     'mime',     'image/tiff' ),
-                v_eq( 'repInfo', 'mimeType', 'image/tiff' )
-            ),
+            valid => v_eq( 'repInfo', 'mimeType', 'image/tiff' ),
             detail =>
 'This checks that JHOVE is reporting the images have the proper MIME type. If this check fails, the image may be in an incorrect format and likely will need to be regenerated from the source image.'
         },
 
         'compression' => {
             desc  => 'image compression method',
-            valid => v_eq( 'mix', 'compression', '4' ),
+            valid => v_eq( 'mix', 'compression', 'Group 4 Fax' ),
             detail =>
 'This checks that the image is compressed using CCITT Group 4 compression. If not, this can be remediated by recompressing the image with ImageMagick.'
         },    # CCITT Group 4
 
         'colorspace' => {
             desc  => 'color space',
-            valid => v_eq( 'mix', 'colorSpace', '0' ),
+            valid => v_eq( 'mix', 'colorSpace', 'WhiteIsZero' ),
             detail =>
 'This checks that the image is a bitonal image and that 0 signifies white. If the color space is reported as 1 (BlackIsZero) and this is a bitonal image, then the color space can be remediated with ImageMagick. If the color space is anything else, this is likely not a bitonal image and the image should either be binarized or converted to JPEG 2000'
 
@@ -75,7 +72,7 @@ sub _set_validators {
 
         'orientation' => {
             desc  => 'image orientation',
-            valid => v_eq( 'mix', 'orientation', '1' ),
+            valid => v_eq( 'mix', 'orientation', 'normal*' ),
             detail =>
 'This checks that the orientation in which the image should be displayed matches the "natural" order of pixels in the image. If not, this can be remediated by setting the value to 1 (normal) and rotating the image as needed.'
         },    # Horizontal/normal
@@ -92,7 +89,7 @@ sub _set_validators {
 
         'resolution_unit' => {
             desc  => 'resolution unit',
-            valid => v_eq( 'mix', 'resUnit', '2' ),
+            valid => v_eq( 'mix', 'resUnit', 'in.' ),
             detail =>
 'This checks that the resolution unit is set to 2 (inches). If not, this can be remediated by setting the resolution unit to 2 (inches) and updating the XResolution and YResolution fields as needed.'
         },
@@ -364,79 +361,66 @@ sub new {
 
             # mix children
             mix => {
-                mime => {
-                    desc       => 'MIMEType',
-                    remediable => 1,
-                    query => "mix:BasicImageParameters/mix:Format/mix:MIMEType"
-                },
                 compression => {
                     desc       => 'CompresionScheme',
                     remediable => 1,
-                    query =>
-"mix:BasicImageParameters/mix:Format/mix:Compression/mix:CompressionScheme"
+                    query => "mix:BasicDigitalObjectInformation/mix:Compression/mix:compressionScheme"
                 },
                 colorSpace => {
                     desc       => 'PhotometricInterpretation/ColorSpace',
                     remediable => 1,
-                    query =>
-"mix:BasicImageParameters/mix:Format/mix:PhotometricInterpretation/mix:ColorSpace"
+                    query => "mix:BasicImageInformation/mix:BasicImageCharacteristics/mix:PhotometricInterpretation/mix:colorSpace"
                 },
                 orientation => {
                     desc       => 'Orientation',
                     remediable => 1,
-                    query => "mix:BasicImageParameters/mix:File/mix:Orientation"
+                    query => "mix:ImageCaptureMetadata/mix:orientation"
                 },
                 artist => {
                     desc       => 'ImageProducer',
                     remediable => 1,
-                    query      => "mix:ImageCreation/mix:ImageProducer"
+                    query      => "mix:ImageCaptureMetadata/mix:GeneralCaptureInformation/mix:imageProducer"
                 },
                 dateTime => {
                     desc       => 'DateTimeCreated',
                     remediable => 1,
-                    query      => "mix:ImageCreation/mix:DateTimeCreated"
+                    query      => "mix:ImageCaptureMetadata/mix:GeneralCaptureInformation/mix:dateTimeCreated"
                 },
                 xRes => {
+                    # IS THERE EVER A DENOMINATOR?!
                     desc       => 'XSamplingFrequency',
                     remediable => 2,
-                    query =>
-"mix:ImagingPerformanceAssessment/mix:SpatialMetrics/mix:XSamplingFrequency"
+                    query => "mix:ImageAssessmentMetadata/mix:SpatialMetrics/mix:xSamplingFrequency/mix:numerator"
                 },
                 yRes => {
                     desc       => 'YSamplingFrequency',
                     remediable => 2,
-                    query =>
-"mix:ImagingPerformanceAssessment/mix:SpatialMetrics/mix:YSamplingFrequency"
+                    query => "mix:ImageAssessmentMetadata/mix:SpatialMetrics/mix:ySamplingFrequency/mix:numerator"
                 },
                 resUnit => {
                     desc       => 'SamplingFrequencyUnit',
                     remediable => 1,
-                    query =>
-"mix:ImagingPerformanceAssessment/mix:SpatialMetrics/mix:SamplingFrequencyUnit"
+                    query => "mix:ImageAssessmentMetadata/mix:SpatialMetrics/mix:samplingFrequencyUnit"
                 },
                 width => {
                     desc       => 'ImageWidth',
-                    remediable => 0,
-                    query =>
-"mix:ImagingPerformanceAssessment/mix:SpatialMetrics/mix:ImageWidth"
+                    remediable => 0, 
+                    query => "mix:BasicImageInformation/mix:BasicImageCharacteristics/mix:imageWidth",
                 },
                 length => {
-                    desc       => 'ImageLength',
-                    remediable => 0,
-                    query =>
-"mix:ImagingPerformanceAssessment/mix:SpatialMetrics/mix:ImageLength"
+                    desc       => 'ImageHeight',
+                    remediable => 0, 
+                    query => "mix:BasicImageInformation/mix:BasicImageCharacteristics/mix:imageHeight",
                 },
                 bitsPerSample => {
                     desc       => 'BitsPerSample',
                     remediable => 0,
-                    query =>
-"mix:ImagingPerformanceAssessment/mix:Energetics/mix:BitsPerSample"
+                    query => "mix:ImageAssessmentMetadata/mix:ImageColorEncoding/mix:BitsPerSample/mix:bitsPerSampleValue"
                 },
                 samplesPerPixel => {
                     desc       => 'SamplesPerPixel',
                     remediable => 0,
-                    query =>
-"mix:ImagingPerformanceAssessment/mix:Energetics/mix:SamplesPerPixel"
+                    query => "mix:ImageAssessmentMetadata/mix:ImageColorEncoding/mix:samplesPerPixel"
                 },
             },
 
