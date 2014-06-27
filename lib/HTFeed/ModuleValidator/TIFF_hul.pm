@@ -151,13 +151,23 @@ sub _set_validators {
 
              # require XMP headers to exist and match TIFF headers if XMP exists
                     foreach my $field (
-                        qw(bitsPerSample compression colorSpace orientation samplesPerPixel resUnit length width artist )
+                        qw(bitsPerSample samplesPerPixel length width artist )
                       )
                     {
                         $self->_require_same( 'mix', $field, 'xmp', $field ) or $validation_ok = 0;
                     }
                     $self->_require_same( 'tiffMeta', 'documentName', 'xmp',
                         'documentName' ) or $validation_ok = 0;
+
+
+                    # G4 compression
+                    $self->_validateone('xmp','compression',4);
+                    # colorspace - whiteiszero
+                    $self->_validateone('xmp','colorSpace',0);
+                    # orientation - normal
+                    $self->_validateone('xmp','orientation',1);
+                    # resunit
+                    $self->_validateone('xmp','resUnit',2);
 
                     my $xmp_datetime = $self->_findone( "xmp", "dateTime" ) or $validation_ok = 0;
                     my $mix_datetime = $self->_findone( "mix", "dateTime" ) or $validation_ok = 0;
