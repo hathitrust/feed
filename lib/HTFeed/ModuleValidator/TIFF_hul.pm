@@ -79,10 +79,7 @@ sub _set_validators {
 
         'resolution' => {
             desc  => 'resolution',
-            valid => v_and(
-                v_eq( 'mix', 'xRes', '600' ),
-                v_eq( 'mix', 'yRes', '600' )
-            ),
+            valid => v_resolution(['600']),
             detail =>
 'This checks that the image has square pixels and is scanned at a resolution of 600 pixels per inch. If the value is missing or does not reflect the actual image resolution, this can be corrected if the value is known. If the resolution information is present, correct, and not equivalent to 600 or more pixels per inch (e.g. 236 pixels per centimeter) the image will need to be rescanned or regenerated from a higher-resolution master image. Upsampling to 600 DPI bitonal images from >= 300 DPI contone images is also acceptable.'
         },
@@ -190,11 +187,20 @@ sub _set_validators {
                     }
 
                     # mix lists as just '600', XMP lists as '600/1'
+                    my $res = $self->get_resolution();
                     my $xres = $self->_findone( "xmp", "xRes" );
                     my $yres = $self->_findone( "xmp", "yRes" );
                     if(defined $xres) {
                         if ( $xres =~ /^(\d+)\/1$/ ) {
-                            $self->_validateone( "mix", "xRes", $1 ) or $validation_ok = 0;
+                            if($res != $xres) {
+                                $self->set_error(
+                                    "BadValue",
+                                    field => "XMP tiff:XResolution",
+                                    actual => $xres,
+                                    expected => $res,
+                                    detail => "XMP tiff:XResolution does not match IFD0:XResolution",
+                                    remediable => 1);
+                            }
                         }
                         else {
                             $self->set_error(
@@ -280,6 +286,47 @@ sub _findxmp {
     }
     my $retstring = $self->_findone( "tiffMeta", "xmp" );
     return $retstring;
+}
+
+sub v_resolution {
+    my $allowed = shift;
+
+    return sub {
+        my $self = shift;
+        my $xnum = $self->_findone("mix","xRes_numerator");
+        my $xden_node = $self->_findonenode("mix","xRes_denominator");
+        my $xres;
+        my $ynum = $self->_findone("mix","yRes_numerator");
+        my $yden_node = $self->_findonenode("mix","yRes_denominator");
+        my $yres;
+
+        if(defined $xden_node) {
+            $xres = $xnum / $xden_node->textContent();
+        } else {
+            $xres = $xnum;
+        }
+
+        if(defined $yden_node) {
+            $yres = $ynum / $yden_node->textContent();
+        } else {
+            $yres = $ynum;
+        }
+
+        if($xres != $yres)  {
+        $self->set_error("NotEqualValues", $self->get_details("mix","xRes_numerator"), 
+            actual => {"XSamplingFrequency" => $xres,
+                "YSamplingFrequency" => $yres});
+        }
+
+        foreach my $res (@$allowed) {
+            if($xres == $res) {
+                return 1;
+            }
+        }
+
+        # did not match, fail
+        $self->set_error("BadValue", $self->get_details("mix","xRes_numerator"), actual => $xres, expected => "one of (" . join(", ",@$allowed) . ")");
+    }
 }
 
 package HTFeed::QueryLib::TIFF_hul;
@@ -396,16 +443,25 @@ sub new {
                     remediable => 1,
                     query      => "mix:ImageCaptureMetadata/mix:GeneralCaptureInformation/mix:dateTimeCreated"
                 },
-                xRes => {
-                    # IS THERE EVER A DENOMINATOR?!
+                xRes_numerator => {
                     desc       => 'XSamplingFrequency',
                     remediable => 2,
                     query => "mix:ImageAssessmentMetadata/mix:SpatialMetrics/mix:xSamplingFrequency/mix:numerator"
                 },
-                yRes => {
+                xRes_denominator => {
+                    desc       => 'XSamplingFrequency',
+                    remediable => 2,
+                    query => "mix:ImageAssessmentMetadata/mix:SpatialMetrics/mix:xSamplingFrequency/mix:denominator"
+                },
+                yRes_numerator => {
                     desc       => 'YSamplingFrequency',
                     remediable => 2,
                     query => "mix:ImageAssessmentMetadata/mix:SpatialMetrics/mix:ySamplingFrequency/mix:numerator"
+                },
+                yRes_denominator => {
+                    desc       => 'YSamplingFrequency',
+                    remediable => 2,
+                    query => "mix:ImageAssessmentMetadata/mix:SpatialMetrics/mix:ySamplingFrequency/mix:denominator"
                 },
                 resUnit => {
                     desc       => 'SamplingFrequencyUnit',
