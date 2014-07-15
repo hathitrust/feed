@@ -294,20 +294,20 @@ sub v_resolution {
     return sub {
         my $self = shift;
         my $xnum = $self->_findone("mix","xRes_numerator");
-        my $xden_node = $self->_findonenode("mix","xRes_denominator");
+        my $xden_nodelist = $self->_findnodes("mix","xRes_denominator");
         my $xres;
         my $ynum = $self->_findone("mix","yRes_numerator");
-        my $yden_node = $self->_findonenode("mix","yRes_denominator");
+        my $yden_nodelist = $self->_findnodes("mix","yRes_denominator");
         my $yres;
 
-        if(defined $xden_node) {
-            $xres = $xnum / $xden_node->textContent();
+        if(defined $xden_nodelist and @$xden_nodelist) {
+            $xres = $xnum / $xden_nodelist->[0]->textContent();
         } else {
             $xres = $xnum;
         }
 
-        if(defined $yden_node) {
-            $yres = $ynum / $yden_node->textContent();
+        if(defined $yden_nodelist and @$yden_nodelist) {
+            $yres = $ynum / $yden_nodelist->[0]->textContent();
         } else {
             $yres = $ynum;
         }
