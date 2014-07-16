@@ -192,7 +192,8 @@ sub _set_validators {
                     my $yres = $self->_findone( "xmp", "yRes" );
                     if(defined $xres) {
                         if ( $xres =~ /^(\d+)\/1$/ ) {
-                            if($res != $xres) {
+                            my $xres_num = $1;
+                            if($res != $xres_num) {
                                 $self->set_error(
                                     "BadValue",
                                     field => "XMP tiff:XResolution",
@@ -288,44 +289,52 @@ sub _findxmp {
     return $retstring;
 }
 
+sub get_resolution {
+    my $self = shift;
+    my $xnum = $self->_findone("mix","xRes_numerator");
+    my $xden_nodelist = $self->_findnodes("mix","xRes_denominator");
+    my $xres;
+    my $ynum = $self->_findone("mix","yRes_numerator");
+    my $yden_nodelist = $self->_findnodes("mix","yRes_denominator");
+    my $yres;
+
+    if(defined $xden_nodelist and @$xden_nodelist) {
+        $xres = $xnum / $xden_nodelist->[0]->textContent();
+    } else {
+        $xres = $xnum;
+    }
+
+    if(defined $yden_nodelist and @$yden_nodelist) {
+        $yres = $ynum / $yden_nodelist->[0]->textContent();
+    } else {
+        $yres = $ynum;
+    }
+
+    if($xres != $yres)  {
+        $self->set_error("NotEqualValues", $self->get_details("mix","xRes_numerator"), 
+            actual => {"XSamplingFrequency" => $xres,
+                "YSamplingFrequency" => $yres});
+    }
+
+    return $xres;
+}
+
 sub v_resolution {
     my $allowed = shift;
 
     return sub {
+
         my $self = shift;
-        my $xnum = $self->_findone("mix","xRes_numerator");
-        my $xden_nodelist = $self->_findnodes("mix","xRes_denominator");
-        my $xres;
-        my $ynum = $self->_findone("mix","yRes_numerator");
-        my $yden_nodelist = $self->_findnodes("mix","yRes_denominator");
-        my $yres;
+        my $actual_res = $self->get_resolution();
 
-        if(defined $xden_nodelist and @$xden_nodelist) {
-            $xres = $xnum / $xden_nodelist->[0]->textContent();
-        } else {
-            $xres = $xnum;
-        }
-
-        if(defined $yden_nodelist and @$yden_nodelist) {
-            $yres = $ynum / $yden_nodelist->[0]->textContent();
-        } else {
-            $yres = $ynum;
-        }
-
-        if($xres != $yres)  {
-        $self->set_error("NotEqualValues", $self->get_details("mix","xRes_numerator"), 
-            actual => {"XSamplingFrequency" => $xres,
-                "YSamplingFrequency" => $yres});
-        }
-
-        foreach my $res (@$allowed) {
-            if($xres == $res) {
+        foreach my $expected_res (@$allowed) {
+            if($actual_res == $expected_res) {
                 return 1;
             }
         }
 
         # did not match, fail
-        $self->set_error("BadValue", $self->get_details("mix","xRes_numerator"), actual => $xres, expected => "one of (" . join(", ",@$allowed) . ")");
+        $self->set_error("BadValue", $self->get_details("mix","xRes_numerator"), actual => $actual_res, expected => "one of (" . join(", ",@$allowed) . ")");
     }
 }
 
