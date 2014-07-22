@@ -40,11 +40,14 @@ sub get_srcmets_page_data {
         $self->{page_data} = $self->_extract_page_tags();
     }
 
-    # handle mismatched image types
-    if($file =~ /\.jp2$/ and not defined $self->{'page_data'}{$file}) {
-        $file =~ s/\.jp2$/.tif/;
-    }
-    return $self->{'page_data'}{$file};
+    my $seq = $file;
+    $seq =~ s/^(\d{8}).*$/$1/;
+
+#    # handle mismatched image types
+#    if($file =~ /\.jp2$/ and not defined $self->{'page_data'}{$file}) {
+#        $file =~ s/\.jp2$/.tif/;
+#    }
+    return $self->{'page_data'}{$seq};
 
 }
 
@@ -222,14 +225,18 @@ sub _extract_page_tags {
     foreach my $filename ( uniq( sort( keys(%$pagenumber_map), keys(%$pagetag_map) ) ) ) {
         my $pagenum = $pagenumber_map->{$filename};
         my $rawtags = $pagetag_map->{$filename};
+        $rawtags = [] if not defined $rawtags;
         my @tags    = uniq( sort(@$rawtags) );
+        
+        my $seq = $filename;
+        $seq =~ s/(\d{8}).*/$1/g;
 
-        $pagedata->{$filename} = {} if not defined $pagedata->{filename};
+        $pagedata->{$seq} = {} if not defined $pagedata->{$seq};
         if($pagenum and $pagenum ne '') {
-            $pagedata->{$filename}{orderlabel} = $pagenum;
+            $pagedata->{$seq}{orderlabel} = $pagenum;
         }
         if(@tags) {
-            $pagedata->{$filename}{label} = join(', ',@tags);
+            $pagedata->{$seq}{label} = join(', ',@tags);
         }
 
     }
