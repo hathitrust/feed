@@ -140,10 +140,7 @@ our $config = {
         },
         'HTFeed::ModuleValidator::TIFF_hul' => {
             'camera' => undef,
-          'resolution'      => v_and(
-              v_ge( 'mix', 'xRes', 600 ),
-              v_same( 'mix', 'xRes', 'mix', 'yRes' )
-          ),
+            'resolution'      => HTFeed::ModuleValidator::TIFF_hul::v_resolution_ge(600)
         }
     }
 };

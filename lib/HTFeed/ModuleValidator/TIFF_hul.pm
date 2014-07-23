@@ -319,6 +319,23 @@ sub get_resolution {
     return $xres;
 }
 
+sub v_resolution_ge {
+    my $allowed = shift;
+
+    return sub {
+
+        my $self = shift;
+        my $actual_res = $self->get_resolution();
+
+        if($actual_res >= $allowed) {
+            return 1;
+        }
+
+        # did not match, fail
+        $self->set_error("BadValue", $self->get_details("mix","xRes_numerator"), actual => $actual_res, expected => ">= $allowed");
+    }
+}
+
 sub v_resolution {
     my $allowed = shift;
 
