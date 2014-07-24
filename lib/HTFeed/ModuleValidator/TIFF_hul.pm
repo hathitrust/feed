@@ -231,6 +231,7 @@ sub _set_validators {
             desc  => 'scanner make and model',
             valid => sub {
                 my $self = shift;
+                my $ok = 1;
 
                 # find xmp
                 my $xmp_found = 1;
@@ -242,9 +243,11 @@ sub _set_validators {
                     $self->_setupXMPcontext($xmp_xml) or return 0;
 
                     # Optional??
-                    $self->_findonenode( "xmp", "make" );
-                    $self->_findonenode( "xmp", "model" );
+                    $self->_findonenode( "xmp", "make" ) or $ok = 0;
+                    $self->_findonenode( "xmp", "model" ) or $ok = 0;
                 }
+
+                return $ok;
             },
 
             detail =>
