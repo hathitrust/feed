@@ -854,6 +854,11 @@ sub _remediate_marc {
         # 23: Undefined
         $/x) {
 
+        # fix up material with record status of 'a' and no record type
+        if(substr($value,5,2) eq 'a ') {
+            substr($value,5,2) = ' a';
+        }
+
         # 00-04: Record length - default to empty
         if(substr($value,0,5) !~ /^[\d ]{5}$/) {
             substr($value,0,5) = '     ';
