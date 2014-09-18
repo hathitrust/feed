@@ -128,6 +128,21 @@ sub get_all_directory_files {
     return $self->{directory_files};
 }
 
+# FIXME: try to get from repository METS if not in database
+# query database for content provider & responsible entity.
+sub get_sources {
+    my $self = shift;
+    my $dbh = HTFeed::DBTools::get_dbh();
+    my $sth = $dbh->prepare("SELECT content_provider_cluster, responsible_entity from feed_nonreturned n JOIN feed_collections c ON n.collection = c.collection WHERE namespace = ? and id = ?");
+    $sth->execute($self->get_namespace(),$self->get_objid());
+    if(my ($content_providers,$responsible_entity) = $sth->fetchrow_array()) {
+        return ($content_providers,$responsible_entity);
+    } else {
+        $self->set_error("MissingField",field=>"feed_nonreturned",detail=>"Missing feed_nonreturned entry - can't get content provider / responsible entity");
+    }
+}
+
+
 sub get_staging_directory {
     my $self = shift;
     my $pt_objid = $self->get_pt_objid();

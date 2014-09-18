@@ -51,6 +51,7 @@ sub run {
     $self->_add_header();
     $self->_add_dmdsecs();
     $self->_add_techmds();
+    $self->_add_sourcemd();
     $self->_add_filesecs();
     $self->_add_struct_map();
     $self->_add_premis();
@@ -137,6 +138,56 @@ sub _add_dmdsecs {
 # no techmds by default
 sub _add_techmds {
     my $self = shift;
+}
+
+# generate info from feed_nonreturned and feed_collections table, or throw error if it's missing.
+sub _add_sourcemd {
+
+    # FIXME: handle born-digital material
+    sub element_ht {
+        my $name = shift;
+        my %attributes = @_;
+        my $element = XML::LibXML::Element->new($name);
+        $element->setNamespace(NS_HT,'HT');
+        while (my ($attr,$val) = each %attributes) {
+            $element->setAttribute($attr,$val);
+        }
+        return $element;
+    }
+
+    my $self = shift;
+
+    my ($content_providers,$responsible_entity) = $self->{volume}->get_sources();
+    my $sources = element_ht("sources", format => 'digitized');
+
+    my $sourcemd = METS::MetadataSection->new( 'sourceMD',
+        id => $self->_get_subsec_id('SMD'));
+
+    my $sequence = 0;
+    # make sure one content provider is selected for display
+    $content_providers = "$content_providers*" if $content_providers !~ /\*/;
+    foreach my $content_provider (split(';',$content_providers)) {
+        $sequence++;
+        my $display = 'no';
+        if($content_provider =~ /\*$/) {
+            $display = 'yes';
+            $content_provider =~ s/\*$//;
+        }
+        # add content provider 
+        my $content_provider_element = element_ht('contentProvider', sequence => $sequence, display => $display);
+        $content_provider_element->appendText($content_provider);
+        $sources->appendChild($content_provider_element);
+    }
+
+    # add responsible entity
+    # FIXME: how to add 2nd responsible entity?
+    my $responsible_entity_element = element_ht('responsibleEntity',sequence => '1');
+    $responsible_entity_element->appendText($responsible_entity);
+    $sources->appendChild($responsible_entity_element);
+
+    $sourcemd->set_data($sources, mdtype => 'OTHER', othermdtype => 'HT');
+    push(@{ $self->{amd_mdsecs} },$sourcemd);
+
 }
 
 sub _update_event_date {

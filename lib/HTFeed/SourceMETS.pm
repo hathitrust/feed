@@ -77,6 +77,11 @@ sub clean_always {
     # do nothing
 }
 
+# Override base class: source METS don't need the sourcemd
+sub _add_sourcemd {
+    # do nothing
+}
+
 
 # Clean volume preingest directory
 sub clean_success {
