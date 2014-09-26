@@ -281,14 +281,29 @@ sub should_check_validator {
     my $self = shift;
 
     my $validator = shift;
+    my $src_mets = $self->get_source_mets_file();
+    my $xpc;
 
     my @skip_validation = @{$self->get_nspkg()->get('skip_validation')};
     # get exceptions from 'note from mom' PREMIS event
     if(not defined $self->{note_from_mom} and 
-        defined $self->get_source_mets_file()) {
+        defined $src_mets) {
+        $xpc = $self->get_source_mets_xpc();
+    }
+
+    # get from database if there is no source METS file
+    if (not defined $self->{note_from_mom} and
+        not defined $src_mets) {
+        my ($eventid, $date, $outcome_node, $custom_node) = $self->get_event_info('note_from_mom');
+        if($custom_node)  {
+            $xpc = XML::LibXML::XPathContext->new($custom_node);
+            register_namespaces($xpc);
+        }
+    }
+
+    if(defined $xpc) {
         $self->{note_from_mom} = [];
-        my $src_mets_xpc = $self->get_source_mets_xpc();
-        foreach my $exception_node ($src_mets_xpc->findnodes('//premis:event[premis:eventType="manual inspection"]//ht:exceptionsAllowed/@category')) {
+        foreach my $exception_node ($xpc->findnodes('//premis:event[premis:eventType="manual inspection"]//ht:exceptionsAllowed/@category')) {
             push(@{$self->{note_from_mom}},$exception_node->getValue());
         }
     }
