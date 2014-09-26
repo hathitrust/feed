@@ -24,7 +24,7 @@ use Pod::Usage;
 #   replace existing exceptions
 #   user to record exception as (default: username@umich.edu)
 
-my @allowed_exceptions = qw(jpeg2000_dimensions tiff_resolution);
+my @allowed_exceptions = qw(jpeg2000_size tiff_resolution);
 my $help = 0;
 my $display = 1;
 my $replace = 0;
@@ -85,7 +85,7 @@ if(@new_exceptions) {
 
 # record detail:
 #        	<PREMIS:eventOutcomeDetailExtension>
-#            	<HT:exceptionsAllowed category="jpeg2000_dimensions” />
+#            	<HT:exceptionsAllowed category="jpeg2000_size” />
 #			<HT:exceptionsAllowed category=”sequence_skip” />
 #        	</PREMIS:eventOutcomeDetailExtension>
 
@@ -131,13 +131,13 @@ record_exception.pl - add "note from mom" validation exception for legacy DLXS i
 
 =head1 SYNOPSIS
 
-record_exception.pl [-r] [--no-display] objid [jpeg2000_dimensions] [tiff_resolution]
+record_exception.pl [-r] [--no-display] objid [jpeg2000_size] [tiff_resolution]
 
 objid is the DLXS ID of the item, e.g. abc1234.0001.001 or 1234567.0001.001
 
 valid exceptions are:
 
-    jpeg2000_dimensions: inhibits validation JPEG2000 minimum image dimensions
+    jpeg2000_size: inhibits validation JPEG2000 minimum image size
 
     tiff_resolution: inhibits validation of TIFF resolution
 
