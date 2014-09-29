@@ -269,8 +269,7 @@ sub get_validation_overrides {
     # they are present and equal
     if($module eq 'HTFeed::ModuleValidator::TIFF_hul' and
         !$self->should_check_validator('tiff_resolution')) {
-        $overrides->{resolution} = v_same('mix','xRes_numerator','mix','yRes_numerator');
-        $overrides->{resolution} = v_same('mix','xRes_denominator','mix','yRes_denominator');
+        $overrides->{resolution} = HTFeed::ModuleValidator::TIFF_hul::v_resolution_exists();
     }
 
     return $overrides;

@@ -322,6 +322,13 @@ sub get_resolution {
     return $xres;
 }
 
+sub v_resolution_exists {
+    return sub {
+        my $self = shift;
+        $self->get_resolution();
+    }
+}
+
 sub v_resolution_ge {
     my $allowed = shift;
 
