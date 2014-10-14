@@ -1,0 +1,686 @@
+{
+    "expand": "renderedFields,names,schema,transitions,operations,editmeta,changelog",
+    "id": "50238",
+    "self": "https://wush.net/jira/hathitrust/rest/api/2/issue/50238",
+    "key": "HTS-9999",
+    "fields": {
+        "progress": {
+            "progress": 0,
+            "total": 0
+        },
+        "summary": "HathiTrust Catalog Feedback",
+        "issuetype": {
+            "self": "https://wush.net/jira/hathitrust/rest/api/2/issuetype/10",
+            "id": "10",
+            "description": "Issues related to cataloging and description of materials",
+            "iconUrl": "https://wush.net/jira/hathitrust/images/icons/issuetypes/genericissue.png",
+            "name": "Cataloging",
+            "subtask": false
+        },
+        "timespent": null,
+        "reporter": {
+            "self": "https://wush.net/jira/hathitrust/rest/api/2/user?username=hathitrust-user",
+            "name": "hathitrust-user",
+            "emailAddress": "hathitrust.help@gmail.com",
+            "avatarUrls": {
+                "16x16": "https://wush.net/jira/hathitrust/secure/useravatar?size=xsmall&avatarId=10112",
+                "24x24": "https://wush.net/jira/hathitrust/secure/useravatar?size=small&avatarId=10112",
+                "32x32": "https://wush.net/jira/hathitrust/secure/useravatar?size=medium&avatarId=10112",
+                "48x48": "https://wush.net/jira/hathitrust/secure/useravatar?avatarId=10112"
+            },
+            "displayName": "HathiTrust",
+            "active": true
+        },
+        "updated": "2014-09-05T18:39:34.000-0500",
+        "created": "2014-03-21T08:33:06.000-0500",
+        "customfield_10041": "http://catalog.hathitrust.org/Record/000030948",
+        "priority": {
+            "self": "https://wush.net/jira/hathitrust/rest/api/2/priority/6",
+            "iconUrl": "https://wush.net/jira/hathitrust/images/icons/priorities/minor.png",
+            "name": "Normal",
+            "id": "6"
+        },
+        "description": "id: HathiTrust.org\ncomments: Hello. The \"Full View\" link in the following record leads to a completely different title:\r \r http://catalog.hathitrust.org/Record/000030948\r \r Could you please advise on how link-related issues are reported and resolved?\r \r Thank you.\r \r Ben Daigle\r Ohio Wesleyan University Libraries\nreturn: http://www.hathitrust.org/help\nUser: not authenticated\nReferer: Same as 'return'\nHathiTrust Server: 141.213.128.193",
+        "customfield_10040": "http://hdl.handle.net/2027/mdp.39015002276304",
+        "issuelinks": [],
+        "customfield_10000": null,
+        "subtasks": [],
+        "status": {
+            "self": "https://wush.net/jira/hathitrust/rest/api/2/status/6",
+            "description": "The issue is considered finished, the resolution is correct. Issues which are closed can be reopened.",
+            "iconUrl": "https://wush.net/jira/hathitrust/images/icons/statuses/closed.png",
+            "name": "Closed",
+            "id": "6"
+        },
+        "labels": [
+            "delete",
+            "multiple_barcodes"
+        ],
+        "workratio": -1,
+        "customfield_11700": [
+            "com.atlassian.jira.issue.comments.CommentImpl@bd0acf4e",
+            "com.atlassian.jira.issue.comments.CommentImpl@d04693d1",
+            "com.atlassian.jira.issue.comments.CommentImpl@622bb9f1",
+            "com.atlassian.jira.issue.comments.CommentImpl@5e5b1e10",
+            "com.atlassian.jira.issue.comments.CommentImpl@e4f25c86",
+            "com.atlassian.jira.issue.comments.CommentImpl@f0f40106",
+            "com.atlassian.jira.issue.comments.CommentImpl@9434b2f0",
+            "com.atlassian.jira.issue.comments.CommentImpl@3aef2967",
+            "com.atlassian.jira.issue.comments.CommentImpl@c5423af3",
+            "com.atlassian.jira.issue.comments.CommentImpl@d9e161b3",
+            "com.atlassian.jira.issue.comments.CommentImpl@11a6a892",
+            "com.atlassian.jira.issue.comments.CommentImpl@93e437d4",
+            "com.atlassian.jira.issue.comments.CommentImpl@41adaa41",
+            "com.atlassian.jira.issue.comments.CommentImpl@64dc9e2e",
+            "com.atlassian.jira.issue.comments.CommentImpl@da6716d9"
+        ],
+        "project": {
+            "self": "https://wush.net/jira/hathitrust/rest/api/2/project/10010",
+            "id": "10010",
+            "key": "HTS",
+            "name": "HathiTrust User Support",
+            "avatarUrls": {
+                "16x16": "https://wush.net/jira/hathitrust/secure/projectavatar?size=xsmall&pid=10010&avatarId=10040",
+                "24x24": "https://wush.net/jira/hathitrust/secure/projectavatar?size=small&pid=10010&avatarId=10040",
+                "32x32": "https://wush.net/jira/hathitrust/secure/projectavatar?size=medium&pid=10010&avatarId=10040",
+                "48x48": "https://wush.net/jira/hathitrust/secure/projectavatar?pid=10010&avatarId=10040"
+            }
+        },
+        "customfield_10904": null,
+        "customfield_11200": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/33.0.1750.152 Safari/537.36",
+        "customfield_11201": null,
+        "customfield_11206": [{
+            "self": "https://wush.net/jira/hathitrust/rest/api/2/user?username=lit-cs-sysadmin%40umich.edu",
+            "name": "lit-cs-sysadmin@umich.edu",
+            "emailAddress": "lit-cs-sysadmin@umich.edu",
+            "avatarUrls": {
+                "16x16": "https://wush.net/jira/hathitrust/secure/useravatar?size=xsmall&avatarId=10112",
+                "24x24": "https://wush.net/jira/hathitrust/secure/useravatar?size=small&avatarId=10112",
+                "32x32": "https://wush.net/jira/hathitrust/secure/useravatar?size=medium&avatarId=10112",
+                "48x48": "https://wush.net/jira/hathitrust/secure/useravatar?avatarId=10112"
+            },
+            "displayName": "Library IT CS System Admins",
+            "active": true
+        }],
+        "customfield_11602": "Record for ID mdp.39015002276304 was loaded, processed, and updated in Zephir.\r\n",
+        "aggregateprogress": {
+            "progress": 0,
+            "total": 0
+        },
+        "lastViewed": "2014-10-07T08:44:35.748-0500",
+        "customfield_10050": null,
+        "customfield_11207": null,
+        "customfield_11302": null,
+        "customfield_11603": "renata.ewing(renata.ewing)",
+        "customfield_11600": null,
+        "components": [],
+        "customfield_11205": null,
+        "comment": {
+            "startAt": 0,
+            "maxResults": 15,
+            "total": 15,
+            "comments": [
+                {
+                    "self": "https://wush.net/jira/hathitrust/rest/api/2/issue/50238/comment/120055",
+                    "id": "120055",
+                    "author": {
+                        "self": "https://wush.net/jira/hathitrust/rest/api/2/user?username=rsfoxvon",
+                        "name": "rsfoxvon",
+                        "emailAddress": "rsfoxvon@syr.edu",
+                        "avatarUrls": {
+                            "16x16": "https://wush.net/jira/hathitrust/secure/useravatar?size=xsmall&ownerId=rsfoxvon&avatarId=11095",
+                            "24x24": "https://wush.net/jira/hathitrust/secure/useravatar?size=small&ownerId=rsfoxvon&avatarId=11095",
+                            "32x32": "https://wush.net/jira/hathitrust/secure/useravatar?size=medium&ownerId=rsfoxvon&avatarId=11095",
+                            "48x48": "https://wush.net/jira/hathitrust/secure/useravatar?ownerId=rsfoxvon&avatarId=11095"
+                        },
+                        "displayName": "Rachel Fox Von Swearingen",
+                        "active": false
+                    },
+                    "body": "Hello Ben,\r\n\r\nThanks for letting us know about this mis-match!  Reporting it here is the exact course of action needed, so I'll forward this to our cataloging folks and they can investigate. They will be in touch with you to let you know when it has been resolved. \r\n\r\nCheers,\r\nRachel Fox von Swearingen\r\nHathiTrust User Support",
+                    "updateAuthor": {
+                        "self": "https://wush.net/jira/hathitrust/rest/api/2/user?username=rsfoxvon",
+                        "name": "rsfoxvon",
+                        "emailAddress": "rsfoxvon@syr.edu",
+                        "avatarUrls": {
+                            "16x16": "https://wush.net/jira/hathitrust/secure/useravatar?size=xsmall&ownerId=rsfoxvon&avatarId=11095",
+                            "24x24": "https://wush.net/jira/hathitrust/secure/useravatar?size=small&ownerId=rsfoxvon&avatarId=11095",
+                            "32x32": "https://wush.net/jira/hathitrust/secure/useravatar?size=medium&ownerId=rsfoxvon&avatarId=11095",
+                            "48x48": "https://wush.net/jira/hathitrust/secure/useravatar?ownerId=rsfoxvon&avatarId=11095"
+                        },
+                        "displayName": "Rachel Fox Von Swearingen",
+                        "active": false
+                    },
+                    "created": "2014-03-21T12:03:18.000-0500",
+                    "updated": "2014-03-21T12:03:18.000-0500"
+                },
+                {
+                    "self": "https://wush.net/jira/hathitrust/rest/api/2/issue/50238/comment/120068",
+                    "id": "120068",
+                    "author": {
+                        "self": "https://wush.net/jira/hathitrust/rest/api/2/user?username=bldaigle%40owu.edu",
+                        "name": "bldaigle@owu.edu",
+                        "emailAddress": "bldaigle@owu.edu",
+                        "avatarUrls": {
+                            "16x16": "https://wush.net/jira/hathitrust/secure/useravatar?size=xsmall&avatarId=10112",
+                            "24x24": "https://wush.net/jira/hathitrust/secure/useravatar?size=small&avatarId=10112",
+                            "32x32": "https://wush.net/jira/hathitrust/secure/useravatar?size=medium&avatarId=10112",
+                            "48x48": "https://wush.net/jira/hathitrust/secure/useravatar?avatarId=10112"
+                        },
+                        "displayName": "Ben Daigle",
+                        "active": true
+                    },
+                    "body": "[Created via e-mail from: \"Ben Daigle\" <bldaigle@owu.edu>]\r\n\r\nRachel - Thanks very much for the prompt response!\r\n\r\nBen\r\n\r\n\r\nOn Fri, Mar 21, 2014 at 1:03 PM, Rachel Fox Von Swearingen <",
+                    "updateAuthor": {
+                        "self": "https://wush.net/jira/hathitrust/rest/api/2/user?username=bldaigle%40owu.edu",
+                        "name": "bldaigle@owu.edu",
+                        "emailAddress": "bldaigle@owu.edu",
+                        "avatarUrls": {
+                            "16x16": "https://wush.net/jira/hathitrust/secure/useravatar?size=xsmall&avatarId=10112",
+                            "24x24": "https://wush.net/jira/hathitrust/secure/useravatar?size=small&avatarId=10112",
+                            "32x32": "https://wush.net/jira/hathitrust/secure/useravatar?size=medium&avatarId=10112",
+                            "48x48": "https://wush.net/jira/hathitrust/secure/useravatar?avatarId=10112"
+                        },
+                        "displayName": "Ben Daigle",
+                        "active": true
+                    },
+                    "created": "2014-03-21T12:39:45.000-0500",
+                    "updated": "2014-03-21T12:39:45.000-0500"
+                },
+                {
+                    "self": "https://wush.net/jira/hathitrust/rest/api/2/issue/50238/comment/120070",
+                    "id": "120070",
+                    "author": {
+                        "self": "https://wush.net/jira/hathitrust/rest/api/2/user?username=charbonn",
+                        "name": "charbonn",
+                        "emailAddress": "charbonn@indiana.edu",
+                        "avatarUrls": {
+                            "16x16": "https://wush.net/jira/hathitrust/secure/useravatar?size=xsmall&ownerId=charbonn&avatarId=11094",
+                            "24x24": "https://wush.net/jira/hathitrust/secure/useravatar?size=small&ownerId=charbonn&avatarId=11094",
+                            "32x32": "https://wush.net/jira/hathitrust/secure/useravatar?size=medium&ownerId=charbonn&avatarId=11094",
+                            "48x48": "https://wush.net/jira/hathitrust/secure/useravatar?ownerId=charbonn&avatarId=11094"
+                        },
+                        "displayName": "Gary Charbonneau",
+                        "active": true
+                    },
+                    "body": "Angelina,\r\n\r\nI don't know whether this is a cataloging problem, or a barcode mismatch problem -- please advise.  The work described in the cataloging record is \"Implementation,\" by Jeffrey L. Pressman.  The scan is for \"Johannes Ludovicus Vives, de vriend van Erasmus....\"  The barcode in the permalink matches a barcode that was lined out on the front cover of the piece; there is another barcode in the back.  The same scan is also correctly linked to http://catalog.hathitrust.org/Record/001914504.  There's no other record in HathiTrust for the 1979 ed. of \"Implementation.\"  Because of the mismatch, the scan is showing in full view, when it presumably should be in limited view.  Do I need to refer this to mdpcorrections, or do you want it?\r\n\r\nGary ",
+                    "updateAuthor": {
+                        "self": "https://wush.net/jira/hathitrust/rest/api/2/user?username=charbonn",
+                        "name": "charbonn",
+                        "emailAddress": "charbonn@indiana.edu",
+                        "avatarUrls": {
+                            "16x16": "https://wush.net/jira/hathitrust/secure/useravatar?size=xsmall&ownerId=charbonn&avatarId=11094",
+                            "24x24": "https://wush.net/jira/hathitrust/secure/useravatar?size=small&ownerId=charbonn&avatarId=11094",
+                            "32x32": "https://wush.net/jira/hathitrust/secure/useravatar?size=medium&ownerId=charbonn&avatarId=11094",
+                            "48x48": "https://wush.net/jira/hathitrust/secure/useravatar?ownerId=charbonn&avatarId=11094"
+                        },
+                        "displayName": "Gary Charbonneau",
+                        "active": true
+                    },
+                    "created": "2014-03-21T12:49:36.000-0500",
+                    "updated": "2014-03-21T12:49:36.000-0500"
+                },
+                {
+                    "self": "https://wush.net/jira/hathitrust/rest/api/2/issue/50238/comment/120279",
+                    "id": "120279",
+                    "author": {
+                        "self": "https://wush.net/jira/hathitrust/rest/api/2/user?username=azaytsev",
+                        "name": "azaytsev",
+                        "emailAddress": "azaytsev@umich.edu",
+                        "avatarUrls": {
+                            "16x16": "https://wush.net/jira/hathitrust/secure/useravatar?size=xsmall&ownerId=azaytsev&avatarId=11090",
+                            "24x24": "https://wush.net/jira/hathitrust/secure/useravatar?size=small&ownerId=azaytsev&avatarId=11090",
+                            "32x32": "https://wush.net/jira/hathitrust/secure/useravatar?size=medium&ownerId=azaytsev&avatarId=11090",
+                            "48x48": "https://wush.net/jira/hathitrust/secure/useravatar?ownerId=azaytsev&avatarId=11090"
+                        },
+                        "displayName": "Angelina Zaytsev",
+                        "active": true
+                    },
+                    "body": "Thanks, Gary. I can take it. ",
+                    "updateAuthor": {
+                        "self": "https://wush.net/jira/hathitrust/rest/api/2/user?username=azaytsev",
+                        "name": "azaytsev",
+                        "emailAddress": "azaytsev@umich.edu",
+                        "avatarUrls": {
+                            "16x16": "https://wush.net/jira/hathitrust/secure/useravatar?size=xsmall&ownerId=azaytsev&avatarId=11090",
+                            "24x24": "https://wush.net/jira/hathitrust/secure/useravatar?size=small&ownerId=azaytsev&avatarId=11090",
+                            "32x32": "https://wush.net/jira/hathitrust/secure/useravatar?size=medium&ownerId=azaytsev&avatarId=11090",
+                            "48x48": "https://wush.net/jira/hathitrust/secure/useravatar?ownerId=azaytsev&avatarId=11090"
+                        },
+                        "displayName": "Angelina Zaytsev",
+                        "active": true
+                    },
+                    "created": "2014-03-24T12:25:15.000-0500",
+                    "updated": "2014-03-24T12:25:15.000-0500"
+                },
+                {
+                    "self": "https://wush.net/jira/hathitrust/rest/api/2/issue/50238/comment/120280",
+                    "id": "120280",
+                    "author": {
+                        "self": "https://wush.net/jira/hathitrust/rest/api/2/user?username=azaytsev",
+                        "name": "azaytsev",
+                        "emailAddress": "azaytsev@umich.edu",
+                        "avatarUrls": {
+                            "16x16": "https://wush.net/jira/hathitrust/secure/useravatar?size=xsmall&ownerId=azaytsev&avatarId=11090",
+                            "24x24": "https://wush.net/jira/hathitrust/secure/useravatar?size=small&ownerId=azaytsev&avatarId=11090",
+                            "32x32": "https://wush.net/jira/hathitrust/secure/useravatar?size=medium&ownerId=azaytsev&avatarId=11090",
+                            "48x48": "https://wush.net/jira/hathitrust/secure/useravatar?ownerId=azaytsev&avatarId=11090"
+                        },
+                        "displayName": "Angelina Zaytsev",
+                        "active": true
+                    },
+                    "body": "This is in GRIN but comes up with a 404 error in GBS. ",
+                    "updateAuthor": {
+                        "self": "https://wush.net/jira/hathitrust/rest/api/2/user?username=azaytsev",
+                        "name": "azaytsev",
+                        "emailAddress": "azaytsev@umich.edu",
+                        "avatarUrls": {
+                            "16x16": "https://wush.net/jira/hathitrust/secure/useravatar?size=xsmall&ownerId=azaytsev&avatarId=11090",
+                            "24x24": "https://wush.net/jira/hathitrust/secure/useravatar?size=small&ownerId=azaytsev&avatarId=11090",
+                            "32x32": "https://wush.net/jira/hathitrust/secure/useravatar?size=medium&ownerId=azaytsev&avatarId=11090",
+                            "48x48": "https://wush.net/jira/hathitrust/secure/useravatar?ownerId=azaytsev&avatarId=11090"
+                        },
+                        "displayName": "Angelina Zaytsev",
+                        "active": true
+                    },
+                    "created": "2014-03-24T12:26:14.000-0500",
+                    "updated": "2014-03-24T12:26:14.000-0500"
+                },
+                {
+                    "self": "https://wush.net/jira/hathitrust/rest/api/2/issue/50238/comment/120323",
+                    "id": "120323",
+                    "author": {
+                        "self": "https://wush.net/jira/hathitrust/rest/api/2/user?username=lit-cs-ingest",
+                        "name": "lit-cs-ingest",
+                        "emailAddress": "lit-cs-ingest@umich.edu",
+                        "avatarUrls": {
+                            "16x16": "https://wush.net/jira/hathitrust/secure/useravatar?size=xsmall&ownerId=lit-cs-groove&avatarId=10080",
+                            "24x24": "https://wush.net/jira/hathitrust/secure/useravatar?size=small&ownerId=lit-cs-groove&avatarId=10080",
+                            "32x32": "https://wush.net/jira/hathitrust/secure/useravatar?size=medium&ownerId=lit-cs-groove&avatarId=10080",
+                            "48x48": "https://wush.net/jira/hathitrust/secure/useravatar?ownerId=lit-cs-groove&avatarId=10080"
+                        },
+                        "displayName": "HathiTrust Automation",
+                        "active": true
+                    },
+                    "body": "mdp.39015002276304 has not been processed or analyzed since download or conversion -- not queueing\r\n",
+                    "updateAuthor": {
+                        "self": "https://wush.net/jira/hathitrust/rest/api/2/user?username=lit-cs-ingest",
+                        "name": "lit-cs-ingest",
+                        "emailAddress": "lit-cs-ingest@umich.edu",
+                        "avatarUrls": {
+                            "16x16": "https://wush.net/jira/hathitrust/secure/useravatar?size=xsmall&ownerId=lit-cs-groove&avatarId=10080",
+                            "24x24": "https://wush.net/jira/hathitrust/secure/useravatar?size=small&ownerId=lit-cs-groove&avatarId=10080",
+                            "32x32": "https://wush.net/jira/hathitrust/secure/useravatar?size=medium&ownerId=lit-cs-groove&avatarId=10080",
+                            "48x48": "https://wush.net/jira/hathitrust/secure/useravatar?ownerId=lit-cs-groove&avatarId=10080"
+                        },
+                        "displayName": "HathiTrust Automation",
+                        "active": true
+                    },
+                    "created": "2014-03-24T14:00:35.000-0500",
+                    "updated": "2014-03-24T14:00:35.000-0500"
+                },
+                {
+                    "self": "https://wush.net/jira/hathitrust/rest/api/2/issue/50238/comment/136864",
+                    "id": "136864",
+                    "author": {
+                        "self": "https://wush.net/jira/hathitrust/rest/api/2/user?username=azaytsev",
+                        "name": "azaytsev",
+                        "emailAddress": "azaytsev@umich.edu",
+                        "avatarUrls": {
+                            "16x16": "https://wush.net/jira/hathitrust/secure/useravatar?size=xsmall&ownerId=azaytsev&avatarId=11090",
+                            "24x24": "https://wush.net/jira/hathitrust/secure/useravatar?size=small&ownerId=azaytsev&avatarId=11090",
+                            "32x32": "https://wush.net/jira/hathitrust/secure/useravatar?size=medium&ownerId=azaytsev&avatarId=11090",
+                            "48x48": "https://wush.net/jira/hathitrust/secure/useravatar?ownerId=azaytsev&avatarId=11090"
+                        },
+                        "displayName": "Angelina Zaytsev",
+                        "active": true
+                    },
+                    "body": "Hello Ben,\r\n\r\nAt UOM:39015002276304 we get a Buhr barcode issue. The images are of Johannes Ludovicus Vives, de vriend van Erasums, but the record and barcode should be for Implementation : how great expectations in Washington are dashed in Oakland. Do you have the correct images (Implementation) for 39015002276304? \r\n\r\nThanks,\r\nAngelina Zaytsev\r\nProject Librarian, HathiTrust",
+                    "updateAuthor": {
+                        "self": "https://wush.net/jira/hathitrust/rest/api/2/user?username=azaytsev",
+                        "name": "azaytsev",
+                        "emailAddress": "azaytsev@umich.edu",
+                        "avatarUrls": {
+                            "16x16": "https://wush.net/jira/hathitrust/secure/useravatar?size=xsmall&ownerId=azaytsev&avatarId=11090",
+                            "24x24": "https://wush.net/jira/hathitrust/secure/useravatar?size=small&ownerId=azaytsev&avatarId=11090",
+                            "32x32": "https://wush.net/jira/hathitrust/secure/useravatar?size=medium&ownerId=azaytsev&avatarId=11090",
+                            "48x48": "https://wush.net/jira/hathitrust/secure/useravatar?ownerId=azaytsev&avatarId=11090"
+                        },
+                        "displayName": "Angelina Zaytsev",
+                        "active": true
+                    },
+                    "created": "2014-06-24T10:37:38.000-0500",
+                    "updated": "2014-06-24T10:37:38.000-0500"
+                },
+                {
+                    "self": "https://wush.net/jira/hathitrust/rest/api/2/issue/50238/comment/136884",
+                    "id": "136884",
+                    "author": {
+                        "self": "https://wush.net/jira/hathitrust/rest/api/2/user?username=bbunnell",
+                        "name": "bbunnell",
+                        "emailAddress": "bbunnell@google.com",
+                        "avatarUrls": {
+                            "16x16": "https://wush.net/jira/hathitrust/secure/useravatar?size=xsmall&avatarId=10112",
+                            "24x24": "https://wush.net/jira/hathitrust/secure/useravatar?size=small&avatarId=10112",
+                            "32x32": "https://wush.net/jira/hathitrust/secure/useravatar?size=medium&avatarId=10112",
+                            "48x48": "https://wush.net/jira/hathitrust/secure/useravatar?avatarId=10112"
+                        },
+                        "displayName": "Ben Bunnell",
+                        "active": true
+                    },
+                    "body": "Hi Angelina,\r\n\r\n39015002276304 has already been disassociated from those images, which are\r\nnow correctly organized on Google's end under UOM:39015070484004, which\r\nappears to have been ingested and included\r\n<http://babel.hathitrust.org/cgi/pt?id=mdp.39015070484004;view=1up;seq=217>\r\nin HathiTrust.  You'll find that ingesting 39015002276304 from GRIN won't\r\nwork any more.\r\n\r\nRegarding the actual pages for \"how great expectations in Washington are\r\ndashed in Oakland,\" we've got it in snippet view from Stanford at\r\nhttp://books.google.com/books?vid=STANFORD:36105035627400. We have also\r\nscanned it from UCAL/NRLF under UCAL:B4266144\r\n<http://go/bibkey-tracker/query?bibkey=UCAL:B4266144>.\r\n\r\n\r\n\r\n\r\n\r\n\r\nOn Tue, Jun 24, 2014 at 11:38 AM, Angelina Zaytsev <",
+                    "updateAuthor": {
+                        "self": "https://wush.net/jira/hathitrust/rest/api/2/user?username=bbunnell",
+                        "name": "bbunnell",
+                        "emailAddress": "bbunnell@google.com",
+                        "avatarUrls": {
+                            "16x16": "https://wush.net/jira/hathitrust/secure/useravatar?size=xsmall&avatarId=10112",
+                            "24x24": "https://wush.net/jira/hathitrust/secure/useravatar?size=small&avatarId=10112",
+                            "32x32": "https://wush.net/jira/hathitrust/secure/useravatar?size=medium&avatarId=10112",
+                            "48x48": "https://wush.net/jira/hathitrust/secure/useravatar?avatarId=10112"
+                        },
+                        "displayName": "Ben Bunnell",
+                        "active": true
+                    },
+                    "created": "2014-06-24T11:54:52.000-0500",
+                    "updated": "2014-06-24T11:54:52.000-0500"
+                },
+                {
+                    "self": "https://wush.net/jira/hathitrust/rest/api/2/issue/50238/comment/137228",
+                    "id": "137228",
+                    "author": {
+                        "self": "https://wush.net/jira/hathitrust/rest/api/2/user?username=azaytsev",
+                        "name": "azaytsev",
+                        "emailAddress": "azaytsev@umich.edu",
+                        "avatarUrls": {
+                            "16x16": "https://wush.net/jira/hathitrust/secure/useravatar?size=xsmall&ownerId=azaytsev&avatarId=11090",
+                            "24x24": "https://wush.net/jira/hathitrust/secure/useravatar?size=small&ownerId=azaytsev&avatarId=11090",
+                            "32x32": "https://wush.net/jira/hathitrust/secure/useravatar?size=medium&ownerId=azaytsev&avatarId=11090",
+                            "48x48": "https://wush.net/jira/hathitrust/secure/useravatar?ownerId=azaytsev&avatarId=11090"
+                        },
+                        "displayName": "Angelina Zaytsev",
+                        "active": true
+                    },
+                    "body": "Hi Jeremy,\r\n\r\nAt mdp.39015002276304, we have a bad Buhr barcode with possible future ingest. The images for TITLE are in the repository twice; once under the correct barcode at http://hdl.handle.net/2027/mdp.39015070484004  and once under the incorrect barcode (attached to the wrong record) at http://hdl.handle.net/2027/mdp.39015002276304 . Google does not have the images for 39015002276304. 39015002276304 is associated with an existing UM work, which appears to not yet have been digitized. The duplicate images at 39015002276304 should therefore be deleted.\r\n\r\nCan I send for deletion?\r\n\r\nThanks,\r\nAngelina\r\n\r\n",
+                    "updateAuthor": {
+                        "self": "https://wush.net/jira/hathitrust/rest/api/2/user?username=azaytsev",
+                        "name": "azaytsev",
+                        "emailAddress": "azaytsev@umich.edu",
+                        "avatarUrls": {
+                            "16x16": "https://wush.net/jira/hathitrust/secure/useravatar?size=xsmall&ownerId=azaytsev&avatarId=11090",
+                            "24x24": "https://wush.net/jira/hathitrust/secure/useravatar?size=small&ownerId=azaytsev&avatarId=11090",
+                            "32x32": "https://wush.net/jira/hathitrust/secure/useravatar?size=medium&ownerId=azaytsev&avatarId=11090",
+                            "48x48": "https://wush.net/jira/hathitrust/secure/useravatar?ownerId=azaytsev&avatarId=11090"
+                        },
+                        "displayName": "Angelina Zaytsev",
+                        "active": true
+                    },
+                    "created": "2014-06-26T10:56:03.000-0500",
+                    "updated": "2014-06-26T10:56:03.000-0500"
+                },
+                {
+                    "self": "https://wush.net/jira/hathitrust/rest/api/2/issue/50238/comment/137235",
+                    "id": "137235",
+                    "author": {
+                        "self": "https://wush.net/jira/hathitrust/rest/api/2/user?username=jjyork%40hathitrust.org",
+                        "name": "jjyork@hathitrust.org",
+                        "emailAddress": "jjyork@hathitrust.org",
+                        "avatarUrls": {
+                            "16x16": "https://wush.net/jira/hathitrust/secure/useravatar?size=xsmall&avatarId=10112",
+                            "24x24": "https://wush.net/jira/hathitrust/secure/useravatar?size=small&avatarId=10112",
+                            "32x32": "https://wush.net/jira/hathitrust/secure/useravatar?size=medium&avatarId=10112",
+                            "48x48": "https://wush.net/jira/hathitrust/secure/useravatar?avatarId=10112"
+                        },
+                        "displayName": "Jeremy York",
+                        "active": true
+                    },
+                    "body": "[Created via e-mail from: \"Jeremy York\" <jjyork@hathitrust.org>]\r\n\r\nYes, please go ahead and request the delete, noting the possibility of \r\nfuture ingest.\r\n\r\nThank,s\r\n\r\nJeremy",
+                    "updateAuthor": {
+                        "self": "https://wush.net/jira/hathitrust/rest/api/2/user?username=jjyork%40hathitrust.org",
+                        "name": "jjyork@hathitrust.org",
+                        "emailAddress": "jjyork@hathitrust.org",
+                        "avatarUrls": {
+                            "16x16": "https://wush.net/jira/hathitrust/secure/useravatar?size=xsmall&avatarId=10112",
+                            "24x24": "https://wush.net/jira/hathitrust/secure/useravatar?size=small&avatarId=10112",
+                            "32x32": "https://wush.net/jira/hathitrust/secure/useravatar?size=medium&avatarId=10112",
+                            "48x48": "https://wush.net/jira/hathitrust/secure/useravatar?avatarId=10112"
+                        },
+                        "displayName": "Jeremy York",
+                        "active": true
+                    },
+                    "created": "2014-06-26T11:35:48.000-0500",
+                    "updated": "2014-06-26T11:35:48.000-0500"
+                },
+                {
+                    "self": "https://wush.net/jira/hathitrust/rest/api/2/issue/50238/comment/137254",
+                    "id": "137254",
+                    "author": {
+                        "self": "https://wush.net/jira/hathitrust/rest/api/2/user?username=azaytsev",
+                        "name": "azaytsev",
+                        "emailAddress": "azaytsev@umich.edu",
+                        "avatarUrls": {
+                            "16x16": "https://wush.net/jira/hathitrust/secure/useravatar?size=xsmall&ownerId=azaytsev&avatarId=11090",
+                            "24x24": "https://wush.net/jira/hathitrust/secure/useravatar?size=small&ownerId=azaytsev&avatarId=11090",
+                            "32x32": "https://wush.net/jira/hathitrust/secure/useravatar?size=medium&ownerId=azaytsev&avatarId=11090",
+                            "48x48": "https://wush.net/jira/hathitrust/secure/useravatar?ownerId=azaytsev&avatarId=11090"
+                        },
+                        "displayName": "Angelina Zaytsev",
+                        "active": true
+                    },
+                    "body": "Hello,\r\n\r\nI am submitting a delete request for mdp.39015002276304, which is a bad Buhr barcode with possible future ingest. Can you please process this?\r\n\r\nThanks,\r\nAngelina",
+                    "updateAuthor": {
+                        "self": "https://wush.net/jira/hathitrust/rest/api/2/user?username=azaytsev",
+                        "name": "azaytsev",
+                        "emailAddress": "azaytsev@umich.edu",
+                        "avatarUrls": {
+                            "16x16": "https://wush.net/jira/hathitrust/secure/useravatar?size=xsmall&ownerId=azaytsev&avatarId=11090",
+                            "24x24": "https://wush.net/jira/hathitrust/secure/useravatar?size=small&ownerId=azaytsev&avatarId=11090",
+                            "32x32": "https://wush.net/jira/hathitrust/secure/useravatar?size=medium&ownerId=azaytsev&avatarId=11090",
+                            "48x48": "https://wush.net/jira/hathitrust/secure/useravatar?ownerId=azaytsev&avatarId=11090"
+                        },
+                        "displayName": "Angelina Zaytsev",
+                        "active": true
+                    },
+                    "created": "2014-06-26T14:21:12.000-0500",
+                    "updated": "2014-06-26T14:21:12.000-0500"
+                },
+                {
+                    "self": "https://wush.net/jira/hathitrust/rest/api/2/issue/50238/comment/137299",
+                    "id": "137299",
+                    "author": {
+                        "self": "https://wush.net/jira/hathitrust/rest/api/2/user?username=csnavely%40umich.edu",
+                        "name": "csnavely@umich.edu",
+                        "emailAddress": "csnavely@umich.edu",
+                        "avatarUrls": {
+                            "16x16": "https://wush.net/jira/hathitrust/secure/useravatar?size=xsmall&avatarId=10112",
+                            "24x24": "https://wush.net/jira/hathitrust/secure/useravatar?size=small&avatarId=10112",
+                            "32x32": "https://wush.net/jira/hathitrust/secure/useravatar?size=medium&avatarId=10112",
+                            "48x48": "https://wush.net/jira/hathitrust/secure/useravatar?avatarId=10112"
+                        },
+                        "displayName": "Cory Snavely",
+                        "active": true
+                    },
+                    "body": "[Created via e-mail from: \"Cory Snavely\" <csnavely@umich.edu>]\r\n\r\nDone.",
+                    "updateAuthor": {
+                        "self": "https://wush.net/jira/hathitrust/rest/api/2/user?username=csnavely%40umich.edu",
+                        "name": "csnavely@umich.edu",
+                        "emailAddress": "csnavely@umich.edu",
+                        "avatarUrls": {
+                            "16x16": "https://wush.net/jira/hathitrust/secure/useravatar?size=xsmall&avatarId=10112",
+                            "24x24": "https://wush.net/jira/hathitrust/secure/useravatar?size=small&avatarId=10112",
+                            "32x32": "https://wush.net/jira/hathitrust/secure/useravatar?size=medium&avatarId=10112",
+                            "48x48": "https://wush.net/jira/hathitrust/secure/useravatar?avatarId=10112"
+                        },
+                        "displayName": "Cory Snavely",
+                        "active": true
+                    },
+                    "created": "2014-06-26T17:01:48.000-0500",
+                    "updated": "2014-06-26T17:01:48.000-0500"
+                },
+                {
+                    "self": "https://wush.net/jira/hathitrust/rest/api/2/issue/50238/comment/137310",
+                    "id": "137310",
+                    "author": {
+                        "self": "https://wush.net/jira/hathitrust/rest/api/2/user?username=azaytsev",
+                        "name": "azaytsev",
+                        "emailAddress": "azaytsev@umich.edu",
+                        "avatarUrls": {
+                            "16x16": "https://wush.net/jira/hathitrust/secure/useravatar?size=xsmall&ownerId=azaytsev&avatarId=11090",
+                            "24x24": "https://wush.net/jira/hathitrust/secure/useravatar?size=small&ownerId=azaytsev&avatarId=11090",
+                            "32x32": "https://wush.net/jira/hathitrust/secure/useravatar?size=medium&ownerId=azaytsev&avatarId=11090",
+                            "48x48": "https://wush.net/jira/hathitrust/secure/useravatar?ownerId=azaytsev&avatarId=11090"
+                        },
+                        "displayName": "Angelina Zaytsev",
+                        "active": true
+                    },
+                    "body": "Hello Ben, \r\n\r\nThank you again for reporting this issue. We have fixed the incorrect association between the digital content and the bib record. We do have another, correct version of this title, Implementation: how great expectations in Washington are dashed in Oakland, at http://catalog.hathitrust.org/Record/000009395 although it is in-copyright. \r\n\r\nThanks,\r\nAngelina Zaytsev\r\nProject Librarian, HathiTrust",
+                    "updateAuthor": {
+                        "self": "https://wush.net/jira/hathitrust/rest/api/2/user?username=azaytsev",
+                        "name": "azaytsev",
+                        "emailAddress": "azaytsev@umich.edu",
+                        "avatarUrls": {
+                            "16x16": "https://wush.net/jira/hathitrust/secure/useravatar?size=xsmall&ownerId=azaytsev&avatarId=11090",
+                            "24x24": "https://wush.net/jira/hathitrust/secure/useravatar?size=small&ownerId=azaytsev&avatarId=11090",
+                            "32x32": "https://wush.net/jira/hathitrust/secure/useravatar?size=medium&ownerId=azaytsev&avatarId=11090",
+                            "48x48": "https://wush.net/jira/hathitrust/secure/useravatar?ownerId=azaytsev&avatarId=11090"
+                        },
+                        "displayName": "Angelina Zaytsev",
+                        "active": true
+                    },
+                    "created": "2014-06-27T08:58:44.000-0500",
+                    "updated": "2014-06-27T08:58:44.000-0500"
+                },
+                {
+                    "self": "https://wush.net/jira/hathitrust/rest/api/2/issue/50238/comment/137312",
+                    "id": "137312",
+                    "author": {
+                        "self": "https://wush.net/jira/hathitrust/rest/api/2/user?username=bldaigle%40owu.edu",
+                        "name": "bldaigle@owu.edu",
+                        "emailAddress": "bldaigle@owu.edu",
+                        "avatarUrls": {
+                            "16x16": "https://wush.net/jira/hathitrust/secure/useravatar?size=xsmall&avatarId=10112",
+                            "24x24": "https://wush.net/jira/hathitrust/secure/useravatar?size=small&avatarId=10112",
+                            "32x32": "https://wush.net/jira/hathitrust/secure/useravatar?size=medium&avatarId=10112",
+                            "48x48": "https://wush.net/jira/hathitrust/secure/useravatar?avatarId=10112"
+                        },
+                        "displayName": "Ben Daigle",
+                        "active": true
+                    },
+                    "body": "[Created via e-mail from: \"Ben Daigle\" <bldaigle@owu.edu>]\r\n\r\nThank you for the update, Angelina. Much appreciated.\r\n\r\nBen\r\n\r\n\r\nOn Fri, Jun 27, 2014 at 9:58 AM, Angelina Zaytsev <",
+                    "updateAuthor": {
+                        "self": "https://wush.net/jira/hathitrust/rest/api/2/user?username=bldaigle%40owu.edu",
+                        "name": "bldaigle@owu.edu",
+                        "emailAddress": "bldaigle@owu.edu",
+                        "avatarUrls": {
+                            "16x16": "https://wush.net/jira/hathitrust/secure/useravatar?size=xsmall&avatarId=10112",
+                            "24x24": "https://wush.net/jira/hathitrust/secure/useravatar?size=small&avatarId=10112",
+                            "32x32": "https://wush.net/jira/hathitrust/secure/useravatar?size=medium&avatarId=10112",
+                            "48x48": "https://wush.net/jira/hathitrust/secure/useravatar?avatarId=10112"
+                        },
+                        "displayName": "Ben Daigle",
+                        "active": true
+                    },
+                    "created": "2014-06-27T09:03:48.000-0500",
+                    "updated": "2014-06-27T09:03:48.000-0500"
+                },
+                {
+                    "self": "https://wush.net/jira/hathitrust/rest/api/2/issue/50238/comment/145237",
+                    "id": "145237",
+                    "author": {
+                        "self": "https://wush.net/jira/hathitrust/rest/api/2/user?username=renata.ewing",
+                        "name": "renata.ewing",
+                        "emailAddress": "renata.ewing@ucop.edu",
+                        "avatarUrls": {
+                            "16x16": "https://wush.net/jira/hathitrust/secure/useravatar?size=xsmall&avatarId=10112",
+                            "24x24": "https://wush.net/jira/hathitrust/secure/useravatar?size=small&avatarId=10112",
+                            "32x32": "https://wush.net/jira/hathitrust/secure/useravatar?size=medium&avatarId=10112",
+                            "48x48": "https://wush.net/jira/hathitrust/secure/useravatar?avatarId=10112"
+                        },
+                        "displayName": "Renata Ewing",
+                        "active": true
+                    },
+                    "body": "Record for ID mdp.39015002276304 was loaded, processed, and updated in Zephir.\r\n",
+                    "updateAuthor": {
+                        "self": "https://wush.net/jira/hathitrust/rest/api/2/user?username=renata.ewing",
+                        "name": "renata.ewing",
+                        "emailAddress": "renata.ewing@ucop.edu",
+                        "avatarUrls": {
+                            "16x16": "https://wush.net/jira/hathitrust/secure/useravatar?size=xsmall&avatarId=10112",
+                            "24x24": "https://wush.net/jira/hathitrust/secure/useravatar?size=small&avatarId=10112",
+                            "32x32": "https://wush.net/jira/hathitrust/secure/useravatar?size=medium&avatarId=10112",
+                            "48x48": "https://wush.net/jira/hathitrust/secure/useravatar?avatarId=10112"
+                        },
+                        "displayName": "Renata Ewing",
+                        "active": true
+                    },
+                    "created": "2014-09-05T18:39:34.000-0500",
+                    "updated": "2014-09-05T18:39:34.000-0500"
+                }
+            ]
+        },
+        "customfield_10902": null,
+        "timeoriginalestimate": null,
+        "customfield_10901": null,
+        "customfield_10302": "22921",
+        "votes": {
+            "self": "https://wush.net/jira/hathitrust/rest/api/2/issue/HTS-9999/votes",
+            "votes": 0,
+            "hasVoted": false
+        },
+        "customfield_10402": null,
+        "customfield_11100": null,
+        "resolution": {
+            "self": "https://wush.net/jira/hathitrust/rest/api/2/resolution/1",
+            "id": "1",
+            "description": "A fix for this issue is checked into the tree and tested.",
+            "name": "Fixed"
+        },
+        "resolutiondate": "2014-06-27T09:00:32.000-0500",
+        "customfield_11101": null,
+        "aggregatetimeoriginalestimate": null,
+        "duedate": null,
+        "customfield_10020": {
+            "self": "https://wush.net/jira/hathitrust/rest/api/2/customFieldOption/10013",
+            "value": "UM to investigate further",
+            "id": "10013"
+        },
+        "watches": {
+            "self": "https://wush.net/jira/hathitrust/rest/api/2/issue/HTS-9999/watchers",
+            "watchCount": 0,
+            "isWatching": false
+        },
+        "worklog": {
+            "startAt": 0,
+            "maxResults": 20,
+            "total": 0,
+            "worklogs": []
+        },
+        "customfield_10102": null,
+        "customfield_11315": null,
+        "assignee": {
+            "self": "https://wush.net/jira/hathitrust/rest/api/2/user?username=azaytsev",
+            "name": "azaytsev",
+            "emailAddress": "azaytsev@umich.edu",
+            "avatarUrls": {
+                "16x16": "https://wush.net/jira/hathitrust/secure/useravatar?size=xsmall&ownerId=azaytsev&avatarId=11090",
+                "24x24": "https://wush.net/jira/hathitrust/secure/useravatar?size=small&ownerId=azaytsev&avatarId=11090",
+                "32x32": "https://wush.net/jira/hathitrust/secure/useravatar?size=medium&ownerId=azaytsev&avatarId=11090",
+                "48x48": "https://wush.net/jira/hathitrust/secure/useravatar?ownerId=azaytsev&avatarId=11090"
+            },
+            "displayName": "Angelina Zaytsev",
+            "active": true
+        },
+        "attachment": [],
+        "customfield_10500": null,
+        "aggregatetimeestimate": null,
+        "customfield_10700": "141.213.128.193",
+        "timeestimate": null,
+        "customfield_10300": null,
+        "customfield_10301": null,
+        "customfield_11320": null,
+        "customfield_10030": "bldaigle@owu.edu",
+        "customfield_10071": null,
+        "customfield_11321": null,
+        "aggregatetimespent": null,
+        "customfield_10070": null
+    }
+}

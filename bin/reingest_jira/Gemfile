@@ -1,0 +1,17 @@
+source 'https://rubygems.org'
+gem 'rest_client'
+gem 'pairtree'
+gem 'mysql2'
+gem 'sequel'
+
+group :development do
+  gem 'debugger'
+  gem "debugger-pry", :require => "debugger/pry"
+  gem 'debugger-completion'
+  gem 'pry-debugger'
+  gem 'pry-rescue'
+  gem 'pry-stack_explorer'
+  gem 'pry'
+  gem 'rspec'
+  gem 'webmock'
+end
