@@ -6,6 +6,7 @@ require 'pry'
 
 JIRA_URL = "https://wush.net/jira/hathitrust/rest/api/2/"
 GRIN_URL = "https://books.google.com/libraries" 
+ERROR_NEXT_STEPS = 'UM to investigate further'
 
 class GRIN
 
@@ -77,11 +78,14 @@ class JiraTicketHandler
   def initialize()
   end
 
-  def process()
+  def check_item(item)
+  end
+
+  def progress_item(item)
   end
 
   def item_stuck?(item)
-    return item.stuck?(max_queue_age)
+    return (item.queued? and item.queue_age > max_queue_age)
   end
 
 end
@@ -94,6 +98,23 @@ class ReingestHandler < JiraTicketHandler
   def next_steps(items)
     "UM to investigate further"
   end
+
+  def check_item(item)
+    # makes sure invariants still hold
+    raise "#{item}: Next steps are HT to reingest but item is not in queue" if not item.queued?
+  end
+
+  def progress_item(item)
+    # does whatever needs to happen for item if ticket is ready to progress
+    if item_stuck?(item)
+      return "#{item}: stuck in queue"
+    elsif item.ready?
+      return "#{item}: ingested"
+    else
+      raise "item not ingested or stuck??"
+    end
+  end
+
 end
 
 class QueueHandler < JiraTicketHandler
@@ -139,7 +160,6 @@ class JiraTicket
   def process
     processor_class = @@ticket_processors[next_steps]
     if(processor_class)
-      puts processor_class
       processor = processor_class.new()
     else 
       processor = DefaultHandler.new()
@@ -147,10 +167,19 @@ class JiraTicket
 
     watch_items
 
-    if items.all? { |item| item.ready? or processor.item_stuck?(item) }
-      add_comment( items.each { |item| item.status_message }.join("\n") )
-      # generate report
-      set_next_steps(processor.next_steps(items))
+    # enforce invariants
+    begin
+      
+      items.each { |item| processor.check_item(item) }
+
+      if items.all? { |item| item.ready? or processor.item_stuck?(item) }
+        add_comment( items.map { |item| processor.progress_item(item) }.join("\n") )
+        # generate report
+        set_next_steps(processor.next_steps(items))
+      end
+    rescue RuntimeError => e
+      add_comment("Unexpected error: #{e.message}")
+      set_next_steps(ERROR_NEXT_STEPS)
     end
 
   end
@@ -218,6 +247,10 @@ class HTItem
 
   end
 
+  def to_s
+    return "#{namespace}.#{objid}"
+  end
+
   def table_has_item?(table)
     return @@db.table_has_item?(self,table)
   end
@@ -230,10 +263,10 @@ class HTItem
       if(grin_instance)
         return grin_instance
       else
-        raise "Reingest is only supported for Google ingest"
+        raise "#{self}: reingest is only supported for Google ingest"
       end
     else
-      raise "Unknown namespace #{@namespace}"
+      raise "#{self}: unknown namespace #{@namespace}"
     end
 
   end
@@ -241,42 +274,20 @@ class HTItem
   def watch(issue_key)
 
     if watched?
-      raise "Item is already watched"
+      raise "#{self} is already watched"
     end
 
     if table_has_item?('feed_blacklist') 
-      raise "Item is blacklisted"
+      raise "#{self} is blacklisted"
     end
 
     grin_instance = self.grin_instance
 
     if not (table_has_item?('feed_queue') or table_has_item?('feed_nonreturned') or table_has_item?('rights_current'))
-      raise "Item has no bib data in Zephir"
+      raise "#{self} has no bib data in Zephir"
     end
 
     @@db.insert(self,issue_key)
-  end
-
-  def status_message
-    return ""
-  end
-
-  def stuck?(max_age)
-    @stuck = false
-    @stuck = true if(in_queue? and queue_age > max_age)
-  end
-
-  def message()
-    raise "Processor never used on item" if not @stuck
-
-    if(@stuck)
-      return "Item stuck in queue"
-    end
-
-    if ready?
-      return "Item ingested"
-    end
-
   end
 
   def watched?
@@ -287,7 +298,7 @@ class HTItem
     return !! if_not_nil(@@db.get(self),:ready)
   end
 
-  def in_queue?
+  def queued?
     return !! @@db.queue_info(self)
   end
 

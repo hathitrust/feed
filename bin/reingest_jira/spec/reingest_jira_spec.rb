@@ -98,23 +98,23 @@ RSpec.describe HTItem do
 
   describe '#watch' do
     context 'when item has an unknown namespace' do
-      it { expect { HTItem.new('foo.lakjdf').watch('HTS-9999') }.to raise_error(RuntimeError, /unknown namespace/i) }
+      it { expect { HTItem.new('foo.lakjdf').watch('HTS-9999') }.to raise_error(RuntimeError, /foo\.lakjdf:.*unknown namespace/i) }
     end
 
     context 'when item has a non-Google namespace' do
-      it { expect { HTItem.new('loc.ark:/13960/t58d0dn7n').watch('HTS-9999') }.to raise_error(RuntimeError, /google/i) }
+      it { expect { HTItem.new('loc.ark:/13960/t58d0dn7n').watch('HTS-9999') }.to raise_error(RuntimeError, /loc\.ark:\/13960\/t58d0dn7n.*google/i) }
     end
 
     context 'when item is blacklisted' do
       it { 
         item = HTItem.new('mdp.39015005021392')
         expect(db).to receive(:table_has_item?).with(item, 'feed_blacklist').and_return(true)
-        expect { item.watch('HTS-9999') }.to raise_error(RuntimeError, /blacklist/i) 
+        expect { item.watch('HTS-9999') }.to raise_error(RuntimeError, /mdp\.39015005021392.*blacklist/i) 
       }
     end
 
     context 'when item is missing bib data' do
-      it { expect { HTItem.new('mdp.39015123456789').watch('HTS-9999') }.to raise_error(RuntimeError, /bib data/i) }
+      it { expect { HTItem.new('mdp.39015123456789').watch('HTS-9999') }.to raise_error(RuntimeError, /mdp\.39015123456789.*bib data/i) }
     end
 
     context 'when item has a Google namespace, bib data, and is in GRIN' do
@@ -133,7 +133,7 @@ RSpec.describe HTItem do
 
   end
 
-  describe 'queue_age' do
+  describe '#queue_age' do
     context 'when the item is in queue' do
       before(:each) { allow(db).to receive(:queue_info).and_return($stuck_queue_info) }
       let(:item) { HTItem.new('mdp.35112104589306') }
@@ -141,6 +141,14 @@ RSpec.describe HTItem do
       it 'knows how long it has been in the queue' do
         expect(item.queue_age).to_not be(nil)
       end
+    end
+  end
+
+  describe '#to_s' do
+    it 'returns namespace.objid' do
+      expected = 'mdp.35112104589306'
+      item = HTItem.new(expected)
+      expect(item.to_s).to eq(expected)
     end
   end
 end
@@ -193,7 +201,8 @@ RSpec.describe JiraTicket do
 
           it 'and all items are enqueued more than a week, reports as stuck' do
             allow(db).to receive(:queue_info).and_return($stuck_queue_info)
-            expect(WebMock).to have_requested(:post, $jira_comment_url).with { |req| req.body =~ /stuck/ }
+            ticket.process
+            expect(WebMock).to have_requested(:post, $jira_comment_url).with { |req| req.body =~ /#{ticket.items.first.to_s}: .*stuck.*/ }
           end
 
           it 'and enqueued less than a week, does not change next steps' do
@@ -207,9 +216,14 @@ RSpec.describe JiraTicket do
       end
 
       context 'and is not in the queue' do
-        before(:each) { ticket.items.each { |item| allow(db).to receive(:table_has_item?).with(item,'feed_queue').and_return(false) } }
+        before(:each) do 
+          allow(db).to receive(:table_has_item?).with(anything(),'feed_queue').and_return(false) 
+          allow(db).to receive(:queue_info).with(anything()).and_return(nil) 
+        end
+
         it 'reports that the item has disappeared from the queue' do
-          expect(WebMock).to have_requested(:post, $jira_comment_url).with { |req| req.body =~ /disappeared/ }
+          ticket.process
+          expect(WebMock).to have_requested(:post, $jira_comment_url).with { |req| req.body =~ /not in queue/i }
         end
       end
     end
