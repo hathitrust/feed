@@ -3,6 +3,7 @@ require 'json'
 require 'yaml'
 require 'sequel'
 require 'pry'
+require 'pairtree'
 
 JIRA_URL = "https://wush.net/jira/hathitrust/rest/api/2/"
 GRIN_URL = "https://books.google.com/libraries" 
@@ -15,11 +16,10 @@ class GRIN
   end
 
   def item(barcode)
-    return
-    Hash[@resource['_barcode_search'].get(:params => {:format => 'text', 
+    return Hash[@resource['_barcode_search'].get(:params => {:format => 'text', 
                                           :mode => 'full', 
                                           :execute_query => 'true', 
-                                          :barcodes => barcode})
+                                          :barcodes => barcode.upcase})
     .split("\n")
     .map { |x| x.split("\t") }
     .transpose]
@@ -61,7 +61,7 @@ class WatchedItemsDB
   end
 
   def grin_instance(namespace)
-     fetch('select grin_instance from ht_namespaces where namespace = ?',namespace).first
+    fetch('select grin_instance from ht_namespaces where namespace = ?',namespace).first
   end
 
   def table_has_item?(item,table)
@@ -109,7 +109,8 @@ class ReingestHandler < JiraTicketHandler
     if item_stuck?(item)
       return "#{item}: stuck in queue"
     elsif item.ready?
-      return "#{item}: ingested"
+      return "#{item}: ingested #{item.zip_date.strftime("%a %b %e %H:%M:%S %Y")}\n" +
+        "#{item}: #{item.grin_quality_info}"
     else
       raise "item not ingested or stuck??"
     end
@@ -169,7 +170,7 @@ class JiraTicket
 
     # enforce invariants
     begin
-      
+
       items.each { |item| processor.check_item(item) }
 
       if items.all? { |item| item.ready? or processor.item_stuck?(item) }
@@ -224,7 +225,7 @@ class HTItem
   def self.set_watchdb(db)
     @@db = db
   end
-  
+
   def initialize(item_url)
     # Try to extract ID from item ID
     if item_url =~ /babel.hathitrust.org.*id=(.*)/
@@ -242,9 +243,7 @@ class HTItem
       raise "Can't parse item_url"
     end
 
-    # must be checked by request processor
-    @stuck = nil
-
+    grin_info
   end
 
   def to_s
@@ -255,13 +254,13 @@ class HTItem
     return @@db.table_has_item?(self,table)
   end
 
-  def grin_instance
+  def grin_info
     namespace_info = @@db.grin_instance(namespace)
 
     if(namespace_info)
       grin_instance = namespace_info[:grin_instance]
       if(grin_instance)
-        return grin_instance
+        return GRIN.new(grin_instance).item(@objid)
       else
         raise "#{self}: reingest is only supported for Google ingest"
       end
@@ -280,8 +279,6 @@ class HTItem
     if table_has_item?('feed_blacklist') 
       raise "#{self} is blacklisted"
     end
-
-    grin_instance = self.grin_instance
 
     if not (table_has_item?('feed_queue') or table_has_item?('feed_nonreturned') or table_has_item?('rights_current'))
       raise "#{self} has no bib data in Zephir"
@@ -310,6 +307,44 @@ class HTItem
     return if_not_nil(@@db.queue_info(self),:status)
   end
 
+  def zip_date
+    if path = zip_path 
+      return File.stat(path).mtime.to_datetime
+    else 
+      return nil
+    end
+  end
+
+  def zip_age
+    return DateTime.now - zip_date
+  end
+
+  def zip_path
+    pt = Pairtree.at("/sdr1/obj/#{namespace}")
+    begin
+      return pt["#{namespace}.#{objid}"].to_path + "/#{objid}.zip"
+    rescue Errno::ENOENT
+      return nil
+    end
+  end
+
+  def in_repository?
+    return File.exists?(zip_path)
+  end
+
+  def grin_quality_info
+    this_grin_info = grin_info
+    raise "Not in GRIN" if not grin_info
+    audit = this_grin_info['Audit']
+    rubbish = this_grin_info['Rubbish']
+    overall_error = this_grin_info['Overall Error%']
+    material_error = this_grin_info['Material Error%']
+
+    audit = "(not audited)" if not audit or audit.empty?
+    rubbish = "(not evaluated)" if not rubbish or rubbish.empty?
+
+    return "Audit: #{audit}; Rubbish: #{rubbish}; Material Error: #{material_error}; Overall Error: #{overall_error}"
+  end
 
   private
 

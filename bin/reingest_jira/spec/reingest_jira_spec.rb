@@ -2,13 +2,14 @@ require_relative '../reingest_jira'
 require 'webmock/rspec'
 WebMock.disable_net_connect!(allow_localhost: true)
 
-$jira_url = "https://wush.net/jira/hathitrust/rest/api/2/"
 $jira_stub_url = "https://foo:bar@wush.net/jira/hathitrust/rest/api/2/issue/HTS-9999"
 $jira_comment_url = $jira_stub_url + "/comment"
 
 # DRY this up with FactoryGirl????
 $stuck_queue_info = {:age=>341, :status=>"in_process", :update_stamp=>Time.new(2013,11,07,15,30,36,'-05:00')}
-$good_queue_info = {:age=>0, :status=>"punted", :update_stamp=>Time.new()}
+$punted_queue_info = {:age=>0, :status=>"punted", :update_stamp=>Time.new()}
+$in_process_queue_info = {:age=>0, :status=>"punted", :update_stamp=>Time.new()}
+$ingested_queue_info = {:age=>0, :status=>"done", :update_stamp=>Time.new()}
 
 $watched_item = {:namespace=>'mdp', :id=>'39015002276304',
   :needs_rescan=>false, :needs_reanalyze=>false, :needs_reprocess=>false,
@@ -37,6 +38,18 @@ RSpec.configure do |config|
     stub_request(:put, $jira_stub_url).
       with(:body => /{"fields":{"customfield_10020":{"value":"[\w ]+"}}}/).
       to_return(:status => 200, :body => "", :headers => {})
+
+    # accept any uppercase barcode
+    stub_request(:get, /#{GRIN_URL}\/\w+\/_barcode_search\?barcodes=[A-Z\d$]+&execute_query=true&format=text&mode=full/).
+           to_return(:status => 200, body: File.new("generic.grin.txt"), headers: {})
+        
+
+    stub_request(:get, "#{GRIN_URL}/UOM/_barcode_search").
+      with(:query => {:format => 'text', 
+           :mode => 'full', 
+           :execute_query => 'true', 
+           :barcodes => $watched_item[:id]}).
+           to_return(:status => 200, body: File.new("#{$watched_item[:id]}.grin.txt"), headers: {})
 
   end
 
@@ -81,13 +94,13 @@ RSpec.describe HTItem do
     end
 
     context 'when given a bare item ID' do
-      let(:item) { HTItem.new('yale.39002014043690') }
+      let(:item) { HTItem.new('uc1.$b123456') }
 
       it 'parses the namespace' do
-        expect(item.namespace).to eq('yale') 
+        expect(item.namespace).to eq('uc1') 
       end
       it 'parses the objid' do
-        expect(item.objid).to eq('39002014043690') 
+        expect(item.objid).to eq('$b123456') 
       end
     end
 
@@ -156,7 +169,7 @@ end
 
 RSpec.describe JiraTicket do
   let(:db) { instance_double("WatchedItemsDB") }
-  let(:service) { JiraService.new($jira_url,'foo','bar') }
+  let(:service) { JiraService.new(JIRA_URL,'foo','bar') }
   let(:ticket) { service.issue('HTS-9999') }
 
   before(:each) do
@@ -189,11 +202,27 @@ RSpec.describe JiraTicket do
         before(:each) { allow(db).to receive(:table_has_item?).with(anything(),'feed_queue').and_return(true) }
 
         context 'and all items are ready' do
+          before(:each) { ticket.items.each { |item| allow(item).to receive(:zip_date).and_return(Time.new(2014,10,13,11,36,52,'-05:00')) } }
+
           it 'sets next steps to UM to investigate further' do
-            allow(db).to receive(:queue_info).and_return($good_queue_info)
+            allow(db).to receive(:queue_info).and_return($punted_queue_info)
             ticket.process
             expect(WebMock).to have_requested(:put, $jira_stub_url).with { |req| req.body =~ /UM to investigate further/ }
           end
+
+          context 'and items were successfully ingested' do
+            before(:each) { allow(db).to receive(:queue_info).and_return($ingested_queue_info) }
+            it 'reports ingest date' do
+              ticket.process
+              expect(WebMock).to have_requested(:post, $jira_comment_url).with { |req| req.body =~ /#{$watched_item[:namespace]}.#{$watched_item[:id]}: ingested Mon Oct 13 11:36:52 2014/ }
+            end
+
+            it 'reports GRIN quality statistics' do
+              ticket.process
+              expect(WebMock).to have_requested(:post, $jira_comment_url).with { |req| req.body =~ /#{$watched_item[:namespace]}.#{$watched_item[:id]}: Audit: \(not audited\); Rubbish: \(not evaluated\); Material Error: 0%; Overall Error: 2%/ }
+            end
+          end
+
         end
 
         context 'and an item is not ready' do
@@ -206,7 +235,7 @@ RSpec.describe JiraTicket do
           end
 
           it 'and enqueued less than a week, does not change next steps' do
-            allow(db).to receive(:queue_info).and_return($good_queue_info)
+            allow(db).to receive(:queue_info).and_return($in_process_queue_info)
             expect(ticket).not_to receive(:set_next_steps) 
             ticket.process
           end

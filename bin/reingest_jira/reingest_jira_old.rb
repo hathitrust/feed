@@ -256,7 +256,7 @@ class HTItem
     end
   end
 
-  def in_repos?
+  def in_repository?
     return File.exists?(zip_path)
   end
 
