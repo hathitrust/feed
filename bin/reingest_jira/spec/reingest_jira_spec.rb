@@ -2,13 +2,20 @@ require_relative '../reingest_jira'
 require 'webmock/rspec'
 WebMock.disable_net_connect!(allow_localhost: true)
 
-$jira_stub_url = "https://foo:bar@wush.net/jira/hathitrust/rest/api/2/issue/HTS-9999"
-$jira_comment_url = $jira_stub_url + "/comment"
+JIRA_STUB_URL = "https://foo:bar@wush.net/jira/hathitrust/rest/api/2/issue/HTS-9999"
+JIRA_COMMENT_URL = JIRA_STUB_URL + "/comment"
 
-# DRY this up with FactoryGirl????
 $stuck_queue_info = {:age=>341, :status=>"in_process", :update_stamp=>Time.new(2013,11,07,15,30,36,'-05:00')}
+
 $punted_queue_info = {:age=>0, :status=>"punted", :update_stamp=>Time.new()}
-$in_process_queue_info = {:age=>0, :status=>"punted", :update_stamp=>Time.new()}
+
+$punted_last_error = {:level => 'ERROR', :timestamp => Time.new(), :namespace => 'mdp', 
+    :id => '39015002276304', :operation => nil, :message => 'GRIN could not convert book', 
+    :file  => nil, :field => 'grin_state', :actual => 'PREVIOUSLY_DOWNLOADED', :expected => 'CONVERTED', 
+    :detail => 'Unexpected GRIN state', :stage => '/htapps/babel/feed/bin/feed.hourly/ready_from_grin.pl'}
+
+$in_process_queue_info = {:age=>0, :status=>"in_process", :update_stamp=>Time.new()}
+
 $ingested_queue_info = {:age=>0, :status=>"done", :update_stamp=>Time.new()}
 
 $watched_item = {:namespace=>'mdp', :id=>'39015002276304',
@@ -29,13 +36,13 @@ RSpec.configure do |config|
   end
 
   config.before(:each) do
-    stub_request(:get, $jira_stub_url).
+    stub_request(:get, JIRA_STUB_URL).
       to_return(status: 200, body: File.new('hts-9999.json'), headers: {})
 
-    stub_request(:post, $jira_stub_url + "/comment").
+    stub_request(:post, JIRA_COMMENT_URL).
       to_return(:status => 200, :body => "", :headers => {})
 
-    stub_request(:put, $jira_stub_url).
+    stub_request(:put, JIRA_STUB_URL).
       with(:body => /{"fields":{"customfield_10020":{"value":"[\w ]+"}}}/).
       to_return(:status => 200, :body => "", :headers => {})
 
@@ -56,7 +63,7 @@ RSpec.configure do |config|
 end
 
 RSpec.describe HTItem do
-  let(:db) { instance_double("WatchedItemsDB") }
+  let(:db) { instance_double("RepositoryDB") }
 
   before(:each) do
     allow(db).to receive(:get)
@@ -168,7 +175,7 @@ end
 
 
 RSpec.describe JiraTicket do
-  let(:db) { instance_double("WatchedItemsDB") }
+  let(:db) { instance_double("RepositoryDB") }
   let(:service) { JiraService.new(JIRA_URL,'foo','bar') }
   let(:ticket) { service.issue('HTS-9999') }
 
@@ -206,20 +213,33 @@ RSpec.describe JiraTicket do
 
           it 'sets next steps to UM to investigate further' do
             allow(db).to receive(:queue_info).and_return($punted_queue_info)
+            allow(db).to receive(:last_error_info).and_return($punted_last_error)
             ticket.process
-            expect(WebMock).to have_requested(:put, $jira_stub_url).with { |req| req.body =~ /UM to investigate further/ }
+            expect(WebMock).to have_requested(:put, JIRA_STUB_URL).with { |req| req.body =~ /UM to investigate further/ }
           end
 
           context 'and items were successfully ingested' do
             before(:each) { allow(db).to receive(:queue_info).and_return($ingested_queue_info) }
             it 'reports ingest date' do
               ticket.process
-              expect(WebMock).to have_requested(:post, $jira_comment_url).with { |req| req.body =~ /#{$watched_item[:namespace]}.#{$watched_item[:id]}: ingested Mon Oct 13 11:36:52 2014/ }
+              expect(WebMock).to have_requested(:post, JIRA_COMMENT_URL).with { |req| req.body =~ /#{$watched_item[:namespace]}.#{$watched_item[:id]}: ingested Mon Oct 13 11:36:52 2014/ }
             end
 
             it 'reports GRIN quality statistics' do
               ticket.process
-              expect(WebMock).to have_requested(:post, $jira_comment_url).with { |req| req.body =~ /#{$watched_item[:namespace]}.#{$watched_item[:id]}: Audit: \(not audited\); Rubbish: \(not evaluated\); Material Error: 0%; Overall Error: 2%/ }
+              expect(WebMock).to have_requested(:post, JIRA_COMMENT_URL).with { |req| req.body =~ /#{$watched_item[:namespace]}.#{$watched_item[:id]}: Audit: \(not audited\); Rubbish: \(not evaluated\); Material Error: 0%; Overall Error: 2%/ }
+            end
+          end
+
+          context 'and items were not successfully ingested' do
+            before(:each) do
+              allow(db).to receive(:queue_info).and_return($punted_queue_info) 
+              allow(db).to receive(:last_error_info).and_return($punted_last_error)
+            end
+
+            it 'reports the last ingest error' do
+              ticket.process
+              expect(WebMock).to have_requested(:post, JIRA_COMMENT_URL).with { |req| req.body =~ /#{$watched_item[:namespace]}.#{$watched_item[:id]}: failed ingest \(conversion failure\)/ }
             end
           end
 
@@ -231,7 +251,7 @@ RSpec.describe JiraTicket do
           it 'and all items are enqueued more than a week, reports as stuck' do
             allow(db).to receive(:queue_info).and_return($stuck_queue_info)
             ticket.process
-            expect(WebMock).to have_requested(:post, $jira_comment_url).with { |req| req.body =~ /#{ticket.items.first.to_s}: .*stuck.*/ }
+            expect(WebMock).to have_requested(:post, JIRA_COMMENT_URL).with { |req| req.body =~ /#{ticket.items.first.to_s}: .*stuck - in process.*/ }
           end
 
           it 'and enqueued less than a week, does not change next steps' do
@@ -252,7 +272,7 @@ RSpec.describe JiraTicket do
 
         it 'reports that the item has disappeared from the queue' do
           ticket.process
-          expect(WebMock).to have_requested(:post, $jira_comment_url).with { |req| req.body =~ /not in queue/i }
+          expect(WebMock).to have_requested(:post, JIRA_COMMENT_URL).with { |req| req.body =~ /not in queue/i }
         end
       end
     end
