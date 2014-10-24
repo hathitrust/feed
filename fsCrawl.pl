@@ -65,7 +65,7 @@ while ( my $line = <RUN> ) {
 
         # strip trailing / from path
         my ( $pt_objid, $path, $type ) =
-          fileparse( $line, ".mets.xml", ".zip" );
+          fileparse( $line, qr/\.mets\.xml/, qr/\.zip/ );
         $path =~ s/\/$//;    # remove trailing /
         return if ( $prevpath and $path eq $prevpath );
         $prevpath = $path;
