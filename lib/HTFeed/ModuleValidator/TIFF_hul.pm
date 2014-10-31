@@ -38,7 +38,7 @@ sub _set_validators {
             desc  => 'JHOVE status',
             valid => v_eq( 'repInfo', 'status', 'Well-Formed and valid' ),
             detail =>
-'This checks that the TIFF is well-formed and valid according to the TIFF specification. It may be possible to remediate the image if it is well-formed but not valid. Malformed TIFFs most likely will need to be regenerated from the source image.'
+'This checks that the TIFF is well-formed and valid according to the TIFF specification. Some errors will be automatically remediated, but most likely the TIFF will need to be regenerated from the source image.'
         },
 
         'module' => {
@@ -59,14 +59,14 @@ sub _set_validators {
             desc  => 'image compression method',
             valid => v_eq( 'mix', 'compression', 'Group 4 Fax' ),
             detail =>
-'This checks that the image is compressed using CCITT Group 4 compression. If not, this can be remediated by recompressing the image with ImageMagick.'
+'This checks that the image is compressed using CCITT Group 4 compression. If not, the image will be recompressed using Group 4 compression if the image is bitonal or JPEG2000 compression otherwise.'
         },    # CCITT Group 4
 
         'colorspace' => {
             desc  => 'color space',
             valid => v_eq( 'mix', 'colorSpace', 'WhiteIsZero' ),
             detail =>
-'This checks that the image is a bitonal image and that 0 signifies white. If the color space is reported as 1 (BlackIsZero) and this is a bitonal image, then the color space can be remediated with ImageMagick. If the color space is anything else, this is likely not a bitonal image and the image should either be binarized or converted to JPEG 2000'
+'This checks that the image is a bitonal image and that 0 signifies white. If the color space is reported as 1 (BlackIsZero) and this is a bitonal image, then the color space will automatically be remediated with ImageMagick. If the color space is anything else, this is likely not a bitonal image. RGB images can be automatically converted to JPEG2000 images, but images in other color spaces are not supported in HathiTrust.'
 
         },    # WhiteIsZero
 
@@ -74,35 +74,35 @@ sub _set_validators {
             desc  => 'image orientation',
             valid => v_eq( 'mix', 'orientation', 'normal*' ),
             detail =>
-'This checks that the orientation in which the image should be displayed matches the "natural" order of pixels in the image. If not, this can be remediated by setting the value to 1 (normal) and rotating the image as needed.'
+'This checks that the orientation in which the image should be displayed matches the "natural" order of pixels in the image. If not, this will automatically be remediated by setting the value to 1 (normal). The image may need to be rotated before ingest into HathiTrust.'
         },    # Horizontal/normal
 
         'resolution' => {
             desc  => 'resolution',
             valid => v_resolution(['600']),
             detail =>
-'This checks that the image has square pixels and is scanned at a resolution of 600 pixels per inch. If the value is missing or does not reflect the actual image resolution, this can be corrected if the value is known. If the resolution information is present, correct, and not equivalent to 600 or more pixels per inch (e.g. 236 pixels per centimeter) the image will need to be rescanned or regenerated from a higher-resolution master image. Upsampling to 600 DPI bitonal images from >= 300 DPI contone images is also acceptable.'
+'This checks that the image has square pixels and is scanned at a resolution of 600 pixels per inch. If the value is missing or does not reflect the actual image resolution, this can be corrected if the value is known by including it in meta.yml. If the resolution information is present, correct, and not equivalent to 600 or more pixels per inch (e.g. 236 pixels per centimeter) the image will need to be rescanned or regenerated from a higher-resolution master image. For contone images, 300 pixels per inch or greater is sufficient.'
         },
 
         'resolution_unit' => {
             desc  => 'resolution unit',
             valid => v_eq( 'mix', 'resUnit', 'in.' ),
             detail =>
-'This checks that the resolution unit is set to 2 (inches). If not, this can be remediated by setting the resolution unit to 2 (inches) and updating the XResolution and YResolution fields as needed.'
+'This checks that the resolution unit is set to 2 (inches). If not, this can be manually remediated by setting the resolution unit to 2 (inches) and updating the XResolution and YResolution fields as needed.'
         },
 
         'bits_per_sample' => {
             desc  => 'bits per sample',
             valid => v_eq( 'mix', 'bitsPerSample', '1' ),
             detail =>
-'This checks that the image is bitonal. If not, the image should either be binarized or converted to JPEG 2000.'
+'This checks that the image is bitonal. If the image is 8 bits per pixel, then it will automatically be converted to JPEG2000. 16 bit per pixel images are not supported.'
         },
 
         'samples_per_pixel' => {
             desc  => 'samples per pixel',
             valid => v_eq( 'mix', 'samplesPerPixel', '1' ),
             detail =>
-'This checks that the image uses only one sample per pixel. If not, it is likely a continuous tone image and should be converted to JPEG2000.'
+'This checks that the image uses only one sample per pixel. RGB images with 3 samples per pixel will automatically be converted to JPEG2000. CMYK images, images with alpha channels, etc, are not supported.'
         },
 
         'dimensions' => {
@@ -127,7 +127,7 @@ sub _set_validators {
             },
 
             detail =>
-'This checks that the image has creation date and scanning artist metadata as well as that it properly embeds its own source volume and filename. If not, these fields can be remediated if appropriate information is supplied.'
+'This checks that the image has creation date and scanning artist metadata as well as that it properly embeds its own source volume and filename. If not, these fields can be remediated if appropriate information is supplied in meta.yml.'
 
         },
 
@@ -223,7 +223,7 @@ sub _set_validators {
                 return $validation_ok;
             },
             detail =>
-'This checks that if the TIFF image has XMP metadata that it is consistent with the baseline TIFF metadata. If not, this can normally be remediated by updating or removing the XMP metadata.'
+'This checks that if the TIFF image has XMP metadata that it is consistent with the baseline TIFF metadata. If not, it will automatically be added or updated as needed.'
 
         },
 
@@ -251,7 +251,7 @@ sub _set_validators {
             },
 
             detail =>
-'This checks that the image contains information about the make and model of scanner or camera used to create it. If not, this information can be added if known.'
+'This checks that the image contains information about the make and model of scanner or camera used to create it. This information is optional; it can be added if known by including the information in meta.yml.'
 
           }
 
@@ -411,12 +411,12 @@ sub new {
             repInfo => {
                 format => {
                     desc       => 'Format',
-                    remediable => 1,
+                    remediable => 2,
                     query      => "jhove:format"
                 },
                 status => {
                     desc       => 'Status',
-                    remediable => 0,
+                    remediable => 2,
                     query      => "jhove:status"
                 },
                 module => {
@@ -516,12 +516,12 @@ sub new {
                 },
                 bitsPerSample => {
                     desc       => 'BitsPerSample',
-                    remediable => 0,
+                    remediable => 2,
                     query => "mix:ImageAssessmentMetadata/mix:ImageColorEncoding/mix:BitsPerSample/mix:bitsPerSampleValue"
                 },
                 samplesPerPixel => {
                     desc       => 'SamplesPerPixel',
-                    remediable => 0,
+                    remediable => 2,
                     query => "mix:ImageAssessmentMetadata/mix:ImageColorEncoding/mix:samplesPerPixel"
                 },
             },
@@ -566,12 +566,12 @@ sub new {
                 },
                 xRes => {
                     desc       => 'tiff:XResolution',
-                    remediable => 2,
+                    remediable => 1,
                     query      => "//tiff:XResolution"
                 },
                 yRes => {
                     desc       => 'tiff:YResolution',
-                    remediable => 2,
+                    remediable => 1,
                     query      => "//tiff:YResolution"
                 },
                 resUnit => {

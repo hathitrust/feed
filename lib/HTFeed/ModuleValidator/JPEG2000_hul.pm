@@ -96,7 +96,7 @@ sub _set_validators {
             desc  => "image orientation",
             valid => v_eq( 'xmp', 'orientation', '1' ),
             detail =>
-'This checks that the orientation in which the image should be displayed matches the "natural" order of pixels in the image. If not, this can be remediated by setting the value to 1 (normal) and rotating the image as needed.'
+'This checks that the orientation in which the image should be displayed matches the "natural" order of pixels in the image. If not, this value will automatically be set to 1 (normal) upon ingest to HathiTrust. The image should be rotated as needed before submiission.'
         },
 
         'resolution_unit' => {
@@ -113,7 +113,7 @@ sub _set_validators {
                 v_same( 'xmp', 'xRes', 'xmp', 'yRes' )
             ),
             detail =>
-'This checks that the image has square pixels and is scanned at a resolution of at least 300 pixels per inch. If the value is missing or does not reflect the actual image resolution, this can be corrected if the value is known. If the resolution information is present, correct, and not equivalent to 300 or more pixels per inch (e.g. 118 pixels per centimeter) the image will need to be rescanned or regenerated from a higher-resolution master image.'
+'This checks that the image has square pixels and is scanned at a resolution of at least 300 pixels per inch. If the value is missing or does not reflect the actual image resolution, this will automatically be corrected if the value is known, either through another JPEG2000 resolution header or from a supplied meta.yml file. If the resolution information is present, correct, and not equivalent to 300 or more pixels per inch (e.g. 118 pixels per centimeter) the image will need to be rescanned or regenerated from a higher-resolution master image.'
         },
 
         'layers' => {
@@ -183,7 +183,7 @@ sub _set_validators {
                   );
             },
             detail =>
-'This checks that greyscale JPEG2000 images are have one sample per pixel and 8 bits per sample and that full color images have three samples per pixel (one each for RGB) and 8 bits per sample. It also checks that the baseline JPEG2000 metadata is consistent with the XMP metadata. JPEG2000 images with 16 bits per sample (e.g. 48 bit color depth), alpha channels, embedded ICC color profiles, etc, are not supported. If the image itself is correct but the XMP metadata is wrong or missing, this is remediable.'
+'This checks that greyscale JPEG2000 images are have one sample per pixel and 8 bits per sample and that full color images have three samples per pixel (one each for RGB) and 8 bits per sample. It also checks that the baseline JPEG2000 metadata is consistent with the XMP metadata. JPEG2000 images with 16 bits per sample (e.g. 48 bit color depth), alpha channels, embedded ICC color profiles, etc, are not supported. If the image itself is correct but the XMP metadata is wrong or missing, this metadata will automatically be corrected.'
           },
         'dimensions' => {
             desc  => "consistency of image dimensions",
@@ -218,7 +218,7 @@ END
                 }
             },
             detail =>
-'This checks that the JPEG2000 image has nonzero dimensions and that the XMP metadata is present and properly reports the image dimensions. This is remediable if the XMP metadata is wrong or missing.'
+'This checks that the JPEG2000 image has nonzero dimensions and that the XMP metadata is present and properly reports the image dimensions. The XMP metadata will automatically be added or corrected if needed.'
         },
         'extract_info' => {
             desc  => "extract creation date, artist, document name",
@@ -232,19 +232,19 @@ END
                     $self->_findone( "xmp", "documentName" ) );
             },
             detail =>
-'This checks that the image has creation date and scanning artist metadata as well as that it properly embeds its own source volume and filename. If not, these fields can be remediated if appropriate information is supplied.'
+'This checks that the image has creation date and scanning artist metadata as well as that it properly embeds its own source volume and filename. If not, these fields can be remediated if appropriate information is supplied in meta.yml.'
         },
         'camera' => {
             desc => "scanner make and model",
             valid =>
               v_and( v_exists( 'xmp', 'make' ), v_exists( 'xmp', 'model' ) ),
             detail =>
-    'This checks that the image contains information about the make and model of scanner or camera used to create it. If not, this information can be added if known.'
+    'This checks that the image contains information about the make and model of scanner or camera used to create it. This information is optional but can be automatically added if supplied in meta.yml.'
         },
         'transformation' => {
             desc => 'JPEG2000 transformation',
             valid => v_eq('codingStyleDefault','transformation','0'),
-            detail => 'HathiTrust normally expects lossy-compressed JPEG2000 images. If it is compressed losslessly, it can be recompressed.'
+            detail => 'HathiTrust normally expects lossy-compressed JPEG2000 images. If it is compressed losslessly, it can be recompressed, but HathiTrust will not do this automatically.'
         }
 
     };
@@ -275,7 +275,7 @@ sub run {
                 namespace => $self->{volume}->get_namespace(),
                 file      => $self->{filename},
                 field     => 'extract XMP',
-                detail    => "This attempts to find and extract the XMP XML metadata embedded in the JPEG2000 image. This can be remediated by using exiftool to add an XMP with the required metadata. Since the XMP is missing, all metadata values that are stored in the XMP will be missing, and a large number of validation errors will follow."
+                detail    => "This attempts to find and extract the XMP XML metadata embedded in the JPEG2000 image. This will automatically be added if needed at ingest time. Since the XMP is missing, all metadata values that are stored in the XMP will be missing, and a large number of validation errors will follow."
             );
     }
 

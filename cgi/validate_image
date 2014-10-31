@@ -83,8 +83,8 @@ my $app = sub {
     <h3>Validation report for $upload_filename</h3>
 EOT
 
-     if ( $upload_filename =~ /(\.jp2|\.tif)$/ ) {
-         $suffix = $1;
+     if ( $upload_filename =~ /(\.jp2|\.tif)$/i ) {
+         $suffix = lc($1);
  
          open( my $temp_fh, "<", $file->path() )
            or die("Can't open uploaded file: $!");
@@ -130,7 +130,7 @@ EOT
                      volume => $volume,
  
                      # use original filename
-                     filename => $upload_filename
+                     filename => lc($upload_filename)
                  );
                  eval {
                      $mod_val->run();
