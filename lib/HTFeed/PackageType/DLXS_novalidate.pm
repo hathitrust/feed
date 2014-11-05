@@ -33,7 +33,8 @@ our $config = {
           validate_filegroups_nonempty
           validate_checksums
           validate_utf8
-          validate_metadata)
+          validate_metadata
+          validate_digitizer)
     ],
 
     skip_validation => [

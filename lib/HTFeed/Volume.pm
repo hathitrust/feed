@@ -162,7 +162,7 @@ sub get_sources {
   }
 }
 
-sub get_digitization_agentid {
+sub zephir_digitizer {
   my $self = shift;
   my $dbh = HTFeed::DBTools::get_dbh();
   my $sth = $dbh->prepare("SELECT n.collection, s.agentid, d.access_profile from feed_nonreturned n LEFT JOIN feed_collection_digitizers d ON n.collection = d.collection AND n.digitization_source = d.digitization_source JOIN sources s on n.digitization_source = s.name WHERE n.namespace = ? and n.id = ?");
@@ -388,41 +388,39 @@ sub get_validation_overrides {
 # return true if we should do particular validation checks - false if we're
 # using the 'note from mom' for that check or disabling validation for this volume
 sub should_check_validator {
-    my $self = shift;
+  my $self = shift;
 
-    my $validator = shift;
-    my $src_mets = $self->get_source_mets_file();
-    my $xpc;
+  my $validator = shift;
+  my $src_mets = $self->get_source_mets_file();
+  my $xpc;
 
-    my @skip_validation = @{$self->get_nspkg()->get('skip_validation')};
-    # get exceptions from 'note from mom' PREMIS event
-    if(not defined $self->{note_from_mom} and 
-        defined $src_mets) {
-        $xpc = $self->get_source_mets_xpc();
+  my @skip_validation = @{$self->get_nspkg()->get('skip_validation')};
+  # get exceptions from 'note from mom' PREMIS event
+  if(not defined $self->{note_from_mom} and 
+    defined $src_mets) {
+    $xpc = $self->get_source_mets_xpc();
+  }
+
+  # get from database if there is no source METS file
+  if (not defined $self->{note_from_mom} and
+    not defined $src_mets) {
+    my ($eventid, $date, $outcome_node, $custom_node) = $self->get_event_info('note_from_mom');
+    if($custom_node)  {
+      $xpc = XML::LibXML::XPathContext->new($custom_node);
+      register_namespaces($xpc);
     }
+  }
 
-    # get from database if there is no source METS file
-    if (not defined $self->{note_from_mom} and
-        not defined $src_mets) {
-        my ($eventid, $date, $outcome_node, $custom_node) = $self->get_event_info('note_from_mom');
-        if($custom_node)  {
-            $xpc = XML::LibXML::XPathContext->new($custom_node);
-            register_namespaces($xpc);
-        }
-    }
-
-    if(defined $xpc) {
-        $self->{note_from_mom} = [];
-        foreach my $exception_node ($xpc->findnodes('//premis:event[premis:eventType="manual inspection"]//ht:exceptionsAllowed/@category')) {
-            push(@{$self->{note_from_mom}},$exception_node->getValue());
-        }
+  if(defined $xpc) {
+    $self->{note_from_mom} = [];
+    foreach my $exception_node ($xpc->findnodes('//premis:event[premis:eventType="manual inspection"]//ht:exceptionsAllowed/@category')) {
+      push(@{$self->{note_from_mom}},$exception_node->getValue());
     }
   }
 
   if(defined $self->{note_from_mom}) {
     push(@skip_validation,@{$self->{note_from_mom}});
   }
-
 
   if(grep {$_ eq $validator} @skip_validation) {
     return 0;
@@ -1003,6 +1001,10 @@ sub next_stage {
     $self->set_error("UnexpectedError",detail => "Action for stage $stage_name not defined");
   }
   return $stage_map->{$stage_name};
+}
+
+sub apparent_digitizer {
+  die("Must be overridden in package-type-specific subclass");
 }
 
 1;

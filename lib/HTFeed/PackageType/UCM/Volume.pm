@@ -18,6 +18,10 @@ sub get_download_location {
     return $self->get_download_directory();
 }
 
+sub apparent_digitizer {
+  return 'SpMaUC';
+}
+
 1;
 
 __END__

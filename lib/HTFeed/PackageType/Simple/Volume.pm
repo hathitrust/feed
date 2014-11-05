@@ -102,6 +102,11 @@ sub get_checksums{
 
 }
 
+sub apparent_digitizer {
+  my $self = shift;
+  return $self->get_meta('capture_agent');
+}
+
 1;
 
 __END__

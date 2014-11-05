@@ -31,7 +31,8 @@ sub new {
         validate_consistency         => \&_validate_consistency,
         validate_checksums           => \&_validate_checksums,
         validate_utf8                => \&_validate_utf8,
-        validate_metadata            => \&_validate_metadata
+        validate_metadata            => \&_validate_metadata,
+        validate_digitizer => \&_validate_digitizer
     };
 
     return $self;
@@ -300,6 +301,18 @@ sub _validate_metadata {
     return;
 }
 
+sub _validate_digitizer {
+  my $self = shift;
+  my $volume = $self->{volume};
+
+  my $zephir_dig_agent = $volume->zephir_digitizer();
+  my $apparent_digitizer = $volume->apparent_digitizer();
+
+  if($zephir_dig_agent ne $apparent_digitizer) {
+    $self->set_error("BadValue",field => "digitizer",expected => $zephir_dig_agent,actual=> $apparent_digitizer,detail=>"apparent digitizer does not match expected digitizer from zephir");
+  }
+}
+
 sub md5sum {
     my $file = shift;
     my $ctx  = Digest::MD5->new();
@@ -370,6 +383,11 @@ valid UTF8 and does not contain any control characters other than tab and CR.
 * _validate_metadata()
 
 Runs JHOVE on all the files for the given volume and validates their metadata.
+
+* _validate_digitizer()
+
+Validate that the apparent digitization agent (from source METS, image metadata, etc, as 
+determined by package type) matches the expected digitization agent from Zephir.
 
 =item stage_info()
 

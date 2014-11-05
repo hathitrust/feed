@@ -197,6 +197,15 @@ sub clean_download {
     if(defined $dir) {
         return remove_tree($dir);
     }
+  }
+}
+
+sub apparent_digitizer {
+  my $self = shift;
+  if($self->is_ia_local_upload()) {
+  } else {
+    return 'CaSfIa'
+  }
 }
 
 1;
