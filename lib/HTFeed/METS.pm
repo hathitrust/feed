@@ -554,10 +554,10 @@ sub _add_source_mets_events {
             my $eventid = $xc->findvalue( "./premis:eventIdentifier[premis:eventIdentifierType='UUID']/premis:eventIdentifierValue",
                 $src_event
             );
-            if ( not defined $self->{included_events}{$eventid} ) {
-                $self->{included_events}{$eventid} = $src_event;
-                $premis->add_event($src_event);
-            }
+
+            # overwrite already-included event w/ updated information if needed
+            $self->{included_events}{$eventid} = $src_event;
+            $premis->add_event($src_event);
             
         }
     }
@@ -1055,6 +1055,19 @@ sub convert_tz {
 sub is_uplift {
     my $self = shift;
     return $self->{is_uplift};
+}
+
+sub agent_type {
+  my $self = shift;
+  my $agentid = shift;
+
+  if($agentid =~ /^ZZ-HT/i) {
+    return "HathiTrust Agent ID";
+  } elsif ($agentid =~ /^Z/ or $agentid =~ /^XX/) {
+    $self->set_error("BadValue",actual=>$agentid,field=>"Agent ID");
+  } else {
+    return "MARC21 Code";
+  }
 }
 
 1;
