@@ -96,7 +96,7 @@ sub _set_validators {
             desc  => "image orientation",
             valid => v_eq( 'xmp', 'orientation', '1' ),
             detail =>
-'This checks that the orientation in which the image should be displayed matches the "natural" order of pixels in the image. If not, this value will automatically be set to 1 (normal) upon ingest to HathiTrust. The image should be rotated as needed before submiission.'
+'This checks that the orientation in which the image should be displayed matches the "natural" order of pixels in the image. If not, this value will automatically be set to 1 (normal) upon ingest to HathiTrust. The image should be rotated as needed before submission.'
         },
 
         'resolution_unit' => {
