@@ -128,8 +128,8 @@ sub _add_capture_event {
         my $eventcode = 'capture';
         my $eventconfig = $volume->get_nspkg()->get_event_configuration($eventcode);
         $eventconfig->{'eventid'} = $volume->make_premis_uuid($eventconfig->{'type'},$capture_date);
-        $eventconfig->{'executor'} = 'CaSfIA';
-        $eventconfig->{'executor_type'} = 'MARC21 Code';
+        $eventconfig->{'executor'} = $volume->apparent_digitizer;
+        $eventconfig->{'executor_type'} = $self->agent_type($eventconfig->{'executor'});
         $eventconfig->{'date'} = $capture_date;
         my $event = $self->add_premis_event($eventconfig);
         if($scribe) {

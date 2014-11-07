@@ -27,7 +27,7 @@ sub run {
 
         my $set_always_fields = {
             'XMP-dc:source'   => "$objid/$new_filename",
-            'XMP-tiff:Artist' => 'Internet Archive'
+            'XMP-tiff:Artist' => $volume->tiff_artist()
         };
 
         my $set_if_undefined_fields = {};
