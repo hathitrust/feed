@@ -219,7 +219,7 @@ class JiraTicket
   def initialize(ticket,service)
     @ticket = ticket
     @service = service
-    @items = customfield('10040').split(/\s*[;\n]\s*/m).map { |url| HTItem.new(url) }
+    @items = customfield('10040').split(/\s*[;\n]\s*/m).map { |url| JiraTicketItem.new(url) }
   end
 
   def next_steps
@@ -287,10 +287,6 @@ class HTItem
   attr_reader :objid
   attr_reader :namespace
 
-  def self.set_watchdb(db)
-    @@db = db
-  end
-
   def initialize(item_url)
     # Try to extract ID from item ID
     if item_url =~ /babel.hathitrust.org.*id=(.*)/
@@ -307,73 +303,10 @@ class HTItem
     else
       raise "Can't parse item_url"
     end
-
-    grin_info
   end
 
   def to_s
     return "#{namespace}.#{objid}"
-  end
-
-  def in_table?(table)
-    return @@db.table_has_item?(table,self)
-  end
-
-  def grin_info
-    namespace_info = @@db.grin_instance(namespace)
-
-    if(namespace_info)
-      grin_instance = namespace_info[:grin_instance]
-      if(grin_instance)
-        return GRIN.new(grin_instance).item(@objid)
-      else
-        raise "#{self}: reingest is only supported for Google ingest"
-      end
-    else
-      raise "#{self}: unknown namespace #{@namespace}"
-    end
-
-  end
-
-  def watch(issue_key)
-
-    if watched?
-      raise "#{self} is already watched"
-    end
-
-    if in_table?('feed_blacklist') 
-      raise "#{self} is blacklisted"
-    end
-
-    if not (in_table?('feed_queue') or in_table?('feed_nonreturned') or in_table?('rights_current'))
-      raise "#{self} has no bib data in Zephir"
-    end
-
-    @@db.insert(self,issue_key)
-  end
-
-  def watched?
-    return !! @@db.get(self)
-  end
-
-  def ready?
-    return !! if_not_nil(@@db.get(self),:ready)
-  end
-
-  def queued?
-    return !! @@db.queue_info(self)
-  end
-
-  def queue_age
-    return if_not_nil(@@db.queue_info(self),:age)
-  end
-
-  def queue_status
-    return if_not_nil(@@db.queue_info(self),:status)
-  end
-
-  def queue_last_update
-    return if_not_nil(@@db.queue_info(self),:update_stamp)
   end
 
   def zip_date
@@ -397,6 +330,111 @@ class HTItem
     end
   end
 
+  def in_repository?
+    return File.exists?(zip_path)
+  end
+end
+
+class QueueItem < HTItem
+  def self.set_watchdb(db)
+    @@db = db
+  end
+
+
+  def in_table?(table)
+    return @@db.table_has_item?(table,self)
+  end
+
+  def queued?
+    return !! @@db.queue_info(self)
+  end
+
+  def queue_age
+    return if_not_nil(@@db.queue_info(self),:age)
+  end
+
+  def queue_status
+    return if_not_nil(@@db.queue_info(self),:status)
+  end
+
+  def queue_last_update
+    return if_not_nil(@@db.queue_info(self),:update_stamp)
+  end
+
+  def last_error
+    my_error_info = @@db.last_error_info(self)
+    if my_error_info[:detail] == 'Unexpected GRIN state' and my_error_info[:message] == 'GRIN could not convert book' 
+      return "conversion failure"
+    else
+      return "unknown"
+    end
+  end
+
+  protected
+
+  def if_not_nil(hash,sym)
+    if(hash)
+      return hash[sym]
+    else
+      return nil
+    end
+  end
+
+end
+
+class GRINItem < QueueItem
+
+  def initialize(item_url)
+    super(item_url)
+    grin_info
+  end
+
+  def grin_info
+    namespace_info = @@db.grin_instance(namespace)
+
+    if(namespace_info)
+      grin_instance = namespace_info[:grin_instance]
+      if(grin_instance)
+        return GRIN.new(grin_instance).item(@objid)
+      else
+        raise "#{self}: reingest is only supported for Google ingest"
+      end
+    else
+      raise "#{self}: unknown namespace #{@namespace}"
+    end
+
+  end
+end
+
+
+class JiraTicketItem < GRINItem
+
+  def ready?
+    return !! if_not_nil(@@db.get(self),:ready)
+  end
+
+  def watch(issue_key)
+
+    if watched?
+      raise "#{self} is already watched"
+    end
+
+    if in_table?('feed_blacklist') 
+      raise "#{self} is blacklisted"
+    end
+
+    if not (in_table?('feed_queue') or in_table?('feed_nonreturned') or in_table?('rights_current'))
+      raise "#{self} has no bib data in Zephir"
+    end
+
+    @@db.insert(self,issue_key)
+  end
+
+  def watched?
+    return !! @@db.get(self)
+  end
+
+
   def request_age
     request_date = if_not_nil(@@db.get(self),:request_date)
     if(request_date)
@@ -404,10 +442,6 @@ class HTItem
     else
       return nil
     end
-  end
-
-  def in_repository?
-    return File.exists?(zip_path)
   end
 
   def grin_quality_info
@@ -448,23 +482,5 @@ class HTItem
     return "stuck - #{message} since #{queue_last_update.strftime(DATE_FORMAT)}"
   end
 
-  def last_error
-    my_error_info = @@db.last_error_info(self)
-    if my_error_info[:detail] == 'Unexpected GRIN state' and my_error_info[:message] == 'GRIN could not convert book' 
-      return "conversion failure"
-    else
-      return "unknown"
-    end
-  end
-
-  private
-
-  def if_not_nil(hash,sym)
-    if(hash)
-      return hash[sym]
-    else
-      return nil
-    end
-  end
 end
 
