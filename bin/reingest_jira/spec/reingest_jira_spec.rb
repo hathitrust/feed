@@ -35,7 +35,7 @@ $nonready_watched_item = {:namespace=>'mdp', :id=>'39015002276304',
 RSpec.configure do |config|
   config.before(:each) do
     stub_request(:get, JIRA_STUB_URL).
-      to_return(status: 200, body: File.new('spec/hts-9999.json'), headers: {})
+      to_return(status: 200, body: File.new('spec/fixtures/hts-9999.json'), headers: {})
 
     stub_request(:post, JIRA_COMMENT_URL).
       to_return(:status => 200, :body => "", :headers => {})
@@ -46,7 +46,7 @@ RSpec.configure do |config|
 
     # accept any uppercase barcode
     stub_request(:get, /#{GRIN_URL}\/\w+\/_barcode_search\?barcodes=[A-Z\d$]+&execute_query=true&format=text&mode=full/).
-      to_return(:status => 200, body: File.new("spec/generic.grin.txt"), headers: {})
+      to_return(:status => 200, body: File.new("spec/fixtures/generic.grin.txt"), headers: {})
 
 
     stub_request(:get, "#{GRIN_URL}/UOM/_barcode_search").
@@ -54,14 +54,14 @@ RSpec.configure do |config|
            :mode => 'full', 
            :execute_query => 'true', 
            :barcodes => $watched_item[:id]}).
-           to_return(:status => 200, body: File.new("spec/#{$watched_item[:id]}.grin.txt"), headers: {})
+           to_return(:status => 200, body: File.new("spec/fixtures/#{$watched_item[:id]}.grin.txt"), headers: {})
 
   end
 
 end
 
-RSpec.describe HTItem do
-  let(:db) { instance_double("RepositoryDB") }
+RSpec.describe JiraTicketItem do
+  let(:db) { instance_double("HathiTrust::RepositoryDB") }
 
   before(:each) do
     allow(db).to receive(:get)
@@ -72,12 +72,12 @@ RSpec.describe HTItem do
     allow(db).to receive(:grin_instance).with('loc').and_return({:grin_instance => nil})
     allow(db).to receive(:grin_instance).with('foo').and_return(nil)
     allow(db).to receive(:table_has_item?).and_return(false)
-    HTItem.set_watchdb(db)
+    JiraTicketItem.set_watchdb(db)
   end
 
   describe '.new' do
     context 'when given an item handle' do
-      let(:item) { HTItem.new('http://hdl.handle.net/2027/mdp.39015012345678') }
+      let(:item) { JiraTicketItem.new('http://hdl.handle.net/2027/mdp.39015012345678') }
 
       it 'parses the namespace' do
         expect(item.namespace).to eq('mdp') 
@@ -88,7 +88,7 @@ RSpec.describe HTItem do
     end
 
     context 'when given a babel URL' do
-      let(:item) { HTItem.new('http://babel.hathitrust.org/cgi/pt?id=uc1.$b281602') }
+      let(:item) { JiraTicketItem.new('http://babel.hathitrust.org/cgi/pt?id=uc1.$b281602') }
 
       it 'parses the namespace' do
         expect(item.namespace).to eq('uc1') 
@@ -99,7 +99,7 @@ RSpec.describe HTItem do
     end
 
     context 'when given a bare item ID' do
-      let(:item) { HTItem.new('uc1.$b123456') }
+      let(:item) { JiraTicketItem.new('uc1.$b123456') }
 
       it 'parses the namespace' do
         expect(item.namespace).to eq('uc1') 
@@ -110,33 +110,33 @@ RSpec.describe HTItem do
     end
 
     it 'throws an error for a garbage item URL' do
-      expect { HTItem.new('wat is this garbage lol') }.to raise_error
+      expect { JiraTicketItem.new('wat is this garbage lol') }.to raise_error
     end
   end
 
   describe '#watch' do
     context 'when item has an unknown namespace' do
-      it { expect { HTItem.new('foo.lakjdf').watch('HTS-9999') }.to raise_error(RuntimeError, /unknown namespace/i) }
+      it { expect { JiraTicketItem.new('foo.lakjdf').watch('HTS-9999') }.to raise_error(RuntimeError, /unknown namespace/i) }
     end
 
     context 'when item has a non-Google namespace' do
-      it { expect { HTItem.new('loc.ark:/13960/t58d0dn7n').watch('HTS-9999') }.to raise_error(RuntimeError, /google/i) }
+      it { expect { JiraTicketItem.new('loc.ark:/13960/t58d0dn7n').watch('HTS-9999') }.to raise_error(RuntimeError, /google/i) }
     end
 
     context 'when item is blacklisted' do
       it { 
-        item = HTItem.new('mdp.39015005021392')
+        item = JiraTicketItem.new('mdp.39015005021392')
         expect(db).to receive(:table_has_item?).with('feed_blacklist',item).and_return(true)
         expect { item.watch('HTS-9999') }.to raise_error(RuntimeError, /blacklist/i) 
       }
     end
 
     context 'when item is missing bib data' do
-      it { expect { HTItem.new('mdp.39015123456789').watch('HTS-9999') }.to raise_error(RuntimeError, /bib data/i) }
+      it { expect { JiraTicketItem.new('mdp.39015123456789').watch('HTS-9999') }.to raise_error(RuntimeError, /bib data/i) }
     end
 
     context 'when item has a Google namespace, bib data, and is in GRIN' do
-      let(:item) { HTItem.new('mdp.35112104589306') }
+      let(:item) { JiraTicketItem.new('mdp.35112104589306') }
 
       before(:each) do
         allow(db).to receive(:table_has_item?).with('feed_watched_items',item).and_return(false)
@@ -154,7 +154,7 @@ RSpec.describe HTItem do
   describe '#queue_age' do
     context 'when the item is in queue' do
       before(:each) { allow(db).to receive(:queue_info).and_return($stuck_queue_info) }
-      let(:item) { HTItem.new('mdp.35112104589306') }
+      let(:item) { JiraTicketItem.new('mdp.35112104589306') }
 
       it 'knows how long it has been in the queue' do
         expect(item.queue_age).to_not be(nil)
@@ -165,7 +165,7 @@ RSpec.describe HTItem do
   describe '#to_s' do
     it 'returns namespace.objid' do
       expected = 'mdp.35112104589306'
-      item = HTItem.new(expected)
+      item = JiraTicketItem.new(expected)
       expect(item.to_s).to eq(expected)
     end
   end
@@ -173,7 +173,7 @@ RSpec.describe HTItem do
   describe '#format_grin_dates'  do
     it 'returns string of dates sorted by date' do
       expected = 'Scanned 2008-02-20; Processed 2008-02-20; Analyzed 2008-08-27; Converted 2013-11-21; Downloaded 2013-11-21'
-      item = HTItem.new('mdp.35112104589306')
+      item = JiraTicketItem.new('mdp.35112104589306')
       expect(item.format_grin_dates).to eq(expected)
     end
   end
@@ -181,12 +181,12 @@ end
 
 
 RSpec.describe JiraTicket do
-  let(:db) { instance_double("RepositoryDB") }
+  let(:db) { instance_double("HathiTrust::RepositoryDB") }
   let(:service) { JiraService.new(JIRA_URL,'foo','bar') }
   let(:ticket) { service.issue('HTS-9999') }
 
   before(:each) do
-    HTItem.set_watchdb(db)
+    JiraTicketItem.set_watchdb(db)
     allow(db).to receive(:queue_info)
     allow(db).to receive(:grin_instance).with('mdp').and_return({:grin_instance => 'UOM'})
     allow(db).to receive(:table_has_item?).and_return(false)
@@ -208,6 +208,72 @@ RSpec.describe JiraTicket do
       allow(db).to receive(:get).and_return($watched_item)
     }
 
+    ############## GOOGLE TO REANALYZE ###########################
+    context 'when ticket has state Google to Reanalyze' do
+      before(:each) { allow(ticket).to receive(:next_steps).and_return('Google to reanalyze') }
+
+      # TODO: DRY THIS UP (from HT to queue)
+      context 'and an item is not in the queue' do
+        before(:each) { allow(db).to receive(:table_has_item?).with('feed_queue',anything()).and_return(false)  }
+
+        context 'and it has been watched for more than one week' do
+          before(:each) { allow(db).to receive(:get).and_return($old_watched_item) }
+
+          it 'reports as stuck' do
+            allow(db).to receive(:queue_info).and_return($stuck_queue_info)
+            ticket.process
+            expect(WebMock).to have_requested(:post, JIRA_COMMENT_URL).with { |req| req.body =~ /#{ticket.items.first.to_s}: .*stuck - waiting for analysis.*/ }
+          end
+        end
+
+      end
+
+      context 'and all items are in the queue' do
+        before(:each) { allow(db).to receive(:table_has_item?).with('feed_queue',anything()).and_return(true) }
+        context 'and an item is not ready' do
+          before(:each) { allow(db).to receive(:get).and_return($nonready_watched_item) }
+
+          context 'and it was reanalyzed' do
+            before(:each) {raise "It was reanalayzed??"}
+            it 'sets next steps to HT to reingest' do
+              ticket.process
+              expect(WebMock).to have_requested(:put, JIRA_STUB_URL).with { |req| req.body =~ /HT to reingest/ }
+            end
+          end
+
+          context 'and it was not reanalyzed' do
+            before(:each) {raise "It was not reanalayzed??"}
+            it 'does not change next steps' do
+              ticket.process
+              expect(ticket).not_to receive(:set_next_steps) 
+            end
+          end
+        end
+
+        context 'and reingest was attempted for all items' do
+          context 'and all items were reanalyzed' do
+            it 'sets next steps to UM to investigate furhter' do
+              ticket.process
+              expect(WebMock).to have_requested(:put, JIRA_STUB_URL).with { |req| req.body =~ /UM to investigate further/ }
+            end
+          end
+
+          context 'and an item was not reanalyzed' do
+            it 'does not change next steps' do
+              ticket.process
+              expect(ticket).not_to receive(:set_next_steps) 
+            end
+
+            it 'comments on the ticket' do
+              ticket.process
+              expect(WebMock).to have_requested(:post, JIRA_COMMENT_URL).with { |req| req.body =~ /#{ticket.items.first.to_s}: .*not reanalyzed.*ingested.*/ }
+            end
+          end
+        end
+      end
+    end
+
+    ############## HT TO QUEUE ###########################
     context 'when ticket has state HT to queue' do
       before(:each) { allow(ticket).to receive(:next_steps).and_return('HT to queue') }
 
@@ -251,6 +317,7 @@ RSpec.describe JiraTicket do
     end
 
 
+    ############## HT TO REINGEST ###########################
     context 'when ticket has state HT to reingest' do
       before(:each) { allow(ticket).to receive(:next_steps).and_return('HT to reingest') }
 

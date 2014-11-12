@@ -4,7 +4,9 @@ SimpleCov.start do
   add_filter "/vendor/bundle"
 end
 
-require_relative '../reingest_jira'
+require 'hathitrust/jira'
+
+include HathiTrust
 
 RSpec.configure do |config|
   config.mock_with :rspec do |mocks|
