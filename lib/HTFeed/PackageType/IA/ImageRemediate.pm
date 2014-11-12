@@ -67,29 +67,31 @@ sub get_capture_time {
     my $xpc        = $volume->get_scandata_xpc();
     my $preingest_path = $volume->get_preingest_directory();
 
+    my $gmtTimeStampRE = qr/^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})$/;
+
     # Get the time of creation from scandata.xml
     my $leafNum = int( $image_file =~ /_(\d{4}).jp2/ );
     # A couple places this might appear, and it might be with or without a namespace..
     my $gmtTimeStamp =
     $xpc->findvalue(qq(//scribe:pageData/scribe:page[\@leafNum='$leafNum']/scribe:gmtTimeStamp | //pageData/page[\@leafNum='$leafNum']/gmtTimeStamp));
     # TODO: Start or end time stamp? Or do we want to get it from the file?
-    if( not defined $gmtTimeStamp or $gmtTimeStamp eq '') {
+    if( not defined $gmtTimeStamp or $gmtTimeStamp eq '' or $gmtTimeStamp !~ $gmtTimeStampRE) {
         $gmtTimeStamp = $xpc->findvalue('//scribe:scanLog/scribe:scanEvent/scribe:endTimeStamp | //scanLog/scanEvent/endTimeStamp');
     }
 
-    if( not defined $gmtTimeStamp or $gmtTimeStamp eq '') {
+    if( not defined $gmtTimeStamp or $gmtTimeStamp eq '' or $gmtTimeStamp !~ $gmtTimeStampRE) {
         my $meta_xpc = $self->{volume}->get_meta_xpc();
         $gmtTimeStamp = $meta_xpc->findvalue('//scandate');
     }
 
     # use file time stamp if all else fails
-    if( not defined $gmtTimeStamp or $gmtTimeStamp eq '') {
+    if( not defined $gmtTimeStamp or $gmtTimeStamp eq '' or $gmtTimeStamp !~ $gmtTimeStampRE) {
         $gmtTimeStamp = strftime("%Y%m%d%H%M%S",gmtime((stat("$preingest_path/$image_file"))[9]));
     }
 
     # Format is YYYYMMDDHHmmss
     if ( defined $gmtTimeStamp
-            and $gmtTimeStamp =~ /^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})$/ )
+            and $gmtTimeStamp =~ $gmtTimeStampRE )
     {
         return ("$1:$2:$3 $4:$5:$6+00:00");
     }
