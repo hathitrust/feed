@@ -37,6 +37,7 @@ sub run {
         }
 
         my $resolution = $scandata_xpc->findvalue("//scribe:bookData/scribe:dpi | //bookData/dpi");
+        $resolution = $volume->get_meta_xpc()->findvalue("//ppi") if not defined $resolution or !$resolution;
 
         # ignore missing resolution config
         eval {
