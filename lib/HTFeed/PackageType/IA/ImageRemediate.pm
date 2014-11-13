@@ -36,14 +36,9 @@ sub run {
             $set_if_undefined_fields->{'XMP-tiff:DateTime'} = $capture_time;
         }
 
-        my $resolution = $scandata_xpc->findvalue("//scribe:bookData/scribe:dpi | //bookData/dpi");
+        my $resolution = $volume->get_db_resolution();
+        $resolution = $scandata_xpc->findvalue("//scribe:bookData/scribe:dpi | //bookData/dpi") if not defined $resolution or !$resolution;
         $resolution = $volume->get_meta_xpc()->findvalue("//ppi") if not defined $resolution or !$resolution;
-
-        # ignore missing resolution config
-        eval {
-            $resolution = $volume->get_nspkg()->get('resolution') if not defined $resolution or !$resolution;
-        };
-
 
         $set_if_undefined_fields->{'Resolution'} = $resolution if defined $resolution and $resolution;
 

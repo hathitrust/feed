@@ -164,6 +164,22 @@ sub get_download_location {
     return $self->get_download_directory();
 }
 
+# resolution override as defined in feed_ia_arkid
+# for locally-digitized material missing resolution
+
+sub get_db_resolution {
+  my $self = shift;
+  my $arkid = $self->get_objid();
+
+  my $dbh = get_dbh();
+  my $sth = $dbh->prepare("select resolution from feed_ia_arkid where arkid = ?");
+  $sth->execute($arkid);
+
+  my $results = $sth->fetchrow_arrayref();
+
+  return $results->[0];
+}
+
 1;
 
 __END__
