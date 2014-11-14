@@ -1,5 +1,5 @@
 require 'hathitrust'
-require 'hathitrust/jira/tickethandler'
+require 'hathitrust/jira/tickethandlers'
 require 'hathitrust/jira/ticket'
 require 'json'
 

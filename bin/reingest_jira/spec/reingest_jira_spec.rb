@@ -32,6 +32,22 @@ $nonready_watched_item = {:namespace=>'mdp', :id=>'39015002276304',
   :queue_date=>nil, :ready=>false, :issue=>"0"}
 
 
+def stub_grin(fixture)
+    # accept any uppercase barcode and return the fixture
+    stub_request(:get, /#{GRIN_URL}\/\w+\/_barcode_search\?barcodes=[A-Z\d$]+&execute_query=true&format=text&mode=full/).
+      to_return(:status => 200, body: File.new(fixture), headers: {})
+end
+
+def expect_comment(comment_re)
+  expect(WebMock).to have_requested(:post, JIRA_COMMENT_URL).with do
+    |req| req.body =~ comment_re
+  end
+end
+
+def expect_next_steps(next_steps)
+  expect(WebMock).to have_requested(:put, JIRA_STUB_URL).with { |req| req.body =~ next_steps }
+end
+
 RSpec.configure do |config|
   config.before(:each) do
     stub_request(:get, JIRA_STUB_URL).
@@ -44,10 +60,7 @@ RSpec.configure do |config|
       with(:body => /{"fields":{"customfield_10020":{"value":"[\w ]+"}}}/).
       to_return(:status => 200, :body => "", :headers => {})
 
-    # accept any uppercase barcode
-    stub_request(:get, /#{GRIN_URL}\/\w+\/_barcode_search\?barcodes=[A-Z\d$]+&execute_query=true&format=text&mode=full/).
-      to_return(:status => 200, body: File.new("spec/fixtures/generic.grin.txt"), headers: {})
-
+    stub_grin('spec/fixtures/generic.grin.txt')
 
     stub_request(:get, "#{GRIN_URL}/UOM/_barcode_search").
       with(:query => {:format => 'text', 
@@ -202,15 +215,28 @@ RSpec.describe JiraTicket do
     end
   end
 
-  context 'and all items are on watch list' do
+  context 'when all items are on watch list' do
     before(:each) { 
       allow(db).to receive(:table_has_item?).with('feed_watched_items',anything()).and_return(true) 
       allow(db).to receive(:get).and_return($watched_item)
     }
 
     ############## GOOGLE TO REANALYZE ###########################
-    context 'when ticket has state Google to Reanalyze' do
-      before(:each) { allow(ticket).to receive(:next_steps).and_return('Google to reanalyze') }
+    context 'and ticket has state Google to Reanalyze' do
+      before(:each) do
+        allow(ticket).to receive(:next_steps).and_return('Google to reanalyze')
+        ticket.items.each { |item| allow(item).to receive(:zip_date).and_return(Time.new(2014,01,01,00,00,00,'-05:00')) } 
+        allow(ticket).to receive(:reanalyze_request_date).and_return(DateTime.parse('2014-10-06T09:12:00.000-0600'))
+      end
+
+      context 'and the item has no reanalyze request date' do
+        before(:each) { allow(ticket).to receive(:reanalyze_request_date).and_return(nil) } 
+
+        it 'reports the reanalyze request date is missing' do
+          ticket.process
+          expect_comment(/missing reanalyze request date/)
+        end
+      end
 
       # TODO: DRY THIS UP (from HT to queue)
       context 'and an item is not in the queue' do
@@ -222,7 +248,7 @@ RSpec.describe JiraTicket do
           it 'reports as stuck' do
             allow(db).to receive(:queue_info).and_return($stuck_queue_info)
             ticket.process
-            expect(WebMock).to have_requested(:post, JIRA_COMMENT_URL).with { |req| req.body =~ /#{ticket.items.first.to_s}: .*stuck - waiting for analysis.*/ }
+            expect_comment(/#{ticket.items.first.to_s}: .*stuck - waiting for analysis.*/)
           end
         end
 
@@ -234,15 +260,27 @@ RSpec.describe JiraTicket do
           before(:each) { allow(db).to receive(:get).and_return($nonready_watched_item) }
 
           context 'and it was reanalyzed' do
-            before(:each) {raise "It was reanalayzed??"}
+            before(:each) { stub_grin('spec/fixtures/grin_reeverything.txt') }
             it 'sets next steps to HT to reingest' do
               ticket.process
-              expect(WebMock).to have_requested(:put, JIRA_STUB_URL).with { |req| req.body =~ /HT to reingest/ }
+              expect_next_steps(/HT to reingest/)
             end
           end
 
+          # TODO: DRY THIS UP (from HT to queue)
           context 'and it was not reanalyzed' do
-            before(:each) {raise "It was not reanalayzed??"}
+            before(:each) { stub_grin('spec/fixtures/grin_not_reanything.txt') }
+
+            context 'and it has been watched for more than one week' do
+              before(:each) { allow(db).to receive(:get).and_return($old_watched_item) }
+
+              it 'reports as stuck' do
+                allow(db).to receive(:queue_info).and_return($stuck_queue_info)
+                ticket.process
+                expect_comment(/#{ticket.items.first.to_s}: .*stuck - waiting for analysis.*/)
+              end
+            end
+
             it 'does not change next steps' do
               ticket.process
               expect(ticket).not_to receive(:set_next_steps) 
@@ -252,13 +290,15 @@ RSpec.describe JiraTicket do
 
         context 'and reingest was attempted for all items' do
           context 'and all items were reanalyzed' do
+            before(:each) { stub_grin('spec/fixtures/grin_reeverything.txt') }
             it 'sets next steps to UM to investigate furhter' do
               ticket.process
-              expect(WebMock).to have_requested(:put, JIRA_STUB_URL).with { |req| req.body =~ /UM to investigate further/ }
+              expect_next_steps(/UM to investigate further/)
             end
           end
 
           context 'and an item was not reanalyzed' do
+            before(:each) { stub_grin('spec/fixtures/grin_not_reanything.txt') }
             it 'does not change next steps' do
               ticket.process
               expect(ticket).not_to receive(:set_next_steps) 
@@ -266,7 +306,7 @@ RSpec.describe JiraTicket do
 
             it 'comments on the ticket' do
               ticket.process
-              expect(WebMock).to have_requested(:post, JIRA_COMMENT_URL).with { |req| req.body =~ /#{ticket.items.first.to_s}: .*not reanalyzed.*ingested.*/ }
+              expect_comment(/#{ticket.items.first.to_s}: .*not reanalyzed.*ingested.*/)
             end
           end
         end
@@ -274,7 +314,7 @@ RSpec.describe JiraTicket do
     end
 
     ############## HT TO QUEUE ###########################
-    context 'when ticket has state HT to queue' do
+    context 'and ticket has state HT to queue' do
       before(:each) { allow(ticket).to receive(:next_steps).and_return('HT to queue') }
 
       context 'and all items are in the queue' do
@@ -285,7 +325,7 @@ RSpec.describe JiraTicket do
 
           it 'sets next steps to HT to reingest' do
             ticket.process
-            expect(WebMock).to have_requested(:put, JIRA_STUB_URL).with { |req| req.body =~ /HT to reingest/ }
+            expect_next_steps(/HT to reingest/)
           end
         end
 
@@ -294,7 +334,7 @@ RSpec.describe JiraTicket do
             allow(db).to receive(:queue_info).and_return($punted_queue_info)
             allow(db).to receive(:last_error_info).and_return($punted_last_error)
             ticket.process
-            expect(WebMock).to have_requested(:put, JIRA_STUB_URL).with { |req| req.body =~ /UM to investigate further/ }
+            expect_next_steps(/UM to investigate further/)
           end
         end
 
@@ -309,7 +349,7 @@ RSpec.describe JiraTicket do
           it 'reports as stuck' do
             allow(db).to receive(:queue_info).and_return($stuck_queue_info)
             ticket.process
-            expect(WebMock).to have_requested(:post, JIRA_COMMENT_URL).with { |req| req.body =~ /#{ticket.items.first.to_s}: .*stuck - waiting to be queued.*/ }
+            expect_comment(/#{ticket.items.first.to_s}: .*stuck - waiting to be queued.*/)
           end
         end
 
@@ -318,7 +358,7 @@ RSpec.describe JiraTicket do
 
 
     ############## HT TO REINGEST ###########################
-    context 'when ticket has state HT to reingest' do
+    context 'and ticket has state HT to reingest' do
       before(:each) { allow(ticket).to receive(:next_steps).and_return('HT to reingest') }
 
       context 'and all items are in the queue' do
@@ -331,19 +371,19 @@ RSpec.describe JiraTicket do
             allow(db).to receive(:queue_info).and_return($punted_queue_info)
             allow(db).to receive(:last_error_info).and_return($punted_last_error)
             ticket.process
-            expect(WebMock).to have_requested(:put, JIRA_STUB_URL).with { |req| req.body =~ /UM to investigate further/ }
+            expect_next_steps(/UM to investigate further/)
           end
 
           context 'and items were successfully ingested' do
             before(:each) { allow(db).to receive(:queue_info).and_return($ingested_queue_info) }
             it 'reports scan/process/analyze/ingest date' do
               ticket.process
-              expect(WebMock).to have_requested(:post, JIRA_COMMENT_URL).with { |req| req.body =~ /#{$watched_item[:namespace]}.#{$watched_item[:id]}: Scanned 2008-02-20; Processed 2008-02-20; Analyzed 2008-08-27; Converted 2013-11-21; Downloaded 2013-11-21; Ingested 2014-10-13/ }
+              expect_comment(/#{$watched_item[:namespace]}.#{$watched_item[:id]}: Scanned 2008-02-20; Processed 2008-02-20; Analyzed 2008-08-27; Converted 2013-11-21; Downloaded 2013-11-21; Ingested 2014-10-13/)
             end
 
             it 'reports GRIN quality statistics' do
               ticket.process
-              expect(WebMock).to have_requested(:post, JIRA_COMMENT_URL).with { |req| req.body =~ /#{$watched_item[:namespace]}.#{$watched_item[:id]}: Audit: \(not audited\); Rubbish: \(not evaluated\); Material Error: 0%; Overall Error: 2%/ }
+              expect_comment(/#{$watched_item[:namespace]}.#{$watched_item[:id]}: Audit: \(not audited\); Rubbish: \(not evaluated\); Material Error: 0%; Overall Error: 2%/)
             end
 
           end
@@ -356,7 +396,7 @@ RSpec.describe JiraTicket do
 
             it 'reports the last ingest error' do
               ticket.process
-              expect(WebMock).to have_requested(:post, JIRA_COMMENT_URL).with { |req| req.body =~ /#{$watched_item[:namespace]}.#{$watched_item[:id]}: failed ingest \(conversion failure\)/ }
+              expect_comment(/#{$watched_item[:namespace]}.#{$watched_item[:id]}: failed ingest \(conversion failure\)/)
             end
           end
 
@@ -368,7 +408,7 @@ RSpec.describe JiraTicket do
           it 'and all items are enqueued more than a week, reports as stuck' do
             allow(db).to receive(:queue_info).and_return($stuck_queue_info)
             ticket.process
-            expect(WebMock).to have_requested(:post, JIRA_COMMENT_URL).with { |req| req.body =~ /#{ticket.items.first.to_s}: .*stuck - in process.*/ }
+            expect_comment(/#{ticket.items.first.to_s}: .*stuck - in process.*/)
           end
 
           it 'and enqueued less than a week, does not change next steps' do
@@ -389,7 +429,7 @@ RSpec.describe JiraTicket do
 
         it 'reports that the item has disappeared from the queue' do
           ticket.process
-          expect(WebMock).to have_requested(:post, JIRA_COMMENT_URL).with { |req| req.body =~ /not in queue/i }
+          expect_comment(/not in queue/i)
         end
       end
     end
