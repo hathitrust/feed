@@ -183,7 +183,7 @@ sub get_checksum_md5 {
 		open(FILE, $checksum_path) or die $!;		
 		foreach my $line(<FILE>) {
 			next unless $line =~ /(\w+)(\s+\*?)(\S+)/;
-			$checksum = $1;
+			$checksum = lc($1);
 			$filename = lc($3);
 			$checksums->{$filename} = $checksum;
 		}	
