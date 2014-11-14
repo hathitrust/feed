@@ -106,9 +106,7 @@ if ($full) {
 
     # add missing volumes
     print "Identifying missing volumes...\n";
-    my $current = HTFeed::Dataset::Tracking::get_all();
-    my $expected = HTFeed::Dataset::RightsDB::get_fullset_volumegroup();
-    my $missing_volumes = $expected->difference($current);
+    my $missing_volumes = HTFeed::Dataset::RightsDB::get_fullset_missing_volumegroup();
 
     $write_fullset_id_file += $missing_volumes->size();
 
