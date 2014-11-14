@@ -24,17 +24,25 @@ module HathiTrust
       return customfield('10020')
     end
 
-    def process
-      processor_class = @@ticket_processors[next_steps]
-      if(processor_class)
-        processor = processor_class.new()
-      else 
-        processor = DefaultHandler.new()
-      end
+    def reanalyze_request_date
+      return DateTime.parse(customfield('10071'))
+    end
 
-      watch_items
+    def reprocess_request_date
+      return DateTime.parse(customfield('10070'))
+    end
+
+    def process
 
       begin
+        processor_class = @@ticket_processors[next_steps]
+        if(processor_class)
+          processor = processor_class.new(self)
+        else 
+          processor = DefaultHandler.new(self)
+        end
+
+        watch_items
 
         # enforce invariants
         items.each { |item| processor.check_item(item) }
@@ -45,6 +53,9 @@ module HathiTrust
           add_comment(processor.comment)
         end
 
+      rescue ArgumentError => e
+        add_comment(e.message)
+        set_next_steps(ERROR_NEXT_STEPS)
       rescue RuntimeError => e
         add_comment("Unexpected error: #{e.message}")
         set_next_steps(ERROR_NEXT_STEPS)
@@ -54,6 +65,18 @@ module HathiTrust
 
     def key
       return @ticket['key']
+    end
+
+    def last_comment_time
+      return DateTime.parse(comments.sort { |a,b| a['created'] <=> b['created'] }[-1]['created'])
+    end
+
+    def days_since_comment
+      return DateTime.now - last_comment_time
+    end
+
+    def comments
+      return @ticket['fields']['comment']['comments']
     end
 
     private

@@ -62,7 +62,7 @@ module HathiTrust
     end
 
     def queued?
-      return !! @@db.queue_info(self)
+      return @@db.table_has_item?('feed_queue',self)
     end
 
     def queue_age

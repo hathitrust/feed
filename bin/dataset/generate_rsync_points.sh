@@ -6,7 +6,8 @@ OUTFILE=$BASE/rsync_points
 cd $BASE
 rm -f $OUTFILE
 
-declare -A NS_DEPTH=( ["chi"]="2"  \
+declare -A NS_DEPTH=( ["bc"]="8"  \
+                      ["chi"]="2"  \
                       ["coo"]="5"  \
                       ["dul1"]="2" \
                       ["hvd"]="2"  \
@@ -22,14 +23,17 @@ declare -A NS_DEPTH=( ["chi"]="2"  \
                       ["nnc1"]="3" \
                       ["nnc2"]="8" \
                       ["nyp"]="5"  \
+                      ["psia"]="8"  \
                       ["pst"]="4"  \
                       ["pur1"]="5" \
                       ["uc1"]="3"  \
                       ["uc2"]="8"  \
                       ["ucm"]="3"  \
+                      ["ufl1"]="8"  \
                       ["uiug"]="5" \
                       ["uiuo"]="8" \
                       ["umn"]="5"  \
+                      ["usu"]="5"  \
                       ["uva"]="3"  \
                       ["wu"]="3"   \
                       ["yale"]="5" )
