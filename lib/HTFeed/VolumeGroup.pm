@@ -94,6 +94,7 @@ sub get_ns_objids {
     croak 'cannot generate ns_objids';
 }
 
+# croaks on volume errors
 sub get_volumes {
     my $self = CORE::shift;
     return $self->{volumes} if ($self->{volumes});
@@ -114,6 +115,7 @@ sub get_volumes {
 }
 
 # shifts out a Volume object
+# shifts the next one if there is a VOLUME_ERROR
 sub shift {
     my $self = CORE::shift;
 
@@ -136,8 +138,17 @@ sub shift {
     return $volume
         if ($volume);
 
-    return _mk_vol($self->{packagetype}, @{$ns_objid})
-        if ($ns_objid);
+    eval{
+        $volume = _mk_vol($self->{packagetype}, @{$ns_objid})
+            if ($ns_objid);
+    };
+    if ($@) {
+        warn "Error $@ instantiating volume $ns_objid";
+        return $self->shift;
+    }
+
+    return $volume
+        if ($volume);
 
     return;
 }
