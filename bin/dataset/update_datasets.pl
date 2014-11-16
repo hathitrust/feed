@@ -26,6 +26,7 @@ my ($all,$full,$sub);
 my $reingest = 1;
 my $delete = 1;
 my $verbose = 1;
+my $threads = 0;
 
 my $write_fullset_id_file = 0;
 
@@ -39,6 +40,7 @@ GetOptions(
 	'verbose!'  => \$verbose,
     'fullid'    => \$write_fullset_id_file,
     'help|?'    => \$help,
+    'threads=i' => \$threads
 ) or pod2usage(2);
 pod2usage(1) if $help;
 
@@ -100,7 +102,7 @@ if ($full) {
         print "Identifying outdated volumes...\n";
         my $outdated_volumes = HTFeed::Dataset::Tracking::get_outdated();
 
-        runlite(volumegroup => $outdated_volumes, logger => 'HTFeed::Dataset::update_outdated', verbose => $verbose);
+        runlite(volumegroup => $outdated_volumes, logger => 'HTFeed::Dataset::update_outdated', verbose => $verbose, threads => $threads);
         runlite_finish();
     }
 
@@ -110,7 +112,7 @@ if ($full) {
 
     $write_fullset_id_file += $missing_volumes->size();
 
-    runlite(volumegroup => $missing_volumes, logger => 'HTFeed::Dataset::update_missing', verbose => $verbose);
+    runlite(volumegroup => $missing_volumes, logger => 'HTFeed::Dataset::update_missing', verbose => $verbose, threads => $threads);
     runlite_finish();
 
     # clear custom Stage Map

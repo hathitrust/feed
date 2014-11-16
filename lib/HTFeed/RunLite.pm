@@ -122,7 +122,7 @@ sub runlite{
 
 END{
     # clean up is only needed in END block if we exited badly 
-    if($started and !$finished){
+    if(($pid == $$) and ($started and !$finished)){
         # parent kills kids
         if(kill 0, keys %kids){
             print "killing child procs...\n";
