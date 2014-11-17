@@ -151,7 +151,7 @@ sub _build_volume{
 
 sub _build_namespace {
 	my $self = shift;
-    return $self->volume->get_objid;
+    return $self->volume->get_namespace;
 }
 sub _build_pkg_type {
 	my $self = shift;
