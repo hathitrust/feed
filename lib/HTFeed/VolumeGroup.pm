@@ -143,7 +143,8 @@ sub shift {
             if ($ns_objid);
     };
     if ($@) {
-        warn "Error $@ instantiating volume $ns_objid";
+        $htid ||= join '.', @{$nsobjid};
+        warn "Error $@ instantiating volume $htid";
         return $self->shift;
     }
 
