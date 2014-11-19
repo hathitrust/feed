@@ -7,6 +7,7 @@ use base qw(HTFeed::Volume);
 use HTFeed::Config;
 use File::Pairtree qw(id2ppath s2ppchars);
 use IO::Uncompress::Unzip qw(unzip $UnzipError);
+use POSIX qw(strftime);
 ## possibly move to a require for packaging
 use HTFeed::XMLNamespaces qw(register_namespaces);
 
@@ -165,6 +166,13 @@ sub get_last_ingest_date{
     }
 
     return $self->{ingest_date};
+}
+
+sub zip_date {
+    my $self = shift;
+
+    my $zip = $self->get_repository_zip_path();
+    return strftime('%Y-%m-%d %H:%M:%S', localtime [stat $zip]->[9]);
 }
 
 # There is no SIP
