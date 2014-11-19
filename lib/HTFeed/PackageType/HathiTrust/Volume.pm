@@ -129,24 +129,19 @@ sub record_premis_event {
 
 sub get_dataset_path {
     my $self = shift;
+    my $set_name = shift;
 
-    if(not defined $self->{dataset_path}) {
-        my $datasets_path = get_config('dataset'=>'path');
-        my $full_set_name = get_config('dataset'=>'full_set');
+    my $datasets_path = get_config('dataset'=>'path');
+    $set_name ||= get_config('dataset'=>'full_set');
 
-        my $namespace = $self->get_namespace();
+    my $namespace = $self->get_namespace();
+    my $objid = $self->get_objid();
+    my $pairtree_path = id2ppath($objid);
+    my $pt_objid = $self->get_pt_objid();
 
-        my $objid = $self->get_objid();
+    my $path = "$datasets_path/$set_name/obj/$namespace/$pairtree_path/$pt_objid";
 
-        my $pairtree_path = id2ppath($objid);
-
-        my $pt_objid = $self->get_pt_objid();
-
-        my $path = "$datasets_path/$full_set_name/obj/$namespace/$pairtree_path/$pt_objid";
-        $self->{dataset_path} = $path;
-    }
-
-    return $self->{dataset_path};
+    return $path
 }
 
 sub get_last_ingest_date{

@@ -24,6 +24,7 @@ use HTFeed::Dataset::Subset qw( update_subsets );
 my ($all,$full,$sub);
 
 my $reingest = 1;
+my $updates = 1;
 my $delete = 1;
 my $verbose = 1;
 my $threads = 0;
@@ -36,6 +37,7 @@ GetOptions(
     'full'      => \$full,
     'sub'       => \$sub,
     'reingest!' => \$reingest,
+    'updates!'  => \$updates,
     'delete!'   => \$delete,
 	'verbose!'  => \$verbose,
     'fullid'    => \$write_fullset_id_file,
@@ -107,13 +109,15 @@ if ($full) {
     }
 
     # add missing volumes
-    print "Identifying missing volumes...\n";
-    my $missing_volumes = HTFeed::Dataset::RightsDB::get_fullset_missing_volumegroup();
+    if ($updates) {
+        print "Identifying missing volumes...\n";
+        my $missing_volumes = HTFeed::Dataset::RightsDB::get_fullset_missing_volumegroup();
 
-    $write_fullset_id_file += $missing_volumes->size();
+        $write_fullset_id_file += $missing_volumes->size();
 
-    runlite(volumegroup => $missing_volumes, logger => 'HTFeed::Dataset::update_missing', verbose => $verbose, threads => $threads);
-    runlite_finish();
+        runlite(volumegroup => $missing_volumes, logger => 'HTFeed::Dataset::update_missing', verbose => $verbose, threads => $threads);
+        runlite_finish();
+    }
 
     # clear custom Stage Map
     HTFeed::Volume::clear_stage_map();
@@ -172,7 +176,7 @@ update_datasets.pl - update HathiTrust datasets
 
 =head1 SYNOPSIS
 
-update_datasets.pl < --nodelete > < --all | --full | --sub [SETNAME [SETNAME ...]] >
+update_datasets.pl < --nodelete > < --all | --full [--no-reingest | --no-updates] | --sub [SETNAME [SETNAME ...]] >
 
 --all - update all sets, overrides alll other options
 
@@ -180,6 +184,8 @@ update_datasets.pl < --nodelete > < --all | --full | --sub [SETNAME [SETNAME ...
 
 --sub - update subsets, specify SETNAME to only update a particular subset, otherwise all sets are updated
 
---nodelete - do not run deletes before set update
+--no-delete - do not run deletes before set update
+
+--no-reingest, --no-updates - use with --full flag to skip updating missing or outdated volumes respectively
 
 =cut
