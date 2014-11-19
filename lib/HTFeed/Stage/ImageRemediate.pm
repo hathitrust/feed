@@ -477,20 +477,18 @@ sub _remediate_jpeg2000 {
     # For IA, ColorSpace should always be sRGB. Only set these fields if they
     # aren't already defined.
     if ( defined $self->{oldFields}->{'Jpeg2000:ColorSpace'} and $self->{oldFields}->{'Jpeg2000:ColorSpace'} eq 'sRGB' ) {
-        $self->set_new_if_undefined( 'XMP-tiff:BitsPerSample', '8, 8, 8' );
-        $self->set_new_if_undefined( 'XMP-tiff:PhotometricInterpretation',
-            'RGB' );
-        $self->set_new_if_undefined( 'XMP-tiff:SamplesPerPixel', '3' );
+        $self->{newFields}{'XMP-tiff:BitsPerSample'} = '8, 8, 8';
+        $self->{newFields}{'XMP-tiff:PhotometricInterpretation'} = 'RGB'; 
+        $self->{newFields}{'XMP-tiff:SamplesPerPixel'} = '3';
     }
 
     # Other package types may have grayscale JP2s that need remediation.
     # Final image validation should kick these out if grayscale is not
     # expected.
     if ( defined $self->{oldFields}->{'Jpeg2000:ColorSpace'} and $self->{oldFields}->{'Jpeg2000:ColorSpace'} eq 'Grayscale' ) {
-        $self->set_new_if_undefined( 'XMP-tiff:BitsPerSample', '8' );
-        $self->set_new_if_undefined( 'XMP-tiff:PhotometricInterpretation',
-            'BlackIsZero' );
-        $self->set_new_if_undefined( 'XMP-tiff:SamplesPerPixel', '1' );
+        $self->{newFields}{'XMP-tiff:BitsPerSample'} = '8';
+        $self->{newFields}{'XMP-tiff:PhotometricInterpretation'} = 'BlackIsZero';
+        $self->{newFields}{'XMP-tiff:SamplesPerPixel'} = '1';
     }
 
     # Orientation should always be normal
@@ -513,6 +511,11 @@ sub _remediate_jpeg2000 {
             $yres = $self->{oldFields}->{'Jpeg2000:DisplayYResolution'};
         }
 
+        if ( not defined $xres and not defined $yres ) {
+            $xres = $self->{oldFields}->{'IFD0:XResolution'};
+            $yres = $self->{oldFields}->{'IFD0:YResolution'};
+        }
+
         get_logger()->warn("Non-square pixels??! XRes $xres YRes $yres")
           if ( ( $xres or $yres ) and $xres != $yres );
 
@@ -529,6 +532,11 @@ sub _remediate_jpeg2000 {
                   $self->{oldFields}->{'Jpeg2000:DisplayYResolutionUnit'};
             }
 
+            if (not defined $xresunit and not defined $yresunit ) {
+              $xresunit = $self->{oldFields}->{'IFD0:ResolutionUnit'};
+              $yresunit = $self->{oldFields}->{'IFD0:ResolutionUnit'};
+            }
+
             get_logger()->warn("Resolution unit awry")
               if ( not $xresunit or not $yresunit or $xresunit ne $yresunit );
 
@@ -540,6 +548,7 @@ sub _remediate_jpeg2000 {
             $xresunit eq 'mm' and $factor = 25.4;
             $xresunit eq 'cm' and $factor = 2.54;
             $xresunit eq 'in' and $factor = 1;
+            $xresunit eq 'inches' and $factor = 1;
 
             if(defined $factor) {
                 my $resolution = sprintf("%.0f",$xres * $factor);
@@ -598,6 +607,7 @@ sub _remediate_jpeg2000 {
 
     # then copy new fields
     while ( my ( $field, $val ) = each( %{ $self->{newFields} } ) ) {
+        $exifTool->SetNewValue($field); # first reset existing value, if any
         my ( $success, $errStr ) = $exifTool->SetNewValue( $field, $val );
         if ( defined $errStr ) {
             croak("Error setting new tag $field => $val: $errStr\n");
