@@ -852,6 +852,18 @@ sub convert_tiff_to_jpeg2000 {
     #
     # 43300 corresponds to the old recommendation of 51492 for general material.
 
+    # save some info from the TIFF
+    foreach my $tag (qw(Artist Make Model)) {
+      my $tagvalue = $self->{oldFields}->{"IFD0:$tag"};
+      $tagvalue = $self->{oldFields}->{"XMP-tiff:$tag"} if not defined $tagvalue;
+      $self->{newFields}->{"XMP-tiff:$tag"} = $tagvalue if defined $tagvalue;
+    }
+
+    # strip off the XMP to prevent confusion during conversion
+    my $exifTool = new Image::ExifTool;
+    $exifTool->SetNewValue('XMP',undef,Protected => 1);
+    $self->update_tags( $exifTool, $infile );
+
     # first decompress & strip ICC profiles
     my $imagemagick = get_config('imagemagick');
     my $imagemagick_cmd = qq($imagemagick);
@@ -864,6 +876,8 @@ sub convert_tiff_to_jpeg2000 {
             and $self->{oldFields}->{'IFD0:SamplesPerPixel'} eq '1') {
         $imagemagick_cmd .= qq( -type Grayscale -depth 8)
     }
+
+    # strip 
 
     system( $imagemagick_cmd. qq( -compress None $infile -strip $infile.unc.tif) )
             and $self->set_error("OperationFailed", operation => "imagemagick", file => $infile, detail => "decompress and ICC profile strip failed: returned $?");
@@ -892,7 +906,7 @@ qq($kdu_compress -quiet -i '$infile.unc.tif' -o '$outfile' Clevels=$levels Claye
     $self->set_new_if_undefined( "XMP-tiff:Compression", "JPEG 2000" );
     $self->set_new_if_undefined( "XMP-tiff:Orientation", "normal" );
 
-    my $exifTool = new Image::ExifTool;
+    $exifTool = new Image::ExifTool;
     while ( ( $field, $val ) = each( %{ $self->{newFields} } ) ) {
         my ( $success, $errStr ) = $exifTool->SetNewValue( $field, $val );
         if ( defined $errStr ) {

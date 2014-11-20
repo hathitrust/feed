@@ -95,7 +95,10 @@ BEGIN {
 
         # do not skip any validation by default
         skip_validation => [],
-        skip_validation_note => ''
+        skip_validation_note => '',
+
+        # throw an error if there are ignore unknown pagetags
+        ignore_unknown_pagetags => 0
 
     };
 }

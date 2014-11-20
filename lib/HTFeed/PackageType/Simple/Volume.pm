@@ -4,9 +4,15 @@ use warnings;
 use strict;
 use base qw(HTFeed::Volume);
 use HTFeed::Config;
+use Log::Log4perl qw(get_logger);
 use YAML::Any qw(LoadFile);
 
 # front for YAML file
+
+
+my @allowed_pagetags = qw(BACK_COVER BLANK CHAPTER_PAGE CHAPTER_START COPYRIGHT
+FIRST_CONTENT_CHAPTER_START FOLDOUT FRONT_COVER IMAGE_ON_PAGE INDEX
+MULTIWORK_BOUNDARY PREFACE REFERENCES TABLE_OF_CONTENTS TITLE TITLE_PARTS);
 
 # get yaml meta.xml
 
@@ -43,7 +49,33 @@ sub get_srcmets_page_data {
         # change filenames to sequence numbers
         while (my ($k,$v) = each(%$yaml_pagedata)) {
             $k =~ /(\d{8})\.\w{3}$/ or croak("Bad filename $k in meta.yml pagedata");
-            $pagedata->{$1} = $v;
+            my $seq = $1;
+
+            # validate pagetags -- warning instead of error if 'ignore_unknown_pagetags' is set
+            if($v->{label}) {
+              my @pagetags = split(/,\s*/,$v->{label});
+              my @ok_pagetags = ();
+              foreach my $tag (@pagetags) {
+                if(not grep { $_ eq $tag } @allowed_pagetags) {
+                  my @error_args = ("BadValue", namespace => $self->{namespace}, id=>$self->{id},
+                    actual=>$v->{label},detail=>"Unknown pagetag",field=>"pagedata label");
+                  if($self->get_nspkg()->get('ignore_unknown_pagetags')) {
+                    get_logger()->warn(@error_args)
+                  } else {
+                    $self->set_error(@error_args)
+                  }
+                } else {
+                  push(@ok_pagetags,$tag);
+                }
+              }
+              if(@ok_pagetags) {
+                $v->{label} = join(', ',@ok_pagetags);
+              } else {
+                delete $v->{label};
+              }
+            }
+
+            $pagedata->{$seq} = $v;
         }
         $self->{page_data} = $pagedata;
     }
