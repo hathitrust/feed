@@ -185,6 +185,7 @@ sub get_checksum_md5 {
 			next unless $line =~ /(\w+)(\s+\*?)(\S+)/;
 			$checksum = lc($1);
 			$filename = lc($3);
+      $filename =~ s/.*\///; # strip pathnames, since we junked them from the zip file
 			$checksums->{$filename} = $checksum;
 		}	
 		$self->{checksums_file} = $checksums;
