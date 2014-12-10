@@ -1,5 +1,0 @@
-require "hathitrust/jira/tickethandlers/base"
-require "hathitrust/jira/tickethandlers/datechange"
-require "hathitrust/jira/tickethandlers/queue"
-require "hathitrust/jira/tickethandlers/reanalyze"
-require "hathitrust/jira/tickethandlers/reingest"

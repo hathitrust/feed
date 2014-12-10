@@ -1,2 +1,0 @@
-Barcode	Check-In Date	State	Viewability	Conditions	Scannable	Opted-Out (post-scan)	Tagging	Audit	Material Error%	Overall Error%	Scanned Date	Processed Date	Analyzed Date	Converted Date	Allow Download Updated Date	Viewability Updated Date	Source Library Bibkey	Rubbish	Downloaded Date	Claimed	OCR GTD Score	OCR Analysis Score
-390150012345678	2009/12/23 18:41	PREVIOUSLY_DOWNLOADED	VIEW_FULL	31	false	false	false		0%	2%	2014/11/20 12:00	2014/11/20 09:25	2014/11/27 13:08	2013/11/21 21:50					2013/11/21 22:36	true	80	77
