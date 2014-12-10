@@ -176,7 +176,7 @@ sub send_new_email {
 sub send_delete_notice {
     my $set = shift;
     my $recipients = shift;
-    @recipients = @{$recipients}, 'rrotter@umich.edu';
+    my @recipients = (@{$recipients}, 'rrotter@umich.edu');
     my $notification_htids = shift;
 
     my $notification_htid_str = join("\n",@{$notification_htids});
