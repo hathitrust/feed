@@ -48,14 +48,12 @@ sub _extract_file {
     get_logger()->trace("Extracting $infile with command $command");
 
     # make directory
-    unless( -d $outdir or mkdir $outdir, 0770 ){
-        $requester->set_error('OperationFailed',operation=>'mkdir',detail=>"$outdir could not be created");
-        return;
+    if(not -d $outdir) {
+      mkdir($outdir, 0770 ) or $requester->set_error('OperationFailed',operation=>'mkdir',detail=>"$outdir could not be created");
     }
 
-    unless( -e $infile ) {
+    if (not -e $infile ) {
         $requester->set_error('MissingFile',file=>$infile);
-        return;
     }
 
     my $cmd = sprintf($command, $infile, $outdir, $otheroptions); 

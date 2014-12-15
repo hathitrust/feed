@@ -27,8 +27,10 @@ sub make_staging_directories{
         my $stage_dir = eval "\$volume->get_${stage_type}_directory()";
         next unless $stage_dir and $stage_dir ne '';
 
-        mkdir($stage_dir)
+        if (! -d $stage_dir)  {
+          mkdir($stage_dir)
             or croak("Can't mkdir $stage_dir: $!");
+        }
     }
 }
 
