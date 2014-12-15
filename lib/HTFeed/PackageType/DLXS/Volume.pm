@@ -3,7 +3,6 @@ package HTFeed::PackageType::DLXS::Volume;
 use warnings;
 use strict;
 use base qw(HTFeed::Volume);
-use HTFeed::PackageType::MPub::Volume;
 use HTFeed::Config;
 use Roman qw(roman);
 use File::Basename;
