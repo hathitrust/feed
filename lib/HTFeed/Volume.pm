@@ -14,7 +14,9 @@ use HTFeed::DBTools;
 use Time::gmtime;
 use File::Pairtree qw(id2ppath s2ppchars);
 use Data::UUID;
-use File::Path qw(remove_tree);
+use File::Path qw(remove_tree mkpath);
+use File::Basename qw(dirname);
+use File::Copy qw(move);
 
 # singleton stage_map override
 my $stage_map = undef;
@@ -145,6 +147,18 @@ sub get_zip_path {
 
 sub get_download_directory {
     return get_config('staging'=>'download');
+}
+
+sub get_sip_directory {
+    return get_config('staging'=>'fetch');
+}
+
+sub get_sip_success_directory {
+    return get_config('staging'=>'ingested');
+}
+
+sub get_sip_failure_directory {
+    return get_config('staging'=>'punted');
 }
 
 sub get_all_content_files {
@@ -710,7 +724,27 @@ sub get_download_location {
     my $self = shift;
     my $staging_dir = $self->get_download_directory();
     return "$staging_dir/" . $self->get_SIP_filename();
-    return;
+}
+
+sub get_sip_location {
+  my $self = shift;
+  my $staging_dir = $self->get_sip_directory();
+  my $namespace = $self->get_namespace();
+  return "$staging_dir/$namespace/" . $self->get_SIP_filename();
+}
+
+sub get_success_sip_location {
+  my $self = shift;
+  my $staging_dir = $self->get_sip_success_directory();
+  my $namespace = $self->get_namespace();
+  return "$staging_dir/$namespace/" . $self->get_SIP_filename();
+}
+
+sub get_failure_sip_location {
+  my $self = shift;
+  my $staging_dir = $self->get_sip_failure_directory();
+  my $namespace = $self->get_namespace();
+  return "$staging_dir/$namespace/" . $self->get_SIP_filename();
 }
 
 sub clear_premis_events {
@@ -772,14 +806,38 @@ sub clean_preingest {
     return $self->_clean_vol_path('preingest');
 }
 
-# unlink SIP
-sub clean_download {
-    my $self = shift;
-    my $dir = $self->get_download_location();
-    if(defined $dir) {
-        get_logger()->debug("Removing " . $dir);
-        return remove_tree $dir;
+sub clean_sip_success {
+  my $self = shift;
+  $self->move_sip($self->get_success_sip_location());
+}
+
+sub clean_sip_failure {
+  my $self = shift;
+  $self->move_sip($self->get_failure_sip_location());
+}
+
+sub move_sip {
+  my $self = shift;
+  my $source = $self->get_sip_location();
+  if( not -e $source) {
+    $source = $self->get_failure_sip_location(); # for retries
+  }
+
+
+  my $target = shift;
+
+
+  if( -e $source and $source ne $target) {
+    if( not -d dirname($target) ) {
+      mkpath(dirname($target)) or $self->set_error("OperationFailed",operation => "mkpath",file => $target,detail=>$!);
     }
+
+    move($source,$target) or $self->set_error("OperationFailed",operation => "move",file => $source,detail=>$!);
+  }
+}
+
+sub clean_download {
+  die("not implemented for HTFeed::Volume");
 }
 
 sub ingested{

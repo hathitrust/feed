@@ -180,6 +180,26 @@ sub get_db_resolution {
   return $results->[0];
 }
 
+sub clean_sip_success {
+  my $self = shift;
+  return $self->clean_download();
+}
+
+sub clean_sip_failure {
+  my $self = shift;
+  return $self->clean_download();
+}
+
+# unlink SIP
+sub clean_download {
+    my $self = shift;
+    my $dir = $self->get_download_location();
+    if(defined $dir) {
+        get_logger()->debug("Removing " . $dir);
+        return remove_tree $dir;
+    }
+}
+
 1;
 
 __END__

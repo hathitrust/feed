@@ -66,7 +66,7 @@ sub clean_always{
 sub clean_success {
     my $self = shift;
     $self->{volume}->clear_premis_events();
-    $self->{volume}->clean_download();
+    $self->{volume}->clean_sip_success();
 }
 
 1;

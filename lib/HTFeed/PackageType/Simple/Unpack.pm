@@ -8,29 +8,33 @@ use HTFeed::Config qw(get_config);
 use File::Find;
 
 sub run {
-	my $self = shift;
-    $self->SUPER::run();
+  my $self = shift;
+  $self->SUPER::run();
 
 
-	my $volume = $self->{volume};
-	my $packagetype = $volume->get_packagetype();
-	my $pt_objid = $volume->get_pt_objid();
+  my $volume = $self->{volume};
+  my $packagetype = $volume->get_packagetype();
+  my $pt_objid = $volume->get_pt_objid();
 
-	my $download_dir = get_config('staging'=>'download');
+  my $download_dir = get_config('staging'=>'download');
 
-	my $source = undef;
+  my $dest = $volume->get_preingest_directory();
 
-	my $dest = $volume->get_preingest_directory();
+  my $file = $volume->get_sip_location();
 
-    my $file = sprintf('%s/%s.zip',$download_dir,$pt_objid);
-    if(-e $file) {
-        $self->unzip_file($file,$dest);
-        $self->_set_done();
-    } else {
-        $self->set_error("MissingFile",file=>$file);
-    }
+  # for retrying
+  if(not -e $file) {
+    $file = $volume->get_failure_sip_location();
+  }
 
-	return $self->succeeded();
+  if(-e $file) {
+    $self->unzip_file($file,$dest);
+    $self->_set_done();
+  } else {
+    $self->set_error("MissingFile",file=>$volume->get_sip_location);
+  }
+
+  return $self->succeeded();
 }
 
 1;

@@ -37,7 +37,6 @@ sub clean_always{
     $self->{volume}->clean_mets();
     $self->{volume}->clean_zip();
     $self->{volume}->clear_premis_events();
-    $self->{volume}->clean_download();
 }
 
 1;
