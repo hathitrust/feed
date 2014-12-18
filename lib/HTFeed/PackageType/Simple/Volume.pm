@@ -58,11 +58,11 @@ sub get_srcmets_page_data {
               foreach my $tag (@pagetags) {
                 if(not grep { $_ eq $tag } @allowed_pagetags) {
                   my @error_args = ("BadValue", namespace => $self->{namespace}, id=>$self->{id},
-                    actual=>$v->{label},detail=>"Unknown pagetag",field=>"pagedata label");
+                    actual=>$v->{label},field=>"pagedata label");
                   if($self->get_nspkg()->get('ignore_unknown_pagetags')) {
-                    get_logger()->warn(@error_args)
+                    get_logger()->warn(@error_args,detail=>"Ignoring unknown pagetag")
                   } else {
-                    $self->set_error(@error_args)
+                    $self->set_error(@error_args,detail=>"Unknown pagetag")
                   }
                 } else {
                   push(@ok_pagetags,$tag);
