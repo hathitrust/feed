@@ -26,7 +26,11 @@ sub _add_techmds {
         push(@{ $self->{amd_mdsecs} },$reading_order);
     } else {
         my $count = scalar(@mdwraps);
-        get_logger->warn("BadField",field=>"reading order",description=>"Found $count reading order techMDs, expected 1");
+        if($count == 0) {
+          get_logger->warn("BadField",field=>"reading order",detail=>"No reading order techMD found in source METS; assuming reading-order:left-to-right, scanning-order:left-to-right");
+        } else {
+          $self->set_error("BadField",field=>"reading order",detail=>"Found $count reading order techMDs, expected 1");
+        }
     }
 }
 
