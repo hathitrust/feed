@@ -444,7 +444,7 @@ sub repair_tiff_imagemagick {
 
     # convert returns 0 on success, 1 on failure
     my $imagemagick = get_config('imagemagick');
-    my $rval = system("$imagemagick -compress Group4 '$infile' '$outfile'");
+    my $rval = system("$imagemagick -compress Group4 '$infile' '$outfile' > /dev/null 2>&1");
     croak("failed repairing $infile\n") if $rval;
 
     return !$rval;
@@ -621,7 +621,7 @@ sub _remediate_jpeg2000 {
         and defined $kdu_munge
         and $kdu_munge )
     {
-        system("$kdu_munge -i '$infile' -o '$outfile' 2>&1 > /dev/null")
+        system("$kdu_munge -i '$infile' -o '$outfile' > /dev/null 2>&1")
           and $self->set_error(
             "OperationFailed",
             file      => $outfile,
@@ -721,7 +721,7 @@ sub expand_lossless_jpeg2000 {
                 my $outfile = $file;
                 $outfile =~ s/\.jp2$/.tif/;
 
-                system("/l/local/bin/kdu_expand -i '$path/$file' -o '$path/$outfile'");
+                system("/l/local/bin/kdu_expand -i '$path/$file' -o '$path/$outfile' > /dev/null 2>&1");
 
                 unlink("$path/$file");
             }
@@ -881,11 +881,11 @@ sub convert_tiff_to_jpeg2000 {
 
     # strip 
 
-    system( $imagemagick_cmd. qq( -compress None $infile -strip $infile.unc.tif) )
+    system( "$imagemagick_cmd -compress None $infile -strip $infile.unc.tif > /dev/null 2>&1" )
             and $self->set_error("OperationFailed", operation => "imagemagick", file => $infile, detail => "decompress and ICC profile strip failed: returned $?");
 
     system(
-qq($kdu_compress -quiet -i '$infile.unc.tif' -o '$outfile' Clevels=$levels Clayers=8 Corder=RLCP Cuse_sop=yes Cuse_eph=yes "Cmodes=RESET|RESTART|CAUSAL|ERTERM|SEGMARK" -no_weights -slope 42988)
+"$kdu_compress -quiet -i '$infile.unc.tif' -o '$outfile' Clevels=$levels Clayers=8 Corder=RLCP Cuse_sop=yes Cuse_eph=yes 'Cmodes=RESET|RESTART|CAUSAL|ERTERM|SEGMARK' -no_weights -slope 42988 > /dev/null 2>&1"
       )
 
       and $self->set_error(
