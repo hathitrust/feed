@@ -212,7 +212,9 @@ sub _remediate_tiff {
                 'Value offset not word-aligned',
                 'Tag 269 out of sequence',
                 'Invalid DateTime separator',
-                'Count mismatch for tag 306'
+                'Count mismatch for tag 306', # DateTime -- fixable
+                'Count mismatch for tag 36867' # EXIF DateTimeOriginal - ignorable
+
             );
             my @imagemagick_remediable_errs =
               ('PhotometricInterpretation not defined');
