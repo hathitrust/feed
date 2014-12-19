@@ -131,65 +131,50 @@ sub get_all_directory_files {
 sub get_sources {
   my $self = shift;
   my $dbh = HTFeed::DBTools::get_dbh();
-  my $sth = $dbh->prepare("SELECT content_provider_cluster, responsible_entity from feed_nonreturned n JOIN feed_collections c ON n.collection = c.collection WHERE namespace = ? and id = ?");
+  my $sth = $dbh->prepare("SELECT content_provider_cluster, responsible_entity, n.collection, s.agentid, d.access_profile from feed_nonreturned n 
+                            JOIN feed_collections c ON n.collection = c.collection 
+                            LEFT JOIN feed_collection_digitizers d ON n.collection = d.collection 
+                              AND n.digitization_source = d.digitization_source 
+                            JOIN sources s on n.digitization_source = s.name 
+                            WHERE n.namespace = ? and n.id = ?");
   $sth->execute($self->get_namespace(),$self->get_objid());
-  if(my ($content_providers,$responsible_entity) = $sth->fetchrow_array()) {
-    return ($content_providers,$responsible_entity);
+  if(my ($content_providers,$responsible_entity,$collection,$digitization_agents,$access_profile) = $sth->fetchrow_array()) {
+    if(!$access_profile) {
+      $self->set_error("BadValue",field=>"digitization_agent",actual=>$digitization_agents,detail=>"Unexpected digitization agent(s) $digitization_agents for collection $collection");
+    }
+    return ($content_providers,$responsible_entity,$digitization_agents);
   } else {
     my $mets_xpc = $self->get_repository_mets_xpc();
-    my @contentProviders;
-    my @responsibleEntities;
+    my @content_providers;
+    my @responsible_entities;
+    my @digitization_agents;
 
     if($mets_xpc) {
       foreach my $contentProvider ($mets_xpc->findnodes('//ht:contentProvider')) {
         my $contentProviderCode = $contentProvider->textContent();
-        $contentProviderCode .= '*' if $contentProvider->getAttribute('display') == 'yes';
-        push(@contentProviders,[$contentProvider->getAttribute('sequence'),$contentProviderCode]);
+        $contentProviderCode .= '*' if $contentProvider->getAttribute('display') eq 'yes';
+        push(@content_providers,[$contentProvider->getAttribute('sequence'),$contentProviderCode]);
       }
-      foreach my $responsibleEntity ($mets_xpc->findnodes('//ht:responsibleEntities')) {
+      foreach my $responsibleEntity ($mets_xpc->findnodes('//ht:responsibleEntity')) {
         my $responsibleEntityCode = $responsibleEntity->textContent();
-        push(@responsibleEntities,[$responsibleEntity->getAttribute('sequence'),$responsibleEntityCode]);
+        push(@responsible_entities,[$responsibleEntity->getAttribute('sequence'),$responsibleEntityCode]);
+      }
+      foreach my $digitization_agent ($mets_xpc->findnodes('//ht:digitizationAgent')) {
+        my $digitization_agent_code = $digitization_agent->textContent();
+        $digitization_agent_code .= '*' if $digitization_agent->getAttribute('display') eq 'yes';
+        push(@digitization_agents,$digitization_agent_code);
       }
     }
 
     # not found in DB or existing METS
-    if(!@contentProviders or !@responsibleEntities) {
-      $self->set_error("MissingField",field=>"sources",detail=>"Can't get content provider / responsible entity from feed_nonreturned or existing repository METS");
+    if(!@content_providers or !@responsible_entities) {
+      $self->set_error("MissingField",field=>"sources",detail=>"Can't get content provider / responsible entity / digitization agent from feed_nonreturned or existing repository METS");
     } else {
-      return (join(';',map { $_->[1] } sort { $a->[0] <=> $b->[0] } @contentProviders),
-        join(';',map { $_->[1] } sort { $a->[0] <=> $b->[0] } @responsibleEntities)),
+      return (join(';',map { $_->[1] } sort { $a->[0] <=> $b->[0] } @content_providers),
+        join(';',map { $_->[1] } sort { $a->[0] <=> $b->[0] } @responsible_entities),
+        join(';',@digitization_agents))
     }
   }
-}
-
-sub zephir_digitizer {
-  my $self = shift;
-  my $dbh = HTFeed::DBTools::get_dbh();
-  my $sth = $dbh->prepare("SELECT n.collection, s.agentid, d.access_profile from feed_nonreturned n LEFT JOIN feed_collection_digitizers d ON n.collection = d.collection AND n.digitization_source = d.digitization_source JOIN sources s on n.digitization_source = s.name WHERE n.namespace = ? and n.id = ?");
-
-  $sth->execute($self->get_namespace(),$self->get_objid());
-  if(my ($collection,$agentid,$access_profile) = $sth->fetchrow_array()) {
-    if(!$access_profile) {
-      $self->set_error("BadValue",field=>"digitization_source",actual=>$agentid,detail=>"Unexpected digitization source $agentid for collection $collection");
-    } else {
-      return $agentid;
-    }
-  } else {
-    # not found in feed_nonreturned; try to get from existing METS
-    my $mets_xpc = $self->get_repository_mets_xpc();
-    my $agentid;
-
-    if($mets_xpc) {
-      $agentid = $mets_xpc->findvalue('//PREMIS:event[PREMIS:eventType="capture"][last()]/PREMIS:linkingAgentIdentifier[PREMIS:linkingAgentRole="Executor"]/PREMIS:linkingAgentIdentifierValue');
-    } 
-
-    if($agentid) {
-      return $agentid;
-    } else {
-      $self->set_error("MissingField",field=>"digitization agent",detail=>"Can't get capture agentID from source METS");
-    }
-  }
-
 }
 
 sub get_access_profile {

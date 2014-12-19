@@ -8,6 +8,8 @@ use HTFeed::Config qw(get_config);
 use File::Pairtree qw(id2ppath s2ppchars);
 use File::Path qw(make_path remove_tree);
 use Carp qw(croak);
+use File::Path qw(remove_tree);
+
 
 my $pagetag_mapping = {
     'Blank Tissue' => 'BLANK',
@@ -197,7 +199,6 @@ sub clean_download {
     if(defined $dir) {
         return remove_tree($dir);
     }
-  }
 }
 
 # determine either from source mets or from meta.xml depending on where in the process we are

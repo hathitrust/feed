@@ -168,7 +168,6 @@ __END__
 This is the package type configuration file for Internet Archive.
 
 =head1 SYNOPSIS
-
 use HTFeed::PackageType;
 
 my $pkgtype = new HTFeed::PackageType('ia');

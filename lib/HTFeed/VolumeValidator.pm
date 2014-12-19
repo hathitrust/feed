@@ -305,12 +305,18 @@ sub _validate_digitizer {
   my $self = shift;
   my $volume = $self->{volume};
 
-  my $zephir_dig_agent = $volume->zephir_digitizer();
+  my (undef,undef,$zephir_dig_agents) = $volume->get_sources();
   my $apparent_digitizer = $volume->apparent_digitizer();
 
-  if($zephir_dig_agent ne $apparent_digitizer) {
-    $self->set_error("BadValue",field => "digitizer",expected => $zephir_dig_agent,actual=> $apparent_digitizer,detail=>"apparent digitizer does not match expected digitizer from zephir");
+  my @allowed_agents = split(';',$zephir_dig_agents);
+
+  # apparent digitizer must match one of the agent IDs the zephir dig. source maps to
+  foreach my $allowed_agent (@allowed_agents) {
+    $allowed_agent =~ s/\*$//;
+    return 1 if $allowed_agent eq $apparent_digitizer;
   }
+
+  $self->set_error("BadValue",field => "digitizer",expected => "$zephir_dig_agents",actual=> $apparent_digitizer,detail=>"apparent digitizer does not match expected digitizer from zephir");
 }
 
 sub md5sum {

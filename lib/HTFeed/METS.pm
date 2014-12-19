@@ -157,27 +157,14 @@ sub _add_sourcemd {
 
     my $self = shift;
 
-    my ($content_providers,$responsible_entity) = $self->{volume}->get_sources();
+    my ($content_providers,$responsible_entity,$digitization_agents) = $self->{volume}->get_sources();
     my $sources = element_ht("sources", format => 'digitized');
 
     my $sourcemd = METS::MetadataSection->new( 'sourceMD',
         id => $self->_get_subsec_id('SMD'));
 
-    my $sequence = 0;
-    # make sure one content provider is selected for display
-    $content_providers = "$content_providers*" if $content_providers !~ /\*/;
-    foreach my $content_provider (split(';',$content_providers)) {
-        $sequence++;
-        my $display = 'no';
-        if($content_provider =~ /\*$/) {
-            $display = 'yes';
-            $content_provider =~ s/\*$//;
-        }
-        # add content provider 
-        my $content_provider_element = element_ht('contentProvider', sequence => $sequence, display => $display);
-        $content_provider_element->appendText($content_provider);
-        $sources->appendChild($content_provider_element);
-    }
+    $self->_format_source_element($sources,'contentProvider', $content_providers);
+    $self->_format_source_element($sources,'digitizationAgent', $digitization_agents);
 
     # add responsible entity
     # FIXME: how to add 2nd responsible entity?
@@ -188,6 +175,38 @@ sub _add_sourcemd {
     $sourcemd->set_data($sources, mdtype => 'OTHER', othermdtype => 'HT');
     push(@{ $self->{amd_mdsecs} },$sourcemd);
 
+}
+
+sub _format_source_element {
+  my $self = shift;
+  my $source_element = shift;
+  my $element_name = shift;
+  my $source_agentids = shift;
+
+  # make sure one content provider is selected for display
+  $source_agentids = "$source_agentids*" if $source_agentids !~ /\*/;
+  foreach my $agentid (split(';',$source_agentids)) {
+    my $sequence = 0;
+    $sequence++;
+    my $display = 'no';
+    if($agentid =~ /\*$/) {
+      $display = 'yes';
+      $agentid =~ s/\*$//;
+    }
+
+    # add element
+    my $element = undef;
+    if($element_name eq 'contentProvider') {
+      $element = element_ht($element_name, sequence => $sequence, display => $display);
+    } elsif ($element_name eq 'digitizationAgent') { 
+      # order doesn't matter for digitization source
+      $element = element_ht($element_name, display => $display);
+    } else {
+      die("Unexpected source element $element_name");
+    }
+    $element->appendText($agentid);
+    $source_element->appendChild($element);
+  }
 }
 
 sub _update_event_date {
