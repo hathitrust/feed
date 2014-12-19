@@ -6,7 +6,7 @@ use base qw(HTFeed::Volume);
 use HTFeed::DBTools qw(get_dbh);
 use HTFeed::Config qw(get_config);
 use File::Pairtree qw(id2ppath s2ppchars);
-use File::Path qw(make_path);
+use File::Path qw(make_path remove_tree);
 use Carp qw(croak);
 
 my $pagetag_mapping = {
@@ -195,8 +195,7 @@ sub clean_download {
     my $self = shift;
     my $dir = $self->get_download_location();
     if(defined $dir) {
-        get_logger()->debug("Removing " . $dir);
-        return remove_tree $dir;
+        return remove_tree($dir);
     }
 }
 
