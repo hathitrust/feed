@@ -144,6 +144,24 @@ sub update_queue {
     $syntax .= qq( WHERE namespace = '$ns' AND id = '$objid';);
 
     get_dbh()->do($syntax);
+
+    if($new_status eq 'punted') {
+      set_watched_ready($ns,$objid);
+    }
+}
+
+=item set_watched_ready($namespace,$objid)
+ 
+ marks an item as 'ready' in the feed_watched_items table
+
+=cut
+
+sub set_watched_ready {
+  my ($ns,$objid) = @_;
+
+  my $watch_update_sth = get_dbh()->prepare("update feed_watched_items set ready = '1' where namespace = ? and objid = ?");
+
+  $watch_update_sth->execute($ns,$objid);
 }
 
 =item get_volumes_with_status
