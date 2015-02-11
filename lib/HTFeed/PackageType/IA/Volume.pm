@@ -246,7 +246,7 @@ sub apparent_digitizer {
     my @providers = split(';',$providers);
     return shift @providers;
   } else {
-    return 'CaSfIa'
+    return 'archive'
   }
 }
 

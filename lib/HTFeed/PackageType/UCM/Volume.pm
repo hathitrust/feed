@@ -19,7 +19,7 @@ sub get_download_location {
 }
 
 sub apparent_digitizer {
-  return 'SpMaUC';
+  return 'ucm';
 }
 
 1;

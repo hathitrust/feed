@@ -131,9 +131,9 @@ sub get_all_directory_files {
 sub get_sources {
   my $self = shift;
   my $dbh = HTFeed::DBTools::get_dbh();
-  my $sth = $dbh->prepare("SELECT content_provider_cluster, responsible_entity, n.collection, s.agentid, d.access_profile from feed_nonreturned n 
-                            JOIN feed_collections c ON n.collection = c.collection 
-                            LEFT JOIN feed_collection_digitizers d ON n.collection = d.collection 
+  my $sth = $dbh->prepare("SELECT content_provider_cluster, responsible_entity, n.collection, s.digitization_source, d.access_profile from feed_nonreturned n 
+                            JOIN ht_collections c ON n.collection = c.collection 
+                            LEFT JOIN ht_collection_digitizers d ON n.collection = d.collection 
                               AND n.digitization_source = d.digitization_source 
                             JOIN sources s on n.digitization_source = s.name 
                             WHERE n.namespace = ? and n.id = ?");
