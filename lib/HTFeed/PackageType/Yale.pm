@@ -119,7 +119,7 @@ our $config = {
         'boilerplate_remove' => 
           { type => 'image modification',
             detail => 'Replace boilerplate images with blank images' ,
-            executor => 'umdl-umich',
+            executor => 'umich',
             executor_type => 'HathiTrust Institution ID',
             tools => ['GROOVE']
           },

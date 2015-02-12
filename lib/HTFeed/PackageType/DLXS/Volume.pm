@@ -283,7 +283,7 @@ sub get_loadcd_info {
 
 sub apparent_digitizer {
   my $self = shift;
-  return 'umdl-umich';
+  return 'umich';
 }
 
 
