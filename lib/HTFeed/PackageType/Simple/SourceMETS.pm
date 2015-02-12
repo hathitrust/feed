@@ -56,7 +56,7 @@ sub _add_capture_event {
         $eventconfig = $volume->get_nspkg()->get_event_configuration('image_compression');
         $eventconfig->{'eventid'} = $volume->make_premis_uuid($eventconfig->{'type'},$image_compression_date);
         $eventconfig->{'executor'} = $image_compression_agent;
-        $eventconfig->{'executor_type'} = 'MARC21 Code';
+        $eventconfig->{'executor_type'} = 'HathiTrust Institution ID';
         $eventconfig->{'date'} = $self->_add_time_zone($image_compression_date);
 
         # make sure image compression tool is an array

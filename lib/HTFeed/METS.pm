@@ -219,38 +219,13 @@ sub _update_event_date {
 
     my $volume = $self->{volume};
 
-    # if we don't have the time zone try to infer it from the agent and update
-    # the date based on that
     if($date =~ /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/) {
-        my $from_tz = undef;
-        my $agent = $xc->findvalue("./premis:linkingAgentIdentifier[premis:linkingAgentRole/text()='Executor']/premis:linkingAgentIdentifierValue",$event);
-
-        if( (not defined $agent or $agent eq '') and $self->{is_uplift} 
-                and $eventinfo->{eventtype} eq 'image header modification') {
-
-            ### XXX: REMOVE WHEN FINISHED UPLIFT
-            my $new_agent = new PREMIS::LinkingAgent( 'MARC21 Code', 'MiU', 'Executor' );
-            $event->appendChild($new_agent->to_node());
-            $agent = 'MiU';
-            
-        }
-
         $from_tz = $volume->get_nspkg()->get('default_timezone');
-        if($agent eq 'MiU' or $agent eq 'UM' or $agent =~ /Michigan/) {
-            $from_tz = 'America/Detroit';
-        }
-        elsif($agent eq 'Ca-MvGOO' or $agent =~ /Google/) {
-            $from_tz = 'America/Los_Angeles';
-        } elsif($agent eq 'IA' or $agent eq 'CaSfIA' or $agent =~ /Internet Archive/) {
-            $from_tz = 'UTC';
-        } elsif($agent eq 'SpMaUC') {
-            $from_tz = 'Europe/Madrid';
-        } elsif($agent eq 'MnU') {
-            $from_tz = 'America/Chicago';
-        } elsif(not defined $from_tz or $from_tz eq '') {
-            $self->set_error("BadField",field=>"linkingAgentIdentifierValue",
-                actual => $agent, 
-                detail => "Unknown time zone for agent ID");
+
+        if(not defined $from_tz or $from_tz eq '') {
+            $self->set_error("BadField",field=>"eventDate",
+                actual => $date, 
+                detail => "Missing time zone for event date");
         }
 
         if(defined $from_tz) {
@@ -1080,13 +1055,7 @@ sub agent_type {
   my $self = shift;
   my $agentid = shift;
 
-  if($agentid =~ /^ZZ-HT/i) {
-    return "HathiTrust Agent ID";
-  } elsif ($agentid =~ /^Z/ or $agentid =~ /^XX/) {
-    $self->set_error("BadValue",actual=>$agentid,field=>"Agent ID");
-  } else {
-    return "MARC21 Code";
-  }
+  return "HathiTrust Institution ID";
 }
 
 1;
