@@ -18,6 +18,15 @@ use HTFeed::Version;
 
 use base qw(HTFeed::Stage);
 
+# TODO: remove after uplift
+# Everything else should be covered by digitization?
+my %agent_mapping = (
+  'Ca-MvGOO' => 'google',
+  'CaSfIa' => 'archive',
+  'MiU' => 'umich',
+  'MnU' => 'umn'
+);
+
 sub new {
     my $class = shift;
 
@@ -220,7 +229,7 @@ sub _update_event_date {
     my $volume = $self->{volume};
 
     if($date =~ /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/) {
-        $from_tz = $volume->get_nspkg()->get('default_timezone');
+        my $from_tz = $volume->get_nspkg()->get('default_timezone');
 
         if(not defined $from_tz or $from_tz eq '') {
             $self->set_error("BadField",field=>"eventDate",
@@ -275,6 +284,37 @@ sub _extract_old_premis {
             }
 
             my $xc = $volume->get_repository_mets_xpc();
+
+            # migrate agent IDs
+            #
+            foreach my $agent ( $xc->findnodes('//premis:linkingAgentIdentifier') ) {
+              my $agent_type = ($xc->findnodes('./premis:linkingAgentIdentifierType',$agent))[0];
+              my $agent_value = ($xc->findnodes('./premis:linkingAgentIdentifierValue',$agent))[0];
+
+              my $agent_type_text = $agent_type->textContent();
+              # TODO: remove after uplift
+              if($agent_type_text eq 'MARC21 Code') {
+                my $agent_value_text = $agent_value->textContent();
+                my $new_agent_value = $agent_mapping{$agent_value_text};
+                if(not defined $new_agent_value) {
+                  $self->set_error("BadValue",field=>'linkingAgentIdentifierValue',
+                    actual => $agent_value_text,
+                    detail => "Don't know what the HT institution ID is for MARC org code $new_agent_value");
+                }
+
+                $agent_type->removeChildNodes();
+                $agent_type->appendText("HathiTrust Institution ID");
+                $agent_value->removeChildNodes();
+                $agent_value->appendText($new_agent_value);
+              } elsif($agent_type_text eq 'HathiTrust Institution ID' or $agent_type_text eq 'tool') {
+                # do nothing
+              } else {
+                $self->set_error("BadValue",field => 'linkingAgentIdentifierType',
+                  actual => $agent_type_text,
+                  expected => 'tool, MARC21 Code, or HathiTrust Institution ID',
+                  file => $mets_in_repos)
+              }
+            }
 
             foreach my $event ( $xc->findnodes('//premis:event') ) {
 
@@ -393,26 +433,11 @@ sub _extract_old_premis {
 
             }
         } else {
-            # TODO after uplift: make this an error.
-             get_logger()->warn(
-             # $self->set_error(
+             $self->set_error(
                  "BadFile",
                  file   => $mets_in_repos,
                  detail => $val_results
              );
-        }
-
-        # XXX: remove hacky bugfix after uplift
-        if(not defined $self->{old_event_types}->{capture} and $self->{is_uplift} 
-           and $volume->get_packagetype() eq 'ia') {
-
-           require HTFeed::PackageType::IA::SourceMETS;
-           
-           my $xpc = $volume->get_source_mets_xpc();
-           if(HTFeed::PackageType::IA::SourceMETS::_add_capture_event($self,$xpc)) {
-               $self->{old_event_types}->{capture} = 1;
-           }
-
         }
             
         # at a minimum there should be capture, message digest calculation,
