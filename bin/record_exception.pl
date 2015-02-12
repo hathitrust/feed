@@ -99,7 +99,7 @@ if(@new_exceptions) {
 
     foreach my $exception (@to_record) {
         my $exception_node = new XML::LibXML::Element("exceptionsAllowed");
-        $exception_node->setNamespace(NS_HT,'HT');
+        $exception_node->setNamespace(NS_HT_PREMIS,'HT');
         $exception_node->setAttribute("category",$exception);
         $ext_node->appendChild($exception_node);
     }

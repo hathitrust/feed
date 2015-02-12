@@ -398,7 +398,7 @@ sub should_check_validator {
 
   if(defined $xpc) {
     $self->{note_from_mom} = [];
-    foreach my $exception_node ($xpc->findnodes('//premis:event[premis:eventType="manual inspection"]//ht:exceptionsAllowed/@category')) {
+    foreach my $exception_node ($xpc->findnodes('//premis:event[premis:eventType="manual inspection"]//htpremis:exceptionsAllowed/@category')) {
       push(@{$self->{note_from_mom}},$exception_node->getValue());
     }
   }

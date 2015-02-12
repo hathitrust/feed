@@ -37,7 +37,7 @@ sub _validate_consistency {
     # status="removed"><HT:file>00000001.tif</HT:file><HT:file>00000001.txt</HT:file></HT:fileList>
     my $mets_xpc = $volume->get_source_mets_xpc();
     my @allowed_missing_seq = map { basename($_->toString(),".txt",".tif",".jp2") } 
-        $mets_xpc->findnodes("//ht:fileList[\@status='removed']/ht:file/text()");
+        $mets_xpc->findnodes("//htpremis:fileList[\@status='removed']/htpremis:file/text()");
 
     my $prev_sequence_number = 0;
     my @sequence_numbers     = sort( keys(%$files) );
