@@ -159,7 +159,7 @@ sub update_queue {
 sub set_watched_ready {
   my ($ns,$objid) = @_;
 
-  my $watch_update_sth = get_dbh()->prepare("update feed_watched_items set ready = '1' where namespace = ? and objid = ?");
+  my $watch_update_sth = get_dbh()->prepare("update feed_watched_items set ready = '1' where namespace = ? and id = ?");
 
   $watch_update_sth->execute($ns,$objid);
 }
