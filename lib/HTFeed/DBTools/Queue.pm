@@ -66,7 +66,7 @@ sub enqueue_volumes{
     my $sth;
     my $blacklist_sth = $dbh->prepare("SELECT namespace, id FROM feed_blacklist WHERE namespace = ? and id = ?");
     my $digifeed_sth = $dbh->prepare("SELECT namespace, id FROM feed_mdp_rejects WHERE namespace = ? and id = ?");
-    my $has_bibdata_sth = $dbh->prepare("SELECT namespace, id FROM feed_queue WHERE namespace = ? and id = ? UNION SELECT namespace, id FROM feed_nonreturned WHERE namespace = ? and id = ? UNION SELECT namespace, id FROM rights_current WHERE namespace = ? and id = ?");
+    my $has_bibdata_sth = $dbh->prepare("SELECT namespace, id FROM feed_nonreturned WHERE namespace = ? and id = ?");
     if($ignore){
         $sth = $dbh->prepare(q(INSERT IGNORE INTO feed_queue (pkg_type, namespace, id, priority, status) VALUES (?,?,?,?,?);));
     }else {
@@ -90,7 +90,7 @@ sub enqueue_volumes{
             }
 
             my $has_bib_data = 0;
-            $has_bibdata_sth->execute($namespace,$objid,$namespace,$objid,$namespace,$objid);
+            $has_bibdata_sth->execute($namespace,$objid);
             if($has_bibdata_sth->fetchrow_array()) {
                 $has_bib_data = 1;
             } else {
