@@ -107,8 +107,8 @@ our $config = {
         'target_remove' => 
           { type => 'file deletion',
             detail => 'Remove bibliographic record targets' ,
-            executor => 'MiU',
-            executor_type => 'MARC21 Code',
+            executor => 'umich',
+            executor_type => 'HathiTrust Institution ID',
             optional => 1,
             tools => ['GROOVE']
           },

@@ -8,6 +8,8 @@ use HTFeed::Config qw(get_config);
 use File::Pairtree qw(id2ppath s2ppchars);
 use File::Path qw(make_path remove_tree);
 use Carp qw(croak);
+use File::Path qw(remove_tree);
+
 
 my $pagetag_mapping = {
     'Blank Tissue' => 'BLANK',
@@ -197,6 +199,55 @@ sub clean_download {
     if(defined $dir) {
         return remove_tree($dir);
     }
+}
+
+# determine either from source mets or from meta.xml depending on where in the process we are
+sub is_ia_local_upload {
+  my $self = shift;
+  my $xpc = undef; 
+  if($self->get_source_mets_file()) {
+    $xpc = $self->get_source_mets_xpc();
+  } else {
+    $xpc = $self->get_meta_xpc();
+  }
+
+  my $uploader = $xpc->findvalue("//uploader");
+  my $operator = $xpc->findvalue("//operator");
+
+  if( ($uploader and $uploader !~ /archive\.org$/)
+      or ($operator and $operator !~ /archive\.org$/)) {
+    return 1;
+  } else {
+    return 0;
+  }
+}
+
+# use contributor from meta.yml if not ia-digitized
+sub tiff_artist {
+  my $self = shift;
+  my $xpc = $self->get_meta_xpc();
+
+  my $uploader = $xpc->findvalue("//uploader");
+  my $operator = $xpc->findvalue("//operator");
+
+  if( ($uploader and $uploader !~ /archive\.org$/)
+      or ($operator and $operator !~ /archive\.org$/)) {
+    return $xpc->findvalue("//contributor");
+  } else {
+    return "Internet Archive";
+  }
+}
+
+sub apparent_digitizer {
+  my $self = shift;
+  if($self->is_ia_local_upload()) {
+    my $providers = ($self->get_sources)[0];
+    $providers =~ s/\*//g;
+    my @providers = split(';',$providers);
+    return shift @providers;
+  } else {
+    return 'archive'
+  }
 }
 
 1;

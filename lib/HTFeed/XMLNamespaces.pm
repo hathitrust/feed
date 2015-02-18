@@ -5,9 +5,9 @@ use Readonly;
 use Exporter;
 use base qw(Exporter);
 
-our @EXPORT_OK   = qw(register_namespaces NS_EAD NS_HT NS_METS NS_PREMIS NS_MARC NS_MIX NS_JHOVE NS_XLINK NS_DC NS_XSI SCHEMA_PREMIS SCHEMA_MARC SCHEMA_EAD );
+our @EXPORT_OK   = qw(register_namespaces NS_EAD NS_HT NS_HT_PREMIS NS_METS NS_PREMIS NS_MARC NS_MIX NS_JHOVE NS_XLINK NS_DC NS_XSI SCHEMA_PREMIS SCHEMA_MARC SCHEMA_EAD );
 our %EXPORT_TAGS = ( 'namespaces' =>
-      [qw(NS_EAD NS_HT NS_METS NS_PREMIS NS_MARC NS_MIX NS_JHOVE NS_XLINK NS_DC NS_XSI )],
+      [qw(NS_EAD NS_HT NS_HT_PREMIS NS_METS NS_PREMIS NS_MARC NS_MIX NS_JHOVE NS_XLINK NS_DC NS_XSI )],
       'schemas' => 
       [qw(SCHEMA_PREMIS SCHEMA_MARC SCHEMA_EAD)]
   );
@@ -27,7 +27,8 @@ use constant {
     NS_XLINK  => 'http://www.w3.org/1999/xlink',
     NS_XSI    => 'http://www.w3.org/2001/XMLSchema-instance',
 	NS_AES	  => 'http://www.aes.org/audioObject',
-    NS_HT     => 'http://www.hathitrust.org/premis_extension'
+    NS_HT_PREMIS     => 'http://www.hathitrust.org/premis_extension',
+    NS_HT     => 'http://www.hathitrust.org/ht_extension'
 };
 
 use constant {
@@ -62,7 +63,8 @@ sub register_namespaces {
     $xpc->registerNs( 'tiff',   NS_TIFF );
     $xpc->registerNs( 'xlink',  NS_XLINK );
     $xpc->registerNs( 'xsi',    NS_XSI );
-	$xpc->registerNs( 'aes', 	NS_AES );
+    $xpc->registerNs( 'aes', 	NS_AES );
+    $xpc->registerNs( 'htpremis',     NS_HT_PREMIS );
     $xpc->registerNs( 'ht',     NS_HT );
 
     return;

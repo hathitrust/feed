@@ -40,8 +40,7 @@ sub _add_capture_event {
     $eventconfig->{'eventid'} = $volume->make_premis_uuid($eventconfig->{'type'},$capture_date);
     $eventconfig->{'executor'} = $volume->get_meta('capture_agent');
     $self->set_error('MissingValue',file=>'meta.yml',field=>'capture_agent') unless defined $eventconfig->{'executor'};
-    $eventconfig->{'executor_type'} = 'MARC21 Code';
-    $eventconfig->{'executor_type'} = 'HathiTrust Agent ID' if($eventconfig->{'executor'} =~ /^ZZ-HT/);
+    $eventconfig->{'executor_type'} = $self->agent_type($eventconfig->{'executor'});
     $eventconfig->{'date'} = $self->_add_time_zone($capture_date);
     my $capture_event = $self->add_premis_event($eventconfig);
 
@@ -57,7 +56,7 @@ sub _add_capture_event {
         $eventconfig = $volume->get_nspkg()->get_event_configuration('image_compression');
         $eventconfig->{'eventid'} = $volume->make_premis_uuid($eventconfig->{'type'},$image_compression_date);
         $eventconfig->{'executor'} = $image_compression_agent;
-        $eventconfig->{'executor_type'} = 'MARC21 Code';
+        $eventconfig->{'executor_type'} = 'HathiTrust Institution ID';
         $eventconfig->{'date'} = $self->_add_time_zone($image_compression_date);
 
         # make sure image compression tool is an array

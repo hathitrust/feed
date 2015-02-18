@@ -143,7 +143,7 @@ sub tombstone {
     my $ext_node = PREMIS::createElement("eventOutcomeDetailExtension");
     $detail->appendChild($ext_node);
     my $reason_node = new XML::LibXML::Element("deleteReason");
-    $reason_node->setNamespace(NS_HT,'HT');
+    $reason_node->setNamespace(NS_HT_PREMIS,'HT');
     $reason_node->appendText($reason);
     $ext_node->appendChild($reason_node);
 

@@ -18,6 +18,15 @@ use HTFeed::Version;
 
 use base qw(HTFeed::Stage);
 
+# TODO: remove after uplift
+# Everything else should be covered by digitization?
+my %agent_mapping = (
+  'Ca-MvGOO' => 'google',
+  'CaSfIa' => 'archive',
+  'MiU' => 'umich',
+  'MnU' => 'umn'
+);
+
 sub new {
     my $class = shift;
 
@@ -51,6 +60,7 @@ sub run {
     $self->_add_header();
     $self->_add_dmdsecs();
     $self->_add_techmds();
+    $self->_add_sourcemd();
     $self->_add_filesecs();
     $self->_add_struct_map();
     $self->_add_premis();
@@ -139,6 +149,75 @@ sub _add_techmds {
     my $self = shift;
 }
 
+# generate info from feed_nonreturned and ht_collections table, or throw error if it's missing.
+sub _add_sourcemd {
+
+    # FIXME: handle born-digital material
+    sub element_ht {
+        my $name = shift;
+        my %attributes = @_;
+        my $element = XML::LibXML::Element->new($name);
+        $element->setNamespace(NS_HT,'HT');
+        while (my ($attr,$val) = each %attributes) {
+            $element->setAttribute($attr,$val);
+        }
+        return $element;
+    }
+
+    my $self = shift;
+
+    my ($content_providers,$responsible_entity,$digitization_agents) = $self->{volume}->get_sources();
+    my $sources = element_ht("sources", format => 'digitized');
+
+    my $sourcemd = METS::MetadataSection->new( 'sourceMD',
+        id => $self->_get_subsec_id('SMD'));
+
+    $self->_format_source_element($sources,'contentProvider', $content_providers);
+    $self->_format_source_element($sources,'digitizationAgent', $digitization_agents);
+
+    # add responsible entity
+    # FIXME: how to add 2nd responsible entity?
+    my $responsible_entity_element = element_ht('responsibleEntity',sequence => '1');
+    $responsible_entity_element->appendText($responsible_entity);
+    $sources->appendChild($responsible_entity_element);
+
+    $sourcemd->set_data($sources, mdtype => 'OTHER', othermdtype => 'HT');
+    push(@{ $self->{amd_mdsecs} },$sourcemd);
+
+}
+
+sub _format_source_element {
+  my $self = shift;
+  my $source_element = shift;
+  my $element_name = shift;
+  my $source_agentids = shift;
+
+  # make sure one content provider is selected for display
+  $source_agentids = "$source_agentids*" if $source_agentids !~ /\*/;
+  foreach my $agentid (split(';',$source_agentids)) {
+    my $sequence = 0;
+    $sequence++;
+    my $display = 'no';
+    if($agentid =~ /\*$/) {
+      $display = 'yes';
+      $agentid =~ s/\*$//;
+    }
+
+    # add element
+    my $element = undef;
+    if($element_name eq 'contentProvider') {
+      $element = element_ht($element_name, sequence => $sequence, display => $display);
+    } elsif ($element_name eq 'digitizationAgent') { 
+      # order doesn't matter for digitization source
+      $element = element_ht($element_name, display => $display);
+    } else {
+      die("Unexpected source element $element_name");
+    }
+    $element->appendText($agentid);
+    $source_element->appendChild($element);
+  }
+}
+
 sub _update_event_date {
     my $self = shift;
 
@@ -149,38 +228,13 @@ sub _update_event_date {
 
     my $volume = $self->{volume};
 
-    # if we don't have the time zone try to infer it from the agent and update
-    # the date based on that
     if($date =~ /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/) {
-        my $from_tz = undef;
-        my $agent = $xc->findvalue("./premis:linkingAgentIdentifier[premis:linkingAgentRole/text()='Executor']/premis:linkingAgentIdentifierValue",$event);
+        my $from_tz = $volume->get_nspkg()->get('default_timezone');
 
-        if( (not defined $agent or $agent eq '') and $self->{is_uplift} 
-                and $eventinfo->{eventtype} eq 'image header modification') {
-
-            ### XXX: REMOVE WHEN FINISHED UPLIFT
-            my $new_agent = new PREMIS::LinkingAgent( 'MARC21 Code', 'MiU', 'Executor' );
-            $event->appendChild($new_agent->to_node());
-            $agent = 'MiU';
-            
-        }
-
-        $from_tz = $volume->get_nspkg()->get('default_timezone');
-        if($agent eq 'MiU' or $agent eq 'UM' or $agent =~ /Michigan/) {
-            $from_tz = 'America/Detroit';
-        }
-        elsif($agent eq 'Ca-MvGOO' or $agent =~ /Google/) {
-            $from_tz = 'America/Los_Angeles';
-        } elsif($agent eq 'IA' or $agent eq 'CaSfIA' or $agent =~ /Internet Archive/) {
-            $from_tz = 'UTC';
-        } elsif($agent eq 'SpMaUC') {
-            $from_tz = 'Europe/Madrid';
-        } elsif($agent eq 'MnU') {
-            $from_tz = 'America/Chicago';
-        } elsif(not defined $from_tz or $from_tz eq '') {
-            $self->set_error("BadField",field=>"linkingAgentIdentifierValue",
-                actual => $agent, 
-                detail => "Unknown time zone for agent ID");
+        if(not defined $from_tz or $from_tz eq '') {
+            $self->set_error("BadField",field=>"eventDate",
+                actual => $date, 
+                detail => "Missing time zone for event date");
         }
 
         if(defined $from_tz) {
@@ -230,6 +284,37 @@ sub _extract_old_premis {
             }
 
             my $xc = $volume->get_repository_mets_xpc();
+
+            # migrate agent IDs
+            #
+            foreach my $agent ( $xc->findnodes('//premis:linkingAgentIdentifier') ) {
+              my $agent_type = ($xc->findnodes('./premis:linkingAgentIdentifierType',$agent))[0];
+              my $agent_value = ($xc->findnodes('./premis:linkingAgentIdentifierValue',$agent))[0];
+
+              my $agent_type_text = $agent_type->textContent();
+              # TODO: remove after uplift
+              if($agent_type_text eq 'MARC21 Code') {
+                my $agent_value_text = $agent_value->textContent();
+                my $new_agent_value = $agent_mapping{$agent_value_text};
+                if(not defined $new_agent_value) {
+                  $self->set_error("BadValue",field=>'linkingAgentIdentifierValue',
+                    actual => $agent_value_text,
+                    detail => "Don't know what the HT institution ID is for MARC org code $new_agent_value");
+                }
+
+                $agent_type->removeChildNodes();
+                $agent_type->appendText("HathiTrust Institution ID");
+                $agent_value->removeChildNodes();
+                $agent_value->appendText($new_agent_value);
+              } elsif($agent_type_text eq 'HathiTrust Institution ID' or $agent_type_text eq 'tool') {
+                # do nothing
+              } else {
+                $self->set_error("BadValue",field => 'linkingAgentIdentifierType',
+                  actual => $agent_type_text,
+                  expected => 'tool, MARC21 Code, or HathiTrust Institution ID',
+                  file => $mets_in_repos)
+              }
+            }
 
             foreach my $event ( $xc->findnodes('//premis:event') ) {
 
@@ -348,26 +433,11 @@ sub _extract_old_premis {
 
             }
         } else {
-            # TODO after uplift: make this an error.
-             get_logger()->warn(
-             # $self->set_error(
+             $self->set_error(
                  "BadFile",
                  file   => $mets_in_repos,
                  detail => $val_results
              );
-        }
-
-        # XXX: remove hacky bugfix after uplift
-        if(not defined $self->{old_event_types}->{capture} and $self->{is_uplift} 
-           and $volume->get_packagetype() eq 'ia') {
-
-           require HTFeed::PackageType::IA::SourceMETS;
-           
-           my $xpc = $volume->get_source_mets_xpc();
-           if(HTFeed::PackageType::IA::SourceMETS::_add_capture_event($self,$xpc)) {
-               $self->{old_event_types}->{capture} = 1;
-           }
-
         }
             
         # at a minimum there should be capture, message digest calculation,
@@ -503,10 +573,10 @@ sub _add_source_mets_events {
             my $eventid = $xc->findvalue( "./premis:eventIdentifier[premis:eventIdentifierType='UUID']/premis:eventIdentifierValue",
                 $src_event
             );
-            if ( not defined $self->{included_events}{$eventid} ) {
-                $self->{included_events}{$eventid} = $src_event;
-                $premis->add_event($src_event);
-            }
+
+            # overwrite already-included event w/ updated information if needed
+            $self->{included_events}{$eventid} = $src_event;
+            $premis->add_event($src_event);
             
         }
     }
@@ -1004,6 +1074,13 @@ sub convert_tz {
 sub is_uplift {
     my $self = shift;
     return $self->{is_uplift};
+}
+
+sub agent_type {
+  my $self = shift;
+  my $agentid = shift;
+
+  return "HathiTrust Institution ID";
 }
 
 1;

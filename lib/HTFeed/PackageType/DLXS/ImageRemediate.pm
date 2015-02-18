@@ -231,8 +231,8 @@ sub _add_capture_event {
     }
     # always just use michigan for the capture event.
     $event->add_linking_agent(
-        new PREMIS::LinkingAgent( 'MARC21 Code',
-            'MiU', 
+        new PREMIS::LinkingAgent( 'HathiTrust Institution ID',
+            'umich', 
             'Executor' ) );
 
     $volume->record_premis_event('capture',custom_event => $event->to_node());

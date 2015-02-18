@@ -42,8 +42,8 @@ sub _add_capture_event {
         my $eventcode = 'capture';
         my $eventconfig = $volume->get_nspkg()->get_event_configuration($eventcode);
         $eventconfig->{'eventid'} = $volume->make_premis_uuid($eventconfig->{'type'},$capture_date);
-        $eventconfig->{'executor'} = 'SpMaUC';
-        $eventconfig->{'executor_type'} = 'MARC21 Code';
+        $eventconfig->{'executor'} = 'ucm';
+        $eventconfig->{'executor_type'} = 'HathiTrust Institution ID';
         $eventconfig->{'date'} = $capture_date; 
         my $event = $self->add_premis_event($eventconfig);
     }

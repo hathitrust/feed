@@ -89,6 +89,8 @@ sub new {
       $object->{volume}->get_validation_overrides($class);
     while ( my ( $k, $v ) = each(%$overrides) ) {
         $object->{validators}{$k}{valid} = $v;
+        $object->{validators}{$k}{desc} = $k if not defined $object->{validators}{$k}{desc};
+        $object->{validators}{$k}{detail} = "Package type specific - see $class" if not defined $object->{validators}{$k}{detail};
     }
 
     return $object;
