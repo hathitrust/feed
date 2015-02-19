@@ -30,8 +30,8 @@ sub new {
     my $self = $class->SUPER::new($namespace_id);
     if(defined $packagetype) {
         my $allowed_packagetypes = ($self->get('packagetypes') or []);
-        push(@$allowed_packagetypes,'pkgtype'); # always allow default packagetype
-        if(not grep { $_ eq $packagetype } @{ $allowed_packagetypes }) {
+        # always allow default packagetype
+        if(not grep { $_ eq $packagetype } @{ $allowed_packagetypes } and $packagetype ne 'pkgtype') {
             croak("Invalid packagetype $packagetype for namespace $namespace_id");
         }
         # Can accept either a already-constructed HTFeed::PackageType or the package type identifier.
