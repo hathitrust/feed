@@ -131,7 +131,7 @@ sub get_all_directory_files {
 sub get_sources {
   my $self = shift;
   my $dbh = HTFeed::DBTools::get_dbh();
-  my $sth = $dbh->prepare("SELECT content_provider_cluster, responsible_entity, n.collection, s.digitization_source, d.access_profile from feed_nonreturned n 
+  my $sth = $dbh->prepare("SELECT content_provider_cluster, responsible_entity, n.collection, s.digitization_source, d.access_profile from feed_zephir_items n 
                             JOIN ht_collections c ON n.collection = c.collection 
                             LEFT JOIN ht_collection_digitizers d ON n.collection = d.collection 
                               AND n.digitization_source = d.digitization_source 
@@ -168,7 +168,7 @@ sub get_sources {
 
     # not found in DB or existing METS
     if(!@content_providers or !@responsible_entities) {
-      $self->set_error("MissingField",field=>"sources",detail=>"Can't get content provider / responsible entity / digitization agent from feed_nonreturned or existing repository METS");
+      $self->set_error("MissingField",field=>"sources",detail=>"Can't get content provider / responsible entity / digitization agent from feed_zephir_items or existing repository METS");
     } else {
       return (join(';',map { $_->[1] } sort { $a->[0] <=> $b->[0] } @content_providers),
         join(';',map { $_->[1] } sort { $a->[0] <=> $b->[0] } @responsible_entities),
@@ -180,19 +180,19 @@ sub get_sources {
 sub get_access_profile {
   my $self = shift;
   my $dbh = HTFeed::DBTools::get_dbh();
-  my $sth = $dbh->prepare("SELECT collection, digitization_source FROM feed_nonreturned WHERE namespace = ? and id = ?");
+  my $sth = $dbh->prepare("SELECT collection, digitization_source FROM feed_zephir_items WHERE namespace = ? and id = ?");
 
   $sth->execute($self->get_namespace(),$self->get_objid());
   my ($collection,$digitization_source) = $sth->fetchrow_array();
 
-  # not in feed_nonreturned, try to get from rights_current
+  # not in feed_zephir_items, try to get from rights_current
   if(not defined $collection or not defined $digitization_source) {
     $sth = $dbh->prepare("SELECT access_profile FROM rights_current WHERE namespace = ? and id = ?");
     $sth->execute($self->get_namespace(),$self->get_objid());
     if(my ($access_profile) = $sth->fetchrow_array()) {
       return $access_profile;
     } else {
-      $self->set_error("MissingField",field=>"access profile",detail=>"Item not in nonreturned or rights_current; can't determine access profile");
+      $self->set_error("MissingField",field=>"access profile",detail=>"Item not in zephir_items or rights_current; can't determine access profile");
     }
   }
 

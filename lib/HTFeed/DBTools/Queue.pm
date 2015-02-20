@@ -66,7 +66,8 @@ sub enqueue_volumes{
     my $sth;
     my $blacklist_sth = $dbh->prepare("SELECT namespace, id FROM feed_blacklist WHERE namespace = ? and id = ?");
     my $digifeed_sth = $dbh->prepare("SELECT namespace, id FROM feed_mdp_rejects WHERE namespace = ? and id = ?");
-    my $has_bibdata_sth = $dbh->prepare("SELECT namespace, id FROM feed_nonreturned WHERE namespace = ? and id = ?");
+    my $has_bibdata_sth = $dbh->prepare("SELECT namespace, id FROM feed_zephir_items WHERE namespace = ? and id = ?");
+    my $return_sth = $dbh->prepare("UPDATE feed_zephir_items SET returned = '1' WHERE namespace = ? and id = ?");
     if($ignore){
         $sth = $dbh->prepare(q(INSERT IGNORE INTO feed_queue (pkg_type, namespace, id, priority, status) VALUES (?,?,?,?,?);));
     }else {
@@ -76,10 +77,9 @@ sub enqueue_volumes{
     my @results;
     foreach my $volume (@{$volumes}){
         eval{
-            # First make sure volume is already in rights, queue or nonreturned (proxy for already having bib data)
-
-
+            # First make sure volume has bib data
             # Then make sure volume is not on the blacklist.
+
             my $namespace = $volume->get_namespace();
             my $objid = $volume->get_objid();
             my $pkg_type = $volume->get_packagetype();
@@ -121,6 +121,10 @@ sub enqueue_volumes{
             if($has_bib_data and !$blacklisted) {
                 my $res = $sth->execute($pkg_type, $namespace, $objid, initial_priority($volume,$priority_modifier), $status);
                 push @results, $res;
+                if($res) {
+                  $res = $return_sth->execute($namespace,$objid);
+                  push @results, $res;
+                }
             }
         };
         get_logger()->error($@) and return \@results if $@;

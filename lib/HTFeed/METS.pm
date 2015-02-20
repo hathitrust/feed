@@ -149,7 +149,7 @@ sub _add_techmds {
     my $self = shift;
 }
 
-# generate info from feed_nonreturned and ht_collections table, or throw error if it's missing.
+# generate info from feed_zephir_items and ht_collections table, or throw error if it's missing.
 sub _add_sourcemd {
 
     # FIXME: handle born-digital material
