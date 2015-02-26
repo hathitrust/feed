@@ -38,7 +38,9 @@ sub _add_capture_event {
     my $eventcode = 'capture';
     my $eventconfig = $volume->get_nspkg()->get_event_configuration($eventcode);
     $eventconfig->{'eventid'} = $volume->make_premis_uuid($eventconfig->{'type'},$capture_date);
-    $eventconfig->{'executor'} = $volume->get_meta('capture_agent');
+
+    $eventconfig->{'executor'} = $volume->apparent_digitizer();
+
     $self->set_error('MissingValue',file=>'meta.yml',field=>'capture_agent') unless defined $eventconfig->{'executor'};
     $eventconfig->{'executor_type'} = $self->agent_type($eventconfig->{'executor'});
     $eventconfig->{'date'} = $self->_add_time_zone($capture_date);

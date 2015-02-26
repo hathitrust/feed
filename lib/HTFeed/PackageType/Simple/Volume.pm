@@ -104,7 +104,16 @@ sub get_checksums{
 
 sub apparent_digitizer {
   my $self = shift;
-  return $self->get_meta('capture_agent');
+  # just use digitization agent from Zephir
+  my (undef,undef,$digitization_agents) = $self->get_sources();
+  my $capture_agent = undef;
+  foreach my $agentid (split(';',$digitization_agents)) {
+    if($agentid =~ /\*$/ or not defined $capture_agent) {
+      $agentid =~ s/\*$//;
+      $capture_agent = $agentid;
+    }
+  }
+  return $capture_agent;
 }
 
 1;
