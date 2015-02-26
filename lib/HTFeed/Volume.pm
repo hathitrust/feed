@@ -135,7 +135,7 @@ sub get_sources {
                             JOIN ht_collections c ON n.collection = c.collection 
                             LEFT JOIN ht_collection_digitizers d ON n.collection = d.collection 
                               AND n.digitization_source = d.digitization_source 
-                            JOIN sources s on n.digitization_source = s.name 
+                            JOIN ht_rights.sources s on n.digitization_source = s.name 
                             WHERE n.namespace = ? and n.id = ?");
   $sth->execute($self->get_namespace(),$self->get_objid());
   if(my ($content_providers,$responsible_entity,$collection,$digitization_agents,$access_profile) = $sth->fetchrow_array()) {
@@ -144,36 +144,36 @@ sub get_sources {
     }
     return ($content_providers,$responsible_entity,$digitization_agents);
   } else {
-    my $mets_xpc = $self->get_repository_mets_xpc();
-    my @content_providers;
-    my @responsible_entities;
-    my @digitization_agents;
-
-    if($mets_xpc) {
-      foreach my $contentProvider ($mets_xpc->findnodes('//ht:contentProvider')) {
-        my $contentProviderCode = $contentProvider->textContent();
-        $contentProviderCode .= '*' if $contentProvider->getAttribute('display') eq 'yes';
-        push(@content_providers,[$contentProvider->getAttribute('sequence'),$contentProviderCode]);
-      }
-      foreach my $responsibleEntity ($mets_xpc->findnodes('//ht:responsibleEntity')) {
-        my $responsibleEntityCode = $responsibleEntity->textContent();
-        push(@responsible_entities,[$responsibleEntity->getAttribute('sequence'),$responsibleEntityCode]);
-      }
-      foreach my $digitization_agent ($mets_xpc->findnodes('//ht:digitizationAgent')) {
-        my $digitization_agent_code = $digitization_agent->textContent();
-        $digitization_agent_code .= '*' if $digitization_agent->getAttribute('display') eq 'yes';
-        push(@digitization_agents,$digitization_agent_code);
-      }
-    }
+#    my $mets_xpc = $self->get_repository_mets_xpc();
+#    my @content_providers;
+#    my @responsible_entities;
+#    my @digitization_agents;
+#
+#    if($mets_xpc) {
+#      foreach my $contentProvider ($mets_xpc->findnodes('//ht:contentProvider')) {
+#        my $contentProviderCode = $contentProvider->textContent();
+#        $contentProviderCode .= '*' if $contentProvider->getAttribute('display') eq 'yes';
+#        push(@content_providers,[$contentProvider->getAttribute('sequence'),$contentProviderCode]);
+#      }
+#      foreach my $responsibleEntity ($mets_xpc->findnodes('//ht:responsibleEntity')) {
+#        my $responsibleEntityCode = $responsibleEntity->textContent();
+#        push(@responsible_entities,[$responsibleEntity->getAttribute('sequence'),$responsibleEntityCode]);
+#      }
+#      foreach my $digitization_agent ($mets_xpc->findnodes('//ht:digitizationAgent')) {
+#        my $digitization_agent_code = $digitization_agent->textContent();
+#        $digitization_agent_code .= '*' if $digitization_agent->getAttribute('display') eq 'yes';
+#        push(@digitization_agents,$digitization_agent_code);
+#      }
+#    }
 
     # not found in DB or existing METS
-    if(!@content_providers or !@responsible_entities) {
-      $self->set_error("MissingField",field=>"sources",detail=>"Can't get content provider / responsible entity / digitization agent from feed_zephir_items or existing repository METS");
-    } else {
-      return (join(';',map { $_->[1] } sort { $a->[0] <=> $b->[0] } @content_providers),
-        join(';',map { $_->[1] } sort { $a->[0] <=> $b->[0] } @responsible_entities),
-        join(';',@digitization_agents))
-    }
+#    if(!@content_providers or !@responsible_entities) {
+      $self->set_error("MissingField",field=>"sources",detail=>"Can't get content provider / responsible entity / digitization agent from feed_zephir_items");
+#    } else {
+#      return (join(';',map { $_->[1] } sort { $a->[0] <=> $b->[0] } @content_providers),
+#        join(';',map { $_->[1] } sort { $a->[0] <=> $b->[0] } @responsible_entities),
+#        join(';',@digitization_agents))
+#    }
   }
 }
 
@@ -187,13 +187,13 @@ sub get_access_profile {
 
   # not in feed_zephir_items, try to get from rights_current
   if(not defined $collection or not defined $digitization_source) {
-    $sth = $dbh->prepare("SELECT access_profile FROM rights_current WHERE namespace = ? and id = ?");
-    $sth->execute($self->get_namespace(),$self->get_objid());
-    if(my ($access_profile) = $sth->fetchrow_array()) {
-      return $access_profile;
-    } else {
-      $self->set_error("MissingField",field=>"access profile",detail=>"Item not in zephir_items or rights_current; can't determine access profile");
-    }
+#    $sth = $dbh->prepare("SELECT access_profile FROM rights_current WHERE namespace = ? and id = ?");
+#    $sth->execute($self->get_namespace(),$self->get_objid());
+#    if(my ($access_profile) = $sth->fetchrow_array()) {
+#      return $access_profile;
+#    } else {
+      $self->set_error("MissingField",field=>"access profile",detail=>"Item not in feed_zephir_items; can't determine access profile");
+#    }
   }
 
   # try to map collection, digitization source to access profile
