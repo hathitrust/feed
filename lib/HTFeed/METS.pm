@@ -24,7 +24,13 @@ my %agent_mapping = (
   'Ca-MvGOO' => 'google',
   'CaSfIa' => 'archive',
   'MiU' => 'umich',
-  'MnU' => 'umn'
+  'MnU' => 'umn',
+  'GEU' => 'emory',
+  'GEU-S' => 'emory',
+  'GEU-T' => 'emory',
+  'TxCM' => 'tamu',
+  'DeU' => 'udel',
+  'IU' => 'illinois'
 );
 
 sub new {
@@ -285,36 +291,7 @@ sub _extract_old_premis {
 
             my $xc = $volume->get_repository_mets_xpc();
 
-            # migrate agent IDs
-            #
-            foreach my $agent ( $xc->findnodes('//premis:linkingAgentIdentifier') ) {
-              my $agent_type = ($xc->findnodes('./premis:linkingAgentIdentifierType',$agent))[0];
-              my $agent_value = ($xc->findnodes('./premis:linkingAgentIdentifierValue',$agent))[0];
-
-              my $agent_type_text = $agent_type->textContent();
-              # TODO: remove after uplift
-              if($agent_type_text eq 'MARC21 Code') {
-                my $agent_value_text = $agent_value->textContent();
-                my $new_agent_value = $agent_mapping{$agent_value_text};
-                if(not defined $new_agent_value) {
-                  $self->set_error("BadValue",field=>'linkingAgentIdentifierValue',
-                    actual => $agent_value_text,
-                    detail => "Don't know what the HT institution ID is for MARC org code $new_agent_value");
-                }
-
-                $agent_type->removeChildNodes();
-                $agent_type->appendText("HathiTrust Institution ID");
-                $agent_value->removeChildNodes();
-                $agent_value->appendText($new_agent_value);
-              } elsif($agent_type_text eq 'HathiTrust Institution ID' or $agent_type_text eq 'tool') {
-                # do nothing
-              } else {
-                $self->set_error("BadValue",field => 'linkingAgentIdentifierType',
-                  actual => $agent_type_text,
-                  expected => 'tool, MARC21 Code, or HathiTrust Institution ID',
-                  file => $mets_in_repos)
-              }
-            }
+            $self->migrate_agent_identifiers($xc);
 
             foreach my $event ( $xc->findnodes('//premis:event') ) {
 
@@ -544,6 +521,8 @@ sub _add_source_mets_events {
     my $premis = $self->{premis};
 
     my $xc                = $volume->get_source_mets_xpc();
+    $self->migrate_agent_identifiers($xc);
+
     my $src_premis_events = {};
     foreach my $src_event ( $xc->findnodes('//premis:event') ) {
 
@@ -1081,6 +1060,46 @@ sub agent_type {
   my $agentid = shift;
 
   return "HathiTrust Institution ID";
+}
+
+# map MARC21 agent codes to HathiTrust Institution IDs 
+
+sub migrate_agent_identifiers {
+  my $self = shift;
+  my $xc = shift;
+  my $volume = $self->{volume};
+
+  # migrate agent IDs
+  #
+  foreach my $agent ( $xc->findnodes('//premis:linkingAgentIdentifier') ) {
+    my $agent_type = ($xc->findnodes('./premis:linkingAgentIdentifierType',$agent))[0];
+    my $agent_value = ($xc->findnodes('./premis:linkingAgentIdentifierValue',$agent))[0];
+
+    my $agent_type_text = $agent_type->textContent();
+    # TODO: remove after uplift
+    if($agent_type_text eq 'MARC21 Code') {
+      my $agent_value_text = $agent_value->textContent();
+      my $new_agent_value = $agent_mapping{$agent_value_text};
+      if(not defined $new_agent_value) {
+        $self->set_error("BadValue",field=>'linkingAgentIdentifierValue',
+          actual => $agent_value_text,
+          detail => "Don't know what the HT institution ID is for MARC org code $new_agent_value");
+      }
+
+      $agent_type->removeChildNodes();
+      $agent_type->appendText("HathiTrust Institution ID");
+      $agent_value->removeChildNodes();
+      $agent_value->appendText($new_agent_value);
+    } elsif($agent_type_text eq 'HathiTrust Institution ID' or $agent_type_text eq 'tool') {
+      # do nothing
+    } else {
+      my $mets_in_repos = $volume->get_repository_mets_path();
+      $self->set_error("BadValue",field => 'linkingAgentIdentifierType',
+        actual => $agent_type_text,
+        expected => 'tool, MARC21 Code, or HathiTrust Institution ID',
+        file => $mets_in_repos)
+    }
+  }
 }
 
 1;
