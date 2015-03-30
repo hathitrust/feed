@@ -49,6 +49,10 @@ if ($one_line){
     $default_namespace = shift;
 }
 
+local *HTFeed::Volume::get_sources = sub {
+  return ( 'ht_test','ht_test','ht_test' );
+};
+
 pod2usage(-msg => 'must specify package type with -p or -d') if not defined $default_packagetype and not defined $dot_packagetype;
 
 my @volumes;
