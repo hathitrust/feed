@@ -104,6 +104,15 @@ sub run {
         }
     }
 
+    # verify only permitted linkingAgentIdentifierTypes - tool and HathiTrust Agent ID
+    foreach my $linkingAgentIdentfierType ($new_xpc->findnodes("//premis:linkingAgentIdentifierType")) {
+      my $value = $linkingAgentIdentfierType->textContent();
+      if($value ne 'HathiTrust Institution ID' and $value ne 'tool') {
+        $self->set_error("BadValue",field=>"linkingAgentIdentifierType",actual=>$value,file=>$self->{new_mets_file});
+      }
+
+    }
+
     # for each //mets:file
     #   the //mets:file with that ID in the new METS must have the same attributes except CREATED
     #     the mets:FLocat/xlink:href must match as well
