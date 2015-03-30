@@ -549,6 +549,7 @@ sub _remediate_jpeg2000 {
             $xresunit eq '0.1 mm' and $factor = 254;
             $xresunit eq 'mm' and $factor = 25.4;
             $xresunit eq 'cm' and $factor = 2.54;
+            $xresunit eq 'm' and $factor = 0.0254;
             $xresunit eq 'in' and $factor = 1;
             $xresunit eq 'inches' and $factor = 1;
 
