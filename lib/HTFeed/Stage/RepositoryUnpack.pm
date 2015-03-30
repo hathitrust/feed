@@ -15,7 +15,7 @@ sub run{
     # check that file exists
     if (-e $zipfile){
         # unpack only .txt files
-        $self->unzip_file($zipfile,$volume->get_staging_directory()) or return;
+        $self->unzip_file_preserve_case($zipfile,$volume->get_staging_directory()) or return;
         # add link to zip file for METS regeneration
         system("ln -s '$zipfile' '" . $volume->get_zip_directory() . "'");
     }
