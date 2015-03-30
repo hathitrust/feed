@@ -122,8 +122,11 @@ sub enqueue_volumes{
                 my $res = $sth->execute($pkg_type, $namespace, $objid, initial_priority($volume,$priority_modifier), $status);
                 push @results, $res;
                 if($res) {
-                  $res = $return_sth->execute($namespace,$objid);
-                  push @results, $res;
+                  # set returned=1 in feed_zephir_items
+                  # would be a good place to use a transaction.. but probably not super-important. audit
+                  # should catch anything that is marked as 'returned' but not actually queued or in the
+                  # repo.
+                  $return_sth->execute($namespace,$objid);
                 }
             }
         };
