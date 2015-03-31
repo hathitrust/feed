@@ -111,6 +111,10 @@ sub download {
     my $filename = $args{filename};
     $filename = "${ia_id}_$suffix" if not defined $filename;
 
+    # check if it was already downloaded
+    return 1 if -e "$self->{pt_path}/$filename";
+
+
     foreach my $link (@{$self->get_links()}) {
         if ($link =~ /$suffix$/) {
 
