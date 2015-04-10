@@ -8,6 +8,8 @@ use Log::Log4perl qw(get_logger);
 use XML::LibXML;
 use HTFeed::XMLNamespaces qw(:namespaces :schemas register_namespaces);
 use base qw(HTFeed::METS);
+use File::Basename qw(basename dirname);
+use HTFeed::Stage::Download;
 
 sub new {
     my $class  = shift;
@@ -96,9 +98,26 @@ sub clean_failure{
     unlink($self->{outfile}) if defined $self->{outfile};
 }
 
+sub _get_marc_from_zephir {
+  my $self = shift;
+  my $marc_path = shift;
+
+  my $identifier = $self->{volume}->get_identifier();
+
+  HTFeed::Stage::Download::download($self,
+    url => "http://zephir-web.cdlib.org/api/item/" . $self->{volume}->get_identifier(),
+    path => dirname($marc_path),
+    filename => basename($marc_path));
+    
+}
+
 sub _add_marc_from_file {
     my $self = shift;
     my $marc_path = shift;
+
+    if(! -e $marc_path) {
+       _get_marc_from_zephir($self,$marc_path);
+    }
 
     # Validate MARC XML (if not valid, will still include and add warning)
     my $xmlschema = XML::LibXML::Schema->new(location => SCHEMA_MARC);

@@ -53,15 +53,8 @@ sub run{
         $self->download(suffix => $suffix, not_found_ok => 1) or push(@noncore_missing,$suffix);
     }
 
-    # if MARC-XML is not on IA try to get it locally
-    if(!$self->download(suffix => "marc.xml", not_found_ok => 1)) {
-        my $possible_path = get_config('sip_root') . "/marc/${ia_id}_marc.xml";
-        if(-e get_config('sip_root') . "/marc/${ia_id}_marc.xml") {
-            system("cp","$possible_path","$pt_path/${ia_id}_marc.xml");
-        } else {
-            $self->set_error("MissingFile",file=>"${ia_id}_marc.xml");
-        }
-    }
+    # if MARC-XML is not on IA we'll just get it from Zephir
+    $self->download(suffix => "marc.xml", not_found_ok => 1);
 
     # handle jp2 - try tar if zip is not found
     if(!$self->download(suffix => "jp2.zip", not_found_ok => 1)) {
