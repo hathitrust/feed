@@ -276,7 +276,7 @@ sub get_checksum_md5 {
 
     open(FILE, $checksum_path) or die $!;		
     foreach my $line(<FILE>) {
-      next unless $line =~ /(\w+)(\s+\*?)(\S+)/;
+      next unless $line =~ /(\w+)(\s+\*?)(.*)/;
       $checksum = lc($1);
       $filename = lc($3);
       $filename =~ s/.*\///; # strip pathnames, since we junked them from the zip file
