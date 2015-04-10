@@ -7,6 +7,7 @@ use HTFeed::Log {root_logger => 'INFO, screen'};
 use HTFeed::Config qw(set_config);
 use HTFeed::RunLite qw(runlite);
 use HTFeed::Volume;
+use HTFeed::VolumeValidator;
 use Getopt::Long qw(:config no_ignore_case);
 use Pod::Usage;
 use HTFeed::Stage::Done;
@@ -51,6 +52,11 @@ if ($one_line){
 
 local *HTFeed::Volume::get_sources = sub {
   return ( 'ht_test','ht_test','ht_test' );
+};
+
+# don't validate digitizer -- will fail against faked up sources
+local *HTFeed::VolumeValidator::_validate_digitizer = sub {
+  return 1;
 };
 
 pod2usage(-msg => 'must specify package type with -p or -d') if not defined $default_packagetype and not defined $dot_packagetype;
