@@ -276,6 +276,8 @@ sub get_checksum_md5 {
 
     open(FILE, $checksum_path) or die $!;		
     foreach my $line(<FILE>) {
+      $line =~ s/\r\n$/\n/;
+      chomp($line);
       next unless $line =~ /(\w+)(\s+\*?)(.*)/;
       $checksum = lc($1);
       $filename = lc($3);
