@@ -25,6 +25,7 @@ use HTFeed::Config qw(get_config);
 use File::Pairtree qw(id2ppath s2ppchars);
 use File::Path qw(make_path);
 use HTFeed::Stage::Unpack qw(unzip_file);
+use Log::Log4perl qw(get_logger);
 
 my $download_base = "http://www.archive.org/download/";
 
@@ -113,9 +114,15 @@ sub download {
 
             return $self->SUPER::download(path => $self->{pt_path}, 
                 filename => $filename, 
-                url => "$download_base/$ia_id/$link", 
+                url => "$download_base$ia_id/$link", 
                 not_found_ok => $not_found_ok);
         }
+    }
+
+    if ($not_found_ok) {
+      get_logger()->debug("Can't find $filename linked from $download_base$ia_id");
+    } else {
+      $self->set_error('MissingFile',file => $filename,detail => "Can't find file linked from $download_base$ia_id");
     }
 
 }
