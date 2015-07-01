@@ -6,6 +6,7 @@ use base qw(HTFeed::Volume);
 use HTFeed::Config;
 use Log::Log4perl qw(get_logger);
 use YAML::Any qw(LoadFile);
+use Carp qw(croak);
 
 # front for YAML file
 
