@@ -8,9 +8,11 @@ use HTFeed::Config qw(set_config);
 use HTFeed::RunLite qw(runlite);
 use HTFeed::Volume;
 use HTFeed::VolumeValidator;
+use HTFeed::SourceMETS;
 use Getopt::Long qw(:config no_ignore_case);
 use Pod::Usage;
 use HTFeed::Stage::Done;
+use File::Basename qw(dirname basename);
 use strict;
 use warnings;
 
@@ -57,6 +59,31 @@ local *HTFeed::Volume::get_sources = sub {
 # don't validate digitizer -- will fail against faked up sources
 local *HTFeed::VolumeValidator::_validate_digitizer = sub {
   return 1;
+};
+
+# use faked-up marc in case it's missing
+
+local *HTFeed::SourceMETS::_get_marc_from_zephir = sub {
+  my $self = shift;
+  my $marc_path = shift;
+
+  my $identifier = $self->{volume}->get_identifier();
+
+  if (not HTFeed::Stage::Download::download($self,
+    url => "http://zephir-web.cdlib.org/api/item/" . $self->{volume}->get_identifier(),
+    path => dirname($marc_path),
+    filename => basename($marc_path),
+    not_found_ok => 1)) {
+
+
+    HTFeed::Stage::Download::download($self,
+      url => "http://zephir-web.cdlib.org/api/item/mdp.39015039746220",
+      path => dirname($marc_path),
+      filename => basename($marc_path),
+      not_found_ok => 1);
+    
+  }
+
 };
 
 pod2usage(-msg => 'must specify package type with -p or -d') if not defined $default_packagetype and not defined $dot_packagetype;
