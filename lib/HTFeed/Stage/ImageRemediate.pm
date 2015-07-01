@@ -46,6 +46,7 @@ sub get_exiftool_fields {
     my $fields = {};
 
     my $exifTool = new Image::ExifTool;
+    $exifTool->Options('ScanForXMP' => 1);
     $exifTool->ExtractInfo( $file, { Binary => 1 } );
 
     foreach my $tag ( $exifTool->GetFoundTags() ) {
@@ -409,6 +410,7 @@ sub repair_tiff_exiftool {
 
     # fix the DateTime
     my $exifTool = new Image::ExifTool;
+    $exifTool->Options('ScanForXMP' => 1);
     while ( my ( $field, $val ) = each(%$fields) ) {
         my ( $success, $errStr ) = $exifTool->SetNewValue( $field, $val );
         if ( defined $errStr ) {
@@ -601,6 +603,7 @@ sub _remediate_jpeg2000 {
     # first copy old values, since kdu_munge will eat the XMP if it is
     # present
     my $exifTool = new Image::ExifTool;
+    $exifTool->Options('ScanForXMP' => 1);
     my $info = $exifTool->SetNewValuesFromFile( $infile, '*:*' );
     while ( my ( $key, $val ) = each(%$info) ) {
         if ( $key eq 'Error' ) {
@@ -763,6 +766,7 @@ sub remediate_tiffs {
         my $headers   = $self->get_exiftool_fields("$tiffpath/$tiff");
         my $needwrite = 0;
         my $exiftool  = new Image::ExifTool;
+        $exifTool->Options('ScanForXMP' => 1);
         foreach my $field ( 'IFD0:ModifyDate', 'IFD0:Artist' ) {
             my $header = $headers->{$field};
             eval {
@@ -864,6 +868,7 @@ sub convert_tiff_to_jpeg2000 {
 
     # strip off the XMP to prevent confusion during conversion
     my $exifTool = new Image::ExifTool;
+    $exifTool->Options('ScanForXMP' => 1);
     $exifTool->SetNewValue('XMP',undef,Protected => 1);
     $self->update_tags( $exifTool, $infile );
 
@@ -910,6 +915,7 @@ sub convert_tiff_to_jpeg2000 {
     $self->set_new_if_undefined( "XMP-tiff:Orientation", "normal" );
 
     $exifTool = new Image::ExifTool;
+    $exifTool->Options('ScanForXMP' => 1);
     while ( ( $field, $val ) = each( %{ $self->{newFields} } ) ) {
         my ( $success, $errStr ) = $exifTool->SetNewValue( $field, $val );
         if ( defined $errStr ) {
