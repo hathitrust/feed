@@ -766,7 +766,7 @@ sub remediate_tiffs {
         my $headers   = $self->get_exiftool_fields("$tiffpath/$tiff");
         my $needwrite = 0;
         my $exiftool  = new Image::ExifTool;
-        $exifTool->Options('ScanForXMP' => 1);
+        $exiftool->Options('ScanForXMP' => 1);
         foreach my $field ( 'IFD0:ModifyDate', 'IFD0:Artist' ) {
             my $header = $headers->{$field};
             eval {
