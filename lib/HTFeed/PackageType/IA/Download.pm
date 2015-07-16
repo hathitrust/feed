@@ -110,6 +110,7 @@ sub download {
 
 
     foreach my $link (@{$self->get_links()}) {
+      next if not defined $link;
         if ($link =~ /$suffix$/) {
 
             return $self->SUPER::download(path => $self->{pt_path}, 
