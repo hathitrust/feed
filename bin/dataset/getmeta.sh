@@ -1,12 +1,10 @@
 #! /bin/bash
 
 # Grab any completed bundles from gimlet.
-/usr/bin/scp aleph@gimlet:/aleph-20_1/aleph/mdp_meta_transfer/\*.tar.gz /htprep/datasets/meta/
-/usr/bin/ssh aleph@gimlet /bin/rm -f /aleph-20_1/aleph/mdp_meta_transfer/\*.tar.gz
+/usr/bin/scp aleph@gimlet:/exlibris/aleph/mdp_meta_transfer/\*.tar.gz /htprep/datasets/meta/ && /usr/bin/ssh aleph@gimlet /bin/rm -f /exlibris/aleph/mdp_meta_transfer/\*.tar.gz
 
 # New format, used first on bib-only ht_all.
-/usr/bin/scp aleph@gimlet:/aleph-20_1/aleph/mdp_meta_transfer/\*.json.gz /htprep/datasets/meta/
-/usr/bin/ssh aleph@gimlet /bin/rm -f /aleph-20_1/aleph/mdp_meta_transfer/\*.json.gz
+/usr/bin/scp aleph@gimlet:/aleph-20_1/aleph/mdp_meta_transfer/\*.json.gz /htprep/datasets/meta/ && /usr/bin/ssh aleph@gimlet /bin/rm -f /exlibris/aleph/mdp_meta_transfer/\*.json.gz
 
 # Delete any old bundles.
 cd /htprep/datasets/meta
