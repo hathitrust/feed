@@ -201,26 +201,28 @@ sub clean_download {
     }
 }
 
-# determine either from source mets or from meta.xml depending on where in the process we are
-sub is_ia_local_upload {
-  my $self = shift;
-  my $xpc = undef; 
-  if($self->get_source_mets_file()) {
-    $xpc = $self->get_source_mets_xpc();
-  } else {
-    $xpc = $self->get_meta_xpc();
-  }
-
-  my $uploader = $xpc->findvalue("//uploader");
-  my $operator = $xpc->findvalue("//operator");
-
-  if( ($uploader and $uploader !~ /archive\.org$/)
-      or ($operator and $operator !~ /archive\.org$/)) {
-    return 1;
-  } else {
-    return 0;
-  }
-}
+# This method is not reliable.
+#
+# # determine either from source mets or from meta.xml depending on where in the process we are
+# sub is_ia_local_upload {
+#   my $self = shift;
+#   my $xpc = undef; 
+#   if($self->get_source_mets_file()) {
+#     $xpc = $self->get_source_mets_xpc();
+#   } else {
+#     $xpc = $self->get_meta_xpc();
+#   }
+# 
+#   my $uploader = $xpc->findvalue("//uploader");
+#   my $operator = $xpc->findvalue("//operator");
+# 
+#   if( ($uploader and $uploader !~ /archive\.org$/)
+#       or ($operator and $operator !~ /archive\.org$/)) {
+#     return 1;
+#   } else {
+#     return 0;
+#   }
+# }
 
 # use contributor from meta.yml if not ia-digitized
 sub tiff_artist {
@@ -238,17 +240,20 @@ sub tiff_artist {
   }
 }
 
-sub apparent_digitizer {
-  my $self = shift;
-  if($self->is_ia_local_upload()) {
-    my $providers = ($self->get_sources)[0];
-    $providers =~ s/\*//g;
-    my @providers = split(';',$providers);
-    return shift @providers;
-  } else {
-    return 'archive'
-  }
-}
+# This method is not reliable, so just use the base method which trusts the value coming from
+# Zephir.
+
+# sub apparent_digitizer {
+#   my $self = shift;
+#   if($self->is_ia_local_upload()) {
+#     my $providers = ($self->get_sources)[0];
+#     $providers =~ s/\*//g;
+#     my @providers = split(';',$providers);
+#     return shift @providers;
+#   } else {
+#     return 'archive'
+#   }
+# }
 
 1;
 
