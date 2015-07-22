@@ -137,7 +137,7 @@ our $config = {
         'HTFeed::ModuleValidator::JPEG2000_hul' => {
             'camera'               => undef,
             'resolution'      => v_and(
-                v_ge( 'xmp', 'xRes', 300),
+                v_ge( 'xmp', 'xRes', 290),
                 v_same( 'xmp', 'xRes', 'xmp', 'yRes' )
             ),
         }
