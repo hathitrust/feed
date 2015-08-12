@@ -217,8 +217,9 @@ sub _remediate_tiff {
                 'Count mismatch for tag 36867' # EXIF DateTimeOriginal - ignorable
 
             );
-            my @imagemagick_remediable_errs =
-              ('PhotometricInterpretation not defined');
+            my @imagemagick_remediable_errs = ('PhotometricInterpretation not defined',
+                                              # wrong data type for tag - will get automatically stripped
+                                               'Type mismatch for tag');
             if ( grep { $error =~ /^$_/ } @imagemagick_remediable_errs ) {
                 get_logger()
                   ->trace(
