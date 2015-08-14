@@ -105,7 +105,7 @@ sub _get_marc_from_zephir {
   my $identifier = $self->{volume}->get_identifier();
 
   HTFeed::Stage::Download::download($self,
-    url => "http://zephir-web.cdlib.org/api/item/" . $self->{volume}->get_identifier(),
+    url => "http://zephir.cdlib.org/api/item/" . $self->{volume}->get_identifier(),
     path => dirname($marc_path),
     filename => basename($marc_path));
     
