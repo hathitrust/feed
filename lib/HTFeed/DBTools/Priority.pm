@@ -40,6 +40,7 @@ Readonly::Scalar my $MIN        => 0x0;
 use Carp;
 use Switch;
 use HTFeed::DBTools qw(get_dbh);
+use base qw(HTFeed::DBTools);
 
 our @EXPORT_OK = qw(reprioritize initial_priority set_item_priority rebin);
 
