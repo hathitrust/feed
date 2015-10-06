@@ -500,9 +500,18 @@ sub _remediate_jpeg2000 {
     $self->set_new_if_undefined( 'XMP-tiff:Orientation',
         'Horizontal (normal)' );
 
-    # Force dc:source even if it was already defined
-    # $newFields->{'XMP-dc:Source'}   = "$ark_id/$image_file";
-    # $newFields->{'XMP-tiff:Artist'} = "Internet Archive";
+
+    # normalize the date to ISO8601 if it is close to that; assume UTC if no time zone given (rare in XMP)
+    my $datetime = $self->{'oldFields'}->{'XMP-tiff:DateTime'};
+    if (defined $datetime and $datetime =~ /^(\d{4})[:\/-](\d\d)[:\/-](\d\d)[T ](\d\d):(\d\d)(:\d\d)?(Z|[+-]\d{2}:\d{2})?$/ ) {
+      my ($Y,$M,$D,$h,$m,$s,$tz) = ($1,$2,$3,$4,$5,$6,$7);
+      $s = '00' if not defined $s;
+      $tz = 'Z' if not defined $tz;
+      $self->{newFields}{'XMP-tiff:DateTime'} = "$Y-$M-${D}T$h:$m:$s$tz";
+    } else {
+      # missing or very badly formatted date; force override
+      $self->{newFields}{'XMP-tiff:DateTime'} = $set_if_undefined_headers->{'XMP-tiff:DateTime'}
+    }
 
     my $resolution = undef;
 
