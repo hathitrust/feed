@@ -517,62 +517,54 @@ sub _remediate_jpeg2000 {
 
     # try to get resolution from JPEG2000 headers
     if ( !$force_headers->{'Resolution'} ) {
-        my $xres = $self->{oldFields}->{'Jpeg2000:CaptureXResolution'};
-        my $yres = $self->{oldFields}->{'Jpeg2000:CaptureYResolution'};
 
-        if ( not defined $xres and not defined $yres ) {
-            $xres = $self->{oldFields}->{'Jpeg2000:DisplayXResolution'};
-            $yres = $self->{oldFields}->{'Jpeg2000:DisplayYResolution'};
-        }
+      foreach my $prefix (qw(Jpeg2000:Capture Jpeg2000:Display IFD0:)) {
+        my $xres = $self->{oldFields}->{$prefix . 'XResolution'};
+        my $yres = $self->{oldFields}->{$prefix . 'YResolution'};
 
-        if ( not defined $xres and not defined $yres ) {
-            $xres = $self->{oldFields}->{'IFD0:XResolution'};
-            $yres = $self->{oldFields}->{'IFD0:YResolution'};
-        }
+        next if not defined $xres and not defined $yres;
 
         get_logger()->warn("Non-square pixels??! XRes $xres YRes $yres")
           if ( ( $xres or $yres ) and $xres != $yres );
 
         if ($xres) {
-            my $xresunit =
-              $self->{oldFields}->{'Jpeg2000:CaptureXResolutionUnit'};
-            my $yresunit =
-              $self->{oldFields}->{'Jpeg2000:CaptureYResolutionUnit'};
+          my $xresunit;
+          my $yresunit;
+          if($prefix =~ /^Jpeg2000/) {
+            $xresunit =
+              $self->{oldFields}->{$prefix . 'XResolutionUnit'};
+            $yresunit =
+              $self->{oldFields}->{$prefix . 'YResolutionUnit'};
+          } else {
+            $xresunit = $self->{oldFields}->{$prefix . 'ResolutionUnit'};
+            $yresunit = $xresunit;
+          } 
 
-            if ( not defined $xresunit and not defined $yresunit ) {
-                $xresunit =
-                  $self->{oldFields}->{'Jpeg2000:DisplayXResolutionUnit'};
-                $yresunit =
-                  $self->{oldFields}->{'Jpeg2000:DisplayYResolutionUnit'};
-            }
+          get_logger()->warn("Resolution unit awry")
+            if ( not $xresunit or not $yresunit or $xresunit ne $yresunit );
 
-            if (not defined $xresunit and not defined $yresunit ) {
-              $xresunit = $self->{oldFields}->{'IFD0:ResolutionUnit'};
-              $yresunit = $self->{oldFields}->{'IFD0:ResolutionUnit'};
-            }
+          my $factor = undef;
+          $xresunit eq 'um' and $factor = 25400;
+          $xresunit eq '0.01 mm' and $factor = 2540;
+          $xresunit eq '0.1 mm' and $factor = 254;
+          $xresunit eq 'mm' and $factor = 25.4;
+          $xresunit eq 'cm' and $factor = 2.54;
+          $xresunit eq 'm' and $factor = 0.0254;
+          $xresunit eq 'in' and $factor = 1;
+          $xresunit eq 'inches' and $factor = 1;
 
-            get_logger()->warn("Resolution unit awry")
-              if ( not $xresunit or not $yresunit or $xresunit ne $yresunit );
-
-              use feature "switch";
-            my $factor = undef;
-            $xresunit eq 'um' and $factor = 25400;
-            $xresunit eq '0.01 mm' and $factor = 2540;
-            $xresunit eq '0.1 mm' and $factor = 254;
-            $xresunit eq 'mm' and $factor = 25.4;
-            $xresunit eq 'cm' and $factor = 2.54;
-            $xresunit eq 'm' and $factor = 0.0254;
-            $xresunit eq 'in' and $factor = 1;
-            $xresunit eq 'inches' and $factor = 1;
-
-            if(defined $factor) {
-                my $resolution = sprintf("%.0f",$xres * $factor);
-                # Absurdly low DPI is likely to be an error or default, so don't
-                # use it and try to get it from somewhere else if it is < 100
-                $force_headers->{Resolution} = $resolution if($resolution >= 100);
-            }
-            
+          if(defined $factor) {
+              my $resolution = sprintf("%.0f",$xres * $factor);
+              # Absurdly low DPI is likely to be an error or default, so don't
+              # use it and try to get it from somewhere else if it is < 100
+              if($resolution >= 100) {
+                $force_headers->{Resolution} = $resolution;
+                last;
+              }
+          }
         }
+      }
+
 
     }
 
