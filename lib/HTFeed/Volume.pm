@@ -279,7 +279,7 @@ sub get_checksum_md5 {
       $line =~ s/\r\n$/\n/;
       chomp($line);
       # ignore malformed lines
-      next unless $line =~ /^([a-fA-F0-9]{32})(\s+\*?)(\S*)/;
+      next unless $line =~ /^([a-fA-F0-9]{32})(\s+\*?)(\S.*)/;
       $checksum = lc($1);
       $filename = lc($3);
       $filename =~ s/.*\///; # strip pathnames, since we junked them from the zip file
