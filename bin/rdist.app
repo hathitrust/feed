@@ -28,5 +28,5 @@ APP_dest = ( /htapps/babel/feed )
 #        install -overify -oremove ${APP_dest};
 #        install -oremove ${APP_dest};
 #        except_pat ( \\.git /etc /var gpg );
-        notify lit-cs-groove@umich.edu ;
+        notify lit-cs-ingest@umich.edu ;
 
