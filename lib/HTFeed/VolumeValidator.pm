@@ -308,6 +308,9 @@ sub _validate_digitizer {
   my (undef,undef,$zephir_dig_agents) = $volume->get_sources();
   my $apparent_digitizer = $volume->apparent_digitizer();
 
+  return 1 if (not defined $zephir_dig_agents or $zephir_dig_agents = '') and 
+    (not defined $apparent_digitizer or $apparent_digitizer = '');
+
   my @allowed_agents = split(';',$zephir_dig_agents);
 
   # apparent digitizer must match one of the agent IDs the zephir dig. source maps to
