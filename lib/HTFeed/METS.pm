@@ -158,7 +158,6 @@ sub _add_techmds {
 # generate info from feed_zephir_items and ht_collections table, or throw error if it's missing.
 sub _add_sourcemd {
 
-    # FIXME: handle born-digital material
     sub element_ht {
         my $name = shift;
         my %attributes = @_;
@@ -173,13 +172,16 @@ sub _add_sourcemd {
     my $self = shift;
 
     my ($content_providers,$responsible_entity,$digitization_agents) = $self->{volume}->get_sources();
-    my $sources = element_ht("sources", format => 'digitized');
+    my $format = 'digitized';
+    $format = 'borndigital' if not defined $digitization_agents or $digitization_agents = '';
+
+    my $sources = element_ht("sources", format => $format);
 
     my $sourcemd = METS::MetadataSection->new( 'sourceMD',
         id => $self->_get_subsec_id('SMD'));
 
     $self->_format_source_element($sources,'contentProvider', $content_providers);
-    $self->_format_source_element($sources,'digitizationAgent', $digitization_agents);
+    $self->_format_source_element($sources,'digitizationAgent', $digitization_agents) if $digitization_agents;
 
     # add responsible entity
     # FIXME: how to add 2nd responsible entity?
