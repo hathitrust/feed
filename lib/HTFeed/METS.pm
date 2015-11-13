@@ -173,7 +173,7 @@ sub _add_sourcemd {
 
     my ($content_providers,$responsible_entity,$digitization_agents) = $self->{volume}->get_sources();
     my $format = 'digitized';
-    $format = 'borndigital' if not defined $digitization_agents or $digitization_agents = '';
+    $format = 'borndigital' if not defined $digitization_agents or $digitization_agents eq '';
 
     my $sources = element_ht("sources", format => $format);
 

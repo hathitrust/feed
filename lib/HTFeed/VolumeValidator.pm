@@ -308,8 +308,8 @@ sub _validate_digitizer {
   my (undef,undef,$zephir_dig_agents) = $volume->get_sources();
   my $apparent_digitizer = $volume->apparent_digitizer();
 
-  return 1 if (not defined $zephir_dig_agents or $zephir_dig_agents = '') and 
-    (not defined $apparent_digitizer or $apparent_digitizer = '');
+  return 1 if (not defined $zephir_dig_agents or $zephir_dig_agents eq '') and 
+    (not defined $apparent_digitizer or $apparent_digitizer eq '');
 
   my @allowed_agents = split(';',$zephir_dig_agents);
 
