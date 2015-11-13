@@ -26,6 +26,7 @@ set_config(0,'stop_on_error');
 my $clean = 1;
 my $one_line = 0; # -1
 my $help = 0; # -help,-?
+my $realmeta = 0;
 
 my $dot_packagetype = undef; # -d
 my $default_packagetype = undef; # -p
@@ -38,6 +39,7 @@ GetOptions(
     'dot-packagetype|d=s' => \$dot_packagetype,    
     'pkgtype|p=s' => \$default_packagetype,
     'namespace|n=s' => \$default_namespace,
+    'realmeta|m' => \$realmeta,
     "clean!"         => \$clean,
 )  or pod2usage(2);
 
@@ -52,39 +54,42 @@ if ($one_line){
     $default_namespace = shift;
 }
 
-local *HTFeed::Volume::get_sources = sub {
-  return ( 'ht_test','ht_test','ht_test' );
-};
+unless ($realmeta) {
 
-# don't validate digitizer -- will fail against faked up sources
-local *HTFeed::VolumeValidator::_validate_digitizer = sub {
-  return 1;
-};
+  local *HTFeed::Volume::get_sources = sub {
+    return ( 'ht_test','ht_test','ht_test' );
+  };
 
-# use faked-up marc in case it's missing
+  # don't validate digitizer -- will fail against faked up sources
+  local *HTFeed::VolumeValidator::_validate_digitizer = sub {
+    return 1;
+  };
 
-local *HTFeed::SourceMETS::_get_marc_from_zephir = sub {
-  my $self = shift;
-  my $marc_path = shift;
+  # use faked-up marc in case it's missing
 
-  my $identifier = $self->{volume}->get_identifier();
+  local *HTFeed::SourceMETS::_get_marc_from_zephir = sub {
+    my $self = shift;
+    my $marc_path = shift;
 
-  if (not HTFeed::Stage::Download::download($self,
-    url => "http://zephir-web.cdlib.org/api/item/" . $self->{volume}->get_identifier(),
-    path => dirname($marc_path),
-    filename => basename($marc_path),
-    not_found_ok => 1)) {
+    my $identifier = $self->{volume}->get_identifier();
 
-
-    HTFeed::Stage::Download::download($self,
-      url => "http://zephir-web.cdlib.org/api/item/mdp.39015039746220",
+    if (not HTFeed::Stage::Download::download($self,
+      url => "http://zephir-web.cdlib.org/api/item/" . $self->{volume}->get_identifier(),
       path => dirname($marc_path),
       filename => basename($marc_path),
-      not_found_ok => 1);
-    
-  }
+      not_found_ok => 1)) {
 
-};
+
+      HTFeed::Stage::Download::download($self,
+        url => "http://zephir-web.cdlib.org/api/item/mdp.39015039746220",
+        path => dirname($marc_path),
+        filename => basename($marc_path),
+        not_found_ok => 1);
+      
+    }
+
+  };
+}
 
 pod2usage(-msg => 'must specify package type with -p or -d') if not defined $default_packagetype and not defined $dot_packagetype;
 
@@ -165,6 +170,8 @@ validate_volume.pl -1 packagetype namespace objid
 
       -p,-n - specify packagetype, namespace respectivly.
         incompatible with -d, -1
+
+      -m - use the real metadata from zephir
     
     GENERAL OPTIONS
 
