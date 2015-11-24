@@ -56,18 +56,18 @@ if ($one_line){
 
 unless ($realmeta) {
 
-  local *HTFeed::Volume::get_sources = sub {
+  *HTFeed::Volume::get_sources = sub {
     return ( 'ht_test','ht_test','ht_test' );
   };
 
   # don't validate digitizer -- will fail against faked up sources
-  local *HTFeed::VolumeValidator::_validate_digitizer = sub {
+  *HTFeed::VolumeValidator::_validate_digitizer = sub {
     return 1;
   };
 
   # use faked-up marc in case it's missing
 
-  local *HTFeed::SourceMETS::_get_marc_from_zephir = sub {
+  *HTFeed::SourceMETS::_get_marc_from_zephir = sub {
     my $self = shift;
     my $marc_path = shift;
 
