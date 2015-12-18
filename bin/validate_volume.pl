@@ -74,14 +74,14 @@ unless ($realmeta) {
     my $identifier = $self->{volume}->get_identifier();
 
     if (not HTFeed::Stage::Download::download($self,
-      url => "http://zephir-web.cdlib.org/api/item/" . $self->{volume}->get_identifier(),
+      url => "http://zephir.cdlib.org/api/item/" . $self->{volume}->get_identifier(),
       path => dirname($marc_path),
       filename => basename($marc_path),
       not_found_ok => 1)) {
 
 
       HTFeed::Stage::Download::download($self,
-        url => "http://zephir-web.cdlib.org/api/item/mdp.39015039746220",
+        url => "http://zephir.cdlib.org/api/item/mdp.39015039746220",
         path => dirname($marc_path),
         filename => basename($marc_path),
         not_found_ok => 1);
