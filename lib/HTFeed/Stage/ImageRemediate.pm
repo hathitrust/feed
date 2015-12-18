@@ -213,6 +213,7 @@ sub _remediate_tiff {
                 'Value offset not word-aligned',
                 'Tag 269 out of sequence',
                 'Invalid DateTime separator',
+                'Invalid DateTime digit',
                 'Count mismatch for tag 306', # DateTime -- fixable
                 'Count mismatch for tag 36867' # EXIF DateTimeOriginal - ignorable
 
@@ -278,34 +279,37 @@ sub _remediate_tiff {
     }
 
 
- # get existing DateTime field, normalize to TIFF 6.0 spec "YYYY:MM:DD HH:MM:SS"
-    my $datetime = $self->{oldFields}{'IFD0:ModifyDate'};
-    if (    defined $datetime
-        and $datetime =~ /^(\d{4}).(\d{2}).(\d{2}).(\d{2}).(\d{2}).(\d{2})/
-        and $datetime !~ /^(\d{4}):(\d{2}):(\d{2}) (\d{2}):(\d{2}):(\d{2})/ )
-    {
-        $self->{newFields}{'IFD0:ModifyDate'} = "$1:$2:$3 $4:$5:$6";
-        $remediate_exiftool = 1;
-    }
-    elsif ( defined $datetime
-        and $datetime =~ /^(\d{4}).?(\d{2}).?(\d{2})/
-        and $datetime !~ /^(\d{4}):(\d{2}):(\d{2}) (\d{2}):(\d{2}):(\d{2})/ )
-    {
-        $self->{newFields}{'IFD0:ModifyDate'} = "$1:$2:$3 00:00:00";
-        $remediate_exiftool = 1;
-    }
+    # remediate existing IFD0:ModifyDate if we aren't overwriting it
+    if(not defined($self->{newFields}{'IFD0:ModifyDate'})) {
+   # get existing DateTime field, normalize to TIFF 6.0 spec "YYYY:MM:DD HH:MM:SS"
+      my $datetime = $self->{oldFields}{'IFD0:ModifyDate'};
+      if (    defined $datetime
+          and $datetime =~ /^(\d{4}).(\d{2}).(\d{2}).(\d{2}).(\d{2}).(\d{2})/
+          and $datetime !~ /^(\d{4}):(\d{2}):(\d{2}) (\d{2}):(\d{2}):(\d{2})/ )
+      {
+          $self->{newFields}{'IFD0:ModifyDate'} = "$1:$2:$3 $4:$5:$6";
+          $remediate_exiftool = 1;
+      }
+      elsif ( defined $datetime
+          and $datetime =~ /^(\d{4}).?(\d{2}).?(\d{2})/
+          and $datetime !~ /^(\d{4}):(\d{2}):(\d{2}) (\d{2}):(\d{2}):(\d{2})/ )
+      {
+          $self->{newFields}{'IFD0:ModifyDate'} = "$1:$2:$3 00:00:00";
+          $remediate_exiftool = 1;
+      }
 
-    # two digit date from 1990s
-    elsif ( defined $datetime and $datetime =~ /^(\d{2})\/(\d{2})\/(9\d)$/ ) {
-        $self->{newFields}{'IFD0:ModifyDate'} = "19$3:$1:$2 00:00:00";
-    }
-    elsif ( defined $datetime
-        and $datetime eq ''
-        and defined $set_if_undefined_headers->{'IFD0:ModifyDate'} )
-    {
-        $self->{newFields}{'IFD0:ModifyDate'} =
-          $set_if_undefined_headers->{'IFD0:ModifyDate'};
-        $remediate_exiftool = 1;
+      # two digit date from 1990s
+      elsif ( defined $datetime and $datetime =~ /^(\d{2})\/(\d{2})\/(9\d)$/ ) {
+          $self->{newFields}{'IFD0:ModifyDate'} = "19$3:$1:$2 00:00:00";
+      }
+      elsif ( defined $datetime
+          and $datetime eq ''
+          and defined $set_if_undefined_headers->{'IFD0:ModifyDate'} )
+      {
+          $self->{newFields}{'IFD0:ModifyDate'} =
+            $set_if_undefined_headers->{'IFD0:ModifyDate'};
+          $remediate_exiftool = 1;
+      }
     }
 
     # Fix resolution, if needed
