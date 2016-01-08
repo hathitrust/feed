@@ -54,8 +54,8 @@ sub run{
         $self->download(suffix => $suffix, not_found_ok => 1) or push(@noncore_missing,$suffix);
     }
 
-    # if MARC-XML is not on IA we'll just get it from Zephir
-    $self->download(suffix => "marc.xml", not_found_ok => 1);
+#    # if MARC-XML is not on IA we'll just get it from Zephir
+#    $self->download(suffix => "marc.xml", not_found_ok => 1);
 
     # handle jp2 - try tar if zip is not found
     if(!$self->download(suffix => "jp2.zip", not_found_ok => 1)) {
