@@ -381,15 +381,16 @@ sub _remediate_tiff {
         $self->{newFields}{'XMP-tiff:Orientation'} = 'Horizontal (normal)';
         $self->{newFields}{'XMP-tiff:SamplesPerPixel'} = 1;
         $self->{newFields}{'XMP-tiff:ResolutionUnit'} = 1;
+        $self->{newFields}{'XMP-tiff:ImageHeight'} = $self->{oldFields}{'IFD0:ImageHeight'};
+        $self->{newFields}{'XMP-tiff:ImageWidth'} = $self->{oldFields}{'IFD0:ImageWidth'};
 
         # copy other fields; use new value if it was provided
-        foreach my $field (qw(ResolutionUnit ImageHeight ImageWidth Artist 
-                              XResolution YResolution Make Model)) {
-            if(defined $self->{newFields}{"IFD0:$field"}) {
-                $self->{newFields}{"XMP-tiff:$field"} = $self->{newFields}{"IFD0:$field"};
-            } else {
-                $self->{newFields}{"XMP-tiff:$field"} = $self->{oldFields}{"IFD0:$field"};
-            }
+        foreach my $field (qw(ResolutionUnit Artist XResolution YResolution Make Model)) {
+          if(defined $self->{oldFields}{"IFD0:$field"}) {
+            chomp($self->{oldFields}{"IFD0:$field"});
+            $self->{newFields}{"IFD0:$field"} = $self->{oldFields}{"IFD0:$field"};
+            $self->{newFields}{"XMP-tiff:$field"} = $self->{newFields}{"IFD0:$field"};
+          }
         }
 
         if(defined $self->{newFields}{"IFD0:DocumentName"}) {
