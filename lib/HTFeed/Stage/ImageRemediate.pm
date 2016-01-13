@@ -389,6 +389,9 @@ sub _remediate_tiff {
           if(defined $self->{oldFields}{"IFD0:$field"}) {
             chomp($self->{oldFields}{"IFD0:$field"});
             $self->{newFields}{"IFD0:$field"} = $self->{oldFields}{"IFD0:$field"};
+          } 
+          
+          if(defined $self->{newFields}{"IFD0:$field"}) {
             $self->{newFields}{"XMP-tiff:$field"} = $self->{newFields}{"IFD0:$field"};
           }
         }
