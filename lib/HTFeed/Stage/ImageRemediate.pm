@@ -220,7 +220,10 @@ sub _remediate_tiff {
             );
             my @imagemagick_remediable_errs = ('PhotometricInterpretation not defined',
                                               # wrong data type for tag - will get automatically stripped
-                                               'Type mismatch for tag');
+                                               'Type mismatch for tag',
+                                               # related to thumbnails, which imagemagick will strip
+                                               'JPEGProc not defined for JPEG compression',
+                                               'For PhotometricInterpretation, SamplesPerPixel must be >= 3, equals1');
             if ( grep { $error =~ /^$_/ } @imagemagick_remediable_errs ) {
                 get_logger()
                   ->trace(
