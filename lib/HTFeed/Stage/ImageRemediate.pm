@@ -265,9 +265,13 @@ sub _remediate_tiff {
  # ModifyDate, if given
     if(defined $set_if_undefined_headers->{'DateTime'}) {
         # If the old TIFF has an XMP and has IFD0:ModifyDate but does NOT have the XMP-tiff:DateTime
-        # field, we need to make sure those match
-        if(defined $self->{oldFields}{'XMP:XMP'} and defined $self->{oldFields}{'IFD0:ModifyDate'}
-                and not defined $self->{oldFields}{'XMP-tiff:DateTime'}) {
+        # field, OR if it has the XMP-tiff:DateTime field but not the IFD0:ModifyDate header, we need
+        # to make sure the fields match in the end.
+        if(    (defined $self->{oldFields}{'XMP:XMP'} 
+                and defined $self->{oldFields}{'IFD0:ModifyDate'}
+                and not defined $self->{oldFields}{'XMP-tiff:DateTime'}) 
+            or (defined $self->{oldFields}{'XMP-tiff:DateTime'}
+                and not defined $self->{oldFields}{'IFD0:ModifyDate'})) {
             $self->{newFields}{'DateTime'} = $set_if_undefined_headers->{'DateTime'};
         } else {
             $set_if_undefined_headers->{'IFD0:ModifyDate'} = $set_if_undefined_headers->{'DateTime'};
