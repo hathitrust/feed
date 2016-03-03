@@ -219,6 +219,7 @@ sub _remediate_tiff {
 
             );
             my @imagemagick_remediable_errs = ('PhotometricInterpretation not defined',
+                                               'ColorSpace value out of range: 2',
                                               # wrong data type for tag - will get automatically stripped
                                                'Type mismatch for tag',
                                                # related to thumbnails, which imagemagick will strip
