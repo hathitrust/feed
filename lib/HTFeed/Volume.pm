@@ -778,9 +778,9 @@ sub get_mets_path {
 
 sub get_SIP_filename {
   my $self = shift;
-  my $objid = $self->{objid};
+  my $pt_objid = $self->get_pt_objid();
   my $pattern = $self->{nspkg}->get('SIP_filename_pattern');
-  return sprintf($pattern,$objid);
+  return sprintf($pattern,$pt_objid);
 }
 
 =item get_preingest_directory
