@@ -419,15 +419,15 @@ sub _extract_old_premis {
              );
         }
             
-        # at a minimum there should be capture, message digest calculation,
-        # fixity check, validation and ingestion.
-        if($volume->get_packagetype() ne 'audio') {
-            foreach my $required_event_type ("capture","message digest calculation","fixity check","validation","ingestion") {
-                $self->set_error("BadField",detail=>"Could not extract old PREMIS event",
-                    field=>"premis event $required_event_type",file=>$mets_in_repos)
-                if not defined $self->{old_event_types}->{$required_event_type};
-            }
-        }
+#        # at a minimum there should be capture, message digest calculation,
+#        # fixity check, validation and ingestion.
+#        if($volume->get_packagetype() ne 'audio') {
+#            foreach my $required_event_type ("capture","message digest calculation","fixity check","validation","ingestion") {
+#                $self->set_error("BadField",detail=>"Could not extract old PREMIS event",
+#                    field=>"premis event $required_event_type",file=>$mets_in_repos)
+#                if not defined $self->{old_event_types}->{$required_event_type};
+#            }
+#        }
 
         if($need_uplift_event) {
             $volume->record_premis_event('premis_migration');
@@ -462,6 +462,18 @@ sub _add_premis_events {
             $self->set_error("MissingField",field=>"premis_$eventcode",detail=>"No PREMIS event recorded with config ID $eventcode");
         }
     }
+
+    my %included_event_types = map { ($_->{event_type},1) } values( %{$self->{included_events}} );
+    # at a minimum there should be capture, message digest calculation,
+    # fixity check, validation and ingestion.
+    if($volume->get_packagetype() ne 'audio') {
+        foreach my $required_event_type ("capture","message digest calculation","fixity check","validation","ingestion") {
+            $self->set_error("BadField",detail=>"Missing required PREMIS event type",
+                field=>"premis event $required_event_type")
+            if not defined $included_event_types{$required_event_type};
+        }
+    }
+
 
 }
 
