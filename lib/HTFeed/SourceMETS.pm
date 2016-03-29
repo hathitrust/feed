@@ -25,6 +25,7 @@ sub new {
 
     # override default pagedata source
     delete $self->{pagedata};
+    $self->{required_events} = ["capture"];
 
     return $self;
 }
@@ -61,6 +62,10 @@ sub _add_premis {
     $digiprovMD->set_xml_node( $premis->to_node(), mdtype => 'PREMIS' );
 
     push( @{ $self->{amd_mdsecs} }, $digiprovMD);
+}
+
+sub _check_premis {
+  my $self = shift;
 }
 
 sub stage_info{

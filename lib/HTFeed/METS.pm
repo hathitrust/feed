@@ -5,7 +5,7 @@ use strict;
 use warnings;
 use METS;
 use PREMIS;
-use HTFeed::XMLNamespaces qw(:namespaces :schemas);
+use HTFeed::XMLNamespaces qw(:namespaces :schemas register_namespaces);
 use Carp;
 use Log::Log4perl qw(get_logger);
 use Time::gmtime;
@@ -51,6 +51,7 @@ sub new {
     $self->{premis} = new PREMIS;
     $self->{old_event_types} = {};
     $self->{profile} = get_config('mets_profile');
+    $self->{required_events} = ["capture","message digest calculation","fixity check","validation","ingestion"];
 
     return $self;
 }
@@ -71,6 +72,7 @@ sub run {
     $self->_add_struct_map();
     $self->_add_premis();
     $self->_add_amdsecs();
+    $self->_check_premis();
     $self->_save_mets();
     $self->_validate_mets();
     $self->_set_done();
@@ -463,17 +465,36 @@ sub _add_premis_events {
         }
     }
 
-    my %included_event_types = map { ($_->{event_type},1) } values( %{$self->{included_events}} );
-    # at a minimum there should be capture, message digest calculation,
-    # fixity check, validation and ingestion.
-    if($volume->get_packagetype() ne 'audio') {
-        foreach my $required_event_type ("capture","message digest calculation","fixity check","validation","ingestion") {
-            $self->set_error("BadField",detail=>"Missing required PREMIS event type",
-                field=>"premis event $required_event_type")
-            if not defined $included_event_types{$required_event_type};
-        }
-    }
+}
 
+sub _get_event_type {
+  my $event = shift;
+  if (defined $event->{event_type}) { 
+    return $event->{event_type};
+  } elsif ( $event->isa("XML::LibXML::Element") ) {
+    my $xc = XML::LibXML::XPathContext->new($event);
+    register_namespaces($xc);
+    return $xc->findvalue( './premis:eventType', $event );
+  } else {
+    return undef;
+  }
+
+}
+
+sub _check_premis {
+  my $self = shift;
+  my $volume = $self->{volume};
+
+  my %included_event_types = map { (_get_event_type($_),1) } values( %{$self->{included_events}} );
+  # at a minimum there should be capture, message digest calculation,
+  # fixity check, validation and ingestion.
+  if($volume->get_packagetype() ne 'audio') {
+      foreach my $required_event_type (@{$self->{required_events}}) {
+          $self->set_error("BadField",detail=>"Missing required PREMIS event type",
+              field=>"premis event $required_event_type")
+          if not defined $included_event_types{$required_event_type};
+      }
+  }
 
 }
 
