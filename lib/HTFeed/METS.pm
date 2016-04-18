@@ -15,6 +15,7 @@ use Date::Manip;
 use File::Basename qw(basename dirname);
 use FindBin;
 use HTFeed::Version;
+use Scalar::Util qw(blessed);
 
 use base qw(HTFeed::Stage);
 
@@ -469,9 +470,10 @@ sub _add_premis_events {
 
 sub _get_event_type {
   my $event = shift;
-  if (defined $event->{event_type}) { 
+
+  if (blessed($event) and $event->isa("PREMIS::Event") and defined $event->{event_type}) { 
     return $event->{event_type};
-  } elsif ( $event->isa("XML::LibXML::Element") ) {
+  } elsif (blessed($event) and $event->isa("XML::LibXML::Element") ) {
     my $xc = XML::LibXML::XPathContext->new($event);
     register_namespaces($xc);
     return $xc->findvalue( './premis:eventType', $event );
