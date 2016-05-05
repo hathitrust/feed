@@ -72,10 +72,10 @@ our $config = {
             jhove => 0,
             utf8 => 1
         },
-		pdf => {
+        pdf => {
             prefix => 'PDF',
             use => 'pdf',
-            file_pattern => qr/\d+\.pdf$/,
+            file_pattern => qr/[a-zA-Z0-9-._]\.pdf$/,
             required => 0,
             content => 1,
             jhove => 0,
