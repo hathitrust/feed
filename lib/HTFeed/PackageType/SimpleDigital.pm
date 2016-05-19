@@ -22,7 +22,7 @@ our $config = {
     marc\.xml |
     \d{8}.(html|xml|jp2|tif|txt) |
     .*\.mets\.xml |
-    \d+.(pdf)
+    [a-zA-Z0-9._-]+\.pdf
     )/x,
 
     # Configuration for each filegroup. 
@@ -75,7 +75,7 @@ our $config = {
         pdf => {
             prefix => 'PDF',
             use => 'pdf',
-            file_pattern => qr/[a-zA-Z0-9-._]\.pdf$/,
+            file_pattern => qr/[a-zA-Z0-9._-]+\.pdf$/,
             required => 0,
             content => 1,
             jhove => 0,
