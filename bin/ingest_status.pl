@@ -91,6 +91,7 @@ my $dbh = get_dbh();
 my $log_sth = $dbh->prepare("select * from feed_log where namespace = ? and id = ? order by timestamp asc");
 my $last_err_sth = $dbh->prepare("select * from feed_last_error where namespace = ? and id = ?");
 my $queue_sth = $dbh->prepare("select * from feed_queue where namespace = ? and id = ?");
+my $queue_done_sth = $dbh->prepare("select * from feed_queue_done where namespace = ? and id = ?");
 
 foreach my $volume (@volumes) {
 
@@ -99,10 +100,17 @@ foreach my $volume (@volumes) {
 
     $queue_sth->execute($namespace,$objid);
     my $queue_info = $queue_sth->fetchrow_hashref();
+    $queue_done_sth->execute($namespace,$objid);
+    my $queue_done_info = $queue_done_sth->fetchrow_hashref();
 
     if(not defined $queue_info) {
+      if(defined $queue_done_info) {
+        $queue_info = $queue_done_info;
+        $queue_info->{status} = 'done';
+      } else {
         print "$namespace.$objid: not in queue\n" ;
         next;
+      }
     }
 
     print "$namespace.$objid: $queue_info->{pkg_type}; $queue_info->{status}";
