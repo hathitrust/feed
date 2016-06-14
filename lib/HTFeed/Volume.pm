@@ -283,6 +283,7 @@ sub get_checksum_md5 {
       $checksum = lc($1);
       $filename = lc($3);
       $filename =~ s/.*\///; # strip pathnames, since we junked them from the zip file
+      $filename =~ s/\s*$//; # strip trailing whitespace
       $checksums->{$filename} = $checksum;
     }	
     $self->{checksums_file} = $checksums;
