@@ -192,7 +192,6 @@ sub _remediate_tiff {
     my $set_if_undefined_headers = shift;
 
     my $bad                   = 0;
-    my $remediate_exiftool    = 0;    #fix with exiftool is sufficient
     my $remediate_imagemagick = 0;    #needs imagemagick fix
     $self->{newFields} = $force_headers;
     $self->{oldFields} = $self->get_exiftool_fields($infile);
@@ -239,7 +238,6 @@ sub _remediate_tiff {
                   ->trace(
 "PREVALIDATE_REMEDIATE: $infile has remediable error '$error'\n"
                   );
-                $remediate_exiftool = 1;
             }
             else {
                 $self->set_error(
@@ -265,62 +263,7 @@ sub _remediate_tiff {
 
     }
 
- # ModifyDate, if given
-    if(defined $set_if_undefined_headers->{'DateTime'}) {
-        # If the old TIFF has an XMP and has IFD0:ModifyDate but does NOT have the XMP-tiff:DateTime
-        # field, OR if it has the XMP-tiff:DateTime field but not the IFD0:ModifyDate header, we need
-        # to make sure the fields match in the end.
-        if(    (defined $self->{oldFields}{'XMP:XMP'} 
-                and defined $self->{oldFields}{'IFD0:ModifyDate'}
-                and not defined $self->{oldFields}{'XMP-tiff:DateTime'}) 
-            or (defined $self->{oldFields}{'XMP-tiff:DateTime'}
-                and not defined $self->{oldFields}{'IFD0:ModifyDate'})) {
-            $self->{newFields}{'DateTime'} = $set_if_undefined_headers->{'DateTime'};
-        } else {
-            $set_if_undefined_headers->{'IFD0:ModifyDate'} = $set_if_undefined_headers->{'DateTime'};
-            $set_if_undefined_headers->{'XMP-tiff:DateTime'} = $set_if_undefined_headers->{'DateTime'} if defined $self->{oldFields}{'XMP:XMP'};
-        }
-        delete $set_if_undefined_headers->{'DateTime'};
-    }
-    if(defined $self->{newFields}{'DateTime'}) {
-        $self->{newFields}{'IFD0:ModifyDate'} = $self->{newFields}{'DateTime'};
-        $self->{newFields}{'XMP-tiff:DateTime'} = $self->{newFields}{'DateTime'} if defined $self->{oldFields}{'XMP:XMP'};
-        delete $self->{newFields}{'DateTime'};
-    }
-
-
-    # remediate existing IFD0:ModifyDate if we aren't overwriting it
-    if(not defined($self->{newFields}{'IFD0:ModifyDate'})) {
-   # get existing DateTime field, normalize to TIFF 6.0 spec "YYYY:MM:DD HH:MM:SS"
-      my $datetime = $self->{oldFields}{'IFD0:ModifyDate'};
-      if (    defined $datetime
-          and $datetime =~ /^(\d{4}).(\d{2}).(\d{2}).(\d{2}).(\d{2}).(\d{2})/
-          and $datetime !~ /^(\d{4}):(\d{2}):(\d{2}) (\d{2}):(\d{2}):(\d{2})/ )
-      {
-          $self->{newFields}{'IFD0:ModifyDate'} = "$1:$2:$3 $4:$5:$6";
-          $remediate_exiftool = 1;
-      }
-      elsif ( defined $datetime
-          and $datetime =~ /^(\d{4}).?(\d{2}).?(\d{2})/
-          and $datetime !~ /^(\d{4}):(\d{2}):(\d{2}) (\d{2}):(\d{2}):(\d{2})/ )
-      {
-          $self->{newFields}{'IFD0:ModifyDate'} = "$1:$2:$3 00:00:00";
-          $remediate_exiftool = 1;
-      }
-
-      # two digit date from 1990s
-      elsif ( defined $datetime and $datetime =~ /^(\d{2})\/(\d{2})\/(9\d)$/ ) {
-          $self->{newFields}{'IFD0:ModifyDate'} = "19$3:$1:$2 00:00:00";
-      }
-      elsif ( defined $datetime
-          and $datetime eq ''
-          and defined $set_if_undefined_headers->{'IFD0:ModifyDate'} )
-      {
-          $self->{newFields}{'IFD0:ModifyDate'} =
-            $set_if_undefined_headers->{'IFD0:ModifyDate'};
-          $remediate_exiftool = 1;
-      }
-    }
+    $self->fix_datetime($set_if_undefined_headers->{'DateTime'});
 
     # Fix resolution, if needed
     my $force_res = $self->{force_headers}{'Resolution'};
@@ -355,7 +298,6 @@ sub _remediate_tiff {
             )
           )
         {
-            $remediate_exiftool = 1;
             $self->{newFields}{'IFD0:Orientation'} = 'Horizontal (normal)';
         }
         $remediate_imagemagick = 1
@@ -383,7 +325,7 @@ sub _remediate_tiff {
     }
 
     # Fix the XMP, if needed
-    if(defined($self->{oldFields}{'XMP:XMP'})) {
+    if($self->needs_xmp) {
         # force required fields
         $self->{newFields}{'XMP-tiff:BitsPerSample'} = 1;
         $self->{newFields}{'XMP-tiff:Compression'} = 'T6/Group 4 Fax';
@@ -521,16 +463,9 @@ sub _remediate_jpeg2000 {
 
 
     # normalize the date to ISO8601 if it is close to that; assume UTC if no time zone given (rare in XMP)
-    my $datetime = $self->{'oldFields'}->{'XMP-tiff:DateTime'};
-    if (defined $datetime and $datetime =~ /^(\d{4})[:\/-](\d\d)[:\/-](\d\d)[T ](\d\d):(\d\d)(:\d\d)?(Z|[+-]\d{2}:\d{2})?$/ ) {
-      my ($Y,$M,$D,$h,$m,$s,$tz) = ($1,$2,$3,$4,$5,$6,$7);
-      $s = '00' if not defined $s;
-      $tz = 'Z' if not defined $tz;
-      $self->{newFields}{'XMP-tiff:DateTime'} = "$Y-$M-${D}T$h:$m:$s$tz";
-    } else {
-      # missing or very badly formatted date; force override
-      $self->{newFields}{'XMP-tiff:DateTime'} = $set_if_undefined_headers->{'XMP-tiff:DateTime'}
-    }
+    my $normalized_date = fix_iso8601_date($self->{'oldFields'}{'XMP-tiff:DateTime'});
+    $normalized_date = $set_if_undefined_headers->{'XMP-tiff:DateTime'} if not defined $normalized_date;
+    $self->{newFields}{'XMP-tiff:DateTime'}  = $normalized_date;
 
     my $resolution = undef;
 
@@ -949,6 +884,141 @@ sub convert_tiff_to_jpeg2000 {
     }
 
     $self->update_tags( $exifTool, "$outfile" );
+}
+
+# normalize the date to ISO8601 if it is close to that; assume UTC if no time zone given (rare in XMP)
+sub fix_iso8601_date {
+  my $datetime = shift;
+
+  if (defined $datetime and $datetime =~ /^(\d{4})[:\/-](\d\d)[:\/-](\d\d)[T ](\d\d):(\d\d)(:\d\d)?(Z|[+-]\d{2}:\d{2})?$/ ) {
+    my ($Y,$M,$D,$h,$m,$s,$tz) = ($1,$2,$3,$4,$5,$6,$7);
+    $s = ':00' if not defined $s;
+    $tz = 'Z' if not defined $tz;
+    return "$Y-$M-${D}T$h:$m$s$tz";
+  } else {
+    # missing or very badly formatted date
+    return;
+  }
+}
+
+# normalize to TIFF 6.0 spec "YYYY:MM:DD HH:MM:SS"
+sub fix_tiff_date {
+  my $datetime = shift;
+
+  return if not defined $datetime;
+
+  if ( $datetime =~ /^(\d{4}).(\d{2}).(\d{2}).(\d{2}).(\d{2}).(\d{2})/ )
+  {
+    return  "$1:$2:$3 $4:$5:$6";
+  }
+  elsif ( $datetime =~ /^(\d{4}).?(\d{2}).?(\d{2})/ )
+  {
+    return "$1:$2:$3 00:00:00";
+  }
+  # two digit date from 1990s
+  elsif ( $datetime =~ /^(\d{2})\/(\d{2})\/(9\d)$/ ) {
+    return  "19$3:$1:$2 00:00:00";
+  } 
+  else 
+  {
+    # garbage / unparseable
+    return; 
+  }
+
+}
+
+# update with remediated dates without regard to whether they are null or not
+sub set_new_date_fields {
+  my $self = shift;
+  my $new_tiffdate = shift;
+  my $new_xmpdate = shift;
+
+  $self->{newFields}{'IFD0:ModifyDate'} = $new_tiffdate;
+  if($self->needs_xmp) {
+    $self->{newFields}{'XMP-tiff:DateTime'} = $new_xmpdate;
+  }
+}
+
+sub fix_datetime {
+  my $self = shift;
+
+  my $default_datetime = shift;
+
+  my $tiff_datetime = fix_tiff_date($self->{oldFields}{'IFD0:ModifyDate'});
+  my $xmp_datetime = fix_iso8601_date($self->{oldFields}{'XMP-tiff:DateTime'});
+
+  $self->set_new_date_fields($tiff_datetime,$xmp_datetime);
+  $self->fix_datetime_missing($tiff_datetime,$xmp_datetime,$default_datetime);
+
+  # fix_datetime_missing may have updated these
+  $self->fix_datetime_mismatch($self->{newFields}{'IFD0:ModifyDate'},
+                               $self->{newFields}{'XMP-tiff:DateTime'},
+                               $default_datetime);
+
+}
+
+sub fix_datetime_missing {
+  my $self = shift;
+  my $tiff_datetime = shift;
+  my $xmp_datetime = shift;
+  my $default_datetime = shift;
+
+  # copy TIFF DateTime if we have it and need the XMP
+  if(defined $tiff_datetime and $self->needs_xmp and not defined $xmp_datetime) {
+    $self->set_new_date_fields($tiff_datetime,$tiff_datetime);
+  }
+
+  # copy XMP DateTime if we have it and need the TIFF DateTime
+  elsif(defined $xmp_datetime and not defined $tiff_datetime) {
+    $self->set_new_date_fields($xmp_datetime,$xmp_datetime);
+  }
+
+  # if we have neither, set both (set_new_date_fields will only set the
+  # XMP if needed)
+  elsif(not defined $xmp_datetime and not defined $tiff_datetime) {
+    $self->set_new_date_fields($default_datetime,$default_datetime);
+  }
+}
+
+sub fix_datetime_mismatch {
+  my $self = shift;
+  my $tiff_datetime = shift;
+  my $xmp_datetime = shift;
+  my $default_datetime = shift;
+
+  # if there is no XMP, we don't need to make sure they match
+  return unless $self->needs_xmp;
+
+  if ($self->tiff_xmp_date_mismatch($tiff_datetime,$xmp_datetime))  {
+    $self->set_new_date_fields($default_datetime,$default_datetime);
+  }
+}
+
+sub tiff_xmp_date_mismatch {
+  my $self = shift;
+  my $tiff_datetime = shift;
+  my $xmp_datetime = shift;
+  my $mix_datetime = undef;
+
+  if(defined $tiff_datetime and
+    # accept tiff-style or ISO8601 style
+    $tiff_datetime =~ /^(\d{4}).(\d{2}).(\d{2}).(\d{2}).(\d{2}).(\d{2})([+-]\d{2}:\d{2})?$/) {
+    $mix_datetime = "\1-\2-\3T\4:\5:\6";
+  } else {
+    # shouldn't happen at this point - tiff_datetime should either be null or
+    # well formatted
+    $self->set_error("BadValue",field => 'IFD0:ModifyDate',actual =>
+      $tiff_datetime,detail=>'Expected format YYYY:MM:DD HH:mm:ss');
+    return undef;
+  }
+
+  return (defined $xmp_datetime and defined $mix_datetime 
+      and $xmp_datetime !~ /^\Q$mix_datetime\E([+-]\d{2}:\d{2})?/)
+}
+
+sub needs_xmp {
+  my $self = shift;
+  return (grep { $_ =~ /^XMP-/ } keys(%{$self->{oldFields}}) )
 }
 
 1;
