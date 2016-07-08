@@ -172,7 +172,7 @@ sub _set_validators {
                     # xmp has timezone, mix doesn't..
                     if ( defined $xmp_datetime and defined $mix_datetime
                             and $xmp_datetime !~
-                        /^\Q$mix_datetime\E(\+\d{2}:\d{2})?/ )
+                        /^\Q$mix_datetime\E([+-]\d{2}:\d{2})?/ )
                     {
                         $self->set_error(
                             "NotMatchedValue",
