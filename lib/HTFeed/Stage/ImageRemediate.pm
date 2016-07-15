@@ -263,7 +263,14 @@ sub _remediate_tiff {
 
     }
 
-    $self->fix_datetime($set_if_undefined_headers->{'DateTime'});
+    if($self->{newFields}{DateTime}) {
+      my $new_date = $self->{newFields}{DateTime};
+      $self->set_new_date_fields($new_date,$new_date);
+      delete $self->{newFields}{'DateTime'};
+    } else {
+      $self->fix_datetime($set_if_undefined_headers->{'DateTime'});
+      delete $set_if_undefined_headers->{'DateTime'}
+    }
 
     # Fix resolution, if needed
     my $force_res = $self->{force_headers}{'Resolution'};
