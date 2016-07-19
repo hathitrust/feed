@@ -124,13 +124,14 @@ sub _add_marc_from_file {
        _get_marc_from_zephir($self,$marc_path);
     }
 
+    my $parser = new XML::LibXML;
+    my $marcxml = $parser->parse_file($marc_path);
+    my $marc_xc = new XML::LibXML::XPathContext($marcxml);
+    register_namespaces($marc_xc);
+    $self->_remediate_marc($marc_xc);
+
 #    # Validate MARC XML (if not valid, will still include and add warning)
 #    my $xmlschema = XML::LibXML::Schema->new(location => SCHEMA_MARC);
-#    my $parser = new XML::LibXML;
-#    my $marcxml = $parser->parse_file($marc_path);
-#    my $marc_xc = new XML::LibXML::XPathContext($marcxml);
-#    register_namespaces($marc_xc);
-#    $self->_remediate_marc($marc_xc);
 #    eval { $xmlschema->validate( $marcxml ); };
 #    get_logger()->warn("BadFile",file=>"marc.xml",detail => $@) if $@;
 #    my $marc_valid = !defined $@;
