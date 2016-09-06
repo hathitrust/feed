@@ -31,7 +31,9 @@ my %agent_mapping = (
   'GEU-T' => 'emory',
   'TxCM' => 'tamu',
   'DeU' => 'udel',
-  'IU' => 'illinois'
+  'IU' => 'illinois',
+  'Internet Archive' => 'archive',
+  'UM' => 'umich'
 );
 
 sub new {
@@ -1116,12 +1118,12 @@ sub migrate_agent_identifiers {
     my $agent_value_text = $agent_value->textContent();
     my $new_agent_value = undef;
     # TODO: remove after uplift
-    if($agent_type_text eq 'MARC21 Code') {
+    if($agent_type_text eq 'MARC21 Code' or $agent_type_text eq 'AgentID') {
       $new_agent_value = $agent_mapping{$agent_value_text};
       if(not defined $new_agent_value) {
         $self->set_error("BadValue",field=>'linkingAgentIdentifierValue',
           actual => $agent_value_text,
-          detail => "Don't know what the HT institution ID is for MARC org code");
+          detail => "Don't know what the HT institution ID is for obsolete agent identifier");
       }
     } elsif($agent_type_text eq 'HathiTrust AgentID') {
       if($agent_value_text eq 'UNKNOWN' and $volume->{namespace} = 'mdp') {
