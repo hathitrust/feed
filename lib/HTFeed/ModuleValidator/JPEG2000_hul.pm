@@ -109,7 +109,7 @@ sub _set_validators {
         'resolution' => {
             desc  => "resolution",
             valid => v_and(
-                v_in( 'xmp', 'xRes', [ '300/1', '400/1', '500/1', '600/1' ] ),
+                v_in( 'xmp', 'xRes', [ '300/1', '375/1', '400/1', '500/1', '600/1' ] ),
                 v_same( 'xmp', 'xRes', 'xmp', 'yRes' )
             ),
             detail =>
