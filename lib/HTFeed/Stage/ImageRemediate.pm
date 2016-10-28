@@ -215,6 +215,7 @@ sub _remediate_tiff {
                 'Tag 269 out of sequence',
                 'Invalid DateTime separator',
                 'Invalid DateTime digit',
+                'Invalid DateTime length',
                 'Count mismatch for tag 306', # DateTime -- fixable
                 'Count mismatch for tag 36867' # EXIF DateTimeOriginal - ignorable
 
@@ -922,10 +923,14 @@ sub fix_tiff_date {
   {
     return "$1:$2:$3 00:00:00";
   }
-  # two digit date from 1990s
+  # two digit year from 1990s; assume mm/dd/yy
   elsif ( $datetime =~ /^(\d{2})\/(\d{2})\/(9\d)$/ ) {
     return  "19$3:$1:$2 00:00:00";
   } 
+  # four digit year, no time; assume mm/dd/yy
+  elsif ( $datetime =~ qr(^(\d{2})[/:-](\d{2})[/:-](\d{4})$)) {
+    return "$3:$1:$2 00:00:00";
+  }
   else 
   {
     # garbage / unparseable
