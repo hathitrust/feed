@@ -274,7 +274,7 @@ sub _remediate_tiff {
     }
 
     # Fix resolution, if needed
-    my $force_res = $self->{force_headers}{'Resolution'};
+    my $force_res = $self->{newFields}{'Resolution'};
     if(defined($force_res)) {
         $self->{newFields}{'IFD0:ResolutionUnit'} = 'inch';
         $self->{newFields}{'IFD0:XResolution'} = $force_res;
