@@ -28,7 +28,7 @@ damaged:
       - '89003277828'
       - '89001867225x5'
 undamaged:
-  count: '23'
+  count: '25'
   package_types:
     google:
       inu:
@@ -64,3 +64,6 @@ undamaged:
     simple:
       uq:
       - '368762'
+      uiuc:
+      - '5418360v000032i000001'
+      - '1940422v000003'
