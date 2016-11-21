@@ -278,7 +278,7 @@ sub _remediate_tiff {
     if(defined($force_res)) {
         $self->{newFields}{'IFD0:ResolutionUnit'} = 'inch';
         $self->{newFields}{'IFD0:XResolution'} = $force_res;
-        $self->{newFields}{'IFD0:XResolution'} = $force_res;
+        $self->{newFields}{'IFD0:YResolution'} = $force_res;
         delete $self->{newFields}{Resolution};
     }
 
