@@ -41,7 +41,7 @@ sub _set_validators {
         'description'   => { desc => 'WAVE Description', detail => '', valid => v_exists( 'waveMeta', 'description' ) },
         'originator'    => { desc => 'WAVE originator', detail => '', valid => v_in(
             'waveMeta', 'originator',
-            [ 'University of Michigan', 'University of Michigan Library' ]
+            [ 'University of Michigan', 'University of Michigan Library', 'The MediaPreserve' ]
         ) },
         'originationDate' => { desc => 'WAVE origination date', detail => '', valid => sub {
             my $self = shift;
