@@ -13,6 +13,7 @@ sub new {
         @_,
     );
     $self->{profile} = "http://www.hathitrust.org/documents/hathitrust-audio-mets-profile1.0.xml";
+    $self->{required_events} = ["fixity check","validation","ingestion"];
 
     return $self;
 }
