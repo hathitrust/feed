@@ -596,10 +596,10 @@ sub get_page_count {
   return scalar(@{ $image_group->get_filenames() });
 }
 
-sub get_required_file_groups_by_page {
+sub get_required_sequence_file_groups_by_page {
   my $self = shift;
 
-  return $self->get_file_groups_by_page( sub { return $_[0]->get_required(); } )
+  return $self->get_file_groups_by_page( sub { return ($_[0]->get_required() and $_[0]->get_sequence()); } )
 
 }
 

@@ -34,6 +34,7 @@ our $config = {
             use => 'image',
             file_pattern => qr/\.(jp2)$/,
             required => 1,
+            sequence     => 1,
             content => 1,
             jhove => 1,
             utf8 => 0

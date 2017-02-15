@@ -38,6 +38,12 @@ sub get_required {
     return $self->{required};
 }
 
+sub get_sequence {
+  my $self = shift;
+  return $self->{sequence};
+}
+
+
 sub get_preservation_level {
     my $self = shift;
     if(defined $self->{preservation_level}) {

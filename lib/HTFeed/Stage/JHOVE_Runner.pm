@@ -46,12 +46,7 @@ sub run_jhove {
     my $add_args = (shift or '');
 
     # make sure we have >0 files
-    if ( !@$files ) {
-        $self->set_error(
-            "BadFile",
-            file   => "all",
-            detail => "Zero files found to validate"
-        );
+    if ( !$files or !@$files ) {
         return;
     }
 

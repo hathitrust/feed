@@ -18,6 +18,7 @@ our $config = {
             prefix => 'IMG',
             use => 'image',
             required => 1,
+            sequence => 1,
             jhove => 1,
             utf8 => 0,
         },
@@ -25,6 +26,7 @@ our $config = {
             prefix => 'OCR',
             use => 'ocr',
             required => 0,
+            sequence => 1,
             jhove => 0,
             utf8 => 1,
             content => 1
@@ -33,6 +35,7 @@ our $config = {
             prefix => 'HTML',
             use => 'coordOCR',
             required => 0,
+            sequence => 1,
             jhove => 0,
             utf8 => 1,
         }

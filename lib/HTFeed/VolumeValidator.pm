@@ -116,9 +116,9 @@ sub _validate_consistency {
     my $volume = $self->{volume};
 
     my $filegroups = $volume->get_file_groups();
-    my @filegroup_names = grep { $filegroups->{$_}->get_required() } keys(%$filegroups);
+    my @filegroup_names = grep { $filegroups->{$_}->get_required() and $filegroups->{$_}->get_sequence() } keys(%$filegroups);
 
-    my $files = $volume->get_required_file_groups_by_page();
+    my $files = $volume->get_required_sequence_file_groups_by_page();
 
     # Make sure there are no gaps in the sequence
     if ( !$volume->get_nspkg->get('allow_sequence_gaps') ) {
