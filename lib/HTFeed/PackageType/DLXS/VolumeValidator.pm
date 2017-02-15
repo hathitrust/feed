@@ -30,7 +30,7 @@ sub _validate_consistency {
 
     my $volume = $self->{volume};
 
-    my $files = $volume->get_required_file_groups_by_page();
+    my $files = $volume->get_required_page_file_groups_by_page();
 
     # query PREMIS events for item to make sure any sequence gaps are listed there:
     # <HT:fileList xmlns:HT="http://www.hathitrust.org/premis_extension"
