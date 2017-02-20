@@ -71,13 +71,23 @@ our $config = {
         ready             => 'HTFeed::PackageType::EPUB::Unpack',
         unpacked     => 'HTFeed::PackageType::EPUB::VerifyManifest',
         manifest_verified => 'HTFeed::PackageType::SimpleDigital::SourceMETS',
-        src_metsed        => 'HTFeed::VolumeValidator',
+        src_metsed        => 'HTFeed::PackageType::EPUB::VolumeValidator',
         validated  => 'HTFeed::Stage::Pack',
         packed     => 'HTFeed::PackageType::SimpleDigital::METS',
         metsed     => 'HTFeed::Stage::Handle',
         handled    => 'HTFeed::Stage::Collate',
     },
 
+    validation_run_stages => [
+      qw(validate_file_names
+      validate_filegroups_nonempty
+      validate_consistency
+      validate_checksums
+      validate_utf8
+      validate_metadata
+      validate_epub
+      validate_digitizer)
+    ],
 
     # What PREMIS events to include in the source METS file
     source_premis_events => [
