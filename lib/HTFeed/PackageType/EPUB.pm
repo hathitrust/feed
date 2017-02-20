@@ -116,6 +116,32 @@ our $config = {
         'premis_migration', #optional
     ],
 
+    # override language about 'image and OCR' files
+    premis_overrides => {
+        'package_validation' => 
+          { type => 'validation',
+            detail => 'Validation of technical characteristics of EPUB files' ,
+            executor => 'umich',
+            executor_type => 'HathiTrust Institution ID',
+            tools => ['EPUBCHECK']
+          },
+          'page_md5_fixity' => 
+          { type => 'fixity check',
+            detail => 'Validation of MD5 checksums for EPUB files',
+            executor => 'umich',
+            executor_type => 'HathiTrust Institution ID',
+            tools => ['DIGEST_MD5']
+          },
+          'page_md5_create' => 
+          { type => 'message digest calculation',
+            detail => 'Creation of MD5 checksums for EPUB files',
+            executor => 'umich',
+            executor_type => 'HathiTrust Institution ID',
+            tools => ['DIGEST_MD5']
+          }
+        },
+
+
     SIP_filename_pattern => '%s.zip',
 #    SIP_filename_pattern => '',
 
