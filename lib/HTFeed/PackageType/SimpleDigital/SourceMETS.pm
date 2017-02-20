@@ -17,7 +17,7 @@ sub _add_capture_event {
     my $creation_date = $volume->get_meta('creation_date');
     $self->set_error('MissingValue',file=>'meta.yml',field=>'creation_date') unless defined $creation_date;
 
-    my $eventcode = 'capture';
+    my $eventcode = 'creation';
     my $eventconfig = $volume->get_nspkg()->get_event_configuration($eventcode);
     $eventconfig->{'eventid'} = $volume->make_premis_uuid($eventconfig->{'type'},$creation_date);
     $eventconfig->{'executor'} = $volume->get_meta('creation_agent');

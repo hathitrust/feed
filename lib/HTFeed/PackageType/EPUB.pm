@@ -73,7 +73,7 @@ our $config = {
         manifest_verified => 'HTFeed::PackageType::SimpleDigital::SourceMETS',
         src_metsed        => 'HTFeed::VolumeValidator',
         validated  => 'HTFeed::Stage::Pack',
-        packed     => 'HTFeed::PackageType::Simple::METS',
+        packed     => 'HTFeed::PackageType::SimpleDigital::METS',
         metsed     => 'HTFeed::Stage::Handle',
         handled    => 'HTFeed::Stage::Collate',
     },
@@ -90,7 +90,7 @@ our $config = {
 
      # What PREMIS event types  to extract from the source METS and include in the HT METS
     source_premis_events_extract => [
-        'capture',       
+        'creation',       
         'source_mets_creation',
         'page_md5_create',
     ],
