@@ -23,7 +23,7 @@ sub run {
 
     my $preingest_dir = $volume->get_preingest_directory();
     my $staging_dir = $volume->get_staging_directory();
-    foreach my $file (glob("$preingest_dir/*.{pdf,epub}")) {
+    foreach my $file (glob("$preingest_dir/*.{pdf,epub,txt}")) {
       move($file,$staging_dir);
     }
 }

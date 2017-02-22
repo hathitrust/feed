@@ -22,6 +22,7 @@ our $config = {
     marc\.xml |
     [a-zA-Z0-9._-]+\.epub |
     [a-zA-Z0-9._-]+\.pdf |
+    [a-zA-Z0-9._-]+\.txt |
     .*\.mets\.xml
     )/x,
 
@@ -43,6 +44,20 @@ our $config = {
             content => 1,
             jhove => 0,
             utf8 => 0,
+            # set to 0 to omit filegroup from structmap
+            # (there is not a PDF file for every page, so including it in the
+            # physical structmap wouldn't make much sense.)
+            structmap => 0
+        },
+        text => {
+            prefix => 'TEXT',
+            use => 'text',
+            file_pattern => qr/[a-zA-Z0-9._-]+\.txt$/,
+            required => 1,
+            sequence => 0,
+            content => 1,
+            jhove => 0,
+            utf8 => 1,
             # set to 0 to omit filegroup from structmap
             # (there is not a PDF file for every page, so including it in the
             # physical structmap wouldn't make much sense.)
