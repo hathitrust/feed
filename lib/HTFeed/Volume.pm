@@ -1019,11 +1019,9 @@ sub update_feed_audit {
 
   my ($sdr_partition) = ($path =~ qr#/?sdr(\d+)/?#);
 
- my $stmt =
- "insert into feed_audit (namespace, id, sdr_partition, zip_size, zip_date, mets_size, mets_date, lastchecked) values(?,?,?,?,?,?,?,CURRENT_TIMESTAMP)";
-#  my $stmt =
-#  "insert into feed_audit (namespace, id, sdr_partition, zip_size, zip_date, mets_size, mets_date, lastchecked) values(?,?,?,?,?,?,?,CURRENT_TIMESTAMP) \
-#  ON DUPLICATE KEY UPDATE sdr_partition = ?, zip_size=?, zip_date =?,mets_size=?,mets_date=?,lastchecked = CURRENT_TIMESTAMP";
+  my $stmt =
+  "insert into feed_audit (namespace, id, sdr_partition, zip_size, zip_date, mets_size, mets_date, lastchecked) values(?,?,?,?,?,?,?,CURRENT_TIMESTAMP) \
+  ON DUPLICATE KEY UPDATE sdr_partition = ?, zip_size=?, zip_date =?,mets_size=?,mets_date=?,lastchecked = CURRENT_TIMESTAMP";
 
   my $zipfile = "$path/$pt_objid.zip";
   my $zip_seconds;
@@ -1056,7 +1054,7 @@ sub update_feed_audit {
       $sdr_partition, $zipsize, $zipdate, $metssize,  $metsdate, 
 
       # duplicate parameters for duplicate key update
-#      $sdr_partition, $zipsize, $zipdate, $metssize,  $metsdate
+      $sdr_partition, $zipsize, $zipdate, $metssize,  $metsdate
     );
 
   
