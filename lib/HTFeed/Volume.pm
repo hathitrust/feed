@@ -17,6 +17,7 @@ use Data::UUID;
 use File::Path qw(remove_tree mkpath);
 use File::Basename qw(dirname);
 use File::Copy qw(move);
+use POSIX qw(strftime);
 
 # singleton stage_map override
 my $stage_map = undef;
@@ -1004,6 +1005,61 @@ sub apparent_digitizer {
     }
   }
   return $capture_agent;
+}
+
+# updates the zip_date in the feed_audit table to the current timestamp for
+# this zip in the repository
+sub update_feed_audit {
+  my $self = shift;
+  my $path = shift;
+
+  my $pt_objid = $self->get_pt_objid();
+
+  my $dbh = HTFeed::DBTools::get_dbh();
+
+  my ($sdr_partition) = ($path =~ qr#/?sdr(\d+)/?#);
+
+ my $stmt =
+ "insert into feed_audit (namespace, id, sdr_partition, zip_size, zip_date, mets_size, mets_date, lastchecked) values(?,?,?,?,?,?,?,CURRENT_TIMESTAMP)";
+#  my $stmt =
+#  "insert into feed_audit (namespace, id, sdr_partition, zip_size, zip_date, mets_size, mets_date, lastchecked) values(?,?,?,?,?,?,?,CURRENT_TIMESTAMP) \
+#  ON DUPLICATE KEY UPDATE sdr_partition = ?, zip_size=?, zip_date =?,mets_size=?,mets_date=?,lastchecked = CURRENT_TIMESTAMP";
+
+  my $zipfile = "$path/$pt_objid.zip";
+  my $zip_seconds;
+  my $zipdate;
+  my $zipsize;
+
+  if ( -e $zipfile ) {
+    $zip_seconds = ( stat($zipfile) )[9];
+    $zipdate = strftime( "%Y-%m-%d %H:%M:%S", localtime($zip_seconds) );
+    $zipsize = -s $zipfile;
+  }
+
+  my $metsfile = "$path/$pt_objid.mets.xml";
+
+  my $mets_seconds;
+  my $metsdate;
+  my $metssize;
+
+  if ( -e $metsfile ) {
+    $mets_seconds = ( stat($metsfile) )[9];
+    $metssize     = -s $metsfile;
+    $metsdate     = strftime( "%Y-%m-%d %H:%M:%S",
+      localtime( ( stat($metsfile) )[9] ) );
+  }
+
+  my $sth  = $dbh->prepare($stmt);
+  $sth->execute( 
+      $self->get_namespace, $self->get_objid, 
+
+      $sdr_partition, $zipsize, $zipdate, $metssize,  $metsdate, 
+
+      # duplicate parameters for duplicate key update
+#      $sdr_partition, $zipsize, $zipdate, $metssize,  $metsdate
+    );
+
+  
 }
 
 1;

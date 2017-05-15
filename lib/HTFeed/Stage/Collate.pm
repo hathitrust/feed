@@ -80,6 +80,8 @@ sub run{
         system('cp','-f',$zip_source,$pairtree_object_path)
             and $self->set_error('OperationFailed', operation => 'cp', detail => "cp $zip_source $pairtree_object_path failed with status: $?");
 
+        $volume->update_feed_audit($pairtree_object_path);
+
         $self->_set_done();
         return $self->succeeded();
     }
