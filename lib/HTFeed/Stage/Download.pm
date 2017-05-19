@@ -35,6 +35,7 @@ sub download{
         url => undef,
         path => undef,
         filename => undef,
+        cookies => undef,
         not_found_ok => 0,
         @_,
     };
@@ -42,14 +43,20 @@ sub download{
     my $path = $arguments->{path};
     my $filename = $arguments->{filename};
     my $not_found_ok = $arguments->{not_found_ok};
+    my $cookies = $arguments->{cookies};
 
     my $pathname = "$path/$filename";
     # already downloaded? just return
     return 1 if -e "$path/$filename";
 
     my $ua = LWP::UserAgent->new;
-	my $version = HTFeed::Version::get_vstring();
+    if($cookies) {
+      $ua->cookie_jar($cookies);
+    }
+    my $version = HTFeed::Version::get_vstring();
     $ua->agent('HTFeedBot/$version  '); # space causes LWP to append its ua
+
+    $ua = $self->authorize_user_agent($ua);
 
     get_logger()->trace("Requesting $url");
     my $request = HTTP::Request->new('GET', $url);
@@ -98,6 +105,20 @@ Do cleaning that is appropriate after failure
 sub clean_failure{
     my $self = shift;
     $self->{volume}->clean_download();
+}
+
+=item user_agent()
+
+Returns a user agent for the request. Subclasses can download this to implement
+OAuth or cookie-based authentication.
+
+=cut
+
+sub user_agent {
+  my $self = shift;
+  my $ua = shift;
+  
+  return $ua;
 }
 
 1;
