@@ -56,7 +56,8 @@ our $config = {
         }
     },
 
-    source_mets_file => qr/\w+\.xml$/,
+    # regex that will never match
+    source_mets_file => qr/(?!)/,
 
 };
 
