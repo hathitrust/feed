@@ -107,17 +107,18 @@ sub clean_failure{
     $self->{volume}->clean_download();
 }
 
-=item user_agent()
 
-Returns a user agent for the request. Subclasses can download this to implement
+=item authorize_user_agent()
+
+Authorizes a user agent for the request. Subclasses can download this to implement
 OAuth or cookie-based authentication.
 
 =cut
 
-sub user_agent {
+sub authorize_user_agent {
   my $self = shift;
   my $ua = shift;
-  
+
   return $ua;
 }
 

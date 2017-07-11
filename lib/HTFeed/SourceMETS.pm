@@ -145,6 +145,14 @@ sub _add_marc_from_file {
     $self->{mets}->add_dmd_sec($dmdsec);
 }
 
+sub authorize_user_agent {
+
+  my $self = shift;
+  my $ua = shift;
+
+  return $ua;
+}
+
 1;
 
 __END__
