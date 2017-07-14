@@ -39,6 +39,11 @@ sub record_premis_event {
     return;
 }
 
+# Return junk digitization sources w/o consulting database
+sub get_sources {
+  return ( 'foo','bar','baz' );
+};
+
 1;
 
 __END__
