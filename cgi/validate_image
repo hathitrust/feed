@@ -5,8 +5,8 @@ use warnings;
 
 BEGIN {
     $ENV{HTFEED_CONFIG} = '/htapps/babel/feed/etc/config_singleimage.yaml';
-
     $ENV{DEBUG_LOCAL} = 1;
+    $ENV{OVERRIDE_STOPFEED} = 1;
 }
 
 # Permit created directories at 777 and created files at 666.
@@ -29,7 +29,7 @@ use HTFeed::Config qw(set_config);
 use HTFeed::TestVolume;
 use HTFeed::VolumeValidator;
 use Log::Log4perl qw(get_logger);
-use File::Temp qw(tempfile);
+use File::Temp qw(tempdir);
 use File::Basename qw(basename dirname);
 use HTFeed::XMLNamespaces qw(register_namespaces);
 use IO::String;
@@ -85,32 +85,37 @@ EOT
 
      if ( $upload_filename =~ /(\.jp2|\.tif)$/i ) {
          $suffix = lc($1);
+
+         my $tempdir = File::Temp->newdir();
+         my $filename = basename($file->path());
+         my $filepath = "$tempdir/$filename";
+
+         rename($file->path(),$filepath) or die("Can't move upload image to temporary dir: $!");;
  
-         open( my $temp_fh, "<", $file->path() )
+         open( my $temp_fh, "<", $filepath )
            or die("Can't open uploaded file: $!");
  
          # now try to run jhove?!?
  
          # run validation
          my $volume;
-         my $dir = dirname( $file->path() );
          $volume = HTFeed::TestVolume->new(
              namespace   => $namespace,
              packagetype => $packagetype,
-             dir         => $dir,
+             dir         => $tempdir,
              objid       => $objid
          ) if ( defined $objid );
          $volume = HTFeed::TestVolume->new(
              namespace   => $namespace,
              packagetype => $packagetype,
-             dir         => $dir
+             dir         => $tempdir
          ) if ( !defined $objid );
  
          my $vol_val = HTFeed::VolumeValidator->new( volume => $volume );
  
          $vol_val->run_jhove(
-             $volume, $dir,
-             [ basename( $file->path() ) ],
+             $volume, $tempdir,
+             [ $filename ],
              sub {
                  my ( $volume, $file, $node ) = @_;
 
@@ -166,7 +171,7 @@ EOT
          );
  
          close($temp_fh);
-         unlink( $file->path() );
+         unlink( $filepath );
  
      }
      else {

@@ -12,7 +12,7 @@ our @EXPORT_OK = qw(continue_running_server check_disk_usage);
 my $stop_file = get_config('stop_file');
 my $locked = _locked();
 
-if ($locked and !$ENV{OVERRIDE_STOPFEED}){
+if ($locked) {
     print "STOPFEED is set -- waiting 30 seconds, then exiting!\n";
     sleep 30;
     exit 1;
@@ -20,7 +20,7 @@ if ($locked and !$ENV{OVERRIDE_STOPFEED}){
 
 # check if stop condition is met
 sub _locked {
-    -e $stop_file ? return 1 : return 0;
+    (-e $stop_file and !$ENV{OVERRIDE_STOPFEED}) ? return 1 : return 0;
 }
 
 sub continue_running_server {
