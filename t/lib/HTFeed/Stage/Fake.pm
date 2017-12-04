@@ -21,6 +21,13 @@ sub set_error{
     return;
 }
 
+sub authorize_user_agent {
+
+  my $self = shift;
+  my $ua = shift;
+
+  return $ua;
+}
 1;
 
 __END__

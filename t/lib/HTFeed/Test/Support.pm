@@ -8,6 +8,7 @@ our @EXPORT_OK = qw(get_test_volume get_fake_stage md5_dir test_config);
 
 use HTFeed::Config qw(get_config set_config);
 use HTFeed::Volume;
+use HTFeed::TestVolume;
 use HTFeed::Stage::Fake;
 use Digest::MD5;
 use FindBin;
@@ -77,11 +78,11 @@ my @test_classes;
 sub get_test_volume{
     my $voltype = shift;
 
-	#TODO this should always be defined as some packagetype
-    $voltype = 'default' if not defined $voltype;
+    #TODO this should always be defined as some packagetype
+    return HTFeed::TestVolume->new(objid => 'test', namespace => 'test', packagetype=> 'ht')
+      if not defined $voltype or $voltype eq 'default';
 
     my $volumes = {
-        default => {objid =>  '35112102255959',namespace => 'mdp',packagetype => 'google' },
         google => {objid =>  '35112102255959',namespace => 'mdp',packagetype => 'google' },
         ia => {objid =>  'ark:/13960/t00000431',namespace => 'uc2',packagetype => 'ia' },
         yale => {objid =>  '39002001567222',namespace => 'yale',packagetype => 'yale' },
@@ -97,32 +98,32 @@ sub get_fake_stage{
     return HTFeed::Stage::Fake->new(volume => $volume);
 }
 
-# md5_dir($directory)
-# returns an md5 sum for the contents of a directory
-# probably won't work on a non flat heirarchy
-sub md5_dir{
-    my $dir = shift;
-
-    my $digest = Digest::MD5->new();
-    opendir(my $dirh, $dir) or die("Can't open $dir: $!");
-    my @files = ();
-    while(my $filename = readdir($dirh)) {
-        next if $filename eq '.' or $filename eq '..';
-        push(@files,$filename);
-    }
-    closedir($dirh);
-
-    foreach my $file (sort @files){
-        $file = "$dir/$file";
-        open(my $fh, '<', $file);
-        binmode $fh;
-        eval{$digest->addfile($fh);};
-            if($@){confess "md5_dir: reading $dir/$file failed";}
-        close $fh;
-    }
-    
-    return $digest->hexdigest();
-}
+# # md5_dir($directory)
+# # returns an md5 sum for the contents of a directory
+# # probably won't work on a non flat heirarchy
+# sub md5_dir{
+#     my $dir = shift;
+# 
+#     my $digest = Digest::MD5->new();
+#     opendir(my $dirh, $dir) or die("Can't open $dir: $!");
+#     my @files = ();
+#     while(my $filename = readdir($dirh)) {
+#         next if $filename eq '.' or $filename eq '..';
+#         push(@files,$filename);
+#     }
+#     closedir($dirh);
+# 
+#     foreach my $file (sort @files){
+#         $file = "$dir/$file";
+#         open(my $fh, '<', $file);
+#         binmode $fh;
+#         eval{$digest->addfile($fh);};
+#             if($@){confess "md5_dir: reading $dir/$file failed";}
+#         close $fh;
+#     }
+#     
+#     return $digest->hexdigest();
+# }
 
 sub get_test_classes{
     return \@test_classes;

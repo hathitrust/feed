@@ -5,6 +5,7 @@ use strict;
 use base qw(HTFeed::Stage::AbstractTest);
 use HTFeed::Test::Support qw(get_fake_stage test_config);
 #use HTFeed::Config qw(set_config);
+use HTFeed::PackageType::IA::VerifyManifest;
 use File::Copy;
 use File::Find;
 use File::Path qw(make_path);
@@ -29,7 +30,7 @@ sub Missing : Test(2){
 	my $ia_id = $volume->get_ia_id();
 	my $objdir   = $volume->get_download_directory();
 	my $manifest = "$objdir/${ia_id}_files.xml";
-	my $undamaged = "/htapps/test.babel/feed/t/staging/UNDAMAGED";
+	my $undamaged = "/htapps/feed.babel/test_data/staging/UNDAMAGED";
 
 	# delete $manifest
 	unlink("$manifest");
@@ -45,6 +46,7 @@ sub Missing : Test(2){
 	copy($clean_copy,$objdir) or die "copy failed: $!";
 }
 
+sub pkgtype { 'ia' }
 1;
 
 __END__

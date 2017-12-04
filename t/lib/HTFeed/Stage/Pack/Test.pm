@@ -5,6 +5,7 @@ use strict;
 
 use base qw(HTFeed::Stage::AbstractTest);
 use Test::More;
+use HTFeed::Stage::Pack;
 
 sub my_test : Test(1){
     my $self = shift;

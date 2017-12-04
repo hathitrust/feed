@@ -5,6 +5,7 @@ use strict;
 use base qw(HTFeed::Stage::AbstractTest);
 use File::Path qw(make_path);
 use HTFeed::Test::Support qw(get_fake_stage test_config);
+use HTFeed::PackageType::IA::Download;
 use Test::More;
 
 # test IA download stage with expected conditions
@@ -18,6 +19,7 @@ sub download_dir : Test(1){
 	ok($stage->run(), 'IA: Download stage succeeded for undamaged package');
 }
 
+sub pkgtype { 'ia' }
 1;
 
 __END__

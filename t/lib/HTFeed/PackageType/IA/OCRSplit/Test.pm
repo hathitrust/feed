@@ -4,6 +4,7 @@ use warnings;
 use strict;
 use base qw(HTFeed::Stage::AbstractTest);
 use HTFeed::Test::Support qw(get_fake_stage test_config);
+use HTFeed::PackageType::IA::OCRSplit;
 #use HTFeed::Config qw(set_config);
 use File::Copy;
 use File::Path qw(make_path);
@@ -15,6 +16,11 @@ sub OCRSplit : Test(2){
 	test_config('undamaged');
 
     my $self = shift;
+	my $volume = $self->{volume};
+	my $objdir = $volume->get_download_directory();
+	my $ia_id = $volume->get_ia_id();
+	my $clean_copy = "/htapps/feed.babel/test_data/staging/UNDAMAGED/download/ia/$ia_id/${ia_id}_djvu.xml";
+  copy($clean_copy,$objdir) or die "copy failed: $!";
 	my $stage = $self->{test_stage};	
 	ok($stage->run(),'IA: OCRSplit succeeded with undamaged package');
 	ok($stage->stage_info(), 'IA: OCRSPlit stage info succeeded with undamaged package');
@@ -38,11 +44,9 @@ sub Errors : Test(2){
 	unlink($xml);
 
     ok(! -e $xml, 'verify that djvu is missing...');
-    ok(! $stage->run(), '...and IA: OCRSplit stage fails');
+    eval { $stage->run () };
 
-	#replace djvu for next test
-	my $clean_copy = "/htapps/test.babel/feed/t/staging/UNDAMAGED/download/ia/$ia_id/${ia_id}_djvu.xml";
-    copy($clean_copy,$objdir) or die "copy failed: $!";
+    ok($@ =~ /STAGE_ERROR/, '...and IA: OCRSplit stage fails');
 }
 
 # test errors caused by corruputed data
@@ -55,23 +59,22 @@ sub usemap : Test(1){
     my $stage = $self->{test_stage};
     my $volume = $self->{volume};
     my $objdir = $volume->get_download_directory();
+    mkdir($volume->get_staging_directory());
 	my $ia_id =  $volume->get_ia_id();
 
 	#get broken djvu from samples
-    my $samples = "/htapps/test.babel/feed/t/staging/DAMAGED/samples/ia/${ia_id}";
+    my $samples = "/htapps/feed.babel/test_data/staging/DAMAGED/samples/ia/${ia_id}";
     my $broken_scanData = "$samples/${ia_id}_djvu.xml";
     copy($broken_scanData,$objdir) or die "copy failed: $!";
 
     #run the stage again with damaged package
-	#TODO: build additional tests to verify damaged state
-	# coverage confirms branches are tested
-    ok($stage->run(), 'IA: OCRSplit succeeds with warnings on damaged package');
+    eval { $stage->run() }  ;
+    ok($@ =~ /STAGE_ERROR/, 'IA: OCRSplit fails on damaged package');
 
-    #replace with standard djvu for next stage test
-    my $clean_copy = "/htapps/test.babel/feed/t/staging/UNDAMAGED/download/ia/$ia_id/${ia_id}_djvu.xml";
-    copy($clean_copy,$objdir) or die "copy failed: $!";
-
+    print $stage->stage_info();
 }
+
+sub pkgtype { "ia" }
 
 1;
 

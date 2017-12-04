@@ -23,10 +23,6 @@ sub startup : Test(startup => 3){
     
     # basic interface adherance
     can_ok($obj, qw(run set_error clean clean_success clean_failure clean_always clean_punt));
-    
-    # save the volume for later
-    ## dead code?
-    $self->{volume} = $volume;
 }
 
 # make a clean stage for each test method
@@ -37,6 +33,7 @@ sub setup : Test(setup){
     
     HTFeed::StagingSetup::make_stage;
     
+    $self->{volume} = $volume;
     $self->{test_stage} = eval "$t_class->new(volume => \$volume)";
 }
 

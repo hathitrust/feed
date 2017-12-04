@@ -48,7 +48,6 @@ sub new {
         #		mets_name		=> undef,
         #		mets_xml		=> undef,
     );
-    $self->{outfile} = $self->{volume}->get_mets_path();
     # by default use volume "get_pagedata" to apply pagedata
     $self->{pagedata} = sub { $self->{volume}->get_page_data(@_); };
     $self->{premis} = new PREMIS;
@@ -805,7 +804,7 @@ sub _save_mets {
     my $self = shift;
     my $mets = $self->{mets};
 
-    my $mets_path = $self->{outfile};
+    my $mets_path = $self->{volume}->get_mets_path();
 
     open( my $metsxml, ">", "$mets_path" )
         or die("Can't open METS xml $mets_path for writing: $!");
@@ -815,7 +814,7 @@ sub _save_mets {
 
 sub _validate_mets {
     my $self      = shift;
-    my $mets_path = $self->{outfile};
+    my $mets_path = $self->{volume}->get_mets_path();
 
     croak("File $mets_path does not exist. Cannot validate.")
     unless -e $mets_path;

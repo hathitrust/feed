@@ -17,7 +17,7 @@ sub download : Test(1){
 
     my $url = 'http://www.archive.org/download/livesandspeeches00howeiala/livesandspeeches00howeiala_files.xml';
     my $filename = 'livesandspeeches00howeiala_files.xml';
-    my $md5_expected = '11caa9b5c4acbe9c1abdeaaa9f55ecf6';
+    my $md5_expected = 'cb07958848a6a2195e9ad84e1da78d6d';
     
     my $temp_dir = mkdtemp("/tmp/feed_test_XXXXX");
     

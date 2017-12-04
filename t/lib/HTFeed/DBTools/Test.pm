@@ -45,6 +45,7 @@ sub test_queue : Test(3) {
     my $objid = '35112102255835';
 
     $dbh->do("DELETE FROM feed_queue WHERE id = '$objid' and namespace = '$ns'");
+    $dbh->do("REPLACE INTO feed_zephir_items (namespace, id, collection, digitization_source, returned) values ('$ns','$objid','MIU','google','0')");
 
     my @res = $dbh->selectrow_array("SELECT count(*) FROM feed_blacklist WHERE id = '$objid' and namespace = '$ns'");
 
@@ -60,7 +61,7 @@ sub test_queue : Test(3) {
 
     @res = $dbh->selectrow_array(<<EOT
         SELECT count(*) FROM feed_queue WHERE id = '$objid' and namespace = '$ns' 
-            and node is NULL and status = 'ready' 
+            and node is NULL and status = 'available' 
             and pkg_type = 'google' and failure_count = '0'
 EOT
     );

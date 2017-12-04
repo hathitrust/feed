@@ -4,6 +4,7 @@ use warnings;
 use strict;
 use base qw(HTFeed::Stage::AbstractTest);
 use HTFeed::Test::Support qw(get_fake_stage test_config);
+use HTFeed::PackageType::IA::Unpack;
 #use HTFeed::Config qw(set_config);
 use File::Path qw(make_path);
 use Test::More;
@@ -37,6 +38,7 @@ sub Unpack : Test(1){
 	ok($stage->run, 'IA: Unpack stage succeeds with undamaged volume');
 }
 
+sub pkgtype { 'ia' }
 1;
 
 __END__

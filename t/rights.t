@@ -5,7 +5,7 @@ use warnings;
 use Test::More;
 
 @ARGV = qw(--force-man --note="test");;;;;;;;
-require '../bin/feed.hourly/populate_rights_data.pl';
+require 'bin/feed.hourly/populate_rights_data.pl';
 
 
 # pdus/bib and pd/bib override pdus/gfv, ic/bib, and und/bib
