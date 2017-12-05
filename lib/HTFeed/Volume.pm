@@ -144,38 +144,7 @@ sub get_sources {
       $self->set_error("BadValue",field=>"digitization_agent",actual=>$digitization_agents,detail=>"Unexpected digitization agent(s) $digitization_agents for collection $collection");
     }
     return ($content_providers,$responsible_entity,$digitization_agents);
-  } else {
-#    my $mets_xpc = $self->get_repository_mets_xpc();
-#    my @content_providers;
-#    my @responsible_entities;
-#    my @digitization_agents;
-#
-#    if($mets_xpc) {
-#      foreach my $contentProvider ($mets_xpc->findnodes('//ht:contentProvider')) {
-#        my $contentProviderCode = $contentProvider->textContent();
-#        $contentProviderCode .= '*' if $contentProvider->getAttribute('display') eq 'yes';
-#        push(@content_providers,[$contentProvider->getAttribute('sequence'),$contentProviderCode]);
-#      }
-#      foreach my $responsibleEntity ($mets_xpc->findnodes('//ht:responsibleEntity')) {
-#        my $responsibleEntityCode = $responsibleEntity->textContent();
-#        push(@responsible_entities,[$responsibleEntity->getAttribute('sequence'),$responsibleEntityCode]);
-#      }
-#      foreach my $digitization_agent ($mets_xpc->findnodes('//ht:digitizationAgent')) {
-#        my $digitization_agent_code = $digitization_agent->textContent();
-#        $digitization_agent_code .= '*' if $digitization_agent->getAttribute('display') eq 'yes';
-#        push(@digitization_agents,$digitization_agent_code);
-#      }
-#    }
-
-    # not found in DB or existing METS
-#    if(!@content_providers or !@responsible_entities) {
-      $self->set_error("MissingField",field=>"sources",detail=>"Can't get content provider / responsible entity / digitization agent from feed_zephir_items");
-#    } else {
-#      return (join(';',map { $_->[1] } sort { $a->[0] <=> $b->[0] } @content_providers),
-#        join(';',map { $_->[1] } sort { $a->[0] <=> $b->[0] } @responsible_entities),
-#        join(';',@digitization_agents))
-#    }
-  }
+  } 
 }
 
 sub get_access_profile {
@@ -1201,18 +1170,6 @@ Returns the total number of content files
 
 Returns the number of pages in the volume as determined by the number of
 images.
-
-=item get_files_by_page()
-
-Returns a data structure listing what files belong to each file group in
-physical page, e.g.:
-
-{ '0001' => { txt => ['0001.txt'], 
-          img => ['0001.jp2'] },
-  '0002' => { txt => ['0002.txt'],
-          img => ['0002.tif'] }, '0003' => { txt => ['0003.txt'],
-          img => ['0003.jp2','0003.tif'] }
-  };
 
 =item record_premis_event()
 
