@@ -39,6 +39,7 @@ my $mm = WriteMakefile(
 		'Test::More'			=> 0,
 		'Test::Most'			=> 0,
 		'Test::Class'			=> 0,
+    'Test::Spec'      => 0,
 	},
 	CONFIGURE_REQUIRES => { "ExtUtils::MakeMaker" => 0 },
 	EXE_FILES => [ split(/\s+/,qx!cat MANIFEST | grep ^bin.*pl\$!) ], # TODO: no more .pl extensions for these

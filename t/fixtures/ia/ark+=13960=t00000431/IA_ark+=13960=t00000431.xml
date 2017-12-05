@@ -1,0 +1,234 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<METS:mets xmlns:METS="http://www.loc.gov/METS/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:PREMIS="info:lc/xmlns/premis-v2" xmlns:HT="http://www.hathitrust.org/premis_extension" xsi:schemaLocation="http://www.loc.gov/METS/ http://www.loc.gov/standards/mets/mets.xsd http://www.loc.gov/MARC21/slim http://www.loc.gov/standards/marcxml/schema/MARC21slim.xsd info:lc/xmlns/premis-v2 http://www.loc.gov/standards/premis/v2/premis-v2-0.xsd" OBJID="uc2.ark:/13960/t00000431">
+  <METS:metsHdr CREATEDATE="2010-04-26T16:55:42" RECORDSTATUS="NEW">
+    <METS:agent ROLE="CREATOR" TYPE="ORGANIZATION">
+      <METS:name>DLPS</METS:name>
+    </METS:agent>
+    <METS:altRecordID ID="ia.adnahtaleoftimeo00elliiala" TYPE="IAidentifier"/>
+  </METS:metsHdr>
+  <METS:dmdSec ID="DMD1">
+    <METS:mdWrap MIMETYPE="text/xml" MDTYPE="MARC" LABEL="IA MARC record">
+      <METS:xmlData>
+        <record xmlns="http://www.loc.gov/MARC21/slim">
+          <leader>00505nam a22001819  4500</leader>
+          <controlfield tag="001">197683</controlfield>
+          <controlfield tag="005">20040516123456.7</controlfield>
+          <controlfield tag="008">880329 1902    pau           000 0 eng d</controlfield>
+          <datafield tag="010" ind1=" " ind2=" ">
+            <subfield code="a">   02025933 </subfield>
+          </datafield>
+          <datafield tag="035" ind1=" " ind2=" ">
+            <subfield code="9">07-APW-3110</subfield>
+          </datafield>
+          <datafield tag="040" ind1=" " ind2=" ">
+            <subfield code="a">CarP </subfield>
+          </datafield>
+          <datafield tag="050" ind1="0" ind2=" ">
+            <subfield code="a">PZ3.E474</subfield>
+            <subfield code="b">Ad </subfield>
+          </datafield>
+          <datafield tag="100" ind1="1" ind2=" ">
+            <subfield code="a">Ellis, J. Breckenridge</subfield>
+            <subfield code="q">(John Breckenridge),</subfield>
+            <subfield code="d">1870-1956.</subfield>
+          </datafield>
+          <datafield tag="245" ind1="0" ind2="0">
+            <subfield code="a">Adnah;</subfield>
+            <subfield code="b">a tale of the time of Christ, </subfield>
+          </datafield>
+          <datafield tag="260" ind1=" " ind2=" ">
+            <subfield code="a">Philadelphia :</subfield>
+            <subfield code="b">G. W. Jacobs &amp; co.,</subfield>
+            <subfield code="c">[1902]</subfield>
+          </datafield>
+          <datafield tag="300" ind1=" " ind2=" ">
+            <subfield code="a">308 p. ;</subfield>
+            <subfield code="c">19 cm. </subfield>
+          </datafield>
+          <datafield tag="935" ind1=" " ind2=" ">
+            <subfield code="a">SR0243979</subfield>
+          </datafield>
+          <datafield tag="910" ind1=" " ind2=" ">
+            <subfield code="a">MARS</subfield>
+          </datafield>
+        </record>
+      </METS:xmlData>
+    </METS:mdWrap>
+  </METS:dmdSec>
+  <METS:dmdSec ID="DMD2">
+    <METS:mdWrap MIMETYPE="text/xml" MDTYPE="OTHER" LABEL="IA metadata">
+      <METS:xmlData>
+        <metadata>
+          <title>Adnah; a tale of the time of Christ</title>
+          <creator>Ellis, J. Breckenridge (John Breckenridge), 1870-1956</creator>
+          <publisher>Philadelphia : G. W. Jacobs &amp; co.</publisher>
+          <date>[1902]</date>
+          <language>eng</language>
+          <copyright-evidence-operator>alyson-wieczorek</copyright-evidence-operator>
+          <possible-copyright-status>NOT_IN_COPYRIGHT</possible-copyright-status>
+          <copyright-region>US</copyright-region>
+          <copyright-evidence>Evidence reported by alyson-wieczorek for item adnahtaleoftimeo00elliiala on September 8, 2006: visible notice of copyright; stated date is 1902.</copyright-evidence>
+          <copyright-evidence-date>20060908200023</copyright-evidence-date>
+          <sponsor>MSN</sponsor>
+          <contributor>University of California Libraries</contributor>
+          <scanningcenter>iala</scanningcenter>
+          <mediatype>texts</mediatype>
+          <collection>americana</collection>
+          <call_number>srlf_ucla:LAGE-197683</call_number>
+          <collection-library>srlf_ucla</collection-library>
+          <identifier-bib>LAGE-197683</identifier-bib>
+          <identifier-access>http://www.archive.org/details/adnahtaleoftimeo00elliiala</identifier-access>
+          <updatedate>2006-09-08 20:00:32</updatedate>
+          <updater>alyson-wieczorek</updater>
+          <identifier>adnahtaleoftimeo00elliiala</identifier>
+          <uploader>scanner-alyson-wieczorek@archive.org</uploader>
+          <addeddate>2006-09-08 20:00:34</addeddate>
+          <publicdate>2006-09-08 13:01:00</publicdate>
+          <imagecount>332</imagecount>
+          <ppi>400</ppi>
+          <operator>scanner-sudiah-haynes@archive.org</operator>
+          <scanner>iala5</scanner>
+          <scandate>20060911173432</scandate>
+          <identifier-ark>ark:/13960/t00000431</identifier-ark>
+          <collection>cdl</collection>
+          <curation>[curator]julie@archive.org[/curator][date]20061004161228[/date][state]approved[/state]</curation>
+          <sponsordate>20060930</sponsordate>
+          <lcamid>1020707125</lcamid>
+          <rcamid>1020707296</rcamid>
+          <camera>5D</camera>
+          <filesxml>Wed Mar 17 4:17:48 UTC 2010</filesxml>
+        </metadata>
+      </METS:xmlData>
+    </METS:mdWrap>
+  </METS:dmdSec>
+  <METS:amdSec>
+    <METS:techMD ID="TMD1">
+      <METS:mdWrap MDTYPE="OTHER" LABEL="IA scandata">
+        <METS:xmlData>
+          <book xmlns="http://archive.org/scribe/xml">
+            <bookData>
+              <version>2.2.1</version>
+              <bookId>adnahtaleoftimeo00elliiala</bookId>
+              <spreadCount>167</spreadCount>
+              <leafCount>332</leafCount>
+              <maxSpreadNum>167</maxSpreadNum>
+              <cameraModel>5D</cameraModel>
+              <leftCameraId>1020707125</leftCameraId>
+              <rightCameraId>1020707296</rightCameraId>
+              <dpi>400</dpi>
+              <jpgToCr2Multiplier>1.427725</jpgToCr2Multiplier>
+            </bookData>
+            <scanLog>
+              <scanEvent>
+                <scannerEmail>scanner-sudiah-haynes@archive.org</scannerEmail>
+                <scribe>iala5</scribe>
+                <startTimeStamp>20060911165950</startTimeStamp>
+                <endTimeStamp>20060911173432</endTimeStamp>
+                <spreadShots>168</spreadShots>
+                <maxSpreadNum>167</maxSpreadNum>
+                <missingPages/>
+                <damage/>
+                <scanFactor1/>
+                <scanFactor2/>
+              </scanEvent>
+            </scanLog>
+            <pageData>
+              <page leafNum="1">
+                <handSide>RIGHT</handSide>
+                <pageNumber/>
+                <pageType>Cover</pageType>
+                <addToAccessFormats>true</addToAccessFormats>
+                <rotateDegree>90</rotateDegree>
+                <skewActive>true</skewActive>
+                <skewAngle>0.2</skewAngle>
+                <skewAngleDetect>-0.031</skewAngleDetect>
+                <skewScore>2.43</skewScore>
+                <paperLum>17</paperLum>
+                <threshold>1</threshold>
+                <gmtTimeStamp>20060911165955</gmtTimeStamp>
+                <cropBox>
+                  <x>382.0</x>
+                  <y>1026.0</y>
+                  <w>1856.0</w>
+                  <h>2826.0</h>
+                </cropBox>
+                <pageNumBox>
+                  <x>398.0</x>
+                  <y>1426.0</y>
+                  <w>342.0</w>
+                  <h>284.0</h>
+                </pageNumBox>
+              </page>
+              <page leafNum="2">
+                <handSide>LEFT</handSide>
+                <pageNumber/>
+                <pageType>Normal</pageType>
+                <addToAccessFormats>true</addToAccessFormats>
+                <rotateDegree>270</rotateDegree>
+                <skewActive>true</skewActive>
+                <skewAngle>0.141</skewAngle>
+                <skewAngleDetect>0.141</skewAngleDetect>
+                <skewScore>2.45</skewScore>
+                <paperLum>156</paperLum>
+                <threshold>142</threshold>
+                <gmtTimeStamp>20060911170038</gmtTimeStamp>
+                <cropBox>
+                  <x>912.0</x>
+                  <y>1016.0</y>
+                  <w>1730.0</w>
+                  <h>2654.0</h>
+                </cropBox>
+                <pageNumBox>
+                  <x>398.0</x>
+                  <y>1426.0</y>
+                  <w>342.0</w>
+                  <h>284.0</h>
+                </pageNumBox>
+              </page>
+            </pageData>
+          </book>
+        </METS:xmlData>
+      </METS:mdWrap>
+    </METS:techMD>
+  </METS:amdSec>
+  <METS:fileSec>
+    <METS:fileGrp ID="FG1" USE="image">
+      <METS:file ID="IMG00000001" MIMETYPE="image/jp2" SEQ="00000001" CREATED="2010-04-26T16:54:25" SIZE="1364114" CHECKSUM="86d8cf7a07c69f75419d2e17ed827ad8" CHECKSUMTYPE="MD5">
+        <METS:FLocat LOCTYPE="OTHER" OTHERLOCTYPE="SYSTEM" xlink:href="00000001.jp2"/>
+      </METS:file>
+      <METS:file ID="IMG00000002" MIMETYPE="image/jp2" SEQ="00000002" CREATED="2010-04-26T16:54:25" SIZE="597141" CHECKSUM="72e260d0d95d97f3e6f820c2a62169be" CHECKSUMTYPE="MD5">
+        <METS:FLocat LOCTYPE="OTHER" OTHERLOCTYPE="SYSTEM" xlink:href="00000002.jp2"/>
+      </METS:file>
+    </METS:fileGrp>
+    <METS:fileGrp ID="FG2" USE="ocr">
+      <METS:file ID="TXT00000001" MIMETYPE="text/plain" SEQ="00000001" CREATED="2010-04-26T16:54:24" SIZE="22" CHECKSUM="9f7c6d752a3bf48fe46bd5702bcc8830" CHECKSUMTYPE="MD5">
+        <METS:FLocat LOCTYPE="OTHER" OTHERLOCTYPE="SYSTEM" xlink:href="00000001.txt"/>
+      </METS:file>
+      <METS:file ID="TXT00000002" MIMETYPE="text/plain" SEQ="00000002" CREATED="2010-04-26T16:54:24" SIZE="0" CHECKSUM="d41d8cd98f00b204e9800998ecf8427e" CHECKSUMTYPE="MD5">
+        <METS:FLocat LOCTYPE="OTHER" OTHERLOCTYPE="SYSTEM" xlink:href="00000002.txt"/>
+      </METS:file>
+    </METS:fileGrp>
+    <METS:fileGrp ID="FG3" USE="coordOCR">
+      <METS:file ID="XML00000001" MIMETYPE="text/xml" SEQ="00000001" CREATED="2010-04-26T16:54:24" SIZE="657" CHECKSUM="0c50017c730339d0bddd2d6e768fb17f" CHECKSUMTYPE="MD5">
+        <METS:FLocat LOCTYPE="OTHER" OTHERLOCTYPE="SYSTEM" xlink:href="00000001.xml"/>
+      </METS:file>
+      <METS:file ID="XML00000002" MIMETYPE="text/xml" SEQ="00000002" CREATED="2010-04-26T16:54:24" SIZE="453" CHECKSUM="77642ae17243616b513280420d7306b6" CHECKSUMTYPE="MD5">
+        <METS:FLocat LOCTYPE="OTHER" OTHERLOCTYPE="SYSTEM" xlink:href="00000002.xml"/>
+      </METS:file>
+    </METS:fileGrp>
+  </METS:fileSec>
+  <METS:structMap ID="SM1" TYPE="physical">
+    <METS:div TYPE="volume">
+      <METS:div ORDER="1" TYPE="page">
+        <METS:fptr FILEID="IMG00000001"/>
+        <METS:fptr FILEID="TXT00000001"/>
+        <METS:fptr FILEID="XML00000001"/>
+      </METS:div>
+      <METS:div ORDER="2" TYPE="page">
+        <METS:fptr FILEID="IMG00000002"/>
+        <METS:fptr FILEID="TXT00000002"/>
+        <METS:fptr FILEID="XML00000002"/>
+      </METS:div>
+    </METS:div>
+  </METS:structMap>
+</METS:mets>
