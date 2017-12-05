@@ -4,7 +4,7 @@ use warnings;
 use strict;
 use base qw(HTFeed::Stage::AbstractTest);
 use HTFeed::Test::Support qw(get_fake_stage test_config);
-#use HTFeed::Config qw(set_config);
+use HTFeed::Config qw(get_config);
 use HTFeed::PackageType::IA::VerifyManifest;
 use File::Copy;
 use File::Find;
@@ -30,7 +30,7 @@ sub Missing : Test(2){
 	my $ia_id = $volume->get_ia_id();
 	my $objdir   = $volume->get_download_directory();
 	my $manifest = "$objdir/${ia_id}_files.xml";
-	my $undamaged = "/htapps/feed.babel/test_data/staging/UNDAMAGED";
+	my $undamaged = get_config('test_data') . "/staging/UNDAMAGED";
 
 	# delete $manifest
 	unlink("$manifest");

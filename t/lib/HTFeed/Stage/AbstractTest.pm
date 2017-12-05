@@ -7,7 +7,7 @@ use base qw(HTFeed::Test::Class);
 use Test::More;
 use HTFeed::Test::Support qw(get_test_volume);
 use HTFeed::StagingSetup;
-use HTFeed::Config;
+use HTFeed::Config qw(get_config);
 
 use File::Path qw(make_path);
 use File::Find;

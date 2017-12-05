@@ -5,7 +5,7 @@ use strict;
 use base qw(HTFeed::Stage::AbstractTest);
 use HTFeed::Test::Support qw(get_fake_stage test_config);
 use HTFeed::PackageType::IA::Unpack;
-#use HTFeed::Config qw(set_config);
+use HTFeed::Config qw(get_config);
 use File::Path qw(make_path);
 use Test::More;
 
@@ -17,7 +17,7 @@ sub temp_setup : Test(setup){
 	my $objid = $volume->get_objid();
 	$objid =~ s/:\//+\//g;
 	$objid =~ s/\//=/g;
-	my $dir = "/htapps/test.babel/feed/t/staging/UNDAMAGED";
+	my $dir = get_config("test_staging","undamaged");
 	my @locs = ("preingest","ingest","zipfile");
 	for my $loc(@locs){
 		my $gone = "$dir/$loc/$objid";

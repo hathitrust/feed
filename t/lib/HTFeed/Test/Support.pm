@@ -17,14 +17,14 @@ use Carp;
 
 my %staging_configs = (
     damaged     => {
-        download  => '/htapps/test.babel/staging/DAMAGED/download',
-        ingest    => '/htapps/test.babel/staging/DAMAGED/ingest',
-        preingest => '/htapps/test.babel/staging/DAMAGED/preingest',
+        download  => get_config('test_staging','damaged') . '/download',
+        ingest  => get_config('test_staging','damaged') . '/ingest',
+        preingest  => get_config('test_staging','damaged') . '/preingest',
     },
     undamaged     => {
-        download  => '/htapps/test.babel/staging/UNDAMAGED/download',
-        ingest    => '/htapps/test.babel/staging/UNDAMAGED/ingest',
-        preingest => '/htapps/test.babel/staging/UNDAMAGED/preingest',
+        download  => get_config('test_staging','undamaged') . '/download',
+        ingest  => get_config('test_staging','undamaged') . '/ingest',
+        preingest  => get_config('test_staging','undamaged') . '/preingest',
     },
     
     original    => {

@@ -2,7 +2,7 @@ package HTFeed::Test::Class;
 
 use base qw(Test::Class);
 use HTFeed::Test::Support qw(test_config);
-use HTFeed::Config;
+use HTFeed::Config qw(get_config);
 use File::Path qw(remove_tree);
 
 # return testing class, with assumption that $class eq "$testing_class::Test"

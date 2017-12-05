@@ -5,7 +5,7 @@ use strict;
 use base qw(HTFeed::Stage::AbstractTest);
 use HTFeed::Test::Support qw(get_fake_stage test_config);
 use HTFeed::PackageType::IA::OCRSplit;
-#use HTFeed::Config qw(set_config);
+use HTFeed::Config qw(get_config);
 use File::Copy;
 use File::Path qw(make_path);
 use Test::More;
@@ -18,8 +18,10 @@ sub OCRSplit : Test(2){
     my $self = shift;
 	my $volume = $self->{volume};
 	my $objdir = $volume->get_download_directory();
+  my $stage_dir = $volume->get_staging_directory();
+  mkdir($stage_dir);
 	my $ia_id = $volume->get_ia_id();
-	my $clean_copy = "/htapps/feed.babel/test_data/staging/UNDAMAGED/download/ia/$ia_id/${ia_id}_djvu.xml";
+	my $clean_copy = get_config('test_data') . "/staging/UNDAMAGED/download/ia/$ia_id/${ia_id}_djvu.xml";
   copy($clean_copy,$objdir) or die "copy failed: $!";
 	my $stage = $self->{test_stage};	
 	ok($stage->run(),'IA: OCRSplit succeeded with undamaged package');
@@ -63,7 +65,7 @@ sub usemap : Test(1){
 	my $ia_id =  $volume->get_ia_id();
 
 	#get broken djvu from samples
-    my $samples = "/htapps/feed.babel/test_data/staging/DAMAGED/samples/ia/${ia_id}";
+    my $samples = get_config('test_data') . "/staging/DAMAGED/samples/ia/${ia_id}";
     my $broken_scanData = "$samples/${ia_id}_djvu.xml";
     copy($broken_scanData,$objdir) or die "copy failed: $!";
 
