@@ -12,7 +12,7 @@ our $config = {
     %{$HTFeed::PackageType::Simple::config},
     description => 'Simple SIP format for cloud validator for native EPUB with optional PDF',
 
-    volume_module => 'HTFeed::PackageType::Simple::Volume',
+    volume_module => 'HTFeed::PackageType::EPUB::Volume',
 
 
     # Regular expression that distinguishes valid files in the file package
