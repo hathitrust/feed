@@ -200,6 +200,7 @@ describe "HTFeed::Volume" => sub {
 
   context "an epub item" => sub {
     before each => sub {
+      set_config(dirname(__FILE__) . "/fixtures/epub",'staging','preingest');
       set_config(dirname(__FILE__) . "/fixtures/epub",'staging','ingest');
       $volume = HTFeed::Volume->new(namespace => 'test',
         objid => 'ark:/87302/t00000001',
@@ -262,9 +263,9 @@ describe "HTFeed::Volume" => sub {
 
     };
 
-    describe '#get_epub' => sub {
-      it "returns the relative path to the epub" => sub {
-        ok($volume->get_epub() eq 'test.epub');
+    describe '#get_epub_path' => sub {
+      it "returns the path to the epub" => sub {
+        ok($volume->get_epub_path() =~ /test.epub$/);
       };
     };
 #

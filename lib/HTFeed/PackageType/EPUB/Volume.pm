@@ -15,9 +15,9 @@ sub get_file_groups {
   if(not defined $self->{filegroups}) {
     $self->SUPER::get_file_groups();
 
-    my $epub = $self->get_epub();
     my $zip = Archive::Zip->new();
-    $zip->read($self->get_staging_directory() . "/" . $epub) == AZ_OK
+    my $epub = $self->get_epub_path();
+    $zip->read($epub) == AZ_OK
       or die("Can't read $epub as zip");
 
     $self->{filegroups}{epub_contents}  = HTFeed::FileGroup->new([$zip->memberNames],
@@ -37,10 +37,10 @@ sub get_file_groups {
 
 }
 
-sub get_epub {
+sub get_epub_path {
   my $self = shift;
 
-  return $self->get_file_groups->{epub}->get_filenames()->[0];
+  return (glob($self->get_preingest_directory() . "/*epub"))[0];
 
 }
 
