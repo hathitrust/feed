@@ -14,11 +14,12 @@ context "with volume & temporary ingest/preingest/zipfile dirs" => sub {
   my $zipfile_dir;
 
   before each => sub {
-    $ingest_dir = tempdir();
-    $preingest_dir = tempdir();
-    $zipfile_dir = tempdir();
+    my $test_home = dirname(__FILE__);
+    $ingest_dir = tempdir("$test_home/tmp/feed-test-ingest-XXXXXX");
+    $preingest_dir = tempdir("$test_home/tmp/feed-test-preingest-XXXXXX");
+    $zipfile_dir = tempdir("$test_home/tmp/feed-test-zipfile-XXXXXX");
 
-    set_config(dirname(__FILE__) . "/fixtures/epub",'staging','fetch');
+    set_config($test_home . "/fixtures/epub",'staging','fetch');
     set_config($ingest_dir,'staging','ingest');
     set_config($preingest_dir,'staging','preingest');
     set_config($zipfile_dir,'staging','zipfile');
@@ -49,14 +50,6 @@ context "with volume & temporary ingest/preingest/zipfile dirs" => sub {
     it "extracts the zip" => sub {
       $stage->run();
       ok(-e "$preingest_dir/ark+=87302=t00000001/test.epub");
-    };
-
-    it "extracts the epub contents to ingest/epub_contents" => sub {
-      $stage->run();
-      ok(-e "$preingest_dir/ark+=87302=t00000001/epub_contents/META-INF/container.xml");
-      ok(-e "$preingest_dir/ark+=87302=t00000001/epub_contents/OEBPS/content.opf");
-      ok(-e "$preingest_dir/ark+=87302=t00000001/epub_contents/OEBPS/toc.xhtml");
-      ok(-e "$preingest_dir/ark+=87302=t00000001/epub_contents/OEBPS/2_chapter-1.xhtml");
     };
 
     after each => sub {
@@ -90,23 +83,97 @@ context "with volume & temporary ingest/preingest/zipfile dirs" => sub {
       ok(-e "$ingest_dir/ark+=87302=t00000001/00000001.txt");
     };
 
-    it "does not move the epub contents" => sub {
-      $stage->run();
-      ok(-e "$preingest_dir/ark+=87302=t00000001/epub_contents/META-INF/container.xml");
-      ok(! -e "$ingest_dir/ark+=87302=t00000001/epub_contents/META-INF/container.xml");
-    };
-
     after each => sub {
       $stage->clean();
     };
   };
 
-};
+  describe "HTFeed::PackageType::EPUB::SourceMETS" => sub {
+    my $stage;
 
-describe "HTFeed::PackageType::EPUB::SourceMETS" => sub {
+    before each => sub {
+      HTFeed::PackageType::EPUB::Unpack->new(volume => $volume)->run();
+      HTFeed::PackageType::EPUB::VerifyManifest->new(volume => $volume)->run();
+
+      $stage = HTFeed::PackageType::EPUB::SourceMETS->new(volume => $volume);
+
+      # don't hit the database
+      *HTFeed::Volume::record_premis_event = sub {
+        1;
+      };
+
+      *HTFeed::Volume::get_sources = sub {
+        return ( 'ht_test','ht_test','ht_test' );
+      };
+
+      # use faked-up marc in case it's missing
+
+      *HTFeed::SourceMETS::_get_marc_from_zephir = sub {
+        my $self = shift;
+        my $marc_path = shift;
+
+        open(my $fh, ">$marc_path") or die("Can't open $marc_path: $!");
+
+        print $fh <<EOT;
+<?xml version="1.0" encoding="UTF-8"?>
+<collection xmlns="http://www.loc.gov/MARC21/slim">
+  <record>
+		<leader>01142cam  2200301 a 4500</leader>
+	</record>
+</collection>
+EOT
+
+        close($fh);
+
+      };
+
+      *HTFeed::Volume::get_event_info = sub {
+        return ("some-event-id", "2017-01-01T00:00:00-04:00", undef, undef);
+      }
+    };
+
+    it "succeeds" => sub {
+      $stage->run();
+      ok($stage->succeeded());
+    };
+
+    it "generates the METS xml" => sub {
+      $stage->run();
+      use Data::Dumper;
+      print Dumper($volume->get_source_mets_file());
+      ok(-e "$ingest_dir/ark+=87302=t00000001.mets.xml");
+    };
+
+    it "has epub fileGrp with the expected number of files" => sub {
+      $stage->run();
+      my $xc = $volume->_parse_xpc("$ingest_dir/ark+=87302=t00000001.mets.xml");
+      ok($xc->findnodes('//mets:fileGrp[@USE="epub"]')->size() == 1);
+      ok($xc->findnodes('//mets:fileGrp[@USE="epub"]/mets:file')->size() == 1);
+    };
+    
+    it "has text fileGrp with the expected number of files" => sub {
+      $stage->run();
+      my $xc = $volume->_parse_xpc("$ingest_dir/ark+=87302=t00000001.mets.xml");
+      ok($xc->findnodes('//mets:fileGrp[@USE="text"]')->size() == 1);
+      ok($xc->findnodes('//mets:fileGrp[@USE="text"]/mets:file')->size() == 5);
+    };
+
+    it "has contents fileGrp with the expected number of files" => sub {
+      $stage->run();
+      my $xc = $volume->_parse_xpc("$ingest_dir/ark+=87302=t00000001.mets.xml");
+      ok($xc->findnodes('//mets:fileGrp[@USE="epub contents"]')->size() == 1);
+      ok($xc->findnodes('//mets:fileGrp[@USE="epub contents"]/mets:file')->size() == 10);
+    };
+
+    xit "has contents filegrp with file listing relative path inside epub";
+
+    xit "links text and xhtml in the structmap";
+  };
+
 };
 
 describe "HTFeed::PackageType::EPUB::VolumeValidator" => sub {
+  xit "succeeds";
 };
 
 describe "HTFeed::PackageType::EPUB::METS" => sub {

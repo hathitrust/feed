@@ -33,7 +33,9 @@ unless($vstring and $full_version_string and defined $production_ok) {
 carp "### DEVELOPMENT VERSION ### $full_version_string"
     unless($production_ok);
 
-use version 0.77; our $VERSION = version->declare($vstring);
+use version;
+print "$vstring \n";
+our $VERSION = version->declare($vstring);
 
 sub get_vstring {
     return $vstring;

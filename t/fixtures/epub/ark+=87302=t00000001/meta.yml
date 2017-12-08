@@ -1,6 +1,81 @@
 creation_date: 2017-12-06T09:06:00-04:00
 creation_agent: umich
 
+epub_contents:
+  # could also put metadata section from content.opf here for if we ever need it
+  # filenames should all be relative to the root of the epub
+  container:
+    - filename: META-INF/container.xml
+      checksum: bc793f50d0ec7ff556193c109f5d3afc
+      # made up
+      mimetype: application/xml  
+      size: 239
+      created: 2017-12-05 20:55:40.000000000 -05:00
+  mimetype:
+    - filename: mimetype
+      checksum: 4154e1f4f9c0e002cc44aae97103ebe2
+      # made up
+      mimetype: text/plain    
+      size: 20
+      created: 2017-12-05 20:55:40.000000000 -05:00
+  rootfile:
+    - filename: OEBPS/content.opf
+      checksum: 31447aba266a1c2918d8c2ee0698ef61
+      # from container.xml
+      mimetype: application/oebps-package+xml 
+      size: 2584
+      created: 2017-12-05 15:58:30.000000000 -05:00
+  manifest:
+    # keep files in the order they were in in the manifest (not sure it matters
+    # for anything, but might as well preserve the ordering)
+    - filename: OEBPS/toc.ncx
+      checksum: 57b388186ba815f372537bfba8bf500e
+      mimetype: application/x-dtbncx+xml
+      size: 1029
+      created: 2017-12-05 20:55:40.000000000 -05:00
+    - filename: OEBPS/toc.xhtml
+      checksum: 3d9defd76447ffe2bf88c9ed3093d2ae
+      mimetype: application/xhtml+xml
+      size: 762
+      created: 2017-12-05 20:55:40.000000000 -05:00
+    - filename: OEBPS/style.css
+      checksum: 26863d0ac59ed4bacdeffaf62b102808
+      mimetype: text/css
+      size: 6643
+      created: 2017-12-05 15:58:09.000000000 -05:00
+    - filename: OEBPS/0_no-title.xhtml
+      checksum: fe665af3bfddabaf1837e46e12057e9d
+      mimetype: application/xhtml+xml    # from content.opf manifest
+      size: 337
+      created: 2017-12-05 20:55:40.000000000 -05:00
+    - filename: OEBPS/1_no-title.xhtml
+      checksum: fe1535d9c820f33dac8278ef05760ee4
+      mimetype: application/xhtml+xml
+      size: 860
+      created: 2017-12-05 20:55:40.000000000 -05:00
+    - filename: OEBPS/2_chapter-1.xhtml
+      checksum: b46505d4c242e9cc5f7bc7e20d8f0bf4
+      mimetype: application/xhtml+xml
+      size: 531
+      created: 2017-12-05 20:55:40.000000000 -05:00
+    - filename: OEBPS/3_chapter-2.xhtml
+      checksum: 715ed5c3ff6c577c211c5c6ae7aa51d2
+      mimetype: application/xhtml+xml
+      size: 503
+      created: 2017-12-05 20:55:40.000000000 -05:00
+  spine:
+    # provide filenames relative to the root of the epub (not ids)
+    # should be 00000001.txt
+    - OEBPS/0_no-title.xhtml 
+    # should be 00000002.txt
+    - OEBPS/1_no-title.xhtml 
+    # should be 00000003.txt
+    - OEBPS/toc.xhtml 
+    # should be 00000004.txt
+    - OEBPS/2_chapter-1.xhtml 
+    # should be 00000005.txt
+    - OEBPS/3_chapter-2.xhtml 
+
 pagedata:
   OEBPS/2_chapter-1.xhtml: { label: "Chapter 1" }
   OEBPS/3_chapter-2.xhtml: { label: "Chapter 2" }
