@@ -208,8 +208,8 @@ describe "HTFeed::Volume" => sub {
     };
 
     describe "#new" => sub {
-      it "returns a HTFeed::PackageType::EPUB::Volume" => sub  {
-        ok($volume->isa('HTFeed::PackageType::EPUB::Volume'));
+      it "returns a HTFeed::PackageType::Simple::Volume" => sub  {
+        ok($volume->isa('HTFeed::PackageType::Simple::Volume'));
       }
     };
 
@@ -247,61 +247,14 @@ describe "HTFeed::Volume" => sub {
         eq_deeply($volume->get_file_groups->{epub}->get_filenames(),
           ['test.epub']);
       };
-
-      it "has an epub_contents filegroup with the epub contents" => sub {
-        eq_deeply(sort @{$volume->get_file_groups->{epub_contents}->get_filenames()},
-          ('META-INF/container.xml',
-            'mimetype',
-            'OEBPS/0_no-title.xhtml',
-            'OEBPS/1_no-title.xhtml',
-            'OEBPS/2_chapter-1.xhtml',
-            'OEBPS/3_chapter-2.xhtml',
-            'OEBPS/content.opf',
-            'OEBPS/style.css',
-            'OEBPS/toc.ncx'));
-      };
-
     };
 
-    describe '#get_epub_path' => sub {
-      it "returns the path to the epub" => sub {
-        ok($volume->get_epub_path() =~ /test.epub$/);
-      };
-    };
-#
-#    describe '#get_all_directory_files' => sub {
-#      it "returns the content files and the source METS" => sub {
-#        eq_deeply(sort @{$volume->get_all_directory_files()},
-#                  qw(00000001.jp2 00000001.txt 00000001.xml
-#                    00000002.jp2 00000002.txt 00000002.xml IA_ark+=13960=t00000431.xml));
-#
-#      };
-#    };
-#
-#    describe '#get_all_content_files' => sub {
-#      it "returns all files except the source METS" => sub {
-#        ok(eq_deeply(sort @{$volume->get_all_content_files()},
-#                  qw(00000001.jp2 00000001.txt 00000001.xml 
-#                    00000002.jp2 00000002.txt 00000002.xml)));
-#
-#      };
-#    };
-#
     describe '#get_checksums' => sub {
-      xit "returns the epub checksum as well as the checksums of files inside it" => sub {
+      xit "returns the epub and text checksums" => sub {
         ok(eq_deeply($volume->get_checksums(),
             {
               'test.epub'                          => '7195a1c2dc0dea02fca9b39634eb281e',
-              'test.epub/META-INF/container.xml'   => 'bc793f50d0ec7ff556193c109f5d3afc',
-              'test.epub/mimetype'                 => '4154e1f4f9c0e002cc44aae97103ebe2',
-              'test.epub/OEBPS/0_no-title.xhtml'   => 'fe665af3bfddabaf1837e46e12057e9d',
-              'test.epub/OEBPS/1_no-title.xhtml'   => 'fe1535d9c820f33dac8278ef05760ee4',
-              'test.epub/OEBPS/2_chapter-1.xhtml'  => 'b46505d4c242e9cc5f7bc7e20d8f0bf4',
-              'test.epub/OEBPS/3_chapter-2.xhtml'  => '715ed5c3ff6c577c211c5c6ae7aa51d2',
-              'test.epub/OEBPS/content.opf'        => '31447aba266a1c2918d8c2ee0698ef61',
-              'test.epub/OEBPS/style.css'          => '26863d0ac59ed4bacdeffaf62b102808',
-              'test.epub/OEBPS/toc.ncx'            => '57b388186ba815f372537bfba8bf500e',
-              'test.epub/OEBPS/toc.xhtml'          => '3d9defd76447ffe2bf88c9ed3093d2ae',
+              # add text...
             }));
       };
     };

@@ -12,7 +12,7 @@ our $config = {
     %{$HTFeed::PackageType::Simple::config},
     description => 'Simple SIP format for cloud validator for native EPUB with optional PDF',
 
-    volume_module => 'HTFeed::PackageType::EPUB::Volume',
+    volume_module => 'HTFeed::PackageType::Simple::Volume',
 
 
     # Regular expression that distinguishes valid files in the file package
@@ -85,7 +85,7 @@ our $config = {
     stage_map => {
         ready             => 'HTFeed::PackageType::EPUB::Unpack',
         unpacked     => 'HTFeed::PackageType::EPUB::VerifyManifest',
-        manifest_verified => 'HTFeed::PackageType::SimpleDigital::SourceMETS',
+        manifest_verified => 'HTFeed::PackageType::EPUB::SourceMETS',
         src_metsed        => 'HTFeed::PackageType::EPUB::VolumeValidator',
         validated  => 'HTFeed::Stage::Pack',
         packed     => 'HTFeed::PackageType::SimpleDigital::METS',
