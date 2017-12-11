@@ -139,35 +139,51 @@ EOT
 
     it "generates the METS xml" => sub {
       $stage->run();
-      use Data::Dumper;
-      print Dumper($volume->get_source_mets_file());
       ok(-e "$ingest_dir/ark+=87302=t00000001.mets.xml");
     };
 
-    it "has epub fileGrp with the expected number of files" => sub {
-      $stage->run();
-      my $xc = $volume->_parse_xpc("$ingest_dir/ark+=87302=t00000001.mets.xml");
-      ok($xc->findnodes('//mets:fileGrp[@USE="epub"]')->size() == 1);
-      ok($xc->findnodes('//mets:fileGrp[@USE="epub"]/mets:file')->size() == 1);
-    };
-    
-    it "has text fileGrp with the expected number of files" => sub {
-      $stage->run();
-      my $xc = $volume->_parse_xpc("$ingest_dir/ark+=87302=t00000001.mets.xml");
-      ok($xc->findnodes('//mets:fileGrp[@USE="text"]')->size() == 1);
-      ok($xc->findnodes('//mets:fileGrp[@USE="text"]/mets:file')->size() == 5);
+    context "with a mets xml" => sub {
+      my $xc;
+
+      before each => sub {
+        $stage->run;
+        $xc = $volume->_parse_xpc("$ingest_dir/ark+=87302=t00000001.mets.xml");
+      };
+
+      it "has epub fileGrp with the expected number of files" => sub {
+        ok($xc->findnodes('//mets:fileGrp[@USE="epub"]')->size() == 1);
+        ok($xc->findnodes('//mets:fileGrp[@USE="epub"]/mets:file')->size() == 1);
+      };
+      
+      it "has text fileGrp with the expected number of files" => sub {
+        ok($xc->findnodes('//mets:fileGrp[@USE="text"]')->size() == 1);
+        ok($xc->findnodes('//mets:fileGrp[@USE="text"]/mets:file')->size() == 5);
+      };
+
+      it "has contents fileGrp with the expected number of files" => sub {
+        ok($xc->findnodes('//mets:fileGrp[@USE="epub contents"]')->size() == 1);
+        ok($xc->findnodes('//mets:fileGrp[@USE="epub contents"]/mets:file')->size() == 10);
+      };
+
+      it "has contents filegrp with file listing relative path inside epub" => sub {
+        ok($xc->findnodes('//mets:fileGrp[@USE="epub contents"]/mets:file/mets:FLocat[@xlink:href="OEBPS/2_chapter-1.xhtml"]')->size() == 1);
+      };
+
+      # HTREPO-82 (will need some changes above)
+      xit "nests the epub files under the epub in the epub filegrp";
+      xit "uses LOCTYPE='URI' for the epub contents";
+
+      it "links text and xhtml in the structmap" => sub {
+        # file 00000004.txt and file OEBPS/2_chapter-1.xhtml should be under the same div in the structmap
+        ok($xc->findnodes('//mets:div[mets:fptr[@FILEID=//mets:file[mets:FLocat[@xlink:href="00000004.txt"]]/@ID]][mets:fptr[@FILEID=//mets:file[mets:FLocat[@xlink:href="OEBPS/2_chapter-1.xhtml"]]/@ID]]')->size() == 1);
+      };
+
+      it "uses the chapter title from meta.yml as the div label" => sub {
+        ok($xc->findnodes('//mets:div[mets:fptr[@FILEID=//mets:file[mets:FLocat[@xlink:href="OEBPS/2_chapter-1.xhtml"]]/@ID]][@LABEL="Chapter 1"]')->size() == 1);
+      }
     };
 
-    it "has contents fileGrp with the expected number of files" => sub {
-      $stage->run();
-      my $xc = $volume->_parse_xpc("$ingest_dir/ark+=87302=t00000001.mets.xml");
-      ok($xc->findnodes('//mets:fileGrp[@USE="epub contents"]')->size() == 1);
-      ok($xc->findnodes('//mets:fileGrp[@USE="epub contents"]/mets:file')->size() == 10);
-    };
 
-    xit "has contents filegrp with file listing relative path inside epub";
-
-    xit "links text and xhtml in the structmap";
   };
 
 };

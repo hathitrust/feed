@@ -55,9 +55,49 @@ sub _add_content_fgs {
       }
     }
 
+    $self->{filegroups}{"epub contents"} = $filegroup;
     $self->{mets}->add_filegroup($filegroup);
-    
+
     1;
+}
+
+sub _add_struct_map {
+  my $self = shift;
+  my $mets   = $self->{mets};
+  my $volume = $self->{volume};
+  my $epub_manifest = $volume->get_meta('epub_contents')->{'manifest'};
+
+  my $counter = 0;
+  my $epub_fg = $self->{filegroups}{"epub contents"};
+  my $text_fg = $self->{filegroups}{text};
+
+  my $struct_map = new METS::StructMap( id => 'SM1', type => 'physical' );
+  my $voldiv = new METS::StructMap::Div( type => 'volume' );
+  $struct_map->add_div($voldiv);
+
+  # for each epub xhtml
+  foreach my $file (@{$epub_manifest}) {
+    next unless $file->{mimetype} eq "application/xhtml+xml";
+    $counter++;
+
+    my $epub_id = $epub_fg->get_file_id($file->{filename});
+
+    # find ID for corresponding text file
+    my $txt_file = sprintf("%08d",$counter) . ".txt";
+    my $txt_id = $text_fg->get_file_id($txt_file);
+
+    my $pagedata = $volume->get_meta('pagedata')->{$file->{filename}};
+
+    $voldiv->add_file_div(
+        [$epub_id, $txt_id],
+        order => $counter,
+        type  => 'chapter',
+        %$pagedata
+    );
+
+  }
+
+  $mets->add_struct_map($struct_map);
 }
 
 1;
