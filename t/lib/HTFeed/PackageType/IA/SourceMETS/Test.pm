@@ -17,11 +17,11 @@ sub SourceMETS : Test(1){
 
 
 	my $self = shift;
-	my $stage = $self->{test_stage};
 
   $self->set_bibdata;
   my $volume = $self->{volume};
   mkdir($volume->get_staging_directory());
+	my $stage = HTFeed::PackageType::IA::SourceMETS->new(volume => $volume);
   $volume->record_premis_event('file_rename');
   $volume->record_premis_event('image_header_modification');
 	ok($stage->run(), 'IA: SourceMETS succeeded with undamaged package');

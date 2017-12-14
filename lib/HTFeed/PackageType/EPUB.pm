@@ -88,7 +88,7 @@ our $config = {
         manifest_verified => 'HTFeed::PackageType::EPUB::SourceMETS',
         src_metsed        => 'HTFeed::PackageType::EPUB::VolumeValidator',
         validated  => 'HTFeed::Stage::Pack',
-        packed     => 'HTFeed::PackageType::SimpleDigital::METS',
+        packed     => 'HTFeed::PackageType::EPUB::METS',
         metsed     => 'HTFeed::Stage::Handle',
         handled    => 'HTFeed::Stage::Collate',
     },
