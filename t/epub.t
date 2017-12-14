@@ -173,13 +173,23 @@ EOT
       xit "nests the epub files under the epub in the epub filegrp";
       xit "uses LOCTYPE='URI' for the epub contents";
 
-      it "links text and xhtml in the structmap" => sub {
+      it "links text and xhtml in the structmap based on the spine" => sub {
         # file 00000004.txt and file OEBPS/2_chapter-1.xhtml should be under the same div in the structmap
-        ok($xc->findnodes('//mets:div[mets:fptr[@FILEID=//mets:file[mets:FLocat[@xlink:href="00000004.txt"]]/@ID]][mets:fptr[@FILEID=//mets:file[mets:FLocat[@xlink:href="OEBPS/2_chapter-1.xhtml"]]/@ID]]')->size() == 1);
+        my @txt_xhtml_links = ( ['00000001.txt', 'OEBPS/0_no-title.xhtml'],
+          ['00000002.txt', 'OEBPS/1_no-title.xhtml'],
+          ['00000003.txt', 'OEBPS/toc.xhtml'],
+          ['00000004.txt', 'OEBPS/2_chapter-1.xhtml'],
+          ['00000005.txt', 'OEBPS/3_chapter-2.xhtml'] );
+
+        foreach my $link (@txt_xhtml_links) {
+          my ($txt,$xhtml) = @$link;
+          ok($xc->findnodes(qq(//mets:div[mets:fptr[\@FILEID=//mets:file[mets:FLocat[\@xlink:href="$txt"]]/\@ID]][mets:fptr[\@FILEID=//mets:file[mets:FLocat[\@xlink:href="$xhtml"]]/\@ID]]))->size() == 1);
+        }
       };
 
       it "uses the chapter title from meta.yml as the div label" => sub {
         ok($xc->findnodes('//mets:div[mets:fptr[@FILEID=//mets:file[mets:FLocat[@xlink:href="OEBPS/2_chapter-1.xhtml"]]/@ID]][@LABEL="Chapter 1"]')->size() == 1);
+        ok($xc->findnodes('//mets:div[mets:fptr[@FILEID=//mets:file[mets:FLocat[@xlink:href="OEBPS/3_chapter-2.xhtml"]]/@ID]][@LABEL="Chapter 2"]')->size() == 1);
       }
     };
 

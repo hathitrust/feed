@@ -65,7 +65,7 @@ sub _add_struct_map {
   my $self = shift;
   my $mets   = $self->{mets};
   my $volume = $self->{volume};
-  my $epub_manifest = $volume->get_meta('epub_contents')->{'manifest'};
+  my $epub_spine = $volume->get_meta('epub_contents')->{'spine'};
 
   my $counter = 0;
   my $epub_fg = $self->{filegroups}{"epub contents"};
@@ -76,17 +76,16 @@ sub _add_struct_map {
   $struct_map->add_div($voldiv);
 
   # for each epub xhtml
-  foreach my $file (@{$epub_manifest}) {
-    next unless $file->{mimetype} eq "application/xhtml+xml";
+  foreach my $filename (@{$epub_spine}) {
     $counter++;
 
-    my $epub_id = $epub_fg->get_file_id($file->{filename});
+    my $epub_id = $epub_fg->get_file_id($filename);
 
     # find ID for corresponding text file
     my $txt_file = sprintf("%08d",$counter) . ".txt";
     my $txt_id = $text_fg->get_file_id($txt_file);
 
-    my $pagedata = $volume->get_meta('pagedata')->{$file->{filename}};
+    my $pagedata = $volume->get_meta('pagedata')->{$filename};
 
     $voldiv->add_file_div(
         [$epub_id, $txt_id],
