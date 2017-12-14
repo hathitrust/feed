@@ -9,6 +9,16 @@ use HTFeed::XMLNamespaces qw(:namespaces :schemas register_namespaces);
 use Image::ExifTool;
 use base qw(HTFeed::PackageType::Simple::SourceMETS);
 
+sub new {
+    my $class = shift;
+
+    my $self = $class->SUPER::new(
+        @_,
+    );
+    $self->{profile} = "http://www.hathitrust.org/documents/hathitrust-epub-mets-profile1.0.xml";
+
+    return $self;
+}
 
 sub _add_capture_event {
     my $self = shift;

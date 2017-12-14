@@ -190,7 +190,11 @@ EOT
       it "uses the chapter title from meta.yml as the div label" => sub {
         ok($xc->findnodes('//mets:div[mets:fptr[@FILEID=//mets:file[mets:FLocat[@xlink:href="OEBPS/2_chapter-1.xhtml"]]/@ID]][@LABEL="Chapter 1"]')->size() == 1);
         ok($xc->findnodes('//mets:div[mets:fptr[@FILEID=//mets:file[mets:FLocat[@xlink:href="OEBPS/3_chapter-2.xhtml"]]/@ID]][@LABEL="Chapter 2"]')->size() == 1);
-      }
+      };
+
+      it "uses the epub mets profile" => sub {
+        ok($xc->findnodes('//mets:mets[@PROFILE="http://www.hathitrust.org/documents/hathitrust-epub-mets-profile1.0.xml"]')->size() == 1);
+      };
     };
 
 
