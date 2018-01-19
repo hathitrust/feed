@@ -46,11 +46,13 @@ sub _add_content_fgs {
 
     # get filegroup info from meta.yml
     my $epub_fg_info = $volume->get_meta('epub_contents');
+#
+#    my $filegroup = METS::FileGroup->new(
+#      id => $self->_get_subsec_id("FG"),
+#      use => "epub contents",
+#    );
 
-    my $filegroup = METS::FileGroup->new(
-      id => $self->_get_subsec_id("FG"),
-      use => "epub contents",
-    );
+    my $epub_file = $self->{filegroups}{epub}{components}[0];
 
     foreach my $subsec  (qw(container mimetype rootfile manifest)) {
       foreach my $file (@{$epub_fg_info->{$subsec}}) {
@@ -58,15 +60,15 @@ sub _add_content_fgs {
         $t->parse($file->{created});
         $t->convert("UTC");
         $file->{created} = $t->printf("%OZ");
-        $filegroup->add_file($file->{filename},
+        $epub_file->add_file($file->{filename},
           %$file,
           prefix => 'EPUBCONTENTS'
         );
       }
     }
 
-    $self->{filegroups}{"epub contents"} = $filegroup;
-    $self->{mets}->add_filegroup($filegroup);
+#    $self->{filegroups}{"epub contents"} = $filegroup;
+#    $self->{mets}->add_filegroup($filegroup);
 
     1;
 }
@@ -78,7 +80,7 @@ sub _add_struct_map {
   my $epub_spine = $volume->get_meta('epub_contents')->{'spine'};
 
   my $counter = 0;
-  my $epub_fg = $self->{filegroups}{"epub contents"};
+  my $epub_fg = $self->{filegroups}{epub};
   my $text_fg = $self->{filegroups}{text};
 
   my $struct_map = new METS::StructMap( id => 'SM1', type => 'physical' );
