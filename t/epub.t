@@ -187,18 +187,24 @@ context "with volume & temporary ingest/preingest/zipfile dirs" => sub {
         ok($xc->findnodes('//mets:fileGrp[@USE="text"]/mets:file')->size() == 5);
       };
 
-      it "has contents fileGrp with the expected number of files" => sub {
-        ok($xc->findnodes('//mets:fileGrp[@USE="epub contents"]')->size() == 1);
-        ok($xc->findnodes('//mets:fileGrp[@USE="epub contents"]/mets:file')->size() == 10);
+      it "has epub fileGrp with nested contents" => sub {
+        ok($xc->findnodes('//mets:fileGrp[@USE="epub"]/mets:file/mets:file')->size() == 10);
       };
 
-      it "has contents filegrp with file listing relative path inside epub" => sub {
-        ok($xc->findnodes('//mets:fileGrp[@USE="epub contents"]/mets:file/mets:FLocat[@xlink:href="OEBPS/2_chapter-1.xhtml"]')->size() == 1);
+      it "has epub filegrp with file listing relative path inside epub" => sub {
+        ok($xc->findnodes('//mets:fileGrp[@USE="epub"]/mets:file/mets:file/mets:FLocat[@xlink:href="OEBPS/2_chapter-1.xhtml"]')->size() == 1);
       };
 
       # HTREPO-82 (will need some changes above)
-      xit "nests the epub files under the epub in the epub filegrp";
-      xit "uses LOCTYPE='URI' for the epub contents";
+      it "uses LOCTYPE='URL' for the epub contents" => sub {
+        ok($xc->findnodes('//mets:fileGrp[@USE="epub"]/mets:file/mets:file/mets:FLocat[@LOCTYPE="URL"]')->size() == 10);
+        ok($xc->findnodes('//mets:fileGrp[@USE="epub"]/mets:file/mets:file/mets:FLocat[@OTHERLOCTYPE]')->size() == 0);
+      };
+
+      it "does not include checksums for the epub contents" => sub {
+        ok($xc->findnodes('//mets:fileGrp[@USE="epub"]/mets:file/mets:file[@CHECKSUM]')->size() == 0);
+        ok($xc->findnodes('//mets:fileGrp[@USE="epub"]/mets:file/mets:file[@CHECKSUMTYPE]')->size() == 0);
+      };
 
       it "links text and xhtml in the structmap based on the spine" => sub {
         # file 00000004.txt and file OEBPS/2_chapter-1.xhtml should be under the same div in the structmap
@@ -212,6 +218,11 @@ context "with volume & temporary ingest/preingest/zipfile dirs" => sub {
           my ($txt,$xhtml) = @$link;
           ok($xc->findnodes(qq(//mets:div[mets:fptr[\@FILEID=//mets:file[mets:FLocat[\@xlink:href="$txt"]]/\@ID]][mets:fptr[\@FILEID=//mets:file[mets:FLocat[\@xlink:href="$xhtml"]]/\@ID]]))->size() == 1);
         }
+      };
+
+      it "has sequential seqs for the text files" => sub {
+        ok($xc->findnodes('//mets:fileGrp[@USE="text"]/mets:file[@SEQ="00000001"]/mets:FLocat[@xlink:href="00000001.txt"]')->size() == 1);
+        ok($xc->findnodes('//mets:fileGrp[@USE="text"]/mets:file[@SEQ="00000002"]/mets:FLocat[@xlink:href="00000002.txt"]')->size() == 1);
       };
 
       it "uses the chapter title from meta.yml as the div label" => sub {
@@ -276,14 +287,41 @@ context "with volume & temporary ingest/preingest/zipfile dirs" => sub {
       it "uses the epub mets profile" => sub {
         ok($xc->findnodes('//mets:mets[@PROFILE="http://www.hathitrust.org/documents/hathitrust-epub-mets-profile1.0.xml"]')->size() == 1);
       };
+
+      xit "nests the epub files under the epub file";
+
     }
+  };
+  describe "HTFeed::PackageType::EPUB::VolumeValidator" => sub {
+    my $stage; 
+    before each => sub {
+
+      mock_premis_mets();
+
+      HTFeed::PackageType::EPUB::Unpack->new(volume => $volume)->run();
+      HTFeed::PackageType::EPUB::VerifyManifest->new(volume => $volume)->run();
+      HTFeed::PackageType::EPUB::SourceMETS->new(volume => $volume)->run();
+
+      # expire cached info in volume
+      $volume = HTFeed::Volume->new(namespace => 'test',
+        objid => $objid,
+        packagetype => 'epub');
+
+      $stage = HTFeed::PackageType::EPUB::VolumeValidator->new(volume => $volume);
+      # mocked premis events..
+      $stage->{required_events} = ['creation'];
+      $HTFeed::PackageType::EPUB::config->{source_premis_events_extract} = ['creation']; 
+
+    };
+
+    it "succeeds" => sub {
+      $stage->run();
+      ok($stage->succeeded());
+    };
   };
 
 };
 
-describe "HTFeed::PackageType::EPUB::VolumeValidator" => sub {
-  xit "succeeds";
-};
 
 
 runtests unless caller;

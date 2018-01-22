@@ -57,12 +57,13 @@ sub _add_content_fgs {
     foreach my $subsec  (qw(container mimetype rootfile manifest)) {
       foreach my $file (@{$epub_fg_info->{$subsec}}) {
         my $t = Date::Manip::Date->new();
+        delete $file->{checksum};
         $t->parse($file->{created});
         $t->convert("UTC");
         $file->{created} = $t->printf("%OZ");
-        $epub_file->add_file($file->{filename},
+        $epub_file->add_sub_file($file->{filename},
           %$file,
-          prefix => 'EPUBCONTENTS'
+          prefix => 'EPUBCONTENTS',
         );
       }
     }
