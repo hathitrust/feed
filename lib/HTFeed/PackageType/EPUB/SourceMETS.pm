@@ -46,11 +46,6 @@ sub _add_content_fgs {
 
     # get filegroup info from meta.yml
     my $epub_fg_info = $volume->get_meta('epub_contents');
-#
-#    my $filegroup = METS::FileGroup->new(
-#      id => $self->_get_subsec_id("FG"),
-#      use => "epub contents",
-#    );
 
     my $epub_file = $self->{filegroups}{epub}{components}[0];
 
@@ -67,9 +62,6 @@ sub _add_content_fgs {
         );
       }
     }
-
-#    $self->{filegroups}{"epub contents"} = $filegroup;
-#    $self->{mets}->add_filegroup($filegroup);
 
     1;
 }

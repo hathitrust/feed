@@ -45,6 +45,79 @@ EOT
   }
 }
 
+
+shared_examples_for "an epub mets" => sub { 
+
+  share my %mets_vars;
+  my $xc; 
+  
+  before each => sub { 
+    $xc = $mets_vars{xc};
+  };
+
+  it "has epub fileGrp with the expected number of files" => sub {
+    ok($xc->findnodes('//mets:fileGrp[@USE="epub"]')->size() == 1);
+    ok($xc->findnodes('//mets:fileGrp[@USE="epub"]/mets:file')->size() == 1);
+  };
+
+  it "has text fileGrp with the expected number of files" => sub {
+    ok($xc->findnodes('//mets:fileGrp[@USE="text"]')->size() == 1);
+    ok($xc->findnodes('//mets:fileGrp[@USE="text"]/mets:file')->size() == 5);
+  };
+
+  it "has epub fileGrp with nested contents" => sub {
+    ok($xc->findnodes('//mets:fileGrp[@USE="epub"]/mets:file/mets:file')->size() == 10);
+  };
+
+  it "has epub filegrp with file listing relative path inside epub" => sub {
+    ok($xc->findnodes('//mets:fileGrp[@USE="epub"]/mets:file/mets:file/mets:FLocat[@xlink:href="OEBPS/2_chapter-1.xhtml"]')->size() == 1);
+  };
+
+  # HTREPO-82 (will need some changes above)
+  it "uses LOCTYPE='URL' for the epub contents" => sub {
+    ok($xc->findnodes('//mets:fileGrp[@USE="epub"]/mets:file/mets:file/mets:FLocat[@LOCTYPE="URL"]')->size() == 10);
+    ok($xc->findnodes('//mets:fileGrp[@USE="epub"]/mets:file/mets:file/mets:FLocat[@OTHERLOCTYPE]')->size() == 0);
+  };
+
+  it "does not include checksums for the epub contents" => sub {
+    ok($xc->findnodes('//mets:fileGrp[@USE="epub"]/mets:file/mets:file[@CHECKSUM]')->size() == 0);
+    ok($xc->findnodes('//mets:fileGrp[@USE="epub"]/mets:file/mets:file[@CHECKSUMTYPE]')->size() == 0);
+  };
+
+  it "links text and xhtml in the structmap based on the spine" => sub {
+    # file 00000004.txt and file OEBPS/2_chapter-1.xhtml should be under the same div in the structmap
+    my @txt_xhtml_links = ( ['00000001.txt', 'OEBPS/0_no-title.xhtml'],
+      ['00000002.txt', 'OEBPS/1_no-title.xhtml'],
+      ['00000003.txt', 'OEBPS/toc.xhtml'],
+      ['00000004.txt', 'OEBPS/2_chapter-1.xhtml'],
+      ['00000005.txt', 'OEBPS/3_chapter-2.xhtml'] );
+
+    foreach my $link (@txt_xhtml_links) {
+      my ($txt,$xhtml) = @$link;
+      ok($xc->findnodes(qq(//mets:div[mets:fptr[\@FILEID=//mets:file[mets:FLocat[\@xlink:href="$txt"]]/\@ID]][mets:fptr[\@FILEID=//mets:file[mets:FLocat[\@xlink:href="$xhtml"]]/\@ID]]))->size() == 1);
+    }
+  };
+
+  it "has sequential seqs for the text files" => sub {
+    ok($xc->findnodes('//mets:fileGrp[@USE="text"]/mets:file[@SEQ="00000001"]/mets:FLocat[@xlink:href="00000001.txt"]')->size() == 1);
+    ok($xc->findnodes('//mets:fileGrp[@USE="text"]/mets:file[@SEQ="00000002"]/mets:FLocat[@xlink:href="00000002.txt"]')->size() == 1);
+  };
+
+  it "uses the chapter title from meta.yml as the div label" => sub {
+    ok($xc->findnodes('//mets:div[mets:fptr[@FILEID=//mets:file[mets:FLocat[@xlink:href="OEBPS/2_chapter-1.xhtml"]]/@ID]][@LABEL="Chapter 1"]')->size() == 1);
+    ok($xc->findnodes('//mets:div[mets:fptr[@FILEID=//mets:file[mets:FLocat[@xlink:href="OEBPS/3_chapter-2.xhtml"]]/@ID]][@LABEL="Chapter 2"]')->size() == 1);
+  };
+
+  it "uses the epub mets profile" => sub {
+    ok($xc->findnodes('//mets:mets[@PROFILE="http://www.hathitrust.org/documents/hathitrust-epub-mets-profile1.0.xml"]')->size() == 1);
+  };
+
+  it "has a PREMIS creation event" => sub {
+    ok($xc->findnodes('//premis:eventType[text()="creation"]')->size() == 1);
+  }
+
+};
+
 context "with volume & temporary ingest/preingest/zipfile dirs" => sub {
   my $volume;
   my $ingest_dir;
@@ -170,73 +243,14 @@ context "with volume & temporary ingest/preingest/zipfile dirs" => sub {
     };
 
     context "with a mets xml" => sub {
-      my $xc;
+      share my %mets_vars;
 
       before each => sub {
         $stage->run;
-        $xc = $volume->_parse_xpc("$ingest_dir/$pt_objid/$pt_objid.mets.xml");
+        $mets_vars{xc} = $volume->_parse_xpc("$ingest_dir/$pt_objid/$pt_objid.mets.xml");
       };
 
-      it "has epub fileGrp with the expected number of files" => sub {
-        ok($xc->findnodes('//mets:fileGrp[@USE="epub"]')->size() == 1);
-        ok($xc->findnodes('//mets:fileGrp[@USE="epub"]/mets:file')->size() == 1);
-      };
-      
-      it "has text fileGrp with the expected number of files" => sub {
-        ok($xc->findnodes('//mets:fileGrp[@USE="text"]')->size() == 1);
-        ok($xc->findnodes('//mets:fileGrp[@USE="text"]/mets:file')->size() == 5);
-      };
-
-      it "has epub fileGrp with nested contents" => sub {
-        ok($xc->findnodes('//mets:fileGrp[@USE="epub"]/mets:file/mets:file')->size() == 10);
-      };
-
-      it "has epub filegrp with file listing relative path inside epub" => sub {
-        ok($xc->findnodes('//mets:fileGrp[@USE="epub"]/mets:file/mets:file/mets:FLocat[@xlink:href="OEBPS/2_chapter-1.xhtml"]')->size() == 1);
-      };
-
-      # HTREPO-82 (will need some changes above)
-      it "uses LOCTYPE='URL' for the epub contents" => sub {
-        ok($xc->findnodes('//mets:fileGrp[@USE="epub"]/mets:file/mets:file/mets:FLocat[@LOCTYPE="URL"]')->size() == 10);
-        ok($xc->findnodes('//mets:fileGrp[@USE="epub"]/mets:file/mets:file/mets:FLocat[@OTHERLOCTYPE]')->size() == 0);
-      };
-
-      it "does not include checksums for the epub contents" => sub {
-        ok($xc->findnodes('//mets:fileGrp[@USE="epub"]/mets:file/mets:file[@CHECKSUM]')->size() == 0);
-        ok($xc->findnodes('//mets:fileGrp[@USE="epub"]/mets:file/mets:file[@CHECKSUMTYPE]')->size() == 0);
-      };
-
-      it "links text and xhtml in the structmap based on the spine" => sub {
-        # file 00000004.txt and file OEBPS/2_chapter-1.xhtml should be under the same div in the structmap
-        my @txt_xhtml_links = ( ['00000001.txt', 'OEBPS/0_no-title.xhtml'],
-          ['00000002.txt', 'OEBPS/1_no-title.xhtml'],
-          ['00000003.txt', 'OEBPS/toc.xhtml'],
-          ['00000004.txt', 'OEBPS/2_chapter-1.xhtml'],
-          ['00000005.txt', 'OEBPS/3_chapter-2.xhtml'] );
-
-        foreach my $link (@txt_xhtml_links) {
-          my ($txt,$xhtml) = @$link;
-          ok($xc->findnodes(qq(//mets:div[mets:fptr[\@FILEID=//mets:file[mets:FLocat[\@xlink:href="$txt"]]/\@ID]][mets:fptr[\@FILEID=//mets:file[mets:FLocat[\@xlink:href="$xhtml"]]/\@ID]]))->size() == 1);
-        }
-      };
-
-      it "has sequential seqs for the text files" => sub {
-        ok($xc->findnodes('//mets:fileGrp[@USE="text"]/mets:file[@SEQ="00000001"]/mets:FLocat[@xlink:href="00000001.txt"]')->size() == 1);
-        ok($xc->findnodes('//mets:fileGrp[@USE="text"]/mets:file[@SEQ="00000002"]/mets:FLocat[@xlink:href="00000002.txt"]')->size() == 1);
-      };
-
-      it "uses the chapter title from meta.yml as the div label" => sub {
-        ok($xc->findnodes('//mets:div[mets:fptr[@FILEID=//mets:file[mets:FLocat[@xlink:href="OEBPS/2_chapter-1.xhtml"]]/@ID]][@LABEL="Chapter 1"]')->size() == 1);
-        ok($xc->findnodes('//mets:div[mets:fptr[@FILEID=//mets:file[mets:FLocat[@xlink:href="OEBPS/3_chapter-2.xhtml"]]/@ID]][@LABEL="Chapter 2"]')->size() == 1);
-      };
-
-      it "uses the epub mets profile" => sub {
-        ok($xc->findnodes('//mets:mets[@PROFILE="http://www.hathitrust.org/documents/hathitrust-epub-mets-profile1.0.xml"]')->size() == 1);
-      };
-
-      it "has a PREMIS creation event" => sub {
-        ok($xc->findnodes('//premis:eventType[text()="creation"]')->size() == 1);
-      }
+      it_should_behave_like "an epub mets";
     };
 
 
@@ -277,18 +291,15 @@ context "with volume & temporary ingest/preingest/zipfile dirs" => sub {
     };
 
     context "with a mets xml" => sub {
-      my $xc;
+      share my %mets_vars;
 
       before each => sub {
         $stage->run;
-        $xc = $volume->_parse_xpc("$ingest_dir/$pt_objid.mets.xml");
+        $mets_vars{xc} = $volume->_parse_xpc("$ingest_dir/$pt_objid.mets.xml");
       };
 
-      it "uses the epub mets profile" => sub {
-        ok($xc->findnodes('//mets:mets[@PROFILE="http://www.hathitrust.org/documents/hathitrust-epub-mets-profile1.0.xml"]')->size() == 1);
-      };
 
-      xit "nests the epub files under the epub file";
+      it_should_behave_like "an epub mets";
 
     }
   };
