@@ -143,6 +143,7 @@ our $config = {
                 v_ge( 'xmp', 'xRes', 290),
                 v_same( 'xmp', 'xRes', 'xmp', 'yRes' )
             ),
+            'layers' => v_in( 'codingStyleDefault', 'layers', ['1','8'] ),
         }
     },
 

@@ -6,23 +6,53 @@ use base qw(HTFeed::Stage::ImageRemediate);
 use Carp;
 use Log::Log4perl qw(get_logger);
 use POSIX qw(strftime);
+use File::Basename qw(basename);
 
 sub run {
     my $self           = shift;
     my $volume         = $self->{volume};
-    my $preingest_path = $volume->get_preingest_directory();
+    my $preingest_dir = $volume->get_preingest_directory();
     my $stage_path     = $volume->get_staging_directory();
     my $objid          = $volume->get_objid();
     my $scandata_xpc   = $volume->get_scandata_xpc();
 
-    opendir( my $dirh, "$preingest_path" )
-        or croak("Can't opendir $preingest_path: $!");
+    my $resolution = $volume->get_db_resolution();
+    $resolution = $scandata_xpc->findvalue("//scribe:bookData/scribe:dpi | //bookData/dpi") if not defined $resolution or !$resolution;
+    $resolution = $volume->get_meta_xpc()->findvalue("//ppi") if not defined $resolution or !$resolution;
+    
+    # decompress any lossless JPEG2000 images
+    my @jp2 = glob("$preingest_dir/*.jp2");
+    if(@jp2) {
+        $self->expand_lossless_jpeg2000($volume,$preingest_dir,[map { basename($_) } @jp2]);
+    }
+
+    #remediate TIFFs (incl. expanded JPEG2000 images)
+    my @tiffs = map { basename($_) } glob("$preingest_dir/*.tif");
+    $self->remediate_tiffs($volume,$preingest_dir,\@tiffs,
+
+        # return extra fields to set that depend on the file
+        sub {
+            my $file = shift;
+
+            my $set_if_undefined_fields = {};
+            my $force_fields = {'IFD0:DocumentName' => join('/',$volume->get_objid(),$file) };
+            if ( my $capture_time = $self->get_capture_time($file) ) {
+                $set_if_undefined_fields->{'XMP-tiff:DateTime'} = $capture_time;
+            }
+            $set_if_undefined_fields->{'Resolution'} = $resolution if defined $resolution and $resolution;
+
+            return ( $force_fields, $set_if_undefined_fields, $file);
+        }
+    ) if @tiffs;
+
+    opendir( my $dirh, "$preingest_dir" )
+        or croak("Can't opendir $preingest_dir: $!");
 
     while ( my $file = readdir($dirh) ) {
         next unless $file =~ /(\d{4})\.jp2$/;
         my $seqnum = $1;
         my $new_filename = sprintf("%08d.jp2",$seqnum);
-        my $jp2_submitted  = "$preingest_path/$file";
+        my $jp2_submitted  = "$preingest_dir/$file";
         my $jp2_remediated = "$stage_path/$new_filename";
 
         my $set_always_fields = {
@@ -35,10 +65,6 @@ sub run {
         if ( my $capture_time = $self->get_capture_time($file) ) {
             $set_if_undefined_fields->{'XMP-tiff:DateTime'} = $capture_time;
         }
-
-        my $resolution = $volume->get_db_resolution();
-        $resolution = $scandata_xpc->findvalue("//scribe:bookData/scribe:dpi | //bookData/dpi") if not defined $resolution or !$resolution;
-        $resolution = $volume->get_meta_xpc()->findvalue("//ppi") if not defined $resolution or !$resolution;
 
         $set_if_undefined_fields->{'Resolution'} = $resolution if defined $resolution and $resolution;
 
@@ -61,7 +87,7 @@ sub get_capture_time {
     my $image_file = shift;
     my $volume     = $self->{volume};
     my $xpc        = $volume->get_scandata_xpc();
-    my $preingest_path = $volume->get_preingest_directory();
+    my $preingest_dir = $volume->get_preingest_directory();
 
     my $gmtTimeStampRE = qr/^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})$/;
 
@@ -82,7 +108,7 @@ sub get_capture_time {
 
     # use file time stamp if all else fails
     if( not defined $gmtTimeStamp or $gmtTimeStamp eq '' or $gmtTimeStamp !~ $gmtTimeStampRE) {
-        $gmtTimeStamp = strftime("%Y%m%d%H%M%S",gmtime((stat("$preingest_path/$image_file"))[9]));
+        $gmtTimeStamp = strftime("%Y%m%d%H%M%S",gmtime((stat("$preingest_dir/$image_file"))[9]));
     }
 
     # Format is YYYYMMDDHHmmss
