@@ -111,7 +111,7 @@ sub download {
 
     foreach my $link (@{$self->get_links()}) {
       next if not defined $link;
-        if ($link =~ /$suffix$/) {
+        if ($link =~ /$suffix$/ and $link !~ /_bw_$suffix/) {
 
             return $self->SUPER::download(path => $self->{pt_path}, 
                 filename => $filename, 
