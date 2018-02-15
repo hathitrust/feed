@@ -1,5 +1,5 @@
 damaged:
-  count: '17'
+  count: '19'
   package_types:
     google:
       inu:
@@ -27,8 +27,11 @@ damaged:
       wu:
       - '89003277828'
       - '89001867225x5'
+      uml:
+      - 'aslalskdjf'
+      - 'abc12345678901'
 undamaged:
-  count: '25'
+  count: '26'
   package_types:
     google:
       inu:
@@ -67,3 +70,5 @@ undamaged:
       uiuc:
       - '5418360v000032i000001'
       - '1940422v000003'
+      uml:
+      - 'chc9998000001'
