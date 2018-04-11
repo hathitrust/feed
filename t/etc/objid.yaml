@@ -1,6 +1,11 @@
 damaged:
-  count: '19'
+  count: '23'
   package_types:
+    simple:
+      hva:
+      - 'a11412038998'
+      - 'a15412038998'
+      - 'b11412038999'
     google:
       inu:
       - '30000001818247'
@@ -32,7 +37,7 @@ damaged:
       - 'aslalskdjf'
       - 'abc12345678901'
 undamaged:
-  count: '26'
+  count: '34'
   package_types:
     google:
       inu:
@@ -73,6 +78,8 @@ undamaged:
       - '89003277829'
       - '89001867225'
     simple:
+      hva:
+      - 'a11412038999'
       uq:
       - '368762'
       uiuc:
