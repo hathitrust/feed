@@ -47,14 +47,17 @@ sub _set_validators {
             my $self = shift;
             my $date = $self->_findone( "waveMeta", "originationDate" );
             if ( $date =~
-m!^(19|20)\d\d[: /.](0[1-9]|1[012])[: /.](0[1-9]|[12][0-9]|3[01])!
+m!^(19|20)\d\d[-: /.](0[1-9]|1[012])[-: /.](0[1-9]|[12][0-9]|3[01])!
               )
             {
+              return 1;
+            } else {
                 $self->set_error(
                     "NotMatchedValue",
                     field  => 'originationDate',
                     actual => $date
                 );
+                return;
             }
         } },
         'sampleRate'        => { desc => 'AES sample rate', detail => '', valid => v_exists( 'aes', 'sampleRate' ) },
