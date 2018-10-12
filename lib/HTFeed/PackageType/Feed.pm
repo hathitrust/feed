@@ -85,7 +85,6 @@ our $config = {
     validation => {
       'HTFeed::ModuleValidator::JPEG2000_hul' => {
         'layers' => v_eq( 'codingStyleDefault', 'layers', '8' ),
-        'decomposition_levels' => v_between( 'codingStyleDefault', 'decompositionLevels', '3', '32')
       }
     },
 
