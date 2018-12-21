@@ -1,7 +1,7 @@
 package HTFeed::Job;
 
 #use Moose;
-use Moo;
+use Mouse;
 use HTFeed::Volume;
 use HTFeed::Config;
 use Carp;
