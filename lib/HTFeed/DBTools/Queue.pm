@@ -192,12 +192,12 @@ sub reset_volumes {
     my $dbh = HTFeed::DBTools::get_dbh();
     my $sth;
     if($reset_level == 3){
-        $sth = $dbh->prepare(q(UPDATE feed_queue SET node = NULL, status = ?, failure_count = 0 WHERE namespace = ? and id = ?;));
+        $sth = $dbh->prepare(q(UPDATE feed_queue SET node = NULL, pkg_type = ?, status = ?, failure_count = 0 WHERE namespace = ? and id = ?;));
     } else {
         my $statuses = "";
         $statuses = "('punted')" if $reset_level == 1;
         $statuses = "('punted','collated','rights','done')" if $reset_level == 2;
-        $sth = $dbh->prepare(qq(UPDATE feed_queue SET node = NULL, status = ?, failure_count = 0 WHERE status in $statuses and namespace = ? and id = ? and node is null;));
+        $sth = $dbh->prepare(qq(UPDATE feed_queue SET node = NULL, pkg_type = ?, status = ?, failure_count = 0 WHERE status in $statuses and namespace = ? and id = ? and node is null;));
     }
     
     my @results;
@@ -206,7 +206,7 @@ sub reset_volumes {
         if(not defined $status) {
             $status = $volume->get_nspkg()->get('default_queue_state');
         }
-        push @results, $sth->execute($status,$volume->get_namespace(), $volume->get_objid());
+        push @results, $sth->execute($volume->get_packagetype(),$status,$volume->get_namespace(), $volume->get_objid());
     }
     return \@results;
 }
