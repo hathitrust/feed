@@ -190,14 +190,20 @@ sub _setdocumentname {
     # validate
     my $id   = $$self{volume_id};
     my $file = $$self{filename};
+    my $stripped_file = $file;
 
-    # deal with inconsistant use of '_' and '-'
+    # If the filename is like UCAL_BARCODE_00000001.tif, the dc:source can
+    # match either that or the plain 00000001.tif.
+    if($file =~ /^.*(\d{8}.(tif|jp2))/) {
+      $stripped_file = $1;
+    }
+
     my $pattern = "$id/$file";
-    #$pattern =~ s/[-_]/\[-_\]/g;
+    my $stripped_pattern = "$id/$stripped_file";
 
     # $documentname should look like "$id/$file", but "UOM_$id/$file" is allowed
     # so don't use m|^\Q$pattern\E$|i
-    unless ( $documentname =~ m|\Q$pattern\E|i ) {
+    unless ( $documentname =~ m|\Q$pattern\E|i or $documentname =~ m|\Q$stripped_pattern\E|i) {
         $self->set_error(
             "BadValue",
             field    => 'DocumentName / dc:source',
