@@ -124,22 +124,18 @@ sub reprioritize{
       my $update_priority = $dbh->prepare(qq(UPDATE ht_repository.feed_queue SET priority = (? * $GROUP_OFF) + (priority & $mask) WHERE namespace = ? AND pkg_type = ? AND $where_syntax;));
 
       
+      $dbh->begin_work() or die $dbh->errstr;
       $get_nspkgs->execute();
 
       while(my ($ns,$pkg) = $get_nspkgs->fetchrow_array()){
           my $priority = group_priority($ns,$pkg);
-          $dbh->begin_work() or die $dbh->errstr;
-          $dbh->do("LOCK TABLES ht_repository.feed_queue WRITE");
           $update_priority->execute($priority,$ns,$pkg);
-
           #print "$ns,$pkg,$priority\n";
-          $dbh->commit();
-          $dbh->do("UNLOCK TABLES");
       }
+      $dbh->commit();
     };
     if($@) {
       get_dbh()->rollback;
-      get_dbh()->do("UNLOCK TABLES");
       die($@);
     }
 

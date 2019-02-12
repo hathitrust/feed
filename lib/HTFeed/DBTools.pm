@@ -96,17 +96,13 @@ sub lock_volumes{
     # trying to make sure MySQL uses index
     my $rows = eval {
       $dbh->begin_work();
-      $dbh->do("LOCK TABLES ht_repository.feed_queue WRITE");
       my $sth = $dbh->prepare(qq(UPDATE ht_repository.feed_queue SET node = ?, reset_status = status WHERE node IS NULL AND status not in ($release_status) ORDER BY priority, date_added LIMIT ?;));
       $sth->execute(hostname,$item_count);
       $dbh->commit();
-      $dbh->do("UNLOCK TABLES");
-
       return $sth->rows;
     };
     if($@) {
       get_dbh()->rollback();
-      get_dbh()->do("UNLOCK TABLES");
       die $@;
     }
     return $rows;
@@ -125,18 +121,15 @@ sub reset_in_flight_locks{
     $dbh->rollback(); # abort any interrupted transactions
     my $rows = eval {
       $dbh->begin_work();
-      $dbh->do("LOCK TABLES ht_repository.feed_queue WRITE");
       my $release_status = join(',', map {$dbh->quote($_)} @{get_config('release_states')});
       my $sth = $dbh->prepare(qq(UPDATE ht_repository.feed_queue SET node = NULL, status = reset_status, reset_status = NULL WHERE node = ? AND status not in ($release_status);));
       return $sth->execute(hostname);
       $dbh->commit();
-      $dbh->do("UNLOCK TABLES");
 
       return $sth->rows;
     };
     if($@) {
       get_dbh()->rollback();
-      get_dbh()->do("UNLOCK TABLES");
       die $@;
     }
     return $rows;
@@ -150,21 +143,9 @@ sub reset_in_flight_locks{
 
 sub count_locks{
     my $dbh = get_dbh();
-    my $res = eval {
-      $dbh->begin_work();
-      $dbh->do("LOCK TABLES ht_repository.feed_queue READ");
-      my $sth = get_dbh()->prepare(q(SELECT COUNT(*) FROM ht_repository.feed_queue WHERE node = ?;));
-      $sth->execute(hostname);
-      my $res = $sth->fetchrow;
-      $dbh->rollback();
-      $dbh->do("UNLOCK TABLES");
-      return $res;
-    };
-    if($@) {
-      get_dbh()->rollback();
-      get_dbh()->do("UNLOCK TABLES");
-      die $@;
-    }
+    my $sth = get_dbh()->prepare(q(SELECT COUNT(*) FROM ht_repository.feed_queue WHERE node = ?;));
+    $sth->execute(hostname);
+    my $res = $sth->fetchrow;
     return $res;
 }
 
@@ -219,27 +200,16 @@ sub get_volumes_with_status {
     my ($pkg_type, $namespace, $status, $limit) = @_;
     my $query = qq(SELECT id FROM ht_repository.feed_queue WHERE namespace = ? and pkg_type = ? and status = ?);
     if($limit) { $query .= " LIMIT $limit"; }
-    my $result = eval {
-      my $dbh = get_dbh();
-      $dbh->begin_work();
-      $dbh->do("LOCK TABLES ht_repository.feed_queue READ");
-      my $sth = $dbh->prepare($query);
-      $sth->execute($namespace,$pkg_type,$status);
-      my $results = $sth->fetchall_arrayref();
-      # extract first (and only) column from results;
-      my $toreturn = [ map { $_->[0] } (@$results) ];
-      $sth->finish();
+    my $dbh = get_dbh();
+    $dbh->begin_work();
+    my $sth = $dbh->prepare($query);
+    $sth->execute($namespace,$pkg_type,$status);
+    my $results = $sth->fetchall_arrayref();
+    # extract first (and only) column from results;
+    my $toreturn = [ map { $_->[0] } (@$results) ];
+    $sth->finish();
 
-      $dbh->rollback();
-      $dbh->do("UNLOCK TABLES");
-      return $toreturn;
-    };
-    if($@) {
-      get_dbh()->rollback();
-      get_dbh()->do("UNLOCK TABLES");
-      die $@;
-    }
-    return $result;
+    return $toreturn;
 }
 
 1;
