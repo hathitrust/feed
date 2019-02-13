@@ -201,7 +201,6 @@ sub get_volumes_with_status {
     my $query = qq(SELECT id FROM ht_repository.feed_queue WHERE namespace = ? and pkg_type = ? and status = ?);
     if($limit) { $query .= " LIMIT $limit"; }
     my $dbh = get_dbh();
-    $dbh->begin_work();
     my $sth = $dbh->prepare($query);
     $sth->execute($namespace,$pkg_type,$status);
     my $results = $sth->fetchall_arrayref();
