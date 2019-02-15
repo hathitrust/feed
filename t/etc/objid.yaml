@@ -37,7 +37,7 @@ damaged:
       - 'aslalskdjf'
       - 'abc12345678901'
 undamaged:
-  count: '34'
+  count: '37'
   package_types:
     google:
       inu:
@@ -85,5 +85,8 @@ undamaged:
       uiuc:
       - '5418360v000032i000001'
       - '1940422v000003'
+      - '2098897v1923i1m1_0' 
+      - '2689315m1_0'
+      - '5371044v18i_'
       uml:
       - 'chc9998000001'
