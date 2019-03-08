@@ -18,287 +18,301 @@ use base qw(HTFeed::Stage::JHOVE_Runner);
 
 
 sub new {
-    my $class = shift;
+  my $class = shift;
 
-    my $self = $class->SUPER::new(@_);
+  my $self = $class->SUPER::new(@_);
 
-    if(not defined $self->{run_stages}) {
-        $self->{run_stages} = $self->{volume}->get_nspkg()->get('validation_run_stages');
-    }
-    $self->{stages} = {
-        validate_file_names          => \&_validate_file_names,
-        validate_filegroups_nonempty => \&_validate_filegroups,
-        validate_consistency         => \&_validate_consistency,
-        validate_checksums           => \&_validate_checksums,
-        validate_utf8                => \&_validate_utf8,
-        validate_metadata            => \&_validate_metadata,
-        validate_digitizer => \&_validate_digitizer
-    };
+  if(not defined $self->{run_stages}) {
+    $self->{run_stages} = $self->{volume}->get_nspkg()->get('validation_run_stages');
+  }
+  $self->{stages} = {
+    validate_file_names          => \&_validate_file_names,
+    validate_filegroups_nonempty => \&_validate_filegroups,
+    validate_consistency         => \&_validate_consistency,
+    validate_checksums           => \&_validate_checksums,
+    validate_utf8                => \&_validate_utf8,
+    validate_metadata            => \&_validate_metadata,
+    validate_digitizer => \&_validate_digitizer
+  };
 
-    return $self;
+  return $self;
 
 }
 
 sub run {
-    my $self = shift;
+  my $self = shift;
 
 
-    # Run each enabled stage
-    foreach my $stage ( @{$self->{run_stages}} ) {
-        if ( exists( $self->{stages}{$stage} ) ) {
-            my $sub = $self->{stages}{$stage};
-            get_logger()->debug("Running validation stage $stage");
+  # Run each enabled stage
+  foreach my $stage ( @{$self->{run_stages}} ) {
+    if ( exists( $self->{stages}{$stage} ) ) {
+      my $sub = $self->{stages}{$stage};
+      get_logger()->debug("Running validation stage $stage");
 
-            &{$sub}($self);
+      &{$sub}($self);
 
 
-        }
-        else {
-            croak("Undefined validation stage $stage requested");
-        }
     }
-
-    # do this last
-    $self->_set_done();
-    if ( !$self->failed() ) {
-        $self->{volume}->record_premis_event( 'package_validation',
-            outcome => PREMIS::Outcome->new('pass') );
+    else {
+      croak("Undefined validation stage $stage requested");
     }
+  }
 
-    return;
+  # do this last
+  $self->_set_done();
+  if ( !$self->failed() ) {
+    $self->{volume}->record_premis_event( 'package_validation',
+      outcome => PREMIS::Outcome->new('pass') );
+  }
+
+  return;
 }
 
 sub stage_info {
-    return { success_state => 'validated', failure_state => 'punted' };
+  return { success_state => 'validated', failure_state => 'punted' };
 }
 
 sub _validate_file_names {
-    my $self   = shift;
-    my $volume = $self->{volume};
+  my $self   = shift;
+  my $volume = $self->{volume};
 
-    my $valid_file_pattern = $volume->get_nspkg()->get('valid_file_pattern');
-    my @bad                = grep(
-        { !/$valid_file_pattern/ } @{ $volume->get_all_directory_files() } );
+  my $valid_file_pattern = $volume->get_nspkg()->get('valid_file_pattern');
+  my @bad                = grep(
+    { !/$valid_file_pattern/ } @{ $volume->get_all_directory_files() } );
 
-    foreach my $file (@bad) {
-        $self->set_error(
-            "BadFilename",
-            field => 'filename',
-            file  => $file
-        );
+  foreach my $file (@bad) {
+    $self->set_error(
+      "BadFilename",
+      field => 'filename',
+      file  => $file
+    );
 
-    }
+  }
 
-    return;
+  return;
 
 }
 
 #TODO: Use required filegroups from ns/packagetype config
 #TODO: Use filegroup patterns from ns/packagetype config to populate filegroups
 sub _validate_filegroups {
-    my $self   = shift;
-    my $volume = $self->{volume};
+  my $self   = shift;
+  my $volume = $self->{volume};
 
-    my $filegroups = $volume->get_file_groups();
-    while ( my ( $filegroup_name, $filegroup ) = each( %{$filegroups} ) ) {
-        get_logger()->debug("validating nonempty filegroup $filegroup_name");
-        my $filecount = scalar( @{ $filegroup->get_filenames() } );
-        if ( !$filecount and $filegroup->get_required() ) {
-            $self->set_error( "BadFilegroup", filegroup => $filegroup );
-        }
+  my $filegroups = $volume->get_file_groups();
+  while ( my ( $filegroup_name, $filegroup ) = each( %{$filegroups} ) ) {
+    get_logger()->debug("validating nonempty filegroup $filegroup_name");
+    my $filecount = scalar( @{ $filegroup->get_filenames() } );
+    if ( !$filecount and $filegroup->get_required() ) {
+      $self->set_error( "BadFilegroup", filegroup => $filegroup );
     }
+  }
 
-    return;
+  return;
 }
 
 sub _validate_consistency {
-    my $self   = shift;
-    my $volume = $self->{volume};
+  my $self   = shift;
+  my $volume = $self->{volume};
 
-    my $filegroups = $volume->get_file_groups();
-    my @filegroup_names = grep { $filegroups->{$_}->get_required() and $filegroups->{$_}->get_sequence() } keys(%$filegroups);
+  my $filegroups = $volume->get_file_groups();
+  my @required_filegroups = grep { $filegroups->{$_}->get_required() and $filegroups->{$_}->get_sequence() } keys(%$filegroups);
 
-    my $files = $volume->get_required_sequence_file_groups_by_page();
+  my $files = $volume->get_required_sequence_file_groups_by_page();
 
-    # Make sure there are no gaps in the sequence
-    if ( !$volume->get_nspkg->get('allow_sequence_gaps') ) {
-        my $prev_sequence_number = 0;
-        my @sequence_numbers     = sort( keys(%$files) );
-        foreach my $sequence_number (@sequence_numbers) {
-            if ( $sequence_number > $prev_sequence_number + 1 ) {
-                $self->set_error( "MissingFile",
-                    detail =>
-                    "Skip sequence number from $prev_sequence_number to $sequence_number"
-                );
-            }
-            $prev_sequence_number = $sequence_number;
-        }
+  # Make sure there are no gaps in the sequence
+  if ( !$volume->get_nspkg->get('allow_sequence_gaps') ) {
+    my $prev_sequence_number = 0;
+    my @sequence_numbers     = sort( keys(%$files) );
+    foreach my $sequence_number (@sequence_numbers) {
+      if ( $sequence_number > $prev_sequence_number + 1 ) {
+        $self->set_error( "MissingFile",
+          detail =>
+          "Skip sequence number from $prev_sequence_number to $sequence_number"
+        );
+      }
+      $prev_sequence_number = $sequence_number;
     }
+  }
 
-    # Make sure each filegroup has exactly one object for each sequence number
-    while ( my ( $sequence_number, $files ) = each( %{$files} ) ) {
-        if ( keys( %{$files} ) != @filegroup_names ) {
-            $self->set_error( "MissingFile",
-                detail => "File missing for $sequence_number: have "
-                . join( q{,}, keys %{$files} )
-                . '; expected '
-                . join( q{,}, @filegroup_names ) );
-        } else {
-            if( !$volume->get_nspkg->get('allow_multiple_pageimage_formats')) {
-                while ( my ($type, $list) = each %{$files}){
-                    if(scalar(@$list) ne 1){
-                        $self->set_error("BadFile", detail=>"Extraneous files for $sequence_number: have "
-                            . join( q{,}, @$list)
-                            . '; expected only one file' );
-                    }
-                }
-            }
+  # Make sure each filegroup has exactly one object for each sequence number
+  while ( my ( $sequence_number, $files ) = each( %{$files} ) ) {
+    if ( keys( %{$files} ) != @required_filegroups ) {
+      $self->set_error( "MissingFile",
+        detail => "File missing for $sequence_number: have "
+        . join( q{,}, keys %{$files} )
+        . '; expected '
+        . join( q{,}, @required_filegroups ) );
+    } else {
+      if( !$volume->get_nspkg->get('allow_multiple_pageimage_formats')) {
+        while ( my ($type, $list) = each %{$files}){
+          if(scalar(@$list) ne 1){
+            $self->set_error("BadFile", detail=>"Extraneous files for $sequence_number: have "
+              . join( q{,}, @$list)
+              . '; expected only one file' );
+          }
         }
+      }
     }
+  }
+
+  # Make sure files in all sequence filegroups correspond to a sequence in a
+  # required file group
+  my $sequence_files = $volume->get_file_groups_by_page( sub { return $_[0]->get_sequence(); } );
+
+  while ( my ( $sequence_number, $sequence_fgs ) = each( %{$sequence_files} ) ) {
+    if (!$files->{$sequence_number} ) {
+      $self->set_error( "MissingFile",
+        detail => "File missing for $sequence_number: have "
+        . join( q{,}, keys %{$sequence_fgs} )
+        . '; expected at least '
+        . join( q{,}, @required_filegroups ) );
+    } 
+  }
 }
 
 sub _validate_checksums {
-    my $self             = shift;
-    my $use_source_mets  = shift;
-    $use_source_mets = 1 if not defined $use_source_mets;
-    my $volume           = $self->{volume};
-    my $checksums        = $volume->get_checksums();
-    my $checksum_file    = $volume->get_nspkg()->get('checksum_file');
-    my $source_mets_file = $volume->get_source_mets_file() if $use_source_mets;
-    my $path             = shift; 
-    $path = $volume->get_staging_directory() if not defined $path;
+  my $self             = shift;
+  my $use_source_mets  = shift;
+  $use_source_mets = 1 if not defined $use_source_mets;
+  my $volume           = $self->{volume};
+  my $checksums        = $volume->get_checksums();
+  my $checksum_file    = $volume->get_nspkg()->get('checksum_file');
+  my $source_mets_file = $volume->get_source_mets_file() if $use_source_mets;
+  my $path             = shift; 
+  $path = $volume->get_staging_directory() if not defined $path;
 
-    # make sure we check every file in the directory except for the checksum file
-    # and make sure we check every file in the checksum file
+  # make sure we check every file in the directory except for the checksum file
+  # and make sure we check every file in the checksum file
 
-    my @tovalidate = uniq(
-        sort( (
-                @{ $volume->get_all_directory_files() },
-                keys( %{ $volume->get_checksums() } )
-            ) )
-    );
+  my @tovalidate = uniq(
+    sort( (
+        @{ $volume->get_all_directory_files() },
+        keys( %{ $volume->get_checksums() } )
+      ) )
+  );
 
-    my @bad_files = ();
+  my @bad_files = ();
 
-    foreach my $file (@tovalidate) {
-        next if $source_mets_file and $file eq $source_mets_file;
-        next if $checksum_file and $file =~ $checksum_file;
-        my $expected = $checksums->{$file};
-        if ( not defined $expected ) {
-            $self->set_error(
-                "BadChecksum",
-                field  => 'checksum',
-                file   => $file,
-                detail => "File present in package but not in checksum file"
-            );
-        }
-        elsif ( !-e "$path/$file" ) {
-            $self->set_error(
-                "MissingFile",
-                file => $file,
-                detail =>
-                "File listed in checksum file but not present in package"
-            );
-        }
-        elsif ( ( my $actual = md5sum("$path/$file") ) ne $expected ) {
-            $self->set_error(
-                "BadChecksum",
-                field    => 'checksum',
-                file     => $file,
-                expected => $expected,
-                actual   => $actual
-            );
-            push( @bad_files, "$file" );
-        }
-
+  foreach my $file (@tovalidate) {
+    next if $source_mets_file and $file eq $source_mets_file;
+    next if $checksum_file and $file =~ $checksum_file;
+    my $expected = $checksums->{$file};
+    if ( not defined $expected ) {
+      $self->set_error(
+        "BadChecksum",
+        field  => 'checksum',
+        file   => $file,
+        detail => "File present in package but not in checksum file"
+      );
+    }
+    elsif ( !-e "$path/$file" ) {
+      $self->set_error(
+        "MissingFile",
+        file => $file,
+        detail =>
+        "File listed in checksum file but not present in package"
+      );
+    }
+    elsif ( ( my $actual = md5sum("$path/$file") ) ne $expected ) {
+      $self->set_error(
+        "BadChecksum",
+        field    => 'checksum',
+        file     => $file,
+        expected => $expected,
+        actual   => $actual
+      );
+      push( @bad_files, "$file" );
     }
 
-    my $outcome;
-    if (@bad_files) {
-        $outcome = PREMIS::Outcome->new('warning');
-        $outcome->add_file_list_detail( "files failed checksum validation",
-            "failed", \@bad_files );
-    }
-    else {
-        $outcome = PREMIS::Outcome->new('pass');
-    }
-    $volume->record_premis_event( 'page_md5_fixity', outcome => $outcome );
+  }
 
-    return;
+  my $outcome;
+  if (@bad_files) {
+    $outcome = PREMIS::Outcome->new('warning');
+    $outcome->add_file_list_detail( "files failed checksum validation",
+      "failed", \@bad_files );
+  }
+  else {
+    $outcome = PREMIS::Outcome->new('pass');
+  }
+  $volume->record_premis_event( 'page_md5_fixity', outcome => $outcome );
+
+  return;
 
 }
 
 sub _validate_utf8 {
-    my $self       = shift;
-    my $volume     = $self->{volume};
-    my $utf8_files = $volume->get_utf8_files();
-    my $path       = $volume->get_staging_directory();
+  my $self       = shift;
+  my $volume     = $self->{volume};
+  my $utf8_files = $volume->get_utf8_files();
+  my $path       = $volume->get_staging_directory();
 
-    foreach my $utf8_file (@$utf8_files) {
-        eval {
-            my $utf8_fh;
-            open( $utf8_fh, "<", "$path/$utf8_file" )
-                or croak("Can't open $utf8_file: $!");
-            local $/ = undef;    # turn on slurp mode
-            binmode( $utf8_fh, ":bytes" )
-            ;                  # ensure we're really reading it as bytes
-            my $utf8_contents = <$utf8_fh>;
-            my $decoded_utf8 =
-            decode( "utf-8-strict", $utf8_contents, Encode::FB_CROAK )
-            ;                  # ensure it's really valid UTF-8 or croak
-            croak("Invalid control characters in file $utf8_file")
-            if $decoded_utf8 =~ /[\x00-\x08\x0B-\x1F]/m;
-            close($utf8_fh);
-        };
-        if ($@) {
-            $self->set_error(
-                "BadUTF",
-                field  => 'utf8',
-                detail => "$@",
-                file   => $utf8_file
-            );
-        }
-
+  foreach my $utf8_file (@$utf8_files) {
+    eval {
+      my $utf8_fh;
+      open( $utf8_fh, "<", "$path/$utf8_file" )
+        or croak("Can't open $utf8_file: $!");
+      local $/ = undef;    # turn on slurp mode
+      binmode( $utf8_fh, ":bytes" )
+      ;                  # ensure we're really reading it as bytes
+      my $utf8_contents = <$utf8_fh>;
+      my $decoded_utf8 =
+      decode( "utf-8-strict", $utf8_contents, Encode::FB_CROAK )
+      ;                  # ensure it's really valid UTF-8 or croak
+      croak("Invalid control characters in file $utf8_file")
+      if $decoded_utf8 =~ /[\x00-\x08\x0B-\x1F]/m;
+      close($utf8_fh);
+    };
+    if ($@) {
+      $self->set_error(
+        "BadUTF",
+        field  => 'utf8',
+        detail => "$@",
+        file   => $utf8_file
+      );
     }
+
+  }
 }
 
 sub _validate_metadata {
-    my $self   = shift;
-    my $volume = $self->{volume};
+  my $self   = shift;
+  my $volume = $self->{volume};
 
 
-    # get files
-    my $dir   = $volume->get_staging_directory();
-    my $files = $volume->get_jhove_files();
+  # get files
+  my $dir   = $volume->get_staging_directory();
+  my $files = $volume->get_jhove_files();
 
 
-    $self->run_jhove($volume,$dir,$files, sub {
-            my ($volume,$file,$node) = @_;
+  $self->run_jhove($volume,$dir,$files, sub {
+      my ($volume,$file,$node) = @_;
 
-            my $xpc = XML::LibXML::XPathContext->new($node);
-            register_namespaces($xpc);
+      my $xpc = XML::LibXML::XPathContext->new($node);
+      register_namespaces($xpc);
 
-            get_logger()->trace("validating $file");
-            my $mod_val = HTFeed::ModuleValidator->new(
-                xpc => $xpc,
+      get_logger()->trace("validating $file");
+      my $mod_val = HTFeed::ModuleValidator->new(
+        xpc => $xpc,
 
-                #node    => $node,
-                volume   => $volume,
-                filename => $file
-            );
-            $mod_val->run();
+        #node    => $node,
+        volume   => $volume,
+        filename => $file
+      );
+      $mod_val->run();
 
-            # check, log success
-            if ( $mod_val->succeeded() ) {
-                get_logger()->debug( "File validation succeeded",
-                    file => $file );
-            }
-            else {
-                $self->set_error( "BadFile", file => $file );
-            }
-        });
+      # check, log success
+      if ( $mod_val->succeeded() ) {
+        get_logger()->debug( "File validation succeeded",
+          file => $file );
+      }
+      else {
+        $self->set_error( "BadFile", file => $file );
+      }
+    });
 
-    return;
+  return;
 }
 
 sub _validate_digitizer {
@@ -309,7 +323,7 @@ sub _validate_digitizer {
   my $apparent_digitizer = $volume->apparent_digitizer();
 
   return 1 if (not defined $zephir_dig_agents or $zephir_dig_agents eq '') and 
-    (not defined $apparent_digitizer or $apparent_digitizer eq '');
+  (not defined $apparent_digitizer or $apparent_digitizer eq '');
 
   my @allowed_agents = split(';',$zephir_dig_agents);
 
@@ -323,20 +337,20 @@ sub _validate_digitizer {
 }
 
 sub md5sum {
-    my $file = shift;
-    my $ctx  = Digest::MD5->new();
-    my $fh;
-    open( $fh, "<", $file ) or croak("Can't open $file: $!");
-    $ctx->addfile($fh);
-    close($fh);
-    return $ctx->hexdigest();
+  my $file = shift;
+  my $ctx  = Digest::MD5->new();
+  my $fh;
+  open( $fh, "<", $file ) or croak("Can't open $file: $!");
+  $ctx->addfile($fh);
+  close($fh);
+  return $ctx->hexdigest();
 }
 
 # do cleaning that is appropriate after failure
 sub clean_failure {
-    my $self = shift;
+  my $self = shift;
 
-    $self->{volume}->clean_unpacked_object();
+  $self->{volume}->clean_unpacked_object();
 }
 
 1;
