@@ -15,47 +15,56 @@ our $config = {
     # Regular expression that distinguishes valid files in the file package
     # HTML OCR is valid for the package type but only expected/required for UC1
 
-    valid_file_pattern => qr/^( 
+    valid_file_pattern => qr/^(
 	\w+\.(mets\.xml) |
 	mets\.xml |
 	checksum\.md5 |
-    [ap]m\d{2,8}.(wav) |
+    (au)?[api]m(-\d{14}-)?\d{2,8}.(wav|jpg|JPG) |
 	notes\.txt
     )/x,
 
     # A set of regular expressions mapping files to the filegroups they belong
     # in
     filegroups => {
-		archival => { 
-        	prefix => 'AM',
-        	use => 'preservation',
-        	file_pattern => qr/am.*\.wav$/,
-        	required => 1,
-        	content => 1,
-        	jhove => 1,
-        	utf8 => 0
-		},
-        production => { 
-			prefix => 'PM',
-        	use => 'production',
-        	file_pattern => qr/pm.*\.wav$/,
-        	required => 1,
-        	content => 1,
-        	jhove => 1,
-        	utf8 => 0
-		},
-		notes => {
-			prefix => 'NOTES',
-			use => 'notes',
-			file_pattern => qr/notes\.txt/,
-			required => 0,
-			content => 1,
-			jhove => 0,
-			utf8 => 0,
-        	structmap => 0,
-		},
+      archival => {
+        prefix => 'AM',
+        use => 'preservation',
+        file_pattern => qr/am.*\.wav$/,
+        required => 1,
+        content => 1,
+        jhove => 1,
+        utf8 => 0
+      },
+      production => {
+        prefix => 'PM',
+        use => 'production',
+        file_pattern => qr/pm.*\.wav$/,
+        required => 1,
+        content => 1,
+        jhove => 1,
+        utf8 => 0
+      },
+      image => {
+        premix => 'IMG',
+        use => 'image',
+        file_pattern => qr/.*.(jpg|JPG)$/,
+        required => 0,
+        content => 1,
+        jhove => 0,
+        utf8 => 0
+      },
+      notes => {
+        prefix => 'NOTES',
+        use => 'notes',
+        file_pattern => qr/notes\.txt/,
+        required => 0,
+        content => 1,
+        jhove => 0,
+        utf8 => 0,
+        structmap => 0,
+      },
 	},
-	
+
 	validation_run_stages => [
 	qw(validate_file_names
 	validate_filegroups_nonempty
@@ -84,10 +93,10 @@ our $config = {
     # files with the given extensions
     module_validators => {
         'wav' => 'HTFeed::ModuleValidator::WAVE_hul',
-		'jp2' => 'HTFeed::ModuleValidator::JPEG2000_hul',
+        'jp2' => 'HTFeed::ModuleValidator::JPEG2000_hul',
     },
 
-    # What PREMIS events to include (by internal PREMIS identifier, 
+    # What PREMIS events to include (by internal PREMIS identifier,
     # configured in config.yaml)
     # TODO: determine Audio HT PREMIS events
     # TODO: determine Audio PREMIS source METS events to extract
@@ -110,7 +119,7 @@ our $config = {
         manual_quality_review => {
             type => 'manual quality review',
         },
-    
+
         page_md5_create => {
             detail => 'Calculation of MD5 checksums for audio files',
         },

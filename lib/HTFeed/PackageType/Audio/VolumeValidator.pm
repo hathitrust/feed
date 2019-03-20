@@ -96,11 +96,11 @@ sub _validate_mets_consistency {
 		# test for useType & primaryID
 		my $tech_primaryID = $xpc->findvalue("./mets:mdWrap/mets:xmlData/aes:audioObject/aes:primaryIdentifier[\@identifierType='FILE_NAME']",$techmd_node);
 		my $tech_useType = $xpc->findvalue("./mets:mdWrap/mets:xmlData/aes:audioObject/aes:use/\@useType",$techmd_node);
-		if ($tech_primaryID =~ /^am/) {
+		if ($tech_primaryID =~ /^(au)?am/) {
 			if ($tech_useType ne "PRESERVATION_MASTER") {
 				$self->set_error("BadValue",field => 'aes:useType',expected => "PRESERVATION_MASTER",actual=>$tech_useType);
 			}
-		} elsif ($tech_primaryID =~ /^pm/) {
+		} elsif ($tech_primaryID =~ /^(au)?pm/) {
 			if ($tech_useType ne "PRODUCTION_MASTER") {
 				$self->set_error("BadValue",field => 'aes:useType',expected => "PRODUCTION_MASTER",actual=>$tech_useType);
 			}
