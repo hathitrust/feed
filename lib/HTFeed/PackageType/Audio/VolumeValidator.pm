@@ -44,16 +44,12 @@ sub _validate_mets_consistency {
 		# skip notes.txt
 		my $notes = $xpc->findvalue("//mets:techMD[\@ID='$techmd_id']/mets:mdRef/\@xlink:href");
 		next if($notes);
-	
-		# get wav techMD
-		$file = $xpc->findvalue("//mets:techMD[\@ID='$techmd_id']/mets:mdWrap/mets:xmlData/aes:audioObject/\@ID");
 
-		# remediate...
+		# get wav techMD
+		$file = $xpc->findvalue("//mets:techMD[\@ID='$techmd_id']/mets:mdWrap/mets:xmlData/aes:audioObject/aes:primaryIdentifier[\@identifierType='FILE_NAME']/text()");
+
 		my $ns = $volume->get_namespace();
 		my $objid = $volume->get_objid();
-		if($file =~ m/($ns\.)($objid[.-])(.+)/){
-			$file = $3 . ".wav";
-		}
 
 		if(! -e $volume->get_staging_directory() . "/" . $file) {
 			$self->set_error("MissingFile", field => $file);
@@ -66,7 +62,7 @@ sub _validate_mets_consistency {
 		}
 
 		# collect $file and $checksumValue for validation
-		$checksums{$file} = $checksumValue;
+		$checksums{$file} = lc($checksumValue);
 
 		my $checksumKind = $xpc->findvalue("./mets:mdWrap/mets:xmlData/aes:audioObject/aes:checksum/aes:checksumKind", $techmd_node);
 		if(! $checksumKind) {
@@ -82,7 +78,7 @@ sub _validate_mets_consistency {
 		if (! $audioDataEncoding) {
             $self->set_error("MissingField", field=>'audioDataEncoding');
         }
-	
+
 		my $tech_bitDepth = $xpc->findvalue("./mets:mdWrap/mets:xmlData/aes:audioObject/aes:formatList/aes:formatRegion/aes:bitDepth",$techmd_node);
 		if (! $tech_bitDepth) {
 			$self->set_error("MissingField", field=>'bitDepth');
@@ -96,15 +92,19 @@ sub _validate_mets_consistency {
 		# test for useType & primaryID
 		my $tech_primaryID = $xpc->findvalue("./mets:mdWrap/mets:xmlData/aes:audioObject/aes:primaryIdentifier[\@identifierType='FILE_NAME']",$techmd_node);
 		my $tech_useType = $xpc->findvalue("./mets:mdWrap/mets:xmlData/aes:audioObject/aes:use/\@useType",$techmd_node);
-		if ($tech_primaryID =~ /^(au)?am/) {
+		if ($tech_primaryID =~ /^($objid-\d+-)?(au)?am/) {
 			if ($tech_useType ne "PRESERVATION_MASTER") {
 				$self->set_error("BadValue",field => 'aes:useType',expected => "PRESERVATION_MASTER",actual=>$tech_useType);
 			}
-		} elsif ($tech_primaryID =~ /^(au)?pm/) {
+		} elsif ($tech_primaryID =~ /^($objid-\d+-)?(au)?pm/) {
 			if ($tech_useType ne "PRODUCTION_MASTER") {
 				$self->set_error("BadValue",field => 'aes:useType',expected => "PRODUCTION_MASTER",actual=>$tech_useType);
 			}
-		} else {
+		} elsif ($tech_primaryID =~ /mp3/) {
+			if ($tech_useType ne "PREVIEW") {
+				$self->set_error("BadValue",field => 'aes:useType',expected => "PREVIEW",actual=>$tech_useType);
+			}
+    } else {
             $self->set_error("BadValue",field=>'aes:primaryIdentifier',expected=>'am,pm',actual=>$tech_primaryID);
         }
 
@@ -144,7 +144,7 @@ sub _validate_mets_consistency {
 	} elsif ($source_analogDigitalFlag eq "ANALOG") {
         my $speedCoarse = $xpc->findvalue("//mets:sourceMD/mets:mdWrap/mets:xmlData/aes:audioObject/aes:formatList/aes:formatRegion/aes:speed/aes:speedCoarse");
         if ($speedCoarse eq '')  {
-            $self->set_error("MissingField", field =>'speedCoarse');
+            get_logger()->warn("MissingField", field =>'speedCoarse');
         }
 	} else {
 		$self->set_error("BadValue",field=>'analogDigitalFlag',expected=>'ANALOG|PHYS_DIGITAL',actual=>$source_analogDigitalFlag);
@@ -168,9 +168,9 @@ sub _validate_checksums {
     my $checksum_file    = $volume->get_nspkg()->get('checksum_file');
     my $path             = $volume->get_staging_directory();
 
-	my %checksums 		 = %$checksums;	
+	my %checksums 		 = %$checksums;
 	my @tovalidate 		 = sort keys %checksums;
-	
+
     my @bad_files = ();
 
     foreach my $file (@tovalidate) {

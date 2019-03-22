@@ -340,6 +340,7 @@ sub md5sum {
   my $file = shift;
   my $ctx  = Digest::MD5->new();
   my $fh;
+  get_logger()->trace("Calculating MD5 digest for $file");
   open( $fh, "<", $file ) or croak("Can't open $file: $!");
   $ctx->addfile($fh);
   close($fh);

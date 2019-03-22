@@ -272,7 +272,7 @@ sub get_checksum_mets {
     my $checksums = {};
     # try to extract from source METS
     my $xpc = $self->_checksum_mets_xpc();
-    foreach my $node ( $xpc->findnodes('//mets:file[@CHECKSUM][mets:FLocat/@OTHERLOCTYPE="SYSTEM"]') ) {
+    foreach my $node ( $xpc->findnodes('//mets:file[@CHECKSUM][mets:FLocat/@xlink:href]') ) {
       my $checksum = $xpc->findvalue( './@CHECKSUM', $node );
       my $filename =
       $xpc->findvalue( './mets:FLocat/@xlink:href', $node );
