@@ -1,14 +1,14 @@
-package HTFeed::PackageType::Audio;
+package HTFeed::PackageType::BentleyAudio;
 
 use warnings;
 use strict;
 use base qw(HTFeed::PackageType);
 
-our $identifier = 'audio';
+our $identifier = 'bentleyaudio';
 
 our $config = {
     %{$HTFeed::PackageType::config},
-    description => 'Voice of America audio content',
+    description => 'Vended audio content (for htrepoalt)',
 
     volume_module => 'HTFeed::Volume',
 
@@ -16,47 +16,60 @@ our $config = {
     # HTML OCR is valid for the package type but only expected/required for UC1
 
     valid_file_pattern => qr/^(
-	\w+\.(mets\.xml) |
-	mets\.xml |
-	checksum\.md5 |
-    [ap]m\d{2,8}.(wav) |
-	notes\.txt
+      [\w-]+\.(mets\.xml) |
+      checksum\.md5 |
+      [\w-]+-\d+(-am\.wav|-pm\.wav|.mp3|.jpg) |
     )/x,
 
     # A set of regular expressions mapping files to the filegroups they belong
     # in
     filegroups => {
-		archival => {
-        	prefix => 'AM',
-        	use => 'preservation',
-        	file_pattern => qr/am.*\.wav$/,
-        	required => 1,
-          sequence => 1,
-        	content => 1,
-        	jhove => 1,
-        	utf8 => 0
-		},
-    production => {
-			prefix => 'PM',
-        	use => 'production',
-        	file_pattern => qr/pm.*\.wav$/,
-        	required => 1,
-          sequence => 1,
-        	content => 1,
-        	jhove => 1,
-        	utf8 => 0
-		},
-		notes => {
-			prefix => 'NOTES',
-			use => 'notes',
-			file_pattern => qr/notes\.txt/,
-			required => 0,
-      sequence => 0,
-			content => 1,
-			jhove => 0,
-			utf8 => 0,
-        	structmap => 0,
-		},
+      archival => {
+        prefix => 'AM',
+        use => 'preservation',
+        file_pattern => qr/am.*\.wav$/,
+        required => 1,
+        content => 1,
+        jhove => 1,
+        utf8 => 0
+      },
+      production => {
+        prefix => 'PM',
+        use => 'production',
+        file_pattern => qr/pm.*\.wav$/,
+        required => 1,
+        content => 1,
+        jhove => 1,
+        utf8 => 0
+      },
+      image => {
+        premix => 'IMG',
+        use => 'image',
+        file_pattern => qr/.*\.(jpg|JPG)$/,
+        required => 0,
+        content => 1,
+        jhove => 0,
+        utf8 => 0
+      },
+      notes => {
+        prefix => 'NOTES',
+        use => 'notes',
+        file_pattern => qr/notes\.txt/,
+        required => 0,
+        content => 1,
+        jhove => 0,
+        utf8 => 0,
+        structmap => 0,
+      },
+      access => {
+        prefix => 'ACCESS',
+        use =>  'access',
+        file_pattern => qr/.*\.mp3$/,
+        required => 1,
+        content => 1,
+        jhove => 0,
+        utf8 => 0,
+      },
 	},
 
 	validation_run_stages => [
@@ -64,7 +77,9 @@ our $config = {
 	validate_filegroups_nonempty
 	validate_consistency
 	validate_mets_consistency
-	validate_metadata)
+	validate_metadata
+  validate_mp3
+  )
 	],
 
     source_mets_file => qr/\w+\.xml$/,
@@ -72,11 +87,12 @@ our $config = {
 
     stage_map => {
 		ready             => 'HTFeed::PackageType::Audio::Fetch',
-        fetched           => 'HTFeed::PackageType::Audio::VolumeValidator',
+        fetched           => 'HTFeed::PackageType::BentleyAudio::VolumeValidator',
         validated         => 'HTFeed::Stage::Pack',
         packed            => 'HTFeed::PackageType::Audio::METS',
-        metsed            => 'HTFeed::Stage::Handle',
-        handled           => 'HTFeed::Stage::Collate',
+        metsed            => 'HTFeed::Stage::Collate',
+#        metsed            => 'HTFeed::Stage::Handle',
+#        handled           => 'HTFeed::Stage::Collate',
 
         needs_uplift => 'HTFeed::Stage::RepositoryUnpack',
         uplift_unpacked => 'HTFeed::Stage::ReMETS'
@@ -86,19 +102,19 @@ our $config = {
     # files with the given extensions
     module_validators => {
         'wav' => 'HTFeed::ModuleValidator::WAVE_hul',
-		'jp2' => 'HTFeed::ModuleValidator::JPEG2000_hul',
+        'jp2' => 'HTFeed::ModuleValidator::JPEG2000_hul',
     },
 
     # What PREMIS events to include (by internal PREMIS identifier,
     # configured in config.yaml)
     # TODO: determine Audio HT PREMIS events
     # TODO: determine Audio PREMIS source METS events to extract
-    source_premis_events_extract => [
-    'capture',
-    'manual_quality_review',
-    'source_mets_creation',
-    'page_md5_create',
-    ],
+#    source_premis_events_extract => [
+#    'capture',
+#    'manual_quality_review',
+#    'source_mets_creation',
+#    'page_md5_create',
+#    ],
 
     premis_events => [
     'page_md5_fixity',
