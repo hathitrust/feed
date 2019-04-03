@@ -226,7 +226,8 @@ sub _remediate_tiff {
                                                'Type mismatch for tag',
                                                # related to thumbnails, which imagemagick will strip
                                                'JPEGProc not defined for JPEG compression',
-                                               'For PhotometricInterpretation, SamplesPerPixel must be >= 3, equals1');
+                                               'For PhotometricInterpretation, SamplesPerPixel must be >= 3, equals1',
+                                               'For PhotometricInterpretation, SamplesPerPixel must be >= 1, equals: 1');
             if ( grep { $error =~ /^$_/ } @imagemagick_remediable_errs ) {
                 get_logger()
                   ->trace(
