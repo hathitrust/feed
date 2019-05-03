@@ -506,24 +506,12 @@ sub _remediate_jpeg2000 {
           get_logger()->warn("Resolution unit awry")
             if ( not $xresunit or not $yresunit or $xresunit ne $yresunit );
 
-          my $factor = undef;
-          $xresunit eq 'um' and $factor = 25400;
-          $xresunit eq '0.01 mm' and $factor = 2540;
-          $xresunit eq '0.1 mm' and $factor = 254;
-          $xresunit eq 'mm' and $factor = 25.4;
-          $xresunit eq 'cm' and $factor = 2.54;
-          $xresunit eq 'm' and $factor = 0.0254;
-          $xresunit eq 'in' and $factor = 1;
-          $xresunit eq 'inches' and $factor = 1;
+          my $dpi_resolution = $self->_dpi($xres,$xresunit);
 
-          if(defined $factor) {
-              my $resolution = sprintf("%.0f",$xres * $factor);
-              # Absurdly low DPI is likely to be an error or default, so don't
-              # use it and try to get it from somewhere else if it is < 100
-              if($resolution >= 100) {
-                $force_headers->{Resolution} = $resolution;
-                last;
-              }
+          if(defined $dpi_resolution and $dpi_resolution >= 100) {
+            # Absurdly low DPI is likely to be an error or default, so don't
+            # use it and try to get it from somewhere else if it is < 100
+            $force_headers->{Resolution} = $resolution;
           }
         }
       }
@@ -531,33 +519,7 @@ sub _remediate_jpeg2000 {
 
     }
 
-    my $force_res = 0;
-    if (
-        (
-            defined( $resolution = $force_headers->{'Resolution'} )
-            && ( $force_res = 1 )
-        )    # force resolution change if field is set in $force_headers
-        or defined( $resolution = $set_if_undefined_headers->{'Resolution'} )
-      )
-    {
-        if ($force_res) {
-            $self->{newFields}->{'XMP-tiff:XResolution'}    = $resolution;
-            $self->{newFields}->{'XMP-tiff:YResolution'}    = $resolution;
-            $self->{newFields}->{'XMP-tiff:ResolutionUnit'} = 'inches';
-        }
-        else {
-            $self->set_new_if_undefined( 'XMP-tiff:XResolution', $resolution );
-            $self->set_new_if_undefined( 'XMP-tiff:YResolution', $resolution );
-            $self->set_new_if_undefined( 'XMP-tiff:ResolutionUnit', 'inches' );
-
-        }
-
-        # Overwrite IFD0:XResolution/IFD0:YResolution if they are present
-        if ( defined $self->{oldFields}->{'IFD0:XResolution'} ) {
-            $self->{newFields}->{'IFD0:XResolution'} = $resolution;
-            $self->{newFields}->{'IFD0:YResolution'} = $resolution;
-        }
-    }
+    $self->_set_new_resolution($force_headers,$set_if_undefined_headers);
 
     # Add other provided new headers if requested and the file does not
     # already have a value set for the given field
@@ -606,7 +568,66 @@ sub _remediate_jpeg2000 {
 
 }
 
-sub prevalidate_field {
+sub _dpi {
+  my $self = shift;
+  my $xres = shift;
+  my $xresunit = shift;
+  my $factor = undef;
+
+  return unless $xres and $xresunit;
+
+  $xresunit eq 'um' and $factor = 25400;
+  $xresunit eq '0.01 mm' and $factor = 2540;
+  $xresunit eq '0.1 mm' and $factor = 254;
+  $xresunit eq 'mm' and $factor = 25.4;
+  $xresunit eq 'cm' and $factor = 2.54;
+  $xresunit eq 'm' and $factor = 0.0254;
+  $xresunit eq 'km' and $factor = 0.0000254;
+  $xresunit eq 'in' and $factor = 1;
+  $xresunit eq 'inches' and $factor = 1;
+
+  if(defined $factor) {
+    return sprintf("%.0f",$xres * $factor);
+  } else {
+    return;
+  }
+}
+
+sub _set_new_resolution {
+  my $self = shift;
+  my $force_headers = shift;
+  my $set_if_undefined_headers = shift;
+
+  my $xmp_resolution = $self->_dpi($self->{oldFields}->{'XMP-tiff:XResolution'},$self->{oldFields}->{'XMP-tiff:ResolutionUnit'});
+
+  # if the resolution in the XMP is nonsense, ensure it gets updated with any
+  # info we might have even if we aren't otherwise forcing the resolution
+  my $force_res = (defined $force_headers->{'Resolution'} or (defined $xmp_resolution and $xmp_resolution < 100));
+
+  my $resolution = $force_headers->{'Resolution'};
+  $resolution ||= $set_if_undefined_headers->{'Resolution'};
+
+  return unless defined $resolution;
+
+  if ($force_res) {
+      $self->{newFields}->{'XMP-tiff:XResolution'}    = $resolution;
+      $self->{newFields}->{'XMP-tiff:YResolution'}    = $resolution;
+      $self->{newFields}->{'XMP-tiff:ResolutionUnit'} = 'inches';
+  }
+  else {
+      $self->set_new_if_undefined( 'XMP-tiff:XResolution', $resolution );
+      $self->set_new_if_undefined( 'XMP-tiff:YResolution', $resolution );
+      $self->set_new_if_undefined( 'XMP-tiff:ResolutionUnit', 'inches' );
+  }
+
+  if (defined $self->{oldFields}->{'IFD0:XResolution'})
+  {
+    # Overwrite IFD0:XResolution/IFD0:YResolution if they are present
+    $self->{newFields}->{'IFD0:XResolution'} = $resolution;
+    $self->{newFields}->{'IFD0:YResolution'} = $resolution;
+    $self->{newFields}->{'IFD0:ResolutionUnit'} = 'inches';
+  }
+} sub prevalidate_field {
     my $self      = shift;
     my $fieldname = shift;
     my $expected  = shift
