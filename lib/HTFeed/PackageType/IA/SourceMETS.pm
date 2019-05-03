@@ -90,6 +90,30 @@ sub _add_techmds {
     }
 }
 
+sub _get_capture_date {
+  my $self = shift;
+  my $volume = $self->{volume};
+  my $xpc = $volume->get_scandata_xpc();
+
+  my $eventdate_re = qr/^(\d\d\d\d)(\d\d)(\d\d)(\d\d)(\d\d)(\d\d)$/;
+  my $eventdate = $xpc->findvalue("//scribe:scanLog/scribe:scanEvent[1]/scribe:endTimeStamp | //scanLog/scanEvent[1]/endTimeStamp");
+  if(not defined $eventdate or $eventdate eq '' or $eventdate !~ $eventdate_re) {
+    my $meta_xpc = $volume->get_meta_xpc();
+    $eventdate = $meta_xpc->findvalue("//scandate");
+  }
+
+  if(not defined $eventdate or $eventdate eq '' or $eventdate !~ $eventdate_re) {
+    $eventdate = $xpc->findvalue("//scribe:page[last()]/scribe:gmtTimeStamp | //page[last()]/gmtTimeStamp");
+  }
+
+  # if we still can't find it just use the file timestamp
+  if(not defined $eventdate or $eventdate eq '' or $eventdate !~ $eventdate_re) {
+    my $ia_id = $volume->get_ia_id();
+    my $download_directory = $volume->get_download_directory();
+    $eventdate = strftime("%Y%m%d%H%M%S",gmtime((stat("$download_directory/${ia_id}_scandata.xml"))[9]));
+  }
+}
+
 sub _add_capture_event {
     my $self = shift;
     my $volume = $self->{volume};
@@ -97,24 +121,8 @@ sub _add_capture_event {
     my $xpc = $volume->get_scandata_xpc();
 
     my $eventdate_re = qr/^(\d\d\d\d)(\d\d)(\d\d)(\d\d)(\d\d)(\d\d)$/;
-    my $eventdate = $xpc->findvalue("//scribe:scanLog/scribe:scanEvent[1]/scribe:endTimeStamp | //scanLog/scanEvent[1]/endTimeStamp");
+    my $eventdate = $self->_get_capture_date();
     my $scribe = $xpc->findvalue("//scribe:scanLog/scribe:scanEvent[1]/scribe:scribe | //scanLog/scanEvent[1]/scribe");
-
-    if(not defined $eventdate or $eventdate eq '' or $eventdate !~ $eventdate_re) {
-        my $meta_xpc = $volume->get_meta_xpc();
-        $eventdate = $meta_xpc->findvalue("//scandate");
-    }
-
-    if(not defined $eventdate or $eventdate eq '' or $eventdate !~ $eventdate_re) {
-        $eventdate = $xpc->findvalue("//scribe:page[last()]/scribe:gmtTimeStamp | //page[last()]/gmtTimeStamp");
-    }
-
-    # if we still can't find it just use the file timestamp
-    if(not defined $eventdate or $eventdate eq '' or $eventdate !~ $eventdate_re) {
-        my $ia_id = $volume->get_ia_id();
-        my $download_directory = $volume->get_download_directory();
-        $eventdate = strftime("%Y%m%d%H%M%S",gmtime((stat("$download_directory/${ia_id}_scandata.xml"))[9]));
-    }
 
     if( $eventdate =~ $eventdate_re ) {
 
@@ -129,6 +137,11 @@ sub _add_capture_event {
         my $eventconfig = $volume->get_nspkg()->get_event_configuration($eventcode);
         $eventconfig->{'eventid'} = $volume->make_premis_uuid($eventconfig->{'type'},$capture_date);
         $eventconfig->{'executor'} = $volume->apparent_digitizer;
+        # for born digital items uploaded to Internet Archive we will still use
+        # 'archive' as the capture event executor - this represents capturing
+        # the PDF rather than the raw images in this case, but still seems
+        # appropriate given the PREMIS controlled vocabulary
+        $eventconfig->{'executor'} ||= 'archive';
         $eventconfig->{'executor_type'} = $self->agent_type($eventconfig->{'executor'});
         $eventconfig->{'date'} = $capture_date;
         my $event = $self->add_premis_event($eventconfig);
