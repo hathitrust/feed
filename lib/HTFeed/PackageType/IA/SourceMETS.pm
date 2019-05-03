@@ -112,6 +112,16 @@ sub _get_capture_date {
     my $download_directory = $volume->get_download_directory();
     $eventdate = strftime("%Y%m%d%H%M%S",gmtime((stat("$download_directory/${ia_id}_scandata.xml"))[9]));
   }
+
+  if ($eventdate =~ $eventdate_re) {
+    # some IA packages have timestamps with hour 24 but that's not allowed in ISO format
+    my $hour = $4;
+    $hour = '00' if $hour eq '24'; 
+    return sprintf( "%d-%02d-%02dT%02d:%02d:%02dZ", $1, $2, $3, $hour, $5, $6 );
+  } else {
+    $self->set_error("BadField",field => "capture time", file => "scandata.xml", actual => $eventdate);
+    return undef;
+  }
 }
 
 sub _add_capture_event {
@@ -120,18 +130,10 @@ sub _add_capture_event {
     my $premis = $self->{premis};
     my $xpc = $volume->get_scandata_xpc();
 
-    my $eventdate_re = qr/^(\d\d\d\d)(\d\d)(\d\d)(\d\d)(\d\d)(\d\d)$/;
-    my $eventdate = $self->_get_capture_date();
+    my $capture_date = $self->_get_capture_date();
     my $scribe = $xpc->findvalue("//scribe:scanLog/scribe:scanEvent[1]/scribe:scribe | //scanLog/scanEvent[1]/scribe");
 
-    if( $eventdate =~ $eventdate_re ) {
-
-        # some IA packages have timestamps with hour 24 but that's not allowed in ISO format
-        my $hour = $4;
-        $hour = '00' if $hour eq '24'; 
-        my $capture_date
-        = sprintf( "%d-%02d-%02dT%02d:%02d:%02dZ", $1, $2, $3, $hour, $5, $6 );
-        
+    if( $capture_date ) {
 
         my $eventcode = 'capture';
         my $eventconfig = $volume->get_nspkg()->get_event_configuration($eventcode);
@@ -151,7 +153,6 @@ sub _add_capture_event {
 
         return 1;
     } else {
-        $self->set_error("BadField",field => "capture time", file => "scandata.xml", actual => $eventdate);
         return 0;
     }
 }
