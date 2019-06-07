@@ -1,0 +1,4 @@
+Explanation: Prioritize [jhove, libjaxb-api-java, libactivation-java] from buster
+Package: jhove libjaxb-api-java libactivation-java
+Pin: release a=, n=buster, v=, c=, o=, l=
+Pin-Priority: 700

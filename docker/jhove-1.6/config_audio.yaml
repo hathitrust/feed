@@ -1,0 +1,18 @@
+repository:
+  # The directory in which symbolic links will be created to each volume
+  link_dir: /nonexistent
+  # The directory into which volumes will be loaded
+  obj_dir: /nonexistent
+
+sip_root: /tmp
+staging_root: /ram/feed_audio
+stop_on_error: 0
+
+sqlite:
+  datasource: "dbi:SQLite:dbname=/l/local/feed/var/db/feed_audio.db"
+  username: ""
+  password: ""
+
+jhove: /usr/bin/jhove
+jhoveconf: /etc/jhove/jhove.conf
+

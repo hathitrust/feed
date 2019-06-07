@@ -1,0 +1,4 @@
+Explanation: Prioritize [jhove, libjaxb-api-java, libactivation-java] from jessie
+Package: jhove libjaxb-api-java libactivation-java
+Pin: release a=, n=jessie, v=, c=, o=, l=
+Pin-Priority: 700
