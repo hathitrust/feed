@@ -476,8 +476,6 @@ sub _remediate_jpeg2000 {
     $normalized_date = $set_if_undefined_headers->{'XMP-tiff:DateTime'} if not defined $normalized_date;
     $self->{newFields}{'XMP-tiff:DateTime'}  = $normalized_date;
 
-    my $resolution = undef;
-
     # try to get resolution from JPEG2000 headers
     if ( !$force_headers->{'Resolution'} ) {
 
@@ -511,7 +509,7 @@ sub _remediate_jpeg2000 {
           if(defined $dpi_resolution and $dpi_resolution >= 100) {
             # Absurdly low DPI is likely to be an error or default, so don't
             # use it and try to get it from somewhere else if it is < 100
-            $force_headers->{Resolution} = $resolution;
+            $force_headers->{Resolution} = $dpi_resolution;
           }
         }
       }
