@@ -53,6 +53,8 @@ sub relative_path {
 
  Load all subclasses
 
+ With a parameter, uses that as the subdirectory to load modules from.
+
 =cut
 
 sub import {
@@ -63,16 +65,13 @@ sub import {
     # If called as use HTFeed::FactoryLoader qw(load_subclasses)
     if(@_ and $_[0] eq 'load_subclasses') {
 
+        shift;
+
         my $caller = caller();
         my $relative_path = relative_path($caller);
 
-        # determine the subdirectory to find plugins in
-        my $module_path = module_path($caller);
-
-        # load the base class's identifier
         my $subclass_identifier = ${"${caller}::identifier"};
-        die("$caller missing identifier")
-        unless defined $subclass_identifier;
+        die("$caller missing identifier") unless defined $subclass_identifier;
         $subclass_map{$caller}{$subclass_identifier} = "$relative_path.pm";
 
         # run callback for when package was loaded, if it exists
@@ -81,14 +80,23 @@ sub import {
             if($@) { die $@ };
         }
 
-        # find the stuff that can be loaded
-        foreach my $file (glob("$module_path/*.pm")) {
-            if($file =~ qr(^$module_path/([^.]*)\.pm$) and -f $file) {                        
-                my $id = lc($1);
-                # map to %INC key/val
-                $subclass_map{$caller}{$id} = "$relative_path/$1.pm";
-            }
+        # determine the subdirectory to find plugins in
+        my @module_paths = (module_path($caller));
+        foreach my $lib_path (@_) {
+          push(@module_paths, "$lib_path/$relative_path");
+        }
 
+        foreach my $module_path (@module_paths) {
+          # load the base class's identifier
+          # find the stuff that can be loaded
+          foreach my $file (glob("$module_path/*.pm")) {
+              if($file =~ qr(^$module_path/([^.]*)\.pm$) and -f $file) {                        
+                  my $id = lc($1);
+                  # map to %INC key/val
+                  $subclass_map{$caller}{$id} = "$relative_path/$1.pm";
+              }
+
+          }
         }
     }
 
@@ -134,7 +142,6 @@ sub load_all_subclasses {
                 my $file = $File::Find::name;
                 if($file =~ qr(^$module_path/([^.]*)\.pm$) and -f $file) {                        
                     my $package = $1;
-                    print STDERR "Loading $relative_path/$package.pm in load_all_subclasses\n";
                     eval {
                         require "$relative_path/$package.pm";
                     };

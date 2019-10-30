@@ -2,6 +2,7 @@ package HTFeed::Config;
 
 use warnings;
 use strict;
+use FindBin;
 use YAML::AppConfigFork;
 use Carp;
 use File::Basename;
