@@ -1,13 +1,13 @@
 package HTFeed::PackageType::MDLContone_MHSC;
 
-use base qw(HTFeed::PackageType::MDLContone::MHS);
+use base qw(HTFeed::PackageType::MDLContone_MHS);
 use warnings;
 use strict;
 
 our $identifier = 'mdlcontone_mhsc';
 
 our $config = {
-    %{$HTFeed::PackageType::MDLContone::MHS::config},
+    %{$HTFeed::PackageType::MDLContone_MHS::config},
     description => 'Minnesota Historical Society images - composite objects',
 
     # what stage to run given the current state
