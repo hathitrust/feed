@@ -1,0 +1,61 @@
+---
+repository:
+  # The directory in which symbolic links will be created to each volume
+  link_dir: /sdr1/obj
+  # The directory into which volumes will be loaded 
+  obj_dir: $current_sdr_bucket
+
+staging:
+  # where to look for material to ingest
+  fetch: $sip_root/toingest
+  # where to move SIPs after they have been ingested/validated
+  ingested: $sip_root/ingested
+  # where to move SIPs if they fail ingested/validation
+  punted: $sip_root/failed
+  download: $sip_root/download
+  ingest: $staging_root/ingest
+  zip: $staging_root/zip
+  zipfile: $staging_root/zipfile
+  preingest: $staging_root/preingest
+  grin: $staging_root/grin
+
+stop_file: $feed_etc/STOPFEED
+
+# states not handled by feedd
+release_states:
+  - available
+  - in_process
+  - punted
+  - done
+  - collated
+  - rights
+  - held
+  - uplift_done
+
+# Configuration for how to run - how many subprocesses, how many retries, etc
+volumes_in_process_limit: 32
+failure_limit: 5
+# true to immediately stop a module when an error is encountered
+stop_on_error: 1
+# true to spawn subprocesses to handle each stage
+fork: 1
+# limit space usage on staging disk
+# entered in integer percent (i.e. 95 == 95%)
+# enter a number greater than 100 to disable
+staging_root_usage_limit: 95
+# true to clean up after ourselves
+clean: 1
+
+# Handle configuration
+
+handle:
+  repo_url_base: https://babel.hathitrust.org/cgi/pt?id=
+  root_admin: 0.NA/2027
+  local_admin: 2027/mdp
+  database:
+    datasource: dbi:mysql:handle:my_handle_server.default.invalid
+    username: handle
+    password: $handle_database_password
+
+# Location of the symlinks for 'local directory version'
+premis_tool_local: /l/local
