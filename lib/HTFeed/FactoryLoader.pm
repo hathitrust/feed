@@ -19,6 +19,36 @@ HTFeed::FactoryLoader
 # hash of allowed config variables
 our %subclass_map;
 
+
+=item module_path
+
+  Determine the full path to a module given its name
+
+=cut
+
+sub module_path {
+  my $module = shift;
+  my $module_path = relative_path($module);
+  $module_path = $INC{$module_path . ".pm"} ;
+  $module_path =~ s/.pm$//;
+  return $module_path;
+}
+
+=item relative_path
+
+  Determine the relative path to a module from a lib directory given its name
+
+=cut
+
+sub relative_path {
+  my $module = shift;
+
+  my $relative_path = $module;
+  $relative_path =~ s/::/\//g;
+
+  return $relative_path;
+}
+
 =item import()
 
  Load all subclasses
@@ -34,12 +64,10 @@ sub import {
     if(@_ and $_[0] eq 'load_subclasses') {
 
         my $caller = caller();
+        my $relative_path = relative_path($caller);
+
         # determine the subdirectory to find plugins in
-        my $module_path = $caller;
-        $module_path =~ s/::/\//g;
-        my $relative_path = $module_path;
-        $module_path = $INC{$module_path . ".pm"} ;
-        $module_path =~ s/.pm$//;
+        my $module_path = module_path($caller);
 
         # load the base class's identifier
         my $subclass_identifier = ${"${caller}::identifier"};
@@ -70,6 +98,14 @@ sub import {
 
  Causes all subclasses to be loaded -- call after the initial import.
 
+ With no arguments, loads classes from the subdirectory named after the calling
+ module.
+
+ If arguments are given, they should be:
+
+ - the full path to the subdirectory to load plugins from
+ - the path relative to 'lib' (for constructing the module names)
+
 =cut
 
 sub load_all_subclasses {
@@ -77,12 +113,9 @@ sub load_all_subclasses {
     no strict 'refs';
     # determine the subdirectory to find plugins in
     my $caller = shift;
-    my $module_path = $caller;
-    $module_path =~ s/::/\//g;
-    my $relative_path = $module_path;
-    $module_path = $INC{$module_path . ".pm"} ;
-    $module_path =~ s/.pm$//;
-
+    my $module_path = shift || module_path($caller);
+    my $relative_path = shift || relative_path($caller);
+   
     # load the base class's identifier
     my $subclass_identifier = ${"${caller}::identifier"};
     die("$caller missing identifier")
@@ -101,6 +134,7 @@ sub load_all_subclasses {
                 my $file = $File::Find::name;
                 if($file =~ qr(^$module_path/([^.]*)\.pm$) and -f $file) {                        
                     my $package = $1;
+                    print STDERR "Loading $relative_path/$package.pm in load_all_subclasses\n";
                     eval {
                         require "$relative_path/$package.pm";
                     };
