@@ -1,1 +1,0 @@
-../../metslib/METS/StructMap.pm
