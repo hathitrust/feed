@@ -1,4 +1,4 @@
 Explanation: Deprioritize packages from Debian Testing
 Package: *
-Pin: release a=testing, n=, v=, c=, o=, l=
+Pin: release a=buster, n=, v=, c=, o=, l=
 Pin-Priority: -10

@@ -35,6 +35,7 @@ RUN apt-get update && apt-get install -y \
   libdate-manip-perl \
   libdbd-mock-perl \
   libdbd-mysql-perl \
+  libdbd-sqlite3-perl \
   libdevel-globaldestruction-perl \
   libdigest-sha-perl \
   libemail-date-format-perl \
@@ -138,6 +139,7 @@ RUN apt-get install -y \
   libssl-dev \
   libyaml-dev \
   openssh-server \
+  unzip \
   wget \
   zlib1g-dev
 
@@ -155,3 +157,14 @@ RUN cpan \
   Devel::Cycle \
   Test::Memory::Cycle \
   Mozilla::CA
+
+RUN git clone https://github.com/hathitrust/feed_with_history.git /usr/local/feed
+WORKDIR /usr/local/feed
+# other submodules are private
+RUN git pull
+RUN git submodule init metslib
+RUN git submodule update metslib
+RUN cp etc/sample_config/* etc/config
+RUN cp etc/sample_namespace/TEST.pm etc/namespaces
+RUN perl Makefile.PL && make && make install
+RUN mkdir -p /tmp/stage/toingest/test
