@@ -10,3 +10,5 @@ staging_root: /tmp/prevalidate
 sip_root: /tmp/stage
 
 kdu_compress: /usr/local/bin/kdu_compress
+
+stop_on_error: 0
