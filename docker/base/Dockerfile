@@ -158,7 +158,7 @@ RUN cpan \
   Test::Memory::Cycle \
   Mozilla::CA
 
-RUN git clone https://github.com/hathitrust/feed_with_history.git /usr/local/feed
+RUN git clone https://github.com/hathitrust/feed.git /usr/local/feed
 WORKDIR /usr/local/feed
 # other submodules are private
 RUN git pull
