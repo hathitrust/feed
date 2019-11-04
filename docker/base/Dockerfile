@@ -1,10 +1,10 @@
-FROM debian:stretch
+FROM debian:buster
 
 RUN apt-get update && apt-get install -y \
-  openjdk-8-jdk-headless \
+  openjdk-11-jdk-headless \
   perl \
   imagemagick \
-  libxerces-c3.1 \
+  libxerces-c3.2 \
   libxerces-c3-dev \
   sqlite3 \
   libalgorithm-diff-xs-perl \
@@ -141,6 +141,7 @@ RUN apt-get install -y \
   openssh-server \
   unzip \
   wget \
+  zip \
   zlib1g-dev
 
 RUN cpan \
@@ -168,3 +169,15 @@ RUN cp etc/sample_config/* etc/config
 RUN cp etc/sample_namespace/TEST.pm etc/namespaces
 RUN perl Makefile.PL && make && make install
 RUN mkdir -p /tmp/stage/toingest/test
+
+WORKDIR /tmp
+RUN wget https://kakadusoftware.com/wp-content/uploads/2014/06/KDU7A2_Demo_Apps_for_Ubuntu-x86-64_170827.zip
+RUN unzip -j -d kakadu KDU7A2_Demo_Apps_for_Ubuntu-x86-64_170827.zip
+RUN mv /tmp/kakadu/*.so /usr/local/lib
+RUN mv /tmp/kakadu/kdu* /usr/local/bin
+RUN echo "/usr/local/lib" > /etc/ld.so.conf.d/kakadu.conf
+RUN ldconfig
+
+COPY config_prevalidate.yaml /usr/local/etc/feed/config_prevalidate.yaml
+COPY config_audio.yaml /usr/local/feed/etc/config_audio.yaml
+COPY MDP.pm /usr/local/feed/lib/HTFeed/Namespace/MDP.pm
