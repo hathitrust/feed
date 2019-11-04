@@ -1,13 +1,9 @@
 The base image needs to be built first. To build the base image:
 
-`docker build -t hathitrust/feed_base:stretch base/`
+`docker build -t hathitrust/feed_base:buster base/`
 
-Image & volume validation:
-`docker build -t hathitrust/feed:imagevalidate imagevalidate/`
+Validation with jhove 1.20 (preferred):
+`docker build -t hathitrust/feed:jhove-1.20 jhove-1.20/`
 
-Audio validation with jhove 1.6:
+Validation with jhove 1.6 (deprecated):
 `docker build -t hathitrust/feed:jhove-1.6 jhove-1.6/
-
-Audio validation with jhove 1.20:
-
-`docker build -t hathitrust/feed:jhove-1.20 jhove-1.20/
