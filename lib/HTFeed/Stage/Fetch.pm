@@ -69,6 +69,7 @@ sub fix_line_endings {
 
         while( <INPUT> ) {
             s/\r\n$/\n/;     # convert CR LF to LF
+            s/\f//g; # strip out form feeds
             print OUTPUT $_;
         }
 
