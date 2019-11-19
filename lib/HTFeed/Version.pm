@@ -17,13 +17,13 @@ our @EXPORT_OK = qw( get_vstring get_full_version_string get_production_ok );
 my ($vstring,$full_version_string,$production_ok) = (undef,undef,undef); # HTFEED_VERSION_STRINGS
 ########## End HTFeed version strings ############
 
-# try git
-unless($vstring and $full_version_string and defined $production_ok) {
-    _get_version_from_git(\$vstring,\$full_version_string,\$production_ok);
-}
 # try fs
 unless($vstring and $full_version_string and defined $production_ok) {
     _get_version_from_fs(\$vstring,\$full_version_string,\$production_ok);
+}
+# try git
+unless($vstring and $full_version_string and defined $production_ok) {
+    _get_version_from_git(\$vstring,\$full_version_string,\$production_ok);
 }
 # die by default
 unless($vstring and $full_version_string and defined $production_ok) {
@@ -34,7 +34,6 @@ carp "### DEVELOPMENT VERSION ### $full_version_string"
     unless($production_ok);
 
 use version;
-print "$vstring \n";
 our $VERSION = version->declare($vstring);
 
 sub get_vstring {
@@ -99,8 +98,9 @@ sub _get_version_from_git {
             # get feed description from git
             my $git_string = `cd $path_to_this_module; git describe --tags --long`;
             chomp $git_string;
-            _parse_git_string($git_string,$vstring,$full_version_string,$production_ok);
-            1;
+            $$vstring = "0.0.0";
+            $$full_version_string = $git_string;
+            $$production_ok = 0;
         }
     }
     
@@ -135,49 +135,6 @@ sub _get_version_from_fs {
     }
 
     return;
-}
-
-=synopsis
-
-_parse_git_string($git_string,\$vstring,\$full_version_string,\$production_ok)
-
-=cut
-sub _parse_git_string {
-    my ($git_string,$vstring,$full_version_string,$production_ok) = @_;
-    $git_string =~ /^feed_v # required prefix
-                    (\d{1,3}) # major version
-                    \.(\d{1,3}) # minor version
-                    \.?((?<=\.)\d{1,3}|(?<!\.)) # optional tertiary version
-                    _?((?<=_)[0-9a-zA-Z\._]+|(?<!_)) # optional development tag
-                    -(\d+) # commits since tag
-                    -(g[0-9a-f]+) # commit id
-                    -?((?<=-)dirty|(?<!-))? # optional dirty flag
-                    $/x;
-    my ($maj,$min,$ter,$dev_tag,$commit_count,$commit_id,$dirty) = ($1,$2,$3,$4,$5,$6,$7);
-    
-    if(defined $maj and defined $min and defined $commit_count and $commit_id){
-        $$vstring = "v$maj.$min";
-        $$vstring .= ".$ter" if(defined $ter);
-
-        # dev
-        if($dev_tag) {
-            $$vstring .= "_$commit_count";
-            $$full_version_string = $git_string;
-            $$production_ok = 0;
-            return;
-        }
-        # production
-        if(!$dev_tag and $commit_count == 0 and !$dirty) {
-            $$full_version_string = 'feed_'.$$vstring;
-            $$production_ok = 1;
-            return;
-        } else {
-            warn("Tainted code running under deployment version tag: $git_string");
-        }
-    }
-    
-    # invalid string
-    warn("Error reading version number from Git, invalid string: $git_string");
 }
 
 
