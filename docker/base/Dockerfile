@@ -1,6 +1,9 @@
 FROM debian:buster
 
+RUN sed -i 's/main.*/main contrib non-free/' /etc/apt/sources.list
+
 RUN apt-get update && apt-get install -y \
+  jhove \
   openjdk-11-jdk-headless \
   perl \
   imagemagick \
@@ -159,17 +162,6 @@ RUN cpan \
   Test::Memory::Cycle \
   Mozilla::CA
 
-RUN git clone https://github.com/hathitrust/feed.git /usr/local/feed
-WORKDIR /usr/local/feed
-# other submodules are private
-RUN git pull
-RUN git submodule init metslib
-RUN git submodule update metslib
-RUN cp etc/sample_config/* etc/config
-RUN cp etc/sample_namespace/TEST.pm etc/namespaces
-RUN perl Makefile.PL && make && make install
-RUN mkdir -p /tmp/stage/toingest/test
-
 WORKDIR /tmp
 RUN wget https://kakadusoftware.com/wp-content/uploads/2014/06/KDU7A2_Demo_Apps_for_Ubuntu-x86-64_170827.zip
 RUN unzip -j -d kakadu KDU7A2_Demo_Apps_for_Ubuntu-x86-64_170827.zip
@@ -177,7 +169,3 @@ RUN mv /tmp/kakadu/*.so /usr/local/lib
 RUN mv /tmp/kakadu/kdu* /usr/local/bin
 RUN echo "/usr/local/lib" > /etc/ld.so.conf.d/kakadu.conf
 RUN ldconfig
-
-COPY config_prevalidate.yaml /usr/local/etc/feed/config_prevalidate.yaml
-COPY config_audio.yaml /usr/local/feed/etc/config_audio.yaml
-COPY MDP.pm /usr/local/feed/lib/HTFeed/Namespace/MDP.pm
