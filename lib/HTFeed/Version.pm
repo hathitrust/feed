@@ -172,12 +172,12 @@ sub _parse_git_string {
             $$production_ok = 1;
             return;
         } else {
-            croak("Tainted code running under deployment version tag: $git_string, apply dev tag to run dev version");
+            warn("Tainted code running under deployment version tag: $git_string");
         }
     }
     
     # invalid string
-    croak("Error reading version number from Git, invalid string: $git_string");
+    warn("Error reading version number from Git, invalid string: $git_string");
 }
 
 
