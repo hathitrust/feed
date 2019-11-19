@@ -31,11 +31,11 @@ sub _set_validators {
         'format'    => { desc => 'Baseline WAVE format', detail => '', valid => v_eq( 'repInfo', 'format',   'WAVE' ) },
         'status'    => { desc => 'JHOVE status', detail => '', valid => v_eq( 'repInfo', 'status',   'Well-Formed and valid' ) },
         'module'    => { desc => 'JHOVE reporting module', detail => '', valid => v_eq( 'repInfo', 'module',   'WAVE-hul' ) },
-        'mime_type' => { desc => 'MIME type', detail => '', valid => v_eq( 'repInfo', 'mimeType', 'audio/x-wave' ) },
+        'mime_type' => { desc => 'MIME type', detail => '', valid => v_in( 'repInfo', 'mimeType', ['audio/x-wave','audio/vnd.wave; codec=1'] ) },
         'profile1'  => { desc => 'WAVE profile', detail => '', valid => v_in( 'repInfo', 'profile1', ['PCMWAVEFORMAT','WAVEFORMATEX'] ) },
         'profile2'  => { desc => 'WAVE profile (broadcast wave)', detail => '', valid => v_in(
             'repInfo', 'profile2',
-            [ 'Broadcast Wave Version 0', 'Broadcast Wave Version 1' ]
+            [ 'BWF', 'Broadcast Wave Version 0', 'Broadcast Wave Version 1' ]
         ) },
         'codingHistory' => { desc => 'WAVE Coding History', detail => '', valid => v_exists( 'waveMeta', 'codingHistory' ) },
         'description'   => { desc => 'WAVE Description', detail => '', valid => v_exists( 'waveMeta', 'description' ) },
