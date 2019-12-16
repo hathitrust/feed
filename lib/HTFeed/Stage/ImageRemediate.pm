@@ -12,6 +12,7 @@ use Carp;
 use HTFeed::XMLNamespaces qw(register_namespaces);
 use Encode qw(decode);
 use File::Basename qw(basename);
+use Date::Manip;
 
 =head1 NAME
 
@@ -966,9 +967,14 @@ sub set_new_date_fields {
   my $new_tiffdate = shift;
   my $new_xmpdate = shift;
 
-  $self->{newFields}{'IFD0:ModifyDate'} = $new_tiffdate;
+  my $tiffdate = Date::Manip::Date->new;
+  $tiffdate->parse($new_tiffdate);
+  my $xmpdate = Date::Manip::Date->new;
+  $xmpdate->parse($new_xmpdate);
+  
+  $self->{newFields}{'IFD0:ModifyDate'} = $tiffdate->printf("%Y:%m:%d %H:%M:%S");
   if($self->needs_xmp) {
-    $self->{newFields}{'XMP-tiff:DateTime'} = $new_xmpdate;
+    $self->{newFields}{'XMP-tiff:DateTime'} = $xmpdate->printf("%O");
   }
 }
 
