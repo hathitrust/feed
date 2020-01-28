@@ -1,7 +1,10 @@
 damaged:
-  count: '23'
+  count: '25'
   package_types:
     simple:
+      txi:
+      - '0112202086942'
+      - '0112210869628'
       hva:
       - 'a11412038998'
       - 'a15412038998'
@@ -37,7 +40,7 @@ damaged:
       - 'aslalskdjf'
       - 'abc12345678901'
 undamaged:
-  count: '37'
+  count: '39'
   package_types:
     google:
       inu:
@@ -90,3 +93,6 @@ undamaged:
       - '5371044v18i_'
       uml:
       - 'chc9998000001'
+      txi:
+      - '0112202237403'
+      - '0112219869628'
