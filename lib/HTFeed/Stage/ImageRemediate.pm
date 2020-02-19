@@ -227,9 +227,7 @@ sub _remediate_tiff {
                                               # wrong data type for tag - will get automatically stripped
                                                'Type mismatch for tag',
                                                # related to thumbnails, which imagemagick will strip
-                                               'JPEGProc not defined for JPEG compression',
-                                               'For PhotometricInterpretation, SamplesPerPixel must be >= 3, equals1',
-                                               'For PhotometricInterpretation, SamplesPerPixel must be >= 1, equals: 1');
+                                               'JPEGProc not defined for JPEG compression');
             if ( grep { $error =~ /^$_/ } @imagemagick_remediable_errs ) {
                 get_logger()
                   ->trace(
@@ -258,7 +256,8 @@ sub _remediate_tiff {
 
     # Does it look like a contone? Bail & convert to JPEG2000 if so.
     if(!$bad and $fields->{'IFD0:BitsPerSample'} eq '8'
-            or $fields->{'IFD0:SamplesPerPixel'} eq '3') {
+        and ($fields->{'IFD0:SamplesPerPixel'} eq '3'
+             or $fields->{'IFD0:SamplesPerPixel'} eq '1')) {
 
         $infile = basename($infile);
         my ($seq) = ($infile =~ /^(.*).tif$/);
@@ -285,9 +284,10 @@ sub _remediate_tiff {
         delete $self->{newFields}{Resolution};
     }
 
-# Prevalidate other fields -- don't bother checking unless there is not some other error
+    # Prevalidate other fields for bitonal images
 
-    if ( !$bad ) {
+    if ( !$bad and $fields->{'IFD0:BitsPerSample'} eq '1'
+               and $fields->{'IFD0:SamplesPerPixel'} eq '1' ) {
         $remediate_imagemagick = 1
           unless $self->prevalidate_field( 'IFD0:PhotometricInterpretation',
                   'WhiteIsZero', 1 );
@@ -311,10 +311,6 @@ sub _remediate_tiff {
         {
             $self->{newFields}{'IFD0:Orientation'} = 'Horizontal (normal)';
         }
-        $remediate_imagemagick = 1
-          unless $self->prevalidate_field( 'IFD0:BitsPerSample', '1', 0 );
-        $remediate_imagemagick = 1
-          unless $self->prevalidate_field( 'IFD0:SamplesPerPixel', '1', 0 );
 
     }
 
