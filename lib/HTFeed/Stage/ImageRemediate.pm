@@ -255,9 +255,7 @@ sub _remediate_tiff {
     }
 
     # Does it look like a contone? Bail & convert to JPEG2000 if so.
-    if(!$bad and $fields->{'IFD0:BitsPerSample'} eq '8'
-        and ($fields->{'IFD0:SamplesPerPixel'} eq '3'
-             or $fields->{'IFD0:SamplesPerPixel'} eq '1')) {
+    if(!$bad and (is_rgb_tiff($fields) or is_grayscale_tiff($fields))) {
 
         $infile = basename($infile);
         my ($seq) = ($infile =~ /^(.*).tif$/);
@@ -368,6 +366,20 @@ sub _remediate_tiff {
 
     return $ret;
 
+}
+
+sub is_rgb_tiff {
+  my $fields = shift;
+
+  return ($fields->{'IFD0:SamplesPerPixel'} eq '3'
+      and $fields->{'IFD0:BitsPerSample'} eq '8 8 8');
+}
+
+sub is_grayscale_tiff {
+  my $fields = shift;
+
+  return ($fields->{'IFD0:SamplesPerPixel'} eq '1'
+      and $fields->{'IFD0:BitsPerSample'} eq '8');
 }
 
 sub repair_tiff_exiftool {
