@@ -717,12 +717,45 @@ sub expand_lossless_jpeg2000 {
                 $self->set_error("BadFile",file => $file, detail => "Can't find Transformation in JHOVE output");
             } elsif ($transformation eq '1') {
                 # lossless compression
-                my $outfile = $file;
-                $outfile =~ s/\.jp2$/.tif/;
+                my $jpeg2000 = $file;
+                my $jpeg2000_remediated = $file;
+                my $tiff = $file;
+                $tiff =~ s/\.jp2$/.tif/;
+                $jpeg2000_remediated =~ s/\.jp2$/.jp2_remediated/;
 
-                system("/l/local/bin/kdu_expand -i '$path/$file' -o '$path/$outfile' > /dev/null 2>&1");
+                system("/l/local/bin/kdu_expand -i '$path/$jpeg2000' -o '$path/$tiff' > /dev/null 2>&1");
 
-                unlink("$path/$file");
+
+                # try to compress the TIFF -> JPEG2000
+                get_logger()->trace("Compressing $path/$tiff to $path/$jpeg2000");
+                my $kdu_compress = get_config('kdu_compress');
+
+                if(not defined $self->{recorded_image_compression}) {
+                    $volume->record_premis_event('image_compression');
+                    $self->{recorded_image_compression} = 1;
+                }
+
+                system(
+            "$kdu_compress -quiet -i '$path/$tiff' -o '$path/$jpeg2000_remediated' Clevels=5 Clayers=8 Corder=RLCP Cuse_sop=yes Cuse_eph=yes 'Cmodes=RESET|RESTART|CAUSAL|ERTERM|SEGMARK' -no_weights -slope 42988 > /dev/null 2>&1"
+                  )
+
+                  and $self->set_error(
+                    "OperationFailed",
+                    operation => "kdu_compress",
+                    file      => "$path/$tiff",
+                    detail    => "kdu_compress returned $?"
+                  );
+
+
+                # copy all headers from the original jpeg2000
+                # kdu_compress loses info from IFD0 headers, which are sometimes present in JPEG2000 images
+                my $exiftool = new Image::ExifTool;
+                $exiftool->SetNewValuesFromFile("$path/$jpeg2000");
+                $exiftool->WriteInfo("$path/$jpeg2000_remediated");
+
+                rename("$path/$jpeg2000_remediated","$path/$jpeg2000");
+                unlink("$path/$tiff");
+
             }
 
         },
