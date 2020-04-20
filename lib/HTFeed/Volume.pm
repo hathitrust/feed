@@ -254,6 +254,7 @@ sub get_checksum_md5 {
       $filename = lc($3);
       $filename =~ s/.*\///; # strip pathnames, since we junked them from the zip file
       $filename =~ s/\s*$//; # strip trailing whitespace
+      next if $filename =~ /^(thumbs.db|.ds_store)$/i;
       $checksums->{$filename} = $checksum;
     }	
     $self->{checksums_file} = $checksums;

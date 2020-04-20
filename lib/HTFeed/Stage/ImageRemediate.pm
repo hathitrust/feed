@@ -217,6 +217,7 @@ sub _remediate_tiff {
                 'Invalid DateTime separator',
                 'Invalid DateTime digit',
                 'Invalid DateTime length',
+                'FocalPlaneResolutionUnit value out of range',
                 'Count mismatch for tag 306', # DateTime -- fixable
                 'Count mismatch for tag 36867' # EXIF DateTimeOriginal - ignorable
 
