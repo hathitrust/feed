@@ -1,0 +1,14 @@
+language: perl
+
+git:
+  submodules: false
+
+services:
+  - docker
+
+before_install:
+  - git submodule update --init metslib
+  - docker build . -t hathitrust/feed:test
+
+script:
+  - docker run hathitrust/feed:test perl -I lib -w t/001_load.t
