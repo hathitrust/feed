@@ -1,0 +1,10 @@
+version: '3'
+
+services:
+
+  test:
+    build: .
+    volumes:
+      - .:/usr/local/feed
+    environment:
+      - HTFEED_CONFIG=/usr/local/feed/etc/config_test.yml

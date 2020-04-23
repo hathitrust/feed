@@ -30,7 +30,7 @@ sub Missing : Test(2){
 	my $ia_id = $volume->get_ia_id();
 	my $objdir   = $volume->get_download_directory();
 	my $manifest = "$objdir/${ia_id}_files.xml";
-	my $undamaged = get_config('test_data') . "/staging/UNDAMAGED";
+	my $undamaged = get_config('test_staging','undamaged');
 
 	# delete $manifest
 	unlink("$manifest");

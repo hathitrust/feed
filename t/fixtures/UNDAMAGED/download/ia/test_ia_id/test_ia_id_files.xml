@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<files>
+  <file name="test_ia_id_djvu.xml">
+    <md5>8fe59a4eb6684b547bf0ae383707a451</md5>
+  </file>
+  <file name="test_ia_id_files.xml">
+    <md5>d41d8cd98f00b204e9800998ecf8427e</md5>
+  </file>
+  <file name="test_ia_id_jp2.zip">
+    <md5>76cdb2bad9582d23c1f6f4d868218d6c</md5>
+  </file>
+  <file name="test_ia_id_marc.xml">
+    <md5>49fcf4a32f9bc2dab22e84e2dc4efbf0</md5>
+  </file>
+  <file name="test_ia_id_meta.xml">
+    <md5>74945c0d689ce02d9d244f2f499eda63</md5>
+  </file>
+  <file name="test_ia_id_scandata.xml">
+    <md5>babed95372ddeb0575f19fe93beefd34</md5>
+  </file>
+</files>

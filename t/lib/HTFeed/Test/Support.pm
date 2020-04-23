@@ -26,7 +26,6 @@ my %staging_configs = (
         ingest  => get_config('test_staging','undamaged') . '/ingest',
         preingest  => get_config('test_staging','undamaged') . '/preingest',
     },
-    
     original    => {
         download  => get_config('staging'=>'download'),
         ingest    => get_config('staging'=>'ingest'),
@@ -83,9 +82,9 @@ sub get_test_volume{
       if not defined $voltype or $voltype eq 'default';
 
     my $volumes = {
-        google => {objid =>  '35112102255959',namespace => 'mdp',packagetype => 'google' },
-        ia => {objid =>  'ark:/13960/t00000431',namespace => 'uc2',packagetype => 'ia' },
-        yale => {objid =>  '39002001567222',namespace => 'yale',packagetype => 'yale' },
+      #        google => {objid =>  '35112102255959',namespace => 'mdp',packagetype => 'google' },
+        ia => {objid =>  'ark:/13960/t00000431',namespace => 'test',packagetype => 'ia' },
+        simple => {objid =>  '39002001567222',namespace => 'test',packagetype => 'simple' },
     };
 
     die("Unknown pkgtype $voltype") if not defined $volumes->{$voltype};

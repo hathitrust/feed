@@ -11,4 +11,4 @@ before_install:
   - docker build . -t hathitrust/feed:test
 
 script:
-  - docker run hathitrust/feed:test perl -I lib -w t/001_load.t
+  - docker run hathitrust/feed:test bash -c 'HTFEED_CONFIG=/usr/local/feed/etc/config_test.yml perl -I lib -w t/001_load.t'

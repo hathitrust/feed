@@ -65,7 +65,6 @@ sub enqueue_volumes{
     my $dbh = HTFeed::DBTools::get_dbh();
     my $sth;
     my $blacklist_sth = $dbh->prepare("SELECT namespace, id FROM feed_blacklist WHERE namespace = ? and id = ?");
-    my $digifeed_sth = $dbh->prepare("SELECT namespace, id FROM feed_mdp_rejects WHERE namespace = ? and id = ?");
     my $has_bibdata_sth = $dbh->prepare("SELECT namespace, id FROM feed_zephir_items WHERE namespace = ? and id = ?");
     my $return_sth = $dbh->prepare("UPDATE feed_zephir_items SET returned = '1' WHERE namespace = ? and id = ?");
     if($ignore){
@@ -105,16 +104,6 @@ sub enqueue_volumes{
                     get_logger()->warn("Blacklisted",namespace=>$namespace,objid=>$objid);
                     push(@results,0);
                     $blacklisted = 1;
-                }
-            }
-
-            # use list of 'mdp rejects' in determining whether to queue as digifeed
-            # or google
-            my $digifeed = 0;
-            if($volume->get_packagetype() eq 'google' and $namespace eq 'mdp') {
-                $digifeed_sth->execute($namespace,$objid);
-                if($digifeed_sth->fetchrow_array()) {
-                    $pkg_type = 'digifeed';
                 }
             }
 

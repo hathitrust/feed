@@ -17,12 +17,9 @@ sub OCRSplit : Test(2){
 
     my $self = shift;
 	my $volume = $self->{volume};
-	my $objdir = $volume->get_download_directory();
   my $stage_dir = $volume->get_staging_directory();
   mkdir($stage_dir);
 	my $ia_id = $volume->get_ia_id();
-	my $clean_copy = get_config('test_data') . "/staging/UNDAMAGED/download/ia/$ia_id/${ia_id}_djvu.xml";
-  copy($clean_copy,$objdir) or die "copy failed: $!";
 	my $stage = $self->{test_stage};	
 	ok($stage->run(),'IA: OCRSplit succeeded with undamaged package');
 	ok($stage->stage_info(), 'IA: OCRSPlit stage info succeeded with undamaged package');
@@ -65,9 +62,9 @@ sub usemap : Test(1){
 	my $ia_id =  $volume->get_ia_id();
 
 	#get broken djvu from samples
-    my $samples = get_config('test_data') . "/staging/DAMAGED/samples/ia/${ia_id}";
-    my $broken_scanData = "$samples/${ia_id}_djvu.xml";
-    copy($broken_scanData,$objdir) or die "copy failed: $!";
+    my $samples = get_config('test_staging','damaged') . "/samples/ia/${ia_id}";
+    my $broken_ocr = "$samples/${ia_id}_djvu.xml";
+    copy($broken_ocr,$objdir) or die "copy failed: $!";
 
     #run the stage again with damaged package
     eval { $stage->run() }  ;
