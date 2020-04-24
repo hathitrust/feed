@@ -69,8 +69,6 @@ sub usemap : Test(1){
     #run the stage again with damaged package
     eval { $stage->run() }  ;
     ok($@ =~ /STAGE_ERROR/, 'IA: OCRSplit fails on damaged package');
-
-    print $stage->stage_info();
 }
 
 sub pkgtype { "ia" }

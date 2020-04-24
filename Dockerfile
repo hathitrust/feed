@@ -14,3 +14,4 @@ RUN cp etc/sample_namespace/TEST.pm /usr/local/feed/lib/HTFeed/Namespace/TEST.pm
 RUN ln -sf /usr/local/feed/t/fixtures/UNDAMAGED /tmp/prep/UNDAMAGED
 RUN ln -sf /usr/local/feed/t/fixtures/DAMAGED /tmp/prep/DAMAGED
 RUN cat etc/*sql | sqlite3 /tmp/feed.db
+RUN perl Makefile.PL

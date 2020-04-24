@@ -1,4 +1,4 @@
-language: perl
+language: minimal
 
 git:
   submodules: false
@@ -8,7 +8,7 @@ services:
 
 before_install:
   - git submodule update --init metslib
-  - docker build . -t hathitrust/feed:test
+  - docker-compose build
 
 script:
-  - docker run hathitrust/feed:test bash -c 'HTFEED_CONFIG=/usr/local/feed/etc/config_test.yml perl -I lib -w t/001_load.t'
+  - docker-compose run travis_test

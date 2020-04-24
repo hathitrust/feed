@@ -11,5 +11,5 @@ test_staging:
   logs: /tmp/prep/logs
   undamaged: /tmp/prep/UNDAMAGED
 
-xerces: /usr/local/feed/bin/validateCache
+xerces: /usr/local/feed/blib/bin/validateCache
 epubcheck: /usr/bin/java -jar /usr/bin/epubcheck

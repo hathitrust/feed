@@ -8,3 +8,11 @@ services:
       - .:/usr/local/feed
     environment:
       - HTFEED_CONFIG=/usr/local/feed/etc/config_test.yml
+      - FEED_HOME=/usr/local/feed
+
+  travis_test:
+    build: .
+    environment:
+      - HTFEED_CONFIG=/usr/local/feed/etc/config_test.yml
+      - FEED_HOME=/usr/local/feed
+    command: make test TEST_VERBOSE=1
