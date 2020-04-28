@@ -1,56 +1,15 @@
+use FindBin;
+use lib "$FindBin::Bin/lib";
+
 use Test::Spec;
-
-use HTFeed::Log {root_logger => 'TRACE, screen'};
+use HTFeed::Test::SpecSupport qw(mock_premis_mets);
 use HTFeed::Config qw(set_config);
-use HTFeed::Volume;
-use File::Basename qw(dirname);
-use File::Temp qw(tempdir);
-use File::Path qw(rmtree);
-use Cwd qw(abs_path);
-
-sub mock_premis_mets {
-
-  # don't hit the database
-  *HTFeed::Volume::record_premis_event = sub {
-    1;
-  };
-
-  *HTFeed::Volume::get_sources = sub {
-    return ( 'ht_test','ht_test','ht_test' );
-  };
-
-  # use faked-up marc in case it's missing
-
-  *HTFeed::SourceMETS::_get_marc_from_zephir = sub {
-    my $self = shift;
-    my $marc_path = shift;
-
-    open(my $fh, ">$marc_path") or die("Can't open $marc_path: $!");
-
-    print $fh <<EOT;
-<?xml version="1.0" encoding="UTF-8"?>
-<collection xmlns="http://www.loc.gov/MARC21/slim">
-<record>
-<leader>01142cam  2200301 a 4500</leader>
-</record>
-</collection>
-EOT
-
-    close($fh);
-
-  };
-
-  *HTFeed::Volume::get_event_info = sub {
-    return ("some-event-id", "2017-01-01T00:00:00-04:00", undef, undef);
-  }
-}
-
 
 shared_examples_for "an epub mets" => sub { 
 
   share my %mets_vars;
   my $xc; 
-  
+
   before each => sub { 
     $xc = $mets_vars{xc};
   };
@@ -120,36 +79,23 @@ shared_examples_for "an epub mets" => sub {
 
 context "with volume & temporary ingest/preingest/zipfile dirs" => sub {
   my $volume;
-  my $ingest_dir;
-  my $preingest_dir;
-  my $zipfile_dir;
-  my $zip_dir;
   my $objid;
   my $pt_objid;
 
   my $test_home;
   my $tmpdir;
 
-  before all => sub {
-    $test_home = abs_path(dirname(__FILE__));
-    $tmpdir = "$test_home/test-tmp";
-    mkdir("$test_home/test-tmp");
+  my $tmpdirs;
 
+  before all => sub {
+    $tmpdirs = HTFeed::Test::TempDirs->new();
     $objid = "ark:/87302/t00000001";
     $pt_objid = "ark+=87302=t00000001";
   };
 
   before each => sub {
-    $ingest_dir = tempdir("$tmpdir/feed-test-ingest-XXXXXX");
-    $preingest_dir = tempdir("$tmpdir/feed-test-preingest-XXXXXX");
-    $zipfile_dir = tempdir("$tmpdir/feed-test-zipfile-XXXXXX");
-    $zip_dir = tempdir("$tmpdir/feed-test-zip-XXXXXX");
-
-    set_config($test_home . "/fixtures/epub",'staging','fetch');
-    set_config($ingest_dir,'staging','ingest');
-    set_config($preingest_dir,'staging','preingest');
-    set_config($zipfile_dir,'staging','zipfile');
-    set_config($zip_dir,'staging','zip');
+    $tmpdirs->setup_example;
+    set_config($tmpdirs->test_home . "/fixtures/epub",'staging','fetch');
 
     $volume = HTFeed::Volume->new(namespace => 'test',
       objid => $objid,
@@ -157,14 +103,11 @@ context "with volume & temporary ingest/preingest/zipfile dirs" => sub {
   };
 
   after each => sub {
-    rmtree($ingest_dir);
-    rmtree($preingest_dir);
-    rmtree($zipfile_dir);
-    rmtree($zip_dir);
+    $tmpdirs->cleanup_example;
   };
 
   after all => sub {
-    rmtree($tmpdir);
+    $tmpdirs->cleanup;
   };
 
   describe "HTFeed::PackageType::EPUB::Unpack" => sub {
@@ -181,7 +124,7 @@ context "with volume & temporary ingest/preingest/zipfile dirs" => sub {
 
     it "extracts the zip" => sub {
       $stage->run();
-      ok(-e "$preingest_dir/$pt_objid/test.epub");
+      ok(-e "$tmpdirs->{preingest}/$pt_objid/test.epub");
     };
 
     after each => sub {
@@ -209,10 +152,10 @@ context "with volume & temporary ingest/preingest/zipfile dirs" => sub {
 
     it "moves the expected files" => sub {
       $stage->run();
-      ok(! -e "$preingest_dir/$pt_objid/test.epub");
-      ok(-e "$ingest_dir/$pt_objid/test.epub");
-      ok(! -e "$preingest_dir/$pt_objid/00000001.txt");
-      ok(-e "$ingest_dir/$pt_objid/00000001.txt");
+      ok(! -e "$tmpdirs->{preingest}/$pt_objid/test.epub");
+      ok(-e "$tmpdirs->{ingest}/$pt_objid/test.epub");
+      ok(! -e "$tmpdirs->{preingest}/$pt_objid/00000001.txt");
+      ok(-e "$tmpdirs->{ingest}/$pt_objid/00000001.txt");
     };
 
     after each => sub {
@@ -239,7 +182,7 @@ context "with volume & temporary ingest/preingest/zipfile dirs" => sub {
 
     it "generates the METS xml" => sub {
       $stage->run();
-      ok(-e "$ingest_dir/$pt_objid/$pt_objid.mets.xml");
+      ok(-e "$tmpdirs->{ingest}/$pt_objid/$pt_objid.mets.xml");
     };
 
     context "with a mets xml" => sub {
@@ -247,7 +190,7 @@ context "with volume & temporary ingest/preingest/zipfile dirs" => sub {
 
       before each => sub {
         $stage->run;
-        $mets_vars{xc} = $volume->_parse_xpc("$ingest_dir/$pt_objid/$pt_objid.mets.xml");
+        $mets_vars{xc} = $volume->_parse_xpc("$tmpdirs->{ingest}/$pt_objid/$pt_objid.mets.xml");
       };
 
       it_should_behave_like "an epub mets";
@@ -287,7 +230,7 @@ context "with volume & temporary ingest/preingest/zipfile dirs" => sub {
 
     it "generates the METS xml" => sub {
       $stage->run();
-      ok(-e "$ingest_dir/$pt_objid.mets.xml");
+      ok(-e "$tmpdirs->{ingest}/$pt_objid.mets.xml");
     };
 
     context "with a mets xml" => sub {
@@ -295,7 +238,7 @@ context "with volume & temporary ingest/preingest/zipfile dirs" => sub {
 
       before each => sub {
         $stage->run;
-        $mets_vars{xc} = $volume->_parse_xpc("$ingest_dir/$pt_objid.mets.xml");
+        $mets_vars{xc} = $volume->_parse_xpc("$tmpdirs->{ingest}/$pt_objid.mets.xml");
       };
 
 
@@ -304,7 +247,7 @@ context "with volume & temporary ingest/preingest/zipfile dirs" => sub {
     }
   };
   describe "HTFeed::PackageType::EPUB::VolumeValidator" => sub {
-    my $stage; 
+    my $stage;
     before each => sub {
 
       mock_premis_mets();
