@@ -121,7 +121,7 @@ sub reprioritize{
       my $dbh = get_dbh();
       my $get_nspkgs = $dbh->prepare(qq(SELECT DISTINCT namespace, pkg_type FROM feed_queue WHERE $where_syntax;));
       my $mask = $BIN_MASK + $SUBG_MASK;
-      my $update_priority = $dbh->prepare(qq(UPDATE ht_repository.feed_queue SET priority = (? * $GROUP_OFF) + (priority & $mask) WHERE namespace = ? AND pkg_type = ? AND $where_syntax;));
+      my $update_priority = $dbh->prepare(qq(UPDATE feed_queue SET priority = (? * $GROUP_OFF) + (priority & $mask) WHERE namespace = ? AND pkg_type = ? AND $where_syntax;));
 
       
       $dbh->begin_work() or die $dbh->errstr;

@@ -1,0 +1,15 @@
+staging_root: /tmp/stage
+sip_root: /tmp/prep
+
+sqlite:
+  datasource: "dbi:SQLite:dbname=/tmp/feed.db"
+  username: ""
+  password: ""
+
+test_staging:
+  damaged: /tmp/prep/DAMAGED
+  logs: /tmp/prep/logs
+  undamaged: /tmp/prep/UNDAMAGED
+
+xerces: /usr/local/feed/blib/bin/validateCache
+epubcheck: /usr/bin/java -jar /usr/bin/epubcheck

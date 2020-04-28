@@ -1,2 +1,3 @@
 #g++ -I /l/local/xerces-c/include -L /l/local/xerces-c/lib -Xlinker -rpath /l/local/xerces-c/lib -l xerces-c -o ../bin/validateCache validateCache.cpp
-g++ /usr/lib64/libxerces-c.so -o ../bin/validateCache validateCache.cpp
+#g++ /usr/lib64/libxerces-c.so -o ../bin/validateCache validateCache.cpp
+g++ /usr/lib/x86_64-linux-gnu/libxerces-c.so -o ../bin/validateCache validateCache.cpp

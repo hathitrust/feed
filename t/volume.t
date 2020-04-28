@@ -10,58 +10,53 @@ describe "HTFeed::Volume" => sub {
 
   my $volume;
 
-  context "an mdp item " => sub {
-  
+  context "an test item " => sub {
+
     before each => sub {
-      set_config(dirname(__FILE__) . "/fixtures/google",'staging','ingest');
-      $volume = HTFeed::Volume->new(namespace => 'mdp',
-        objid => '39015062654291',
-        packagetype => 'google');
+      set_config(dirname(__FILE__) . "/fixtures/simple",'staging','ingest');
+      $volume = HTFeed::Volume->new(namespace => 'test',
+        objid => '39015012345678',
+        packagetype => 'simple');
     };
 
     describe "#new" => sub {
-      it "returns a HTFeed::PackageType::Google::Volume" => sub  {
-        ok($volume->isa('HTFeed::PackageType::Google::Volume'));
+      it "returns a HTFeed::PackageType::Simple::Volume" => sub  {
+        ok($volume->isa('HTFeed::PackageType::Simple::Volume'));
       }
     };
 
     describe "#get_namespace" => sub {
       it "returns the namespace" => sub {
-        ok($volume->get_namespace eq 'mdp')
+        ok($volume->get_namespace eq 'test')
       };
     };
 
     describe '#objid' => sub {
       it "returns the objid" => sub {
-        ok($volume->get_objid eq '39015062654291')
+        ok($volume->get_objid eq '39015012345678')
       }
     };
 
     describe '#get_pt_objid' => sub {
       it "returns the objid" => sub {
-        ok($volume->get_pt_objid eq '39015062654291');
+        ok($volume->get_pt_objid eq '39015012345678');
       };
     };
 
     describe '#get_identifier' => sub {
       it "returns the htid" => sub {
-        ok($volume->get_identifier eq 'mdp.39015062654291');
+        ok($volume->get_identifier eq 'test.39015012345678');
       };
     };
 
     describe '#get_file_groups' => sub {
-      it "returns three file groups" => sub {
-        ok(keys(%{$volume->get_file_groups}) == 3);
+      it "returns four file groups" => sub {
+        ok(keys(%{$volume->get_file_groups}) == 4);
       };
 
       it "has a image filegroup with two images" => sub {
         ok(eq_deeply($volume->get_file_groups->{image}->get_filenames(),
-          ['00000001.jp2', '00000002.jp2']));
-      };
-
-      it "has an hocr filegroup with two xmls" => sub {
-        ok(eq_deeply($volume->get_file_groups->{hocr}->get_filenames(),
-          ['00000001.html', '00000002.html']));
+          ['00000001.tif', '00000002.jp2']));
       };
 
       it "has an ocr filegroup with two texts" => sub {
@@ -72,33 +67,31 @@ describe "HTFeed::Volume" => sub {
     };
 
     describe '#get_all_directory_files' => sub {
-      it "returns the content files and the Google METS" => sub {
+      it "returns the content files and the source METS" => sub {
         ok(eq_deeply(sort @{$volume->get_all_directory_files()},
-                  qw(00000001.html 00000001.jp2 00000001.txt 00000002.html
-                    00000002.jp2 00000002.txt UOM_39015062654291.xml)));
+                  qw(00000001.tif 00000001.txt
+                    00000002.jp2 00000002.txt 39015012345678.xml)));
 
       };
     };
 
     describe '#get_all_content_files' => sub {
-      it "returns all files except the Google METS" => sub {
+      it "returns all files except the source METS" => sub {
         ok(eq_deeply(sort @{$volume->get_all_content_files()},
-                  qw(00000001.html 00000001.jp2 00000001.txt 00000002.html
+                  qw(00000001.tif 00000001.txt
                     00000002.jp2 00000002.txt)));
 
       };
     };
 
     describe '#get_checksums' => sub {
-      it "returns the checksums from the Google METS" => sub {
+      it "returns the checksums from the source METS" => sub {
         ok(eq_deeply($volume->get_checksums(),
             {
-              '00000001.html' => 'b9e4d10d156443b7d52c08e2139d534c',
-              '00000001.jp2' => '6ef57d2266bf82de904b77c517009081',
-              '00000001.txt' => 'f90637a362570d3ec1323b8a525bb730',
-              '00000002.html' => 'd496ecb60e2d374bd3da32ef8f65f065',
-              '00000002.jp2' => 'dfee8e767c4b1176a90bcb5b73fa7e0d',
-              '00000002.txt' => '3519d4af35b2090ca24b535f3dbe9a19'
+              '00000001.tif' => '9605a4a4e5c188818669684fded8c57c',
+              '00000001.txt' => '9f7c6d752a3bf48fe46bd5702bcc8830',
+              '00000002.jp2' => '18d7df30f58bd0f76e7b88e7ca5c3238',
+              '00000002.txt' => 'd41d8cd98f00b204e9800998ecf8427e'
             }));
       };
     };
@@ -108,7 +101,7 @@ describe "HTFeed::Volume" => sub {
   context "an internet archive item" => sub {
     before each => sub {
       set_config(dirname(__FILE__) . "/fixtures/ia",'staging','ingest');
-      $volume = HTFeed::Volume->new(namespace => 'uc2',
+      $volume = HTFeed::Volume->new(namespace => 'test',
         objid => 'ark:/13960/t00000431',
         packagetype => 'ia');
     };
@@ -121,7 +114,7 @@ describe "HTFeed::Volume" => sub {
 
     describe "#namespace" => sub {
       it "returns the namespace" => sub {
-        ok($volume->get_namespace eq 'uc2')
+        ok($volume->get_namespace eq 'test')
       };
     };
 
@@ -139,7 +132,7 @@ describe "HTFeed::Volume" => sub {
 
     describe '#get_identifier' => sub {
       it "returns the htid" => sub {
-        ok($volume->get_identifier eq 'uc2.ark:/13960/t00000431');
+        ok($volume->get_identifier eq 'test.ark:/13960/t00000431');
       };
     };
 

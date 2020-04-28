@@ -1,5 +1,6 @@
 package HTFeed::Test::Class;
 
+use Test::Class;
 use base qw(Test::Class);
 use HTFeed::Test::Support qw(test_config);
 use HTFeed::Config qw(get_config);

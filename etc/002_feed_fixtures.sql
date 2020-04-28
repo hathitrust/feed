@@ -1,0 +1,11 @@
+BEGIN TRANSACTION;
+INSERT INTO feed_ia_arkid VALUES('test_ia_id','test','ark:/13960/t00000431',NULL);
+INSERT INTO feed_zephir_items VALUES('test','39015002008244','TEST','test',0);
+INSERT INTO feed_zephir_items VALUES('test','35112102255835','TEST','test',0);
+INSERT INTO feed_zephir_items VALUES('test','ark:/13960/t00000431','TEST','ia',0);
+INSERT INTO feed_blacklist VALUES('test','39015002008244','blacklist test item',CURRENT_TIMESTAMP);
+INSERT INTO ht_rights.sources VALUES ('4','ia','Internet Archive','1','archive');
+INSERT INTO ht_collections VALUES ('TEST','test','test','test','test');
+INSERT INTO ht_collection_digitizers VALUES ('TEST','test','1');
+INSERT INTO ht_collection_digitizers VALUES ('TEST','ia','1');
+COMMIT;

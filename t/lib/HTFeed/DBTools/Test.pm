@@ -14,9 +14,9 @@ use HTFeed::PackageType;
 sub test_blacklist : Test(3) {
     # Ensure that the enqueue method refuses to add blacklisted volumes
 
-	# use something known to be on the blacklist
+    # use something known to be on the blacklist
     my $dbh = HTFeed::DBTools::get_dbh();
-    my $ns = 'mdp';
+    my $ns = 'test';
     my $objid = '39015002008244';
 
     $dbh->do("DELETE FROM feed_queue WHERE id = '$objid' and namespace = '$ns'");
@@ -25,7 +25,7 @@ sub test_blacklist : Test(3) {
     is($res[0],1,"presence of $ns.$objid in feed_blacklist");
 
 
-    my $test_volume = new HTFeed::Volume(packagetype => 'google',
+    my $test_volume = new HTFeed::Volume(packagetype => 'simple',
         namespace => $ns,
         objid => $objid);
 
@@ -41,7 +41,7 @@ sub test_blacklist : Test(3) {
 sub test_queue : Test(3) {
     # Ensure that the enqueue method correctly adds a volume that is not on the blacklist
     my $dbh = HTFeed::DBTools::get_dbh();
-    my $ns = 'mdp';
+    my $ns = 'test';
     my $objid = '35112102255835';
 
     $dbh->do("DELETE FROM feed_queue WHERE id = '$objid' and namespace = '$ns'");
@@ -51,7 +51,7 @@ sub test_queue : Test(3) {
 
     is($res[0],0,"non-presence of $ns.$objid in blacklist");
 
-    my $test_volume = new HTFeed::Volume(packagetype => 'google',
+    my $test_volume = new HTFeed::Volume(packagetype => 'simple',
         namespace => $ns,
         objid => $objid);
 
@@ -61,8 +61,6 @@ sub test_queue : Test(3) {
 
     @res = $dbh->selectrow_array(<<EOT
         SELECT count(*) FROM feed_queue WHERE id = '$objid' and namespace = '$ns' 
-            and node is NULL and status = 'available' 
-            and pkg_type = 'google' and failure_count = '0'
 EOT
     );
 	#TODO check this
