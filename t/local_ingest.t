@@ -5,7 +5,18 @@ use Test::Spec;
 use HTFeed::Test::SpecSupport;
 use HTFeed::Config qw(set_config);
 
-context "with volume & temporary ingest/preingest/zipfile dirs" => sub {
+sub unpack_and_verify {
+  my $objid = shift;
+  my $volume = HTFeed::Volume->new(
+    namespace => 'test',
+    objid => $objid,
+    packagetype => 'simple');
+
+  HTFeed::PackageType::Simple::Unpack->new(volume => $volume)->run();
+  HTFeed::PackageType::Simple::VerifyManifest->new(volume => $volume)->run;
+}
+
+describe "HTFeed::PackageType::Simple::VerifyManifest" => sub {
   my $tmpdirs;
   my $testlog;
 
@@ -29,31 +40,19 @@ context "with volume & temporary ingest/preingest/zipfile dirs" => sub {
     $tmpdirs->cleanup;
   };
 
-  describe "HTFeed::PackageType::Simple::VerifyManifest" => sub {
+  it "reports a relevant error when checksum.md5 is missing" => sub {
+    eval { unpack_and_verify("no_checksum"); };
+    ok($testlog->matches(qr(Missing file.*checksum.md5)));
+  };
 
-    context "with a volume with no checksum.md5" => sub {
+  it "reports relevant errors when checksum.md5 is empty" => sub {
+    unpack_and_verify("empty_checksum");
+    ok($testlog->matches(qr(present in package but not in checksum file)));
+  };
 
-      it "fails with an error about missing checksum.md5";
-
-    };
-
-    context "with a volume with an empty checksum.md5" => sub {
-      it "fails with errors about missing checksum entries" => sub {
-        my $volume = HTFeed::Volume->new(namespace => 'test',
-          objid => "empty_checksum",
-          packagetype => 'simple');
-
-        HTFeed::PackageType::Simple::Unpack->new(volume => $volume)->run();
-        HTFeed::PackageType::Simple::VerifyManifest->new(volume => $volume)->run;
-
-        ok($testlog->matches(qr(present in package but not in checksum file)));
-
-      };
-    };
-
-    context "with a volume with a checksum missing an entry for meta.yml" => sub {
-      it "fails with an error about missing checksum for meta.yml";
-    };
+  it "reports the specific files missing from checksum.md5" => sub {
+    unpack_and_verify("missing_meta_yml_checksum");
+    ok($testlog->matches(qr(file: meta\.yml.*present in package but not in checksum file)));
   };
 };
 

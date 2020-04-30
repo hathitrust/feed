@@ -245,7 +245,11 @@ sub get_checksum_md5 {
 
     my $checksums = {};
 
-    open(FILE, $checksum_path) or die $!;		
+    unless ( -e $checksum_path ) {
+      $self->set_error("MissingFile", file => $checksum_file);
+    }
+
+    open(FILE, $checksum_path) or die("Can't open $checksum_path: $!");
     foreach my $line(<FILE>) {
       $line =~ s/\r\n$/\n/;
       chomp($line);
