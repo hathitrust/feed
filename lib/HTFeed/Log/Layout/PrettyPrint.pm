@@ -28,17 +28,19 @@ sub new {
 }
 
 sub render {
-    my($self, $message, $category, $priority, $caller_level) = @_;
+    my($self, $incoming_message, $category, $priority, $caller_level) = @_;
+
+    my @message = @$incoming_message;
     
     my $error_message;
 
     # transform ("ErrorCode",field => "data",...) if $message has 2+ fields
-    if ($#$message){    
-        $error_message = HTFeed::Log::error_code_to_string(shift @$message);
+    if ($#message){    
+        $error_message = HTFeed::Log::error_code_to_string(shift @message);
 
-        while(@$message) {
-            my $key = shift (@$message);
-            my $val = shift (@$message);
+        while(@message) {
+            my $key = shift (@message);
+            my $val = shift (@message);
             # handle fields with data
             if (ref($val)){
                 $val = Dumper($val);
@@ -55,7 +57,7 @@ sub render {
     }
     # just print the message as is
     else{
-        $error_message = shift @$message;
+        $error_message = shift @message;
     }
     
     return "$priority - $error_message\n";

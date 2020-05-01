@@ -38,5 +38,10 @@ log4perl.appender.html.layout          = HTFeed::Log::Layout::HTML
 log4perl.appender.html.stderr         = 0
 log4perl.appender.html.warp_message    = 0
 
+# string (for testing)
+log4perl.appender.string            = Log::Log4perl::Appender::String
+log4perl.appender.string.layout       = HTFeed::Log::Layout::PrettyPrint
+log4perl.appender.string.warp_message    = 0
+
 # general config
 log4perl.oneMessagePerAppender = 1

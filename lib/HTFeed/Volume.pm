@@ -113,10 +113,11 @@ sub get_file_groups {
 
 sub get_all_directory_files {
   my $self = shift;
+  my $path = shift;
 
 #    if(not defined $self->{directory_files}) {
   $self->{directory_files} = [];
-  my $stagedir = $self->get_staging_directory();
+  my $stagedir = $path || $self->get_staging_directory();
   opendir(my $dh,$stagedir) or croak("Can't opendir $stagedir: $!");
   foreach my $file (readdir $dh) {
     # ignore ., .., Mac .DS_Store files
@@ -244,7 +245,11 @@ sub get_checksum_md5 {
 
     my $checksums = {};
 
-    open(FILE, $checksum_path) or die $!;		
+    unless ( -e $checksum_path ) {
+      $self->set_error("MissingFile", file => $checksum_file);
+    }
+
+    open(FILE, $checksum_path) or die("Can't open $checksum_path: $!");
     foreach my $line(<FILE>) {
       $line =~ s/\r\n$/\n/;
       chomp($line);

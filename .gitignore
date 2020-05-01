@@ -22,3 +22,8 @@ etc/config_*
 *~
 var/*
 var/db/*
+lib/HTFeed/Config.pm
+MYMETA*
+blib/*
+pm_to_blib
+
