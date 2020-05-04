@@ -2,10 +2,10 @@ use FindBin;
 use lib "$FindBin::Bin/lib";
 
 use Test::Spec;
-use HTFeed::Test::SpecSupport;
+use HTFeed::Test::SpecSupport qw(mock_premis_mets);
 use HTFeed::Config qw(set_config);
 
-sub unpack_and_verify {
+sub unpacked_volume {
   my $objid = shift;
   my $volume = HTFeed::Volume->new(
     namespace => 'test',
@@ -13,12 +13,19 @@ sub unpack_and_verify {
     packagetype => 'simple');
 
   HTFeed::PackageType::Simple::Unpack->new(volume => $volume)->run();
+
+  return $volume;
+}
+
+sub unpack_and_verify {
+  my $objid = shift;
+  my $volume = unpacked_volume($objid);
   my $stage = HTFeed::PackageType::Simple::VerifyManifest->new(volume => $volume);
   $stage->run;
   return $stage;
 }
 
-describe "HTFeed::PackageType::Simple::VerifyManifest" => sub {
+describe "HTFeed::PackageType::Simple" => sub {
   my $tmpdirs;
   my $testlog;
 
@@ -42,19 +49,21 @@ describe "HTFeed::PackageType::Simple::VerifyManifest" => sub {
     $tmpdirs->cleanup;
   };
 
-  it "reports a relevant error when checksum.md5 is missing" => sub {
-    eval { unpack_and_verify("no_checksum"); };
-    ok($testlog->matches(qr(Missing file.*checksum.md5)));
-  };
+  describe "checksum.md5" => sub {
+    it "reports a relevant error when checksum.md5 is missing" => sub {
+      eval { unpack_and_verify("no_checksum"); };
+      ok($testlog->matches(qr(Missing file.*checksum.md5)));
+    };
 
-  it "reports relevant errors when checksum.md5 is empty" => sub {
-    unpack_and_verify("empty_checksum");
-    ok($testlog->matches(qr(present in package but not in checksum file)));
-  };
+    it "reports relevant errors when checksum.md5 is empty" => sub {
+      unpack_and_verify("empty_checksum");
+      ok($testlog->matches(qr(present in package but not in checksum file)));
+    };
 
-  it "reports the specific files missing from checksum.md5" => sub {
-    unpack_and_verify("missing_meta_yml_checksum");
-    ok($testlog->matches(qr(file: meta\.yml.*present in package but not in checksum file)));
+    it "reports the specific files missing from checksum.md5" => sub {
+      unpack_and_verify("missing_meta_yml_checksum");
+      ok($testlog->matches(qr(file: meta\.yml.*present in package but not in checksum file)));
+    };
   };
 
   describe "thumbs.db" => sub {
@@ -74,7 +83,28 @@ describe "HTFeed::PackageType::Simple::VerifyManifest" => sub {
     it "ignores Thumbs.db when it is in both the checksum file and the package" => sub {
       ok(unpack_and_verify("thumbs_in_pkg_and_checksum")->succeeded());
     };
-  }
+  };
+
+  describe "meta.yml" => sub {
+
+    before all => sub {
+      mock_premis_mets();
+    };
+
+    it "reports a relevant error when meta.yml is missing" => sub {
+      my $volume = unpacked_volume("no_meta_yml");
+      eval { HTFeed::PackageType::Simple::ImageRemediate->new(volume => $volume)->run(); };
+
+      ok($testlog->matches(qr(Missing file.*meta\.yml)));
+    };
+
+    it "reports a relevant error when meta.yml is malformed" => sub {
+      my $volume = unpacked_volume("bad_meta_yml");
+      eval { HTFeed::PackageType::Simple::SourceMETS->new(volume => $volume)->run(); };
+
+      ok($testlog->matches(qr(File validation failed.*meta\.yml)s));
+    }
+  };
 };
 
 runtests unless caller;
