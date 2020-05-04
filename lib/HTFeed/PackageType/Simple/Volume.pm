@@ -21,9 +21,23 @@ sub get_meta {
     my $self = shift;
     my $key = shift;
 
+
     if(not defined $self->{meta_yml}) {
         my $preingest = $self->get_preingest_directory();
-        my $yaml = LoadFile("$preingest/meta.yml");
+
+        unless ( -e "$preingest/meta.yml" ) {
+          $self->set_error("MissingFile", file => "meta.yml");
+        }
+
+        my $yaml;
+        eval { $yaml = LoadFile("$preingest/meta.yml"); };
+
+        if($@ and $@ =~ /YAML::XS::Load Error/) {
+          $self->set_error("BadFile",detail => $@,file=>"meta.yml");
+        } elsif($@) {
+          die $@;
+        }
+
         $self->{meta_yml} = $yaml if defined $yaml;
     }
 

@@ -20,9 +20,9 @@ sub Delete_Check : Test(2){
   my $preingest = $volume->get_preingest_directory();
   mkdir($volume->get_staging_directory());
   my $ia_id = $volume->get_ia_id();
-  my $test_data = get_config('test_data');
+  my $test_data = get_config('test_staging','undamaged');
 
-  system("unzip -q -o -j -d $preingest $test_data/staging/UNDAMAGED/download/ia/$ia_id/${ia_id}_jp2.zip");
+  system("unzip -q -o -j -d $preingest $test_data/download/ia/$ia_id/${ia_id}_jp2.zip");
 
 	ok($stage->run(), 'IA: DeleteCheck succeeded with undamaged package');
 	ok($stage->stage_info(), 'IA: DeleteCheck stage info succeeded with undamaged package');	
@@ -41,7 +41,7 @@ sub Missing : Test(2){
 	my $ia_id = $volume->get_ia_id();
 	my $objdir = $volume->get_download_directory();
 	my $scandata = "$objdir/${ia_id}_scandata.xml";
-	my $undamaged = get_config('test_data') . '/staging/UNDAMAGED';
+	my $undamaged = get_config('test_staging','undamaged');
 
 	# remove $scandata
 	unlink($scandata);
@@ -66,8 +66,8 @@ sub Warnings : Test(1){
 	my $volume = $self->{volume};
 	my $ia_id = $volume->get_ia_id();
 	my $objdir = $volume->get_download_directory();
-	my $damaged = get_config('test_data') . "/staging/DAMAGED";
-	my $undamaged = get_config('test_data') . "/staging/UNDAMAGED";
+	my $damaged = get_config('test_staging','damaged');
+	my $undamaged = get_config('test_staging','undamaged');
 
 	#get damaged test package from "samples"
 	my $samples = "$damaged/samples/ia/${ia_id}";

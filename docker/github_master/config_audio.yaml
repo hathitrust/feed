@@ -16,3 +16,4 @@ sqlite:
 jhove: /usr/bin/jhove
 jhoveconf: /etc/jhove/jhove.conf
 
+mp3val: /usr/bin/mp3val

@@ -167,7 +167,7 @@ sub _validate_consistency {
         . join( q{,}, keys %{$sequence_fgs} )
         . '; expected at least '
         . join( q{,}, @required_filegroups ) );
-    } 
+    }
   }
 }
 
@@ -187,7 +187,7 @@ sub _validate_checksums {
 
   my @tovalidate = uniq(
     sort( (
-        @{ $volume->get_all_directory_files() },
+        @{ $volume->get_all_directory_files($path) },
         keys( %{ $volume->get_checksums() } )
       ) )
   );

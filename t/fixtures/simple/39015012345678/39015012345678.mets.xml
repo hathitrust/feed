@@ -1,0 +1,257 @@
+<?xml version="1.0"?>
+<METS:mets xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:METS="http://www.loc.gov/METS/" xmlns:PREMIS="info:lc/xmlns/premis-v2" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:HT="http://www.hathitrust.org/ht_extension" xmlns:HTPREMIS="http://www.hathitrust.org/premis_extension" OBJID="test.39015012345678" PROFILE="http://www.hathitrust.org/documents/hathitrust-mets-profile2.1.xml" xsi:schemaLocation="http://www.loc.gov/METS/ http://www.loc.gov/standards/mets/mets.xsd info:lc/xmlns/premis-v2 http://www.loc.gov/standards/premis/v2/premis-v2-0.xsd">
+  <METS:metsHdr CREATEDATE="2020-04-23T18:59:09Z" RECORDSTATUS="NEW" ID="HDR1">
+    <METS:agent TYPE="ORGANIZATION" ROLE="CREATOR">
+      <METS:name>HathiTrust</METS:name>
+    </METS:agent>
+  </METS:metsHdr>
+  <METS:dmdSec ID="DMD1">
+    <METS:mdWrap LABEL="MARC record" MIMETYPE="text/xml" MDTYPE="MARC">
+      <METS:xmlData>
+        <record xmlns="http://www.loc.gov/MARC21/slim">
+  <leader>01171nas a22003251  4500</leader><controlfield tag="001">mdp.39015039746220</controlfield><controlfield tag="003">MiAaHDL</controlfield><controlfield tag="005">20130211000000.0</controlfield><controlfield tag="006">m        d        </controlfield><controlfield tag="007">cr bn ---auaua</controlfield><controlfield tag="008">890814u19609999dcu||||||||||||||||0eng d</controlfield>
+  
+  
+  
+  
+  
+  
+  <datafield tag="022" ind1=" " ind2=" ">
+    <subfield code="a">0502-3742</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(MiU)001303415</subfield>
+  </datafield>
+  <datafield tag="035" ind2=" " ind1=" ">
+    <subfield code="a">sdr-miu001303415</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(OCoLC)2711239</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(RLIN)MIUG89-S1847</subfield>
+  </datafield>
+  <datafield tag="040" ind2=" " ind1=" ">
+    <subfield code="a">MiU</subfield>
+    <subfield code="c">MiU</subfield>
+  </datafield>
+  <datafield tag="110" ind2=" " ind1="1">
+    <subfield code="a">United States.</subfield>
+    <subfield code="b">National Center for Educational Statistics.</subfield>
+  </datafield>
+  <datafield tag="245" ind2="0" ind1="1">
+    <subfield code="a">Bond sales for public school purposes.</subfield>
+  </datafield>
+  <datafield tag="260" ind1=" " ind2=" ">
+    <subfield code="a">Washington,</subfield>
+    <subfield code="b">For sale by the Supt. of Docs., U.S. Govt. Print. Off.</subfield>
+  </datafield>
+  <datafield tag="300" ind1=" " ind2=" ">
+    <subfield code="a">v.</subfield>
+    <subfield code="b">tables.</subfield>
+    <subfield code="c">29 cm.</subfield>
+  </datafield>
+  <datafield tag="362" ind2=" " ind1="0">
+    <subfield code="a">1959/60-</subfield>
+  </datafield>
+  <datafield tag="490" ind1=" " ind2="0">
+    <subfield code="a">DHEW publication ;</subfield>
+    <subfield code="v">(OE) 72-63, 73-11406</subfield>
+  </datafield>
+  <datafield tag="500" ind1=" " ind2=" ">
+    <subfield code="a">Vols. for issued as U.S. Dept. of Health, Education and Welfare. DHEW publication no. (OE).</subfield>
+  </datafield>
+  <datafield tag="500" ind1=" " ind2=" ">
+    <subfield code="a">"OE-22009."</subfield>
+  </datafield>
+  <datafield tag="538" ind2=" " ind1=" ">
+    <subfield code="a">Mode of access: Internet.</subfield>
+  </datafield>
+  <datafield tag="550" ind1=" " ind2=" ">
+    <subfield code="a">Vols. for 1959/60-1963/64 issued by various divisions of the U.S. Office of Education.</subfield>
+  </datafield>
+  <datafield tag="650" ind1=" " ind2="0">
+    <subfield code="a">School bonds</subfield>
+    <subfield code="z">United States.</subfield>
+  </datafield>
+  <datafield tag="710" ind2=" " ind1="1">
+    <subfield code="a">United States.</subfield>
+    <subfield code="b">Office of Education.</subfield>
+  </datafield>
+  
+  
+  
+  
+  
+  
+  <datafield tag="974" ind1=" " ind2=" ">
+    <subfield code="d">20180906</subfield>
+    <subfield code="s">google</subfield>
+    <subfield code="u">mdp.39015039746220</subfield>
+    <subfield code="z">1966/1967</subfield>
+  </datafield>
+</record>
+      </METS:xmlData>
+    </METS:mdWrap>
+  </METS:dmdSec>
+  <METS:amdSec ID="AMD1">
+    <METS:digiprovMD ID="premis1">
+      <METS:mdWrap MIMETYPE="text/xml" MDTYPE="PREMIS">
+        <METS:xmlData>
+          <PREMIS:premis version="2.0">
+            <PREMIS:object xsi:type="PREMIS:representation">
+              <PREMIS:objectIdentifier>
+                <PREMIS:objectIdentifierType>identifier</PREMIS:objectIdentifierType>
+                <PREMIS:objectIdentifierValue>test.39015012345678</PREMIS:objectIdentifierValue>
+              </PREMIS:objectIdentifier>
+            </PREMIS:object>
+            <PREMIS:event>
+              <PREMIS:eventIdentifier>
+                <PREMIS:eventIdentifierType>UUID</PREMIS:eventIdentifierType>
+                <PREMIS:eventIdentifierValue>b4a29f6f-5d7e-3598-ba92-d8dcf390561c</PREMIS:eventIdentifierValue>
+              </PREMIS:eventIdentifier>
+              <PREMIS:eventType>capture</PREMIS:eventType>
+              <PREMIS:eventDateTime>1970-01-01T05:00:00Z</PREMIS:eventDateTime>
+              <PREMIS:eventDetail>Initial capture of item</PREMIS:eventDetail>
+              <PREMIS:linkingAgentIdentifier>
+                <PREMIS:linkingAgentIdentifierType>HathiTrust Institution ID</PREMIS:linkingAgentIdentifierType>
+                <PREMIS:linkingAgentIdentifierValue>ht_test</PREMIS:linkingAgentIdentifierValue>
+                <PREMIS:linkingAgentRole>Executor</PREMIS:linkingAgentRole>
+              </PREMIS:linkingAgentIdentifier>
+            </PREMIS:event>
+            <PREMIS:event>
+              <PREMIS:eventIdentifier>
+                <PREMIS:eventIdentifierType>UUID</PREMIS:eventIdentifierType>
+                <PREMIS:eventIdentifierValue>7fa61523-ca96-3c9f-9429-a3f6d6b2dd7c</PREMIS:eventIdentifierValue>
+              </PREMIS:eventIdentifier>
+              <PREMIS:eventType>image header modification</PREMIS:eventType>
+              <PREMIS:eventDateTime>2020-04-23T18:59:08Z</PREMIS:eventDateTime>
+              <PREMIS:eventDetail>Modification of image headers to meet HathiTrust conventions</PREMIS:eventDetail>
+              <PREMIS:linkingAgentIdentifier>
+                <PREMIS:linkingAgentIdentifierType>HathiTrust Institution ID</PREMIS:linkingAgentIdentifierType>
+                <PREMIS:linkingAgentIdentifierValue>umich</PREMIS:linkingAgentIdentifierValue>
+                <PREMIS:linkingAgentRole>Executor</PREMIS:linkingAgentRole>
+              </PREMIS:linkingAgentIdentifier>
+              <PREMIS:linkingAgentIdentifier>
+                <PREMIS:linkingAgentIdentifierType>tool</PREMIS:linkingAgentIdentifierType>
+                <PREMIS:linkingAgentIdentifierValue>validate_volume.pl 0.0.0</PREMIS:linkingAgentIdentifierValue>
+                <PREMIS:linkingAgentRole>software</PREMIS:linkingAgentRole>
+              </PREMIS:linkingAgentIdentifier>
+              <PREMIS:linkingAgentIdentifier>
+                <PREMIS:linkingAgentIdentifierType>tool</PREMIS:linkingAgentIdentifierType>
+                <PREMIS:linkingAgentIdentifierValue>Image::ExifTool 11.16</PREMIS:linkingAgentIdentifierValue>
+                <PREMIS:linkingAgentRole>software</PREMIS:linkingAgentRole>
+              </PREMIS:linkingAgentIdentifier>
+            </PREMIS:event>
+            <PREMIS:event>
+              <PREMIS:eventIdentifier>
+                <PREMIS:eventIdentifierType>UUID</PREMIS:eventIdentifierType>
+                <PREMIS:eventIdentifierValue>af3970c4-88ea-340b-82f6-4014e0fc5894</PREMIS:eventIdentifierValue>
+              </PREMIS:eventIdentifier>
+              <PREMIS:eventType>source mets creation</PREMIS:eventType>
+              <PREMIS:eventDateTime>2020-04-23T18:59:09Z</PREMIS:eventDateTime>
+              <PREMIS:eventDetail>Creation of source METS file</PREMIS:eventDetail>
+              <PREMIS:linkingAgentIdentifier>
+                <PREMIS:linkingAgentIdentifierType>HathiTrust Institution ID</PREMIS:linkingAgentIdentifierType>
+                <PREMIS:linkingAgentIdentifierValue>umich</PREMIS:linkingAgentIdentifierValue>
+                <PREMIS:linkingAgentRole>Executor</PREMIS:linkingAgentRole>
+              </PREMIS:linkingAgentIdentifier>
+              <PREMIS:linkingAgentIdentifier>
+                <PREMIS:linkingAgentIdentifierType>tool</PREMIS:linkingAgentIdentifierType>
+                <PREMIS:linkingAgentIdentifierValue>validate_volume.pl 0.0.0</PREMIS:linkingAgentIdentifierValue>
+                <PREMIS:linkingAgentRole>software</PREMIS:linkingAgentRole>
+              </PREMIS:linkingAgentIdentifier>
+            </PREMIS:event>
+            <PREMIS:event>
+              <PREMIS:eventIdentifier>
+                <PREMIS:eventIdentifierType>UUID</PREMIS:eventIdentifierType>
+                <PREMIS:eventIdentifierValue>569f2e75-dfcb-383f-bfb6-24c5ca0a5f6e</PREMIS:eventIdentifierValue>
+              </PREMIS:eventIdentifier>
+              <PREMIS:eventType>validation</PREMIS:eventType>
+              <PREMIS:eventDateTime>2020-04-23T18:59:09Z</PREMIS:eventDateTime>
+              <PREMIS:eventDetail>Validation of source METS file</PREMIS:eventDetail>
+              <PREMIS:linkingAgentIdentifier>
+                <PREMIS:linkingAgentIdentifierType>HathiTrust Institution ID</PREMIS:linkingAgentIdentifierType>
+                <PREMIS:linkingAgentIdentifierValue>umich</PREMIS:linkingAgentIdentifierValue>
+                <PREMIS:linkingAgentRole>Executor</PREMIS:linkingAgentRole>
+              </PREMIS:linkingAgentIdentifier>
+              <PREMIS:linkingAgentIdentifier>
+                <PREMIS:linkingAgentIdentifierType>tool</PREMIS:linkingAgentIdentifierType>
+                <PREMIS:linkingAgentIdentifierValue>Xerces-C 3.1</PREMIS:linkingAgentIdentifierValue>
+                <PREMIS:linkingAgentRole>software</PREMIS:linkingAgentRole>
+              </PREMIS:linkingAgentIdentifier>
+            </PREMIS:event>
+            <PREMIS:event>
+              <PREMIS:eventIdentifier>
+                <PREMIS:eventIdentifierType>UUID</PREMIS:eventIdentifierType>
+                <PREMIS:eventIdentifierValue>4e9d46a9-fb70-3e6b-9ab4-b2614510148f</PREMIS:eventIdentifierValue>
+              </PREMIS:eventIdentifier>
+              <PREMIS:eventType>fixity check</PREMIS:eventType>
+              <PREMIS:eventDateTime>2020-04-23T18:59:09Z</PREMIS:eventDateTime>
+              <PREMIS:eventDetail>Validation of MD5 checksums for image and OCR files</PREMIS:eventDetail>
+              <PREMIS:linkingAgentIdentifier>
+                <PREMIS:linkingAgentIdentifierType>HathiTrust Institution ID</PREMIS:linkingAgentIdentifierType>
+                <PREMIS:linkingAgentIdentifierValue>umich</PREMIS:linkingAgentIdentifierValue>
+                <PREMIS:linkingAgentRole>Executor</PREMIS:linkingAgentRole>
+              </PREMIS:linkingAgentIdentifier>
+              <PREMIS:linkingAgentIdentifier>
+                <PREMIS:linkingAgentIdentifierType>tool</PREMIS:linkingAgentIdentifierType>
+                <PREMIS:linkingAgentIdentifierValue>Digest::MD5 2.55</PREMIS:linkingAgentIdentifierValue>
+                <PREMIS:linkingAgentRole>software</PREMIS:linkingAgentRole>
+              </PREMIS:linkingAgentIdentifier>
+            </PREMIS:event>
+            <PREMIS:event>
+              <PREMIS:eventIdentifier>
+                <PREMIS:eventIdentifierType>UUID</PREMIS:eventIdentifierType>
+                <PREMIS:eventIdentifierValue>d9ca98cc-88d2-3c52-b031-5f2546c47bd4</PREMIS:eventIdentifierValue>
+              </PREMIS:eventIdentifier>
+              <PREMIS:eventType>message digest calculation</PREMIS:eventType>
+              <PREMIS:eventDateTime>2020-04-23T18:59:09Z</PREMIS:eventDateTime>
+              <PREMIS:eventDetail>Calculation of MD5 checksums for image and OCR files</PREMIS:eventDetail>
+              <PREMIS:linkingAgentIdentifier>
+                <PREMIS:linkingAgentIdentifierType>HathiTrust Institution ID</PREMIS:linkingAgentIdentifierType>
+                <PREMIS:linkingAgentIdentifierValue>umich</PREMIS:linkingAgentIdentifierValue>
+                <PREMIS:linkingAgentRole>Executor</PREMIS:linkingAgentRole>
+              </PREMIS:linkingAgentIdentifier>
+              <PREMIS:linkingAgentIdentifier>
+                <PREMIS:linkingAgentIdentifierType>tool</PREMIS:linkingAgentIdentifierType>
+                <PREMIS:linkingAgentIdentifierValue>Digest::MD5 2.55</PREMIS:linkingAgentIdentifierValue>
+                <PREMIS:linkingAgentRole>software</PREMIS:linkingAgentRole>
+              </PREMIS:linkingAgentIdentifier>
+            </PREMIS:event>
+          </PREMIS:premis>
+        </METS:xmlData>
+      </METS:mdWrap>
+    </METS:digiprovMD>
+  </METS:amdSec>
+  <METS:fileSec>
+    <METS:fileGrp USE="ocr" ID="FG1">
+      <METS:file MIMETYPE="text/plain" CHECKSUM="9f7c6d752a3bf48fe46bd5702bcc8830" CHECKSUMTYPE="MD5" SIZE="22" CREATED="2020-04-23T18:59:09Z" SEQ="00000001" ID="TXT00000001">
+        <METS:FLocat OTHERLOCTYPE="SYSTEM" LOCTYPE="OTHER" xlink:href="00000001.txt"/>
+      </METS:file>
+      <METS:file MIMETYPE="text/plain" CHECKSUM="d41d8cd98f00b204e9800998ecf8427e" SIZE="0" CHECKSUMTYPE="MD5" ID="TXT00000002" SEQ="00000002" CREATED="2020-04-23T18:59:09Z">
+        <METS:FLocat OTHERLOCTYPE="SYSTEM" LOCTYPE="OTHER" xlink:href="00000002.txt"/>
+      </METS:file>
+    </METS:fileGrp>
+    <METS:fileGrp ID="FG2" USE="image">
+      <METS:file CHECKSUM="9605a4a4e5c188818669684fded8c57c" MIMETYPE="image/tiff" CREATED="2020-04-23T18:59:08Z" ID="IMG00000001" SEQ="00000001" CHECKSUMTYPE="MD5" SIZE="233604">
+        <METS:FLocat OTHERLOCTYPE="SYSTEM" LOCTYPE="OTHER" xlink:href="00000001.tif"/>
+      </METS:file>
+      <METS:file MIMETYPE="image/jp2" CHECKSUM="18d7df30f58bd0f76e7b88e7ca5c3238" CHECKSUMTYPE="MD5" SIZE="597136" CREATED="2020-04-23T18:59:08Z" ID="IMG00000002" SEQ="00000002">
+        <METS:FLocat OTHERLOCTYPE="SYSTEM" LOCTYPE="OTHER" xlink:href="00000002.jp2"/>
+      </METS:file>
+    </METS:fileGrp>
+  </METS:fileSec>
+  <METS:structMap ID="SM1" TYPE="physical">
+    <METS:div TYPE="volume">
+      <METS:div TYPE="page" ORDER="1">
+        <METS:fptr FILEID="TXT00000001"/>
+        <METS:fptr FILEID="IMG00000001"/>
+      </METS:div>
+      <METS:div TYPE="page" ORDER="2">
+        <METS:fptr FILEID="TXT00000002"/>
+        <METS:fptr FILEID="IMG00000002"/>
+      </METS:div>
+    </METS:div>
+  </METS:structMap>
+</METS:mets>

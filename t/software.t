@@ -20,9 +20,9 @@ set_config(0,'stop_on_error');
 
 my $mets = new HTFeed::METS(
     volume => new HTFeed::Volume(
-        namespace   => 'mdp',
+        namespace   => 'test',
         objid       => '39015000000003',
-        packagetype => 'google'
+        packagetype => 'simple'
     )
 );
 
@@ -31,7 +31,7 @@ like( get_tool_version("GROOVE"),
     qr/$FindBin::Script .*\d+.*/, "toolver_groove" );
 
 like( get_tool_version("EXIFTOOL"),
-    qr/Image::ExifTool \d\.\d+/, "toolver_exiftool" );
+    qr/Image::ExifTool \d+\.\d+/, "toolver_exiftool" );
 like( get_tool_version("XERCES"), qr/(lib)?xerces-c(3.1)?[- \d\w.]+/i, "toolver_xerces" );
 like( get_tool_version("JHOVE"),  qr/jhove \d\.\d+/i,    "toolver_jhove" );
 like( get_tool_version("DIGEST_MD5"),

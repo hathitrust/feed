@@ -18,13 +18,17 @@ sub SourceMETS : Test(1){
 
 	my $self = shift;
 
-  $self->set_bibdata;
+  $self->test_setup;
   my $volume = $self->{volume};
   mkdir($volume->get_staging_directory());
 	my $stage = HTFeed::PackageType::IA::SourceMETS->new(volume => $volume);
   $volume->record_premis_event('file_rename');
   $volume->record_premis_event('image_header_modification');
+  $volume->record_premis_event('package_inspection');
+  $volume->record_premis_event('source_md5_fixity');
+  $volume->record_premis_event('ocr_normalize');
 	ok($stage->run(), 'IA: SourceMETS succeeded with undamaged package');
+  $self->test_cleanup;
 }
 
 # Test for errors with damaged package
@@ -39,9 +43,9 @@ sub Errors : Test(1){
     my $objdir = $volume->get_download_directory();
     my $scandata = "$objdir/${ia_id}_scandata.xml";
 
-    $self->set_bibdata;
+    $self->test_setup;
     #get damaged scandata from "samples"
-    my $samples = get_config('test_data') . "/staging/DAMAGED/samples/ia/${ia_id}";
+    my $samples = get_config('test_staging','damaged') . "/samples/ia/${ia_id}";
     my $broken_scanData = "$samples/${ia_id}_scandata.xml";
     copy($broken_scanData,$objdir) or die "copy failed: $!";
 
@@ -50,19 +54,27 @@ sub Errors : Test(1){
     ok(!$stage->succeeded, 'IA: SourceMETS stage fails on damaged package');
 
     #replace with standard scandata for next stage test
-    my $clean_copy = get_config('test_data') . "/staging/UNDAMAGED/download/ia/$ia_id/${ia_id}_scandata.xml";
+    my $clean_copy = get_config('test_staging','undamaged') . "/download/ia/$ia_id/${ia_id}_scandata.xml";
     copy($clean_copy,$objdir) or die "copy failed: $!";
+    $self->test_cleanup;
 
 }
 
-sub set_bibdata {
+sub test_setup {
 	my $self = shift;
 
   my $dbh = HTFeed::DBTools::get_dbh();
   my $volume = $self->{volume};
   my $objid = $volume->get_objid();
   my $ns = $volume->get_namespace();
-  $dbh->do("REPLACE INTO feed_zephir_items (namespace, id, collection, digitization_source, returned) values ('$ns','$objid','INRLF','ia','0')");
+  $dbh->do("ATTACH '/tmp/rights.db' AS ht_rights");
+}
+
+sub test_cleanup {
+	my $self = shift;
+
+  my $dbh = HTFeed::DBTools::get_dbh();
+  $dbh->do("DETACH ht_rights");
 }
 
 sub pkgtype { 'ia' }
