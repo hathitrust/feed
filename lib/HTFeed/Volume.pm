@@ -121,7 +121,7 @@ sub get_all_directory_files {
   opendir(my $dh,$stagedir) or croak("Can't opendir $stagedir: $!");
   foreach my $file (readdir $dh) {
     # ignore ., .., Mac .DS_Store files
-    push(@{ $self->{directory_files} },$file) unless ($file =~ /^\.+$/ or $file eq '.DS_Store');
+    push(@{ $self->{directory_files} },$file) unless ($file =~ /^\.+$/ or $file eq '.DS_Store' or $file =~ /^thumbs\.db$/i);
   }
   closedir($dh) or croak("Can't closedir $stagedir: $!");
   @{ $self->{directory_files} } = sort( @{ $self->{directory_files} } );

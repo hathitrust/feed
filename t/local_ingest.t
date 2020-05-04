@@ -13,7 +13,9 @@ sub unpack_and_verify {
     packagetype => 'simple');
 
   HTFeed::PackageType::Simple::Unpack->new(volume => $volume)->run();
-  HTFeed::PackageType::Simple::VerifyManifest->new(volume => $volume)->run;
+  my $stage = HTFeed::PackageType::Simple::VerifyManifest->new(volume => $volume);
+  $stage->run;
+  return $stage;
 }
 
 describe "HTFeed::PackageType::Simple::VerifyManifest" => sub {
@@ -54,6 +56,25 @@ describe "HTFeed::PackageType::Simple::VerifyManifest" => sub {
     unpack_and_verify("missing_meta_yml_checksum");
     ok($testlog->matches(qr(file: meta\.yml.*present in package but not in checksum file)));
   };
+
+  describe "thumbs.db" => sub {
+
+    it "ignores Thumbs.db when it is in the checksum file but not the package" => sub {
+      ok(unpack_and_verify("thumbs_in_checksum")->succeeded());
+    };
+
+    it "ignores Thumbs.db when it is in the package but not the checksum file" => sub {
+      ok(unpack_and_verify("thumbs_in_pkg")->succeeded());
+    };
+
+    it "ignores Thumbs.db when it is in the checksum file and the package, but the checksum is wrong" => sub {
+      ok(unpack_and_verify("thumbs_in_checksum_and_pkg_bad_checksum")->succeeded());
+    };
+
+    it "ignores Thumbs.db when it is in both the checksum file and the package" => sub {
+      ok(unpack_and_verify("thumbs_in_pkg_and_checksum")->succeeded());
+    };
+  }
 };
 
 runtests unless caller;
