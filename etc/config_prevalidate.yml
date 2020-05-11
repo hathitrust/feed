@@ -12,3 +12,11 @@ sip_root: /tmp/stage
 kdu_compress: /usr/local/bin/kdu_compress
 
 stop_on_error: 0
+
+sqlite:
+  datasource: "dbi:SQLite:dbname=/tmp/feed.db"
+  username: ""
+  password: ""
+
+xerces: /usr/local/feed/blib/bin/validateCache
+epubcheck: /usr/bin/java -jar /usr/bin/epubcheck
