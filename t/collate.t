@@ -2,6 +2,7 @@ use FindBin;
 use lib "$FindBin::Bin/lib";
 
 use Test::Spec;
+use HTFeed::Test::Support qw(load_db_fixtures);
 use HTFeed::Test::SpecSupport;
 use HTFeed::Config qw(set_config);
 
@@ -10,6 +11,7 @@ describe "HTFeed::Stage::Collate" => sub {
   my $testlog;
 
   before all => sub {
+    load_db_fixtures;
     $tmpdirs = HTFeed::Test::TempDirs->new();
     $testlog = HTFeed::Test::Logger->new();
     set_config(0,'stop_on_error');

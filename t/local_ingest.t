@@ -3,6 +3,7 @@ use lib "$FindBin::Bin/lib";
 
 use Test::Spec;
 use HTFeed::Test::SpecSupport qw(mock_premis_mets);
+use HTFeed::Test::Support qw(load_db_fixtures);
 use HTFeed::Config qw(set_config);
 
 sub unpacked_volume {
@@ -30,6 +31,7 @@ describe "HTFeed::PackageType::Simple" => sub {
   my $testlog;
 
   before all => sub {
+    load_db_fixtures;
     $tmpdirs = HTFeed::Test::TempDirs->new();
     $testlog = HTFeed::Test::Logger->new();
     set_config(0,'stop_on_error');

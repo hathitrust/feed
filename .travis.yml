@@ -9,6 +9,7 @@ services:
 before_install:
   - git submodule update --init metslib
   - docker-compose build
+  - docker-compose up -d mariadb
 
 script:
   - docker-compose run travis_test

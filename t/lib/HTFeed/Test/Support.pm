@@ -4,7 +4,7 @@ use warnings;
 use strict;
 
 use base qw(Exporter);
-our @EXPORT_OK = qw(get_test_volume get_fake_stage md5_dir test_config);
+our @EXPORT_OK = qw(get_test_volume get_fake_stage md5_dir test_config load_db_fixtures);
 
 use HTFeed::Config qw(get_config set_config);
 use HTFeed::Volume;
@@ -126,6 +126,19 @@ sub get_fake_stage{
 
 sub get_test_classes{
     return \@test_classes;
+}
+
+sub load_db_fixtures {
+  use HTFeed::DBTools qw(get_dbh);
+  use HTFeed::Config qw(get_config);
+
+  open(my $fh, get_config('test_fixtures'));
+
+  my $dbh = get_dbh();
+
+  while (my $sql = <$fh>) {
+    $dbh->do($sql);
+  }
 }
 
 1;
