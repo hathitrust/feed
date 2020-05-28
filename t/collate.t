@@ -10,6 +10,29 @@ describe "HTFeed::Stage::Collate" => sub {
   my $tmpdirs;
   my $testlog;
 
+  sub collate_item {
+    my $tmpdirs = shift;
+    my $namespace = shift;
+    my $objid = shift;
+
+    my $mets = $tmpdirs->test_home . "/fixtures/collate/$objid.mets.xml";
+    my $zip = $tmpdirs->test_home . "/fixtures/collate/$objid.zip";
+    system("cp $mets $tmpdirs->{ingest}");
+    mkdir("$tmpdirs->{zipfile}/$objid");
+    system("cp $zip $tmpdirs->{zipfile}/$objid");
+
+    my $volume = HTFeed::Volume->new(
+      namespace => $namespace,
+      objid => $objid,
+      packagetype => 'simple');
+
+    my $stage = HTFeed::Stage::Collate->new(volume => $volume);
+    $stage->run();
+
+    return $stage;
+
+  }
+
   before all => sub {
     load_db_fixtures;
     $tmpdirs = HTFeed::Test::TempDirs->new();
@@ -32,21 +55,23 @@ describe "HTFeed::Stage::Collate" => sub {
   };
 
   it "copies the mets and zip to the repository" => sub {
-    my $mets = $tmpdirs->test_home . "/fixtures/collate/test.mets.xml";
-    my $zip = $tmpdirs->test_home . "/fixtures/collate/test.zip";
-    system("cp $mets $tmpdirs->{ingest}");
-    mkdir("$tmpdirs->{zipfile}/test");
-    system("cp $zip $tmpdirs->{zipfile}/test");
-
-    my $volume = HTFeed::Volume->new(
-      namespace => 'test',
-      objid => 'test',
-      packagetype => 'simple');
-
-    HTFeed::Stage::Collate->new(volume => $volume)->run();
+    collate_item($tmpdirs,'test','test');
     ok(-e "/tmp/obj/test/pairtree_root/te/st/test/test.mets.xml");
     ok(-e "/tmp/obj/test/pairtree_root/te/st/test/test.zip");
   };
+
+  it "creates a symlink for the volume" => sub {
+    collate_item($tmpdirs,'test','test');
+    is("/tmp/obj/test/pairtree_root/te/st/test",readlink("/tmp/obj_link/test/pairtree_root/te/st/test"));
+  };
+
+  xit "does not copy or symlink a zip whose checksum does not match the one in the METS to the repository" => sub {
+    collate_item($tmpdirs,'test','bad_zip');
+    ok(!-e "/tmp/obj/test/pairtree_root/ba/d_/zi/p/bad_zip/bad_zip.mets.xml");
+    ok(!-e "/tmp/obj/test/pairtree_root/ba/d_/zi/p/bad_zip/bad_zip.zip");
+  };
+
+  it "records the audit with md5 check in feed_audit";
 };
 
 runtests unless caller;
