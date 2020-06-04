@@ -64,8 +64,9 @@ describe "HTFeed::Stage::Collate" => sub {
     is("/tmp/obj/test/pairtree_root/te/st/test",readlink("/tmp/obj_link/test/pairtree_root/te/st/test"));
   };
 
-  xit "does not copy or symlink a zip whose checksum does not match the one in the METS to the repository" => sub {
-    collate_item($tmpdirs,'test','bad_zip');
+  it "does not copy or symlink a zip whose checksum does not match the one in the METS to the repository" => sub {
+    eval { collate_item($tmpdirs,'test','bad_zip') };
+    ok($testlog->matches(qr(ERROR.*Checksum.*bad_zip.zip)));
     ok(!-e "/tmp/obj/test/pairtree_root/ba/d_/zi/p/bad_zip/bad_zip.mets.xml");
     ok(!-e "/tmp/obj/test/pairtree_root/ba/d_/zi/p/bad_zip/bad_zip.zip");
   };

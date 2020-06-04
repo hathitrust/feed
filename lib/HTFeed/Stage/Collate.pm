@@ -9,6 +9,8 @@ use HTFeed::DBTools;
 use Log::Log4perl qw(get_logger);
 use File::Pairtree qw(id2ppath s2ppchars);
 use File::Path qw(make_path);
+use HTFeed::VolumeValidator;
+use URI::Escape;
 
 =head1 NAME
 
@@ -64,6 +66,49 @@ sub stage {
 }
 
 sub validate {
+  my $self = shift;
+
+  my $volume = $self->{volume};
+  my $stage_path = $self->stage_path;
+  my $mets_stage = $volume->get_mets_path($stage_path);
+  my $zip_stage = $volume->get_zip_path($stage_path);
+
+  # might not be in repo...
+  my $mets = $volume->_parse_xpc($mets_stage);
+  my $zipname = $volume->get_zip_filename();;
+
+  my $mets_zipsum = $mets->findvalue(
+    "//mets:file[mets:FLocat/\@xlink:href='$zipname']/\@CHECKSUM");
+
+  if(not defined $mets_zipsum or length($mets_zipsum) ne 32) {
+    # zip name may be uri-escaped in some cases
+    $zipname = uri_escape($zipname);
+    $mets_zipsum = $mets->findvalue(
+      "//mets:file[mets:FLocat/\@xlink:href='$zipname']/\@CHECKSUM");
+  }
+
+  if ( not defined $mets_zipsum or length($mets_zipsum) ne 32 ) {
+    $self->set_error('MissingValue',
+      file => $mets_stage,
+      field => 'checksum',
+      detail => "Couldn't locate checksum for zip $zipname in METS $mets_stage");
+    return;
+  }
+
+  my $realsum = HTFeed::VolumeValidator::md5sum(
+    $zip_stage );
+
+  unless ( $mets_zipsum eq $realsum ) {
+    $self->set_error(
+      "BadChecksum",
+      field    => 'checksum',
+      file     => $zip_stage,
+      expected => $mets_zipsum,
+      actual   => $realsum
+    );
+    return;
+  }
+
   return 1;
 }
 
