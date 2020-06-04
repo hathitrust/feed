@@ -25,7 +25,10 @@ sub run{
     my $self = shift;
     $self->{is_repeat} = 0;
 
-    $self->stage and $self->validate and $self->finalize;
+    $self->stage;
+    $self->validate;
+    $self->link;
+    $self->move;
 
     return $self->succeeded();
 }
@@ -38,23 +41,13 @@ sub stage {
 
   my $stage_path = $self->stage_path;
   my $err;
-  make_path($stage_path)
-    or $self->set_error('OperationFailed', operation => 'mkdir', detail => "Could not create dir $stage_path: $!; @$err") and return;
+
+  $self->safe_make_path($stage_path);
 
   # make sure the operation will succeed
   if (-f $mets_source and -f $zip_source and -d $stage_path){
-    get_logger->trace("Copying $mets_source to $stage_path");
-
-    # copy to staging area
-    system('cp','-f',$mets_source,$stage_path)
-        and $self->set_error('OperationFailed', operation => 'cp', detail => "cp $mets_source $stage_path failed: $!")
-        and return;
-
-    get_logger->trace("Copying $zip_source to $stage_path");
-
-    system('cp','-f',$zip_source,$stage_path)
-        and $self->set_error('OperationFailed', operation => 'cp', detail => "cp $zip_source $stage_path failed: $!")
-        and return;
+    $self->safe_system('cp','-f',$mets_source,$stage_path);
+    $self->safe_system('cp','-f',$zip_source,$stage_path);
 
     return 1;
 
@@ -74,12 +67,6 @@ sub validate {
   return 1;
 }
 
-sub finalize {
-  my $self = shift;
-  $self->link;
-  $self->move;
-}
-
 sub move {
   my $self = shift;
   my $volume = $self->{volume};
@@ -91,15 +78,8 @@ sub move {
 
   # make sure the operation will succeed
   if (-f $mets_stage and -f $zip_stage and -d $object_path){
-    # move mets and zip to repo
-    get_logger->trace("Moving $mets_stage to $object_path");
-    system('mv','-f',$mets_stage,$object_path)
-        and $self->set_error('OperationFailed', operation => 'mv', detail => "mv -f $mets_stage $object_path failed: $!");
-
-    get_logger->trace("Moving $zip_stage to $object_path");
-    system('mv','-f',$zip_stage,$object_path)
-        and $self->set_error('OperationFailed', operation => 'mv', detail => "mv -f $zip_stage $object_path failed: $!");
-
+    $self->safe_system('mv','-f',$mets_stage,$object_path);
+    $self->safe_system('mv','-f',$zip_stage,$object_path);
 
     get_logger->trace("Cleaning up $stage_path");
     system('rmdir',$stage_path)
@@ -152,44 +132,50 @@ sub link {
   # Create link from 'link_dir' area, if needed
   # if link_dir==obj_dir we don't want to use the link_dir
   if(get_config('repository'=>'link_dir') ne get_config('repository'=>'obj_dir')) {
-      my $link_parent = sprintf('%s/%s/%s',get_config('repository','link_dir'),$namespace,id2ppath($objid));
-      my $link_path = $link_parent . $pt_objid;
-
-      # this is a re-ingest if the dir already exists, log this
-      if (-l $link_path){
-          $self->set_info('Collating volume that is already in repo');
-          $self->{is_repeat} = 1;
-          # make sure we have a link
-          unless ($object_path = readlink($link_path)){
-              # there is no good reason we chould have a dir and no link
-              $self->set_error('OperationFailed', operation => 'readlink', file => $link_path, detail => "readlink failed: $!") 
-                  and return;
-          }
-      }
-      # make dir or error and return
-      else{
-        get_logger->trace("Making directory $object_path");
-        # make object path
-        make_path($object_path);
-        # make link path
-        get_logger->trace("Making directory $link_parent");
-        make_path($link_parent);
-        # make link
-        get_logger->trace("Symlinking $object_path to $link_path");
-        symlink ($object_path, $link_path)
-          or $self->set_error('OperationFailed', operation => 'mkdir', detail => "Could not create dir $link_path: $!") and return;
-      }
-  } else{ # handle re-ingest detection and dir creation where link_dir==obj_dir
-      if(-d $object_path) {
-        # this is a re-ingest if the dir already exists, log this
-        $self->set_info('Collating volume that is already in repo');
-        $self->{is_repeat} = 1;
-      } else{
-        get_logger->trace("Making directory $object_path");
-        make_path($object_path)
-          or $self->set_error('OperationFailed', operation => 'mkdir', detail => "Could not create dir $object_path: $!") and return;
-      }
+    $self->symlink_if_needed;
+  } elsif(-d $object_path) {
+    # handle re-ingest detection and dir creation where link_dir==obj_dir
+    $self->set_info('Collating volume that is already in repo');
+    $self->{is_repeat} = 1;
+  } else{
+    $self->safe_make_path($object_path);
   }
+
+  return 1;
+}
+
+sub safe_system {
+  my $self = shift;
+  my @args = @_;
+  my $printable_args = '"' . join(' ',@args) . '"';
+
+  get_logger->trace("Running command $printable_args");
+
+  if ( system(@args) ) {
+    $self->set_error('OperationFailed',
+      operation => $args[0],
+      detail => "Command $printable_args failed: $!");
+    return;
+  } else {
+    return 1;
+  }
+}
+
+sub safe_make_path {
+  my $self = shift;
+  my $path = shift;
+
+  get_logger->trace("Making path $path");
+
+  if( make_path($path) ) {
+    return 1;
+  } else {
+    $self->set_error('OperationFailed',
+      operation => 'mkdir',
+      detail => "Could not create dir $path: $!");
+    return;
+  }
+
 }
 
 sub success_info {
@@ -211,6 +197,56 @@ sub clean_success {
     my $self = shift;
     $self->{volume}->clear_premis_events();
     $self->{volume}->clean_sip_success();
+}
+
+sub check_existing_link {
+  my $self = shift;
+  my $object_path = shift;
+  my $link_path = shift;
+
+  $self->set_info('Collating volume that is already in repo');
+  $self->{is_repeat} = 1;
+  # make sure we have a link
+  unless ($object_path = readlink($link_path)){
+    # there is no good reason we chould have a dir and no link
+    $self->set_error('OperationFailed', operation => 'readlink', file => $link_path, detail => "readlink failed: $!")
+  }
+}
+
+sub make_link {
+  my $self = shift;
+  my $object_path = shift;
+  my $link_path = shift;
+
+  get_logger->trace("Symlinking $object_path to $link_path");
+  symlink ($object_path, $link_path)
+    or $self->set_error('OperationFailed', operation => 'symlink', detail => "Could not symlink $object_path to $link_path $!");
+}
+
+sub symlink_if_needed {
+  my $self = shift;
+
+  my $volume = $self->{volume};
+  my $namespace = $volume->get_namespace();
+  my $objid = $volume->get_objid();
+  my $pt_objid = s2ppchars($objid);
+  my $object_path = $self->object_path();
+  $self->{is_repeat} = 0;
+
+  my $link_parent = sprintf('%s/%s/%s',get_config('repository','link_dir'),$namespace,id2ppath($objid));
+  my $link_path = $link_parent . $pt_objid;
+
+  if (-l $link_path){
+    # this is a re-ingest if the dir already exists, log this
+    $self->check_existing_link($object_path,$link_path);
+  }
+  else{
+    $self->safe_make_path($object_path);
+    $self->safe_make_path($link_parent);
+    $self->make_link($object_path,$link_path);
+  }
+
+  return 1;
 }
 
 1;

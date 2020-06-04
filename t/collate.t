@@ -37,7 +37,6 @@ describe "HTFeed::Stage::Collate" => sub {
     load_db_fixtures;
     $tmpdirs = HTFeed::Test::TempDirs->new();
     $testlog = HTFeed::Test::Logger->new();
-    set_config(0,'stop_on_error');
   };
 
   before each => sub {
