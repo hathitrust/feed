@@ -71,6 +71,8 @@ describe "HTFeed::Stage::Collate" => sub {
     ok(!-e "/tmp/obj/test/pairtree_root/ba/d_/zi/p/bad_zip/bad_zip.zip");
   };
 
+  it "does not copy or symlink a zip whose contents do not match the METS to the repository";
+
   it "records the audit with md5 check in feed_audit";
 };
 
