@@ -11,7 +11,7 @@ describe "HTFeed::Stage::Collate" => sub {
   my $tmpdirs;
   my $testlog;
 
-  sub setup_stage {
+  sub setup_dirs {
     my $tmpdirs = shift;
     my $namespace = shift;
     my $objid = shift;
@@ -26,18 +26,14 @@ describe "HTFeed::Stage::Collate" => sub {
       namespace => $namespace,
       objid => $objid,
       packagetype => 'simple');
-
-    my $stage = HTFeed::Stage::Collate->new(volume => $volume);
-
-    return $stage;
   }
 
-  sub collate_item {
-    my $stage = setup_stage(@_);
-    $stage->run();
+  sub collate {
+    my $storage = shift;
 
-    return $stage;
+    my $stage = HTFeed::Stage::Collate->new(volume => $storage->{volume});
 
+    $stage->run($storage);
   }
 
   before all => sub {
@@ -47,6 +43,8 @@ describe "HTFeed::Stage::Collate" => sub {
   };
 
   before each => sub {
+    get_dbh()->do("DELETE FROM feed_audit WHERE namespace = 'test'");
+    get_dbh()->do("DELETE FROM feed_backups WHERE namespace = 'test'");
     $tmpdirs->setup_example;
     $testlog->reset;
     set_config($tmpdirs->test_home . "/fixtures/collate",'staging','fetch');
@@ -60,53 +58,85 @@ describe "HTFeed::Stage::Collate" => sub {
     $tmpdirs->cleanup;
   };
 
+  # TODO test collate with stubbed-out storage
+  # TODO integration test for collate with local & versioned pairtree
+  #
+  describe "HTFeed::Stage::Collate" => sub {
+    it "doesn't move if validation fails";
+
+    it "rolls back to the existing version if postvalidation fails";
+
+    it "records nothing in feed_audit if postvalidation fails";
+  };
+
   describe "HTFeed::Storage::LocalPairtree" => sub {
-    it "copies the mets and zip to the repository" => sub {
-      collate_item($tmpdirs,'test','test');
-      ok(-e "$tmpdirs->{obj_dir}/test/pairtree_root/te/st/test/test.mets.xml");
-      ok(-e "$tmpdirs->{obj_dir}/test/pairtree_root/te/st/test/test.zip");
+    use HTFeed::Storage::LocalPairtree;
+
+    sub local_storage {
+      my $volume = setup_dirs(@_);
+
+      my $storage = HTFeed::Storage::LocalPairtree->new(
+        volume => $volume);
+
+      return $storage;
+    }
+
+    describe "#move" => sub {
+      it "copies the mets and zip to the repository" => sub {
+        collate(local_storage($tmpdirs,'test','test'));
+
+        ok(-e "$tmpdirs->{obj_dir}/test/pairtree_root/te/st/test/test.mets.xml");
+        ok(-e "$tmpdirs->{obj_dir}/test/pairtree_root/te/st/test/test.zip");
+      };
     };
 
-    it "creates a symlink for the volume" => sub {
-      collate_item($tmpdirs,'test','test');
-      is("$tmpdirs->{obj_dir}/test/pairtree_root/te/st/test",
-        readlink("$tmpdirs->{link_dir}/test/pairtree_root/te/st/test"));
+    describe "#make_object_path" => sub {
+      it "creates a symlink for the volume" => sub {
+        collate(local_storage($tmpdirs,'test','test'));
+
+        is("$tmpdirs->{obj_dir}/test/pairtree_root/te/st/test",
+          readlink("$tmpdirs->{link_dir}/test/pairtree_root/te/st/test"));
+      };
     };
 
-    it "does not copy or symlink a zip whose checksum does not match the one in the METS to the repository" => sub {
-      eval { collate_item($tmpdirs,'test','bad_zip') };
-      ok($testlog->matches(qr(ERROR.*Checksum.*bad_zip.zip)));
-      ok(!-e "$tmpdirs->{obj_dir}/test/pairtree_root/ba/d_/zi/p/bad_zip/bad_zip.mets.xml");
-      ok(!-e "$tmpdirs->{obj_dir}/test/pairtree_root/ba/d_/zi/p/bad_zip/bad_zip.zip");
+    describe "#validate" => sub {
+      it "does not copy or symlink a zip whose checksum does not match the one in the METS to the repository" => sub {
+        eval { collate(local_storage($tmpdirs,'test','bad_zip')) };
+
+        ok($testlog->matches(qr(ERROR.*Checksum.*bad_zip.zip)));
+        ok(!-e "$tmpdirs->{obj_dir}/test/pairtree_root/ba/d_/zi/p/bad_zip/bad_zip.mets.xml");
+        ok(!-e "$tmpdirs->{obj_dir}/test/pairtree_root/ba/d_/zi/p/bad_zip/bad_zip.zip");
+      };
     };
 
     it "does not copy or symlink a zip whose contents do not match the METS to the repository";
 
-    it "records the audit with md5 check in feed_audit";
+
+    it "records an md5 check in the feed_audit table" => sub {
+      my $dbh = get_dbh();
+
+      collate(local_storage($tmpdirs,'test','test'));
+
+      my $r = $dbh->selectall_arrayref("SELECT lastmd5check from feed_audit WHERE namespace = 'test' and id = 'test'");
+
+      ok($r->[0][0]);
+
+    };
+
   };
 
   describe "HTFeed::Storage::VersionedPairtree" => sub {
     use HTFeed::Storage::VersionedPairtree;
 
-    sub storage_instance {
-      my $stage = setup_stage(@_);
-      my $volume = $stage->{volume};
+    sub versioned_storage {
+      my $volume = setup_dirs(@_);
 
       my $storage = HTFeed::Storage::VersionedPairtree->new(
-        volume => $volume,
-        collate => $stage);
+        volume => $volume);
 
       return $storage;
     }
 
-    sub collate_with_storage {
-      my $storage = shift;
-
-      $storage->stage;
-      $storage->validate;
-      $storage->make_object_path;
-      $storage->move;
-    }
 
     describe "#object_path" => sub {
 
@@ -115,7 +145,7 @@ describe "HTFeed::Stage::Collate" => sub {
         set_config('/backup-location/obj','repository','backup_obj_dir');
 
         eval {
-          my $storage = storage_instance($tmpdirs, 'test', 'test');
+          my $storage = versioned_storage($tmpdirs, 'test', 'test');
           like( $storage->object_path(), qr{^/backup-location/obj/});
         };
 
@@ -123,13 +153,13 @@ describe "HTFeed::Stage::Collate" => sub {
       };
 
       it "includes the namespace and pairtreeized object id in the path" => sub {
-        my $storage = storage_instance($tmpdirs, 'test', 'test');
+        my $storage = versioned_storage($tmpdirs, 'test', 'test');
 
         like( $storage->object_path(), qr{/test/pairtree_root/te/st/test});
       };
 
       it "includes a datestamp in the object directory" => sub {
-        my $storage = storage_instance($tmpdirs,'test','test');
+        my $storage = versioned_storage($tmpdirs,'test','test');
 
         like( $storage->object_path(), qr{/test/\d{14}});
       };
@@ -137,7 +167,7 @@ describe "HTFeed::Stage::Collate" => sub {
 
     describe "#stage" => sub {
       it "deposits to a staging area under the configured object location" => sub {
-        my $storage = storage_instance($tmpdirs, 'test', 'test');
+        my $storage = versioned_storage($tmpdirs, 'test', 'test');
         $storage->stage;
 
         ok(-e "$tmpdirs->{backup_obj_stage_dir}/test.test/test.mets.xml");
@@ -147,7 +177,7 @@ describe "HTFeed::Stage::Collate" => sub {
 
     describe "#validate" => sub {
       it "returns false and logs for a corrupted zip" => sub {
-        my $storage = storage_instance($tmpdirs, 'test', 'bad_zip');
+        my $storage = versioned_storage($tmpdirs, 'test', 'bad_zip');
         $storage->stage;
 
         eval { not_ok($storage->validate); };
@@ -155,7 +185,7 @@ describe "HTFeed::Stage::Collate" => sub {
       };
 
       it "returns true for a zip matching the checksum in the METS" => sub {
-        my $storage = storage_instance($tmpdirs, 'test', 'test');
+        my $storage = versioned_storage($tmpdirs, 'test', 'test');
         $storage->stage;
 
         ok($storage->validate);
@@ -164,7 +194,7 @@ describe "HTFeed::Stage::Collate" => sub {
 
     describe "#make_object_path" => sub {
       it "makes the path with a timestamp" => sub {
-        my $storage = storage_instance($tmpdirs, 'test','test');
+        my $storage = versioned_storage($tmpdirs, 'test','test');
 
         $storage->make_object_path;
 
@@ -174,41 +204,49 @@ describe "HTFeed::Stage::Collate" => sub {
 
     describe "#move" => sub {
       it "moves from the staging location to the object path" => sub {
-        my $storage = storage_instance($tmpdirs,'test','test');
-        collate_with_storage($storage);
+        my $storage = versioned_storage($tmpdirs,'test','test');
+        $storage->stage;
+        $storage->make_object_path;
+        $storage->move;
 
-        ok(! -e "$tmpdirs->{backup_obj_stage_dir}/test.test","cleans up the staging dir");
         ok(-e "$tmpdirs->{backup_obj_dir}/test/pairtree_root/te/st/test/$storage->{timestamp}/test.zip","copies the zip");
         ok(-e "$tmpdirs->{backup_obj_dir}/test/pairtree_root/te/st/test/$storage->{timestamp}/test.mets.xml","copies the mets");
       };
+    };
 
-      it "records the copy in the feed_backups table" => sub {
-        my $dbh = get_dbh();
+    describe "#cleanup" => sub {
+      it "cleans up the staging dir" => sub {
+        my $storage = versioned_storage($tmpdirs,'test','test');
+        $storage->stage;
+        $storage->make_object_path;
+        $storage->move;
+        $storage->cleanup;
 
-        $dbh->do("DELETE FROM feed_backups WHERE namespace = 'test' and id = 'test'");
-
-        my $storage = storage_instance($tmpdirs,'test','test');
-        collate_with_storage($storage);
-
-        my $r = $dbh->selectall_arrayref("SELECT version from feed_backups WHERE namespace = 'test' and id = 'test'");
-
-        is($r->[0][0],$storage->{timestamp});
-
-      };
+        ok(! -e "$tmpdirs->{backup_obj_stage_dir}/test.test","cleans up the staging dir");
+      }
     };
 
     describe "#record_backup" => sub {
+      it "records the copy in the feed_backups table" => sub {
+        my $storage = versioned_storage($tmpdirs,'test','test');
+        $storage->stage;
+        $storage->make_object_path;
+        $storage->move;
+        $storage->record_backup;
+
+        my $r = get_dbh()->selectall_arrayref("SELECT version from feed_backups WHERE namespace = 'test' and id = 'test'");
+
+        is($r->[0][0],$storage->{timestamp});
+      };
+
       it "does not record anything in feed_backups if the volume wasn't moved" => sub {
-        my $dbh = get_dbh();
 
-        $dbh->do("DELETE FROM feed_backups WHERE namespace = 'test' and id = 'test'");
-
-        my $storage = storage_instance($tmpdirs,'test','test');
+        my $storage = versioned_storage($tmpdirs,'test','test');
         $storage->stage;
 
         eval { $storage->record_backup };
 
-        my $r = $dbh->selectall_arrayref("SELECT version from feed_backups WHERE namespace = 'test' and id = 'test'");
+        my $r = get_dbh()->selectall_arrayref("SELECT version from feed_backups WHERE namespace = 'test' and id = 'test'");
 
         is(scalar(@$r),0);
 

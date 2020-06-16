@@ -13,17 +13,17 @@ sub new {
 
   my %args = @_;
 
-  die("Missing required arguments 'volume' and/or 'collate'")
-    unless $args{volume} and $args{collate};
+  die("Missing required argument 'volume'")
+    unless $args{volume};
 
   my $volume = $args{volume};
 
 
   my $self = {
     volume => $volume,
-    collate => $args{collate},
     namespace => $volume->get_namespace(),
     objid => $volume->get_objid(),
+    errors => [],
   };
 
   bless($self, $class);
@@ -128,8 +128,8 @@ sub move {
   my $self = shift;
   my $volume = $self->{volume};
   my $stage_path = $self->stage_path;
-  my $mets_stage = $volume->get_mets_path($stage_path);
-  my $zip_stage = $volume->get_zip_path($stage_path);
+  my $mets_stage = $self->mets_stage_path;
+  my $zip_stage = $self->zip_stage_path;
 
   my $object_path = $self->object_path;
 
@@ -138,14 +138,7 @@ sub move {
     $self->safe_system('mv','-f',$mets_stage,$object_path);
     $self->safe_system('mv','-f',$zip_stage,$object_path);
 
-    get_logger->trace("Cleaning up $stage_path");
-    system('rmdir',$stage_path)
-        and get_logger()->warn("Can't rmdir $stage_path: $!");
-
-    $volume->update_feed_audit($object_path);
-
-    $self->{collate}->_set_done();
-    return $self->{collate}->succeeded();
+    return 1;
   } else {
     # report which file(s) are missing
     my $detail = 'Collate failed, file(s) not found: ';
@@ -158,16 +151,40 @@ sub move {
   }
 }
 
+sub cleanup {
+  my $self = shift;
+  my $stage_path = $self->stage_path;
+
+  get_logger->trace("Cleaning up $stage_path");
+  system('rmdir',$stage_path)
+    and get_logger()->warn("Can't rmdir $stage_path: $!");
+}
+
+sub record_audit {
+  #noop
+}
+
+sub postvalidate {
+  my $self = shift;
+
+  $self->validate($self->object_path);
+}
+
+sub prevalidate {
+  my $self = shift;
+
+  $self->validate($self->stage_path);
+}
+
 sub validate {
   my $self = shift;
 
   my $volume = $self->{volume};
-  my $stage_path = $self->stage_path;
-  my $mets_stage = $volume->get_mets_path($stage_path);
-  my $zip_stage = $volume->get_zip_path($stage_path);
+  my $path = shift;
+  my $mets_path = $volume->get_mets_path($path);
+  my $zip_path = $volume->get_zip_path($path);
 
-  # might not be in repo...
-  my $mets = $volume->_parse_xpc($mets_stage);
+  my $mets = $volume->_parse_xpc($mets_path);
   my $zipname = $volume->get_zip_filename();;
 
   my $mets_zipsum = $mets->findvalue(
@@ -182,20 +199,20 @@ sub validate {
 
   if ( not defined $mets_zipsum or length($mets_zipsum) ne 32 ) {
     $self->set_error('MissingValue',
-      file => $mets_stage,
+      file => $mets_path,
       field => 'checksum',
-      detail => "Couldn't locate checksum for zip $zipname in METS $mets_stage");
+      detail => "Couldn't locate checksum for zip $zipname in METS $mets_path");
     return;
   }
 
   my $realsum = HTFeed::VolumeValidator::md5sum(
-    $zip_stage );
+    $zip_path );
 
   unless ( $mets_zipsum eq $realsum ) {
     $self->set_error(
       "BadChecksum",
       field    => 'checksum',
-      file     => $zip_stage,
+      file     => $zip_path,
       expected => $mets_zipsum,
       actual   => $realsum
     );
@@ -207,15 +224,46 @@ sub validate {
 
 sub set_error {
   my $self = shift;
+  my $error = shift;
 
-  $self->{collate}->set_error(@_);
+  # log error w/ l4p
+  my $logger = get_logger( ref($self) );
+  $logger->error(
+      $error,
+      namespace => $self->{volume}->get_namespace(),
+      objid     => $self->{volume}->get_objid(),
+      stage     => ref($self),
+      @_
+  );
+
+  push(@{$self->{errors}},[$error,@_]);
+}
+
+sub zip_obj_path {
+  my $self = shift;
+  $self->{volume}->get_zip_path($self->object_path());
+}
+
+sub mets_obj_path {
+  my $self = shift;
+  $self->{volume}->get_mets_path($self->object_path());
+}
+
+sub zip_stage_path {
+  my $self = shift;
+  $self->{volume}->get_zip_path($self->stage_path());
+}
+
+sub mets_stage_path {
+  my $self = shift;
+  $self->{volume}->get_mets_path($self->stage_path());
 }
 
 sub zip_size {
   my $self = shift;
   my $volume = $self->{volume};
 
-  my $size = -s $volume->get_zip_path($self->object_path());
+  my $size = -s $self->zip_obj_path;
 
   die("Can't get zip size: $!") unless defined $size;
 
@@ -226,7 +274,7 @@ sub mets_size {
   my $self = shift;
   my $volume = $self->{volume};
 
-  my $size = -s $volume->get_mets_path($self->object_path());
+  my $size = -s $self->mets_obj_path;
 
   die("Can't get mets size: $!") unless defined $size;
 

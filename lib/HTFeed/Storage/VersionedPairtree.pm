@@ -36,12 +36,9 @@ sub stage_path {
   $self->SUPER::stage_path('backup_obj_stage_dir');
 }
 
-sub move {
+sub record_audit {
   my $self = shift;
-
-  if( $self->SUPER::move ) {
-    $self->record_backup;
-  }
+  $self->record_backup;
 }
 
 sub record_backup {
@@ -50,14 +47,15 @@ sub record_backup {
   my $dbh = HTFeed::DBTools::get_dbh();
 
   my $stmt =
-  "insert into feed_backups (namespace, id, version, zip_size, mets_size, lastchecked) values(?,?,?,?,?,CURRENT_TIMESTAMP)";
+  "insert into feed_backups (namespace, id, version, zip_size, \
+    mets_size, lastchecked, lastmd5check, md5check_ok) \
+    values(?,?,?,?,?,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,1)";
 
   my $sth  = $dbh->prepare($stmt);
   $sth->execute(
       $self->{namespace}, $self->{objid},
       $self->{timestamp}, $self->zip_size,
       $self->mets_size);
-
 
 }
 

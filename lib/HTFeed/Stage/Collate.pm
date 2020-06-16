@@ -25,23 +25,67 @@ HTFeed::Stage::Collate.pm
 
 sub run{
     my $self = shift;
+
+    my $storage = shift || HTFeed::Storage::LocalPairtree->new(
+      volume => $self->{volume});
+
     $self->{is_repeat} = 0;
 
-    my $storage = HTFeed::Storage::LocalPairtree->new(
-      volume => $self->{volume},
-      collate => $self);
+    $self->stage_and_move($storage) &&
+      $self->post_move($storage);
 
-    $storage->stage;
-    $storage->validate;
-    $storage->make_object_path;
-    $storage->move;
+    $self->check_errors($storage);
+    $self->log_repeat($storage);
 
+    $self->_set_done();
     return $self->succeeded();
+}
+
+sub log_repeat {
+  my $self = shift;
+  my $storage = shift;
+
+  if($storage->{is_repeat}) {
+    $self->set_info('Collating volume that is already in repo');
+  }
+}
+
+sub stage_and_move {
+  my $self = shift;
+  my $storage = shift;
+
+  $storage->stage &&
+  $storage->prevalidate &&
+  $storage->make_object_path &&
+  $storage->move;
+}
+
+sub post_move {
+  my $self = shift;
+  my $storage = shift;
+
+  if( $storage->postvalidate ) {
+    $storage->record_audit && $storage->cleanup;
+  } else {
+    $storage->rollback;
+  }
+}
+
+sub check_errors {
+  my $self = shift;
+  my $stage = shift;
+
+  foreach my $error (@{$stage->{errors}}) {
+    $self->{failed}++;
+    if ( get_config('stop_on_error') ) {
+        croak("STAGE_ERROR");
+    }
+  }
 }
 
 sub success_info {
     my $self = shift;
-    return "repeat=" . $self->{is_repeat};
+    return "repeat=" . $self->{storage}->{is_repeat};
 }
 
 sub stage_info{

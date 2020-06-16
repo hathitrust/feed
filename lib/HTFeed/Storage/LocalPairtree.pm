@@ -10,6 +10,8 @@ use File::Pairtree qw(id2ppath s2ppchars);
 use File::Path qw(make_path);
 use HTFeed::VolumeValidator;
 use URI::Escape;
+use POSIX qw(strftime);
+use HTFeed::DBTools qw(get_dbh);
 
 sub object_path {
   my $self = shift;
@@ -25,7 +27,7 @@ sub stage_path {
 
 sub make_object_path {
   my $self = shift;
-  $self->{collate}->{is_repeat} = 0;
+  $self->{is_repeat} = 0;
 
   # Create link from 'link_dir' area, if needed
   # if link_dir==obj_dir we don't want to use the link_dir
@@ -33,8 +35,7 @@ sub make_object_path {
     $self->symlink_if_needed;
   } elsif(-d $self->object_path) {
     # handle re-ingest detection and dir creation where link_dir==obj_dir
-    $self->{collate}->set_info('Collating volume that is already in repo');
-    $self->{collate}->{is_repeat} = 1;
+    $self->{is_repeat} = 1;
   } else{
     $self->safe_make_path($self->object_path);
   }
@@ -47,7 +48,6 @@ sub check_existing_link {
   my $object_path = shift;
   my $link_path = shift;
 
-  $self->{collate}->set_info('Collating volume that is already in repo');
   $self->{is_repeat} = 1;
   # make sure we have a link
   unless ($object_path = readlink($link_path)){
@@ -90,6 +90,49 @@ sub symlink_if_needed {
   }
 
   return 1;
+}
+
+sub file_date {
+  my $self = shift;
+  my $file = shift;
+
+  if ( -e $file ) {
+    my $seconds = ( stat($file) )[9];
+    return strftime( "%Y-%m-%d %H:%M:%S", localtime($seconds) );
+  }
+}
+
+# updates the zip_date in the feed_audit table to the current timestamp for
+# this zip in the repository
+sub record_audit {
+  my $self = shift;
+
+  my $path = $self->object_path();
+  my ($sdr_partition) = ($path =~ qr#/?sdr(\d+)/?#);
+
+  my $stmt =
+  "insert into feed_audit (namespace, id, sdr_partition, zip_size, zip_date, mets_size, mets_date, lastchecked, lastmd5check, md5check_ok) values(?,?,?,?,?,?,?,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,1) \
+  ON DUPLICATE KEY UPDATE sdr_partition = ?, zip_size=?, zip_date =?,mets_size=?,mets_date=?,lastchecked = CURRENT_TIMESTAMP,lastmd5check = CURRENT_TIMESTAMP, md5check_ok = 1";
+
+  # TODO populate image_size, page_count
+
+  my $zipsize = $self->zip_size;
+  my $zipdate = $self->file_date($self->zip_obj_path);
+
+  my $metssize = $self->mets_size;
+  my $metsdate = $self->file_date($self->mets_obj_path);
+
+  my $sth  = get_dbh()->prepare($stmt);
+
+  $sth->execute(
+    $self->{namespace}, $self->{objid},
+
+    $sdr_partition, $zipsize, $zipdate, $metssize,  $metsdate,
+
+    # duplicate parameters for duplicate key update
+    $sdr_partition, $zipsize, $zipdate, $metssize,  $metsdate
+  );
+
 }
 
 1;
