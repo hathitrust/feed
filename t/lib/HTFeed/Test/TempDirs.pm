@@ -29,10 +29,15 @@ sub test_home {
   return $self->{test_home};
 }
 
-sub dirtypes {
+sub staging_dirtypes {
   my $self = shift;
 
   return qw(ingest preingest zipfile zip);
+}
+
+sub repo_dirtypes {
+  my $self = shift;
+  return qw(link_dir obj_dir obj_stage_dir backup_obj_dir backup_obj_stage_dir);
 }
 
 sub cleanup {
@@ -46,16 +51,21 @@ sub setup_example {
 
   my $tmpdir = $self->{tmpdir};
 
-  foreach my $dirtype ($self->dirtypes) {
+  foreach my $dirtype ($self->staging_dirtypes) {
     $self->{$dirtype} = tempdir("$tmpdir/feed-test-$dirtype-XXXXXX");
     set_config($self->{$dirtype},'staging',$dirtype);
+  }
+
+  foreach my $dirtype ($self->repo_dirtypes) {
+    $self->{$dirtype} = tempdir("$tmpdir/feed-test-$dirtype-XXXXXX");
+    set_config($self->{$dirtype},'repository',$dirtype);
   }
 }
 
 sub cleanup_example {
   my $self = shift;
 
-  foreach my $dirtype ($self->dirtypes) {
+  foreach my $dirtype ($self->staging_dirtypes, $self->repo_dirtypes) {
     rmtree $self->{$dirtype};
   }
 

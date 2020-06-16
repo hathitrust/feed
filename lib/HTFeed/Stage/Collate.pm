@@ -33,7 +33,7 @@ sub run{
 
     $storage->stage;
     $storage->validate;
-    $storage->link;
+    $storage->make_object_path;
     $storage->move;
 
     return $self->succeeded();
