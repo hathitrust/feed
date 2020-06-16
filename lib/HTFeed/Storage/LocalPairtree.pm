@@ -16,7 +16,7 @@ use HTFeed::DBTools qw(get_dbh);
 sub object_path {
   my $self = shift;
 
-  $self->SUPER::object_path('obj_dir');
+  $self->{object_path} ||= $self->SUPER::object_path('obj_dir');
 }
 
 sub stage_path {
@@ -25,19 +25,61 @@ sub stage_path {
   $self->SUPER::stage_path('obj_stage_dir');
 }
 
+sub move {
+  my $self = shift;
+
+  $self->move_existing_aside if $self->existing_object;
+
+  $self->SUPER::move;
+}
+
+sub cleanup {
+  my $self = shift;
+
+  my $zipfile = $self->zip_obj_path;
+  my $metsfile = $self->mets_obj_path;
+
+  $self->safe_system('rm','-f',"$metsfile.old") if -e "$metsfile.old";
+  $self->safe_system('rm','-f',"$zipfile.old") if -e "$zipfile.old";
+
+  $self->SUPER::cleanup;
+}
+
+sub move_existing_aside {
+  my $self = shift;
+
+  my $zipfile = $self->zip_obj_path;
+  my $metsfile = $self->mets_obj_path;
+
+  if( $self->safe_system('mv',$metsfile,"$metsfile.old") &&
+      $self->safe_system('mv',$zipfile,"$zipfile.old") ) {
+    $self->{can_roll_back} = 1;
+  } else {
+    die("$self->{namespace}.$self->{id}: Can't move aside existing object. Repository is likely inconsistent; manual intervention required");
+  }
+}
+
+sub existing_object {
+  my $self = shift;
+
+  return -f $self->zip_obj_path && -f $self->mets_obj_path;
+}
+
 sub make_object_path {
   my $self = shift;
-  $self->{is_repeat} = 0;
 
   # Create link from 'link_dir' area, if needed
   # if link_dir==obj_dir we don't want to use the link_dir
   if(get_config('repository'=>'link_dir') ne get_config('repository'=>'obj_dir')) {
     $self->symlink_if_needed;
-  } elsif(-d $self->object_path) {
-    # handle re-ingest detection and dir creation where link_dir==obj_dir
-    $self->{is_repeat} = 1;
   } else{
     $self->safe_make_path($self->object_path);
+  }
+
+  if($self->existing_object) {
+    $self->{is_repeat} = 1;
+  } else {
+    $self->{is_repeat} = 0;
   }
 
   return 1;
@@ -45,12 +87,10 @@ sub make_object_path {
 
 sub check_existing_link {
   my $self = shift;
-  my $object_path = shift;
   my $link_path = shift;
 
-  $self->{is_repeat} = 1;
-  # make sure we have a link
-  unless ($object_path = readlink($link_path)){
+  # set object directory to target of existing link
+  unless ($self->{object_path} = readlink($link_path)){
     # there is no good reason we chould have a dir and no link
     $self->set_error('OperationFailed', operation => 'readlink', file => $link_path, detail => "readlink failed: $!")
   }
@@ -73,17 +113,16 @@ sub symlink_if_needed {
   my $namespace = $self->{namespace};
   my $objid = $self->{objid};
   my $pt_objid = s2ppchars($objid);
-  my $object_path = $self->object_path();
   $self->{is_repeat} = 0;
 
   my $link_parent = sprintf('%s/%s/%s',get_config('repository','link_dir'),$namespace,id2ppath($objid));
   my $link_path = $link_parent . $pt_objid;
 
   if (-l $link_path){
-    # this is a re-ingest if the dir already exists, log this
-    $self->check_existing_link($object_path,$link_path);
+    $self->check_existing_link($link_path);
   }
   else{
+    my $object_path = $self->object_path;
     $self->safe_make_path($object_path);
     $self->safe_make_path($link_parent);
     $self->make_link($object_path,$link_path);
