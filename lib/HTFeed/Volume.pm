@@ -273,12 +273,14 @@ sub get_checksum_md5 {
 
 sub get_checksum_mets {
   my $self = shift;
+  my $mets_path = shift;
+  my $xpc;
 
   if ( not defined $self->{checksums_mets} ) {
 
     my $checksums = {};
-    # try to extract from source METS
-    my $xpc = $self->_checksum_mets_xpc();
+    $xpc = $self->_parse_xpc($mets_path) if $mets_path;
+    $xpc ||= $self->_checksum_mets_xpc();
     foreach my $node ( $xpc->findnodes('//mets:file[@CHECKSUM][mets:FLocat/@xlink:href]') ) {
       my $checksum = $xpc->findvalue( './@CHECKSUM', $node );
       my $filename =

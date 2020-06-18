@@ -4,11 +4,11 @@
   <METS:fileSec>
     <METS:fileGrp ID="FG1" USE="zip archive">
       <METS:file MIMETYPE="application/zip" CHECKSUM="c03158e359bb6e77cd651255d9fca4b4" CHECKSUMTYPE="MD5" ID="ZIP00000001" SEQ="00000001">
-        <METS:FLocat LOCTYPE="OTHER" OTHERLOCTYPE="SYSTEM" xlink:href="test.zip"/>
+        <METS:FLocat LOCTYPE="OTHER" OTHERLOCTYPE="SYSTEM" xlink:href="bad_file_checksum.zip"/>
       </METS:file>
     </METS:fileGrp>
     <METS:fileGrp ID="FG2" USE="image">
-      <METS:file CHECKSUMTYPE="MD5" SEQ="00000001" ID="IMG00000001" CHECKSUM="d41d8cd98f00b204e9800998ecf8427e">
+      <METS:file CHECKSUMTYPE="MD5" SEQ="00000001" ID="IMG00000001" CHECKSUM="1391db50fcd5c07202ca023ed0abef97">
         <METS:FLocat OTHERLOCTYPE="SYSTEM" LOCTYPE="OTHER" xlink:href="00000001.jp2"/>
       </METS:file>
     </METS:fileGrp>

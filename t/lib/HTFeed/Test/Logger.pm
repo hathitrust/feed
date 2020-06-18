@@ -1,6 +1,7 @@
 package HTFeed::Test::Logger;
 
 use HTFeed::Log {root_logger => 'TRACE, string, screen'};
+#use HTFeed::Log {root_logger => 'TRACE, string'};
 use Log::Log4perl::Appender::String;
 use Log::Log4perl qw(get_logger);
 

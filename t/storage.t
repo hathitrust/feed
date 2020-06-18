@@ -187,7 +187,7 @@ describe "HTFeed::Storage" => sub {
           ok(!$storage->prevalidate);
         };
 
-        it "logs an error" => sub {
+        it "logs an error about the zip" => sub {
           my $storage = local_storage($tmpdirs,'test','bad_zip');
           $storage->stage;
           $storage->prevalidate;
@@ -196,29 +196,59 @@ describe "HTFeed::Storage" => sub {
         };
       };
 
-      it "fails for a zip whose contents do not match the METS";
+      context "with a METS that does not match the original METS" => sub {
+        it "returns false";
+        it "logs an error";
+      };
 
-      it "succeeds for a zip whose checksum and contents match the METS";
+      context "with a zip whose contents do not match the METS" => sub {
+        it "returns false" => sub {
+          my $storage = local_storage($tmpdirs,'test','bad_file_checksum');
+          $storage->stage;
+          ok(!$storage->prevalidate);
+        };
+
+        xit "logs an error about the file" => sub {
+          my $storage = local_storage($tmpdirs,'test','bad_zip');
+          $storage->stage;
+          $storage->prevalidate;
+
+          ok($testlog->matches(qr(ERROR.*Checksum.*00000001.jp2)));
+        };
+      };
+
+      it "with a zip whose checksum and contents match the METS returns true" => sub {
+        my $storage = local_storage($tmpdirs,'test','test');
+        $storage->stage;
+        ok($storage->prevalidate);
+      };
     };
 
     describe "#postvalidate" => sub {
-      it "fails for a zip whose checksum does not match the one in the METS" => sub {
-        my $storage = local_storage($tmpdirs,'test','bad_zip');
-        $storage->stage;
-        $storage->make_object_path;
-        $storage->move;
+      context "with a zip whose checksum does not match the one in the METS" => sub {
+        it "fails for a zip whose checksum does not match the one in the METS" => sub {
+          my $storage = local_storage($tmpdirs,'test','bad_zip');
+          $storage->stage;
+          $storage->make_object_path;
+          $storage->move;
 
-        ok(!$storage->postvalidate);
+          ok(!$storage->postvalidate);
+        };
+
+        it "logs an error" => sub {
+          my $storage = local_storage($tmpdirs,'test','bad_zip');
+          $storage->stage;
+          $storage->make_object_path;
+          $storage->move;
+          $storage->postvalidate;
+
+          ok($testlog->matches(qr(ERROR.*Checksum.*bad_zip.zip)));
+        };
       };
 
-      it "logs an error" => sub {
-        my $storage = local_storage($tmpdirs,'test','bad_zip');
-        $storage->stage;
-        $storage->make_object_path;
-        $storage->move;
-        $storage->postvalidate;
-
-        ok($testlog->matches(qr(ERROR.*Checksum.*bad_zip.zip)));
+      context "with a METS that does not match the original METS" => sub {
+        it "returns false";
+        it "logs an error";
       };
 
       it "succeeds for a zip whose checksum matches the METS" => sub {
@@ -228,7 +258,8 @@ describe "HTFeed::Storage" => sub {
         $storage->move;
 
         ok($storage->postvalidate);
-      }
+      };
+
     };
 
     describe "#rollback" => sub {
@@ -253,6 +284,22 @@ describe "HTFeed::Storage" => sub {
         ok($r->[0][0]);
 
       };
+    };
+
+    describe "#cleanup" => sub {
+      it "removes the moved-aside old version" => sub {
+        make_old_version(local_storage($tmpdirs,'test','test'));
+        my $storage = local_storage($tmpdirs, 'test', 'test');
+
+        $storage->stage;
+        $storage->make_object_path;
+        $storage->move;
+        $storage->cleanup;
+
+        ok(! -e "$tmpdirs->{obj_dir}/test/pairtree_root/te/st/test/test.mets.xml.old");
+        ok(! -e "$tmpdirs->{obj_dir}/test/pairtree_root/te/st/test/test.zip.old");
+
+      }
     };
 
   };
@@ -307,23 +354,6 @@ describe "HTFeed::Storage" => sub {
       }
     };
 
-    describe "#validate" => sub {
-      it "returns false and logs for a corrupted zip" => sub {
-        my $storage = versioned_storage($tmpdirs, 'test', 'bad_zip');
-        $storage->stage;
-
-        eval { not_ok($storage->validate); };
-        ok($testlog->matches(qr(ERROR.*Checksum.*bad_zip.zip)));
-      };
-
-      it "returns true for a zip matching the checksum in the METS" => sub {
-        my $storage = versioned_storage($tmpdirs, 'test', 'test');
-        $storage->stage;
-
-        ok($storage->validate);
-      }
-    };
-
     describe "#make_object_path" => sub {
       it "makes the path with a timestamp" => sub {
         my $storage = versioned_storage($tmpdirs, 'test','test');
@@ -356,24 +386,6 @@ describe "HTFeed::Storage" => sub {
 
         ok(! -e "$tmpdirs->{backup_obj_stage_dir}/test.test","cleans up the staging dir");
       };
-
-      it "removes the moved-aside old version" => sub {
-        my $storage = local_storage($tmpdirs, 'test', 'test');
-        $storage->stage;
-        $storage->make_object_path;
-        $storage->move;
-
-        # do it again, existing version should be moved aside
-        $storage->stage;
-        $storage->move;
-
-        # commit should clean it up
-        $storage->cleanup;
-
-        ok(! -e "$tmpdirs->{obj_dir}/test/pairtree_root/te/st/test/test.mets.xml.old");
-        ok(! -e "$tmpdirs->{obj_dir}/test/pairtree_root/te/st/test/test.zip.old");
-
-      }
     };
 
     describe "#record_backup" => sub {

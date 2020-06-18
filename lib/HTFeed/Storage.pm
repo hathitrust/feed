@@ -7,6 +7,7 @@ use File::Path qw(make_path);
 use File::Pairtree qw(id2ppath s2ppchars);
 use HTFeed::VolumeValidator;
 use URI::Escape;
+use List::MoreUtils qw(uniq);
 
 sub new {
   my $class = shift;
@@ -167,16 +168,36 @@ sub record_audit {
 sub postvalidate {
   my $self = shift;
 
-  $self->validate($self->object_path);
+  $self->validate_zip($self->object_path);
 }
 
 sub prevalidate {
   my $self = shift;
 
-  $self->validate($self->stage_path);
+  $self->validate_zip($self->stage_path) &&
+  $self->validate_zip_contents($self->stage_path);
 }
 
-sub validate {
+# TODO should this be moved to pack?
+sub validate_zip_contents {
+  my $self = shift;
+  my $path = shift;
+
+  my $volume = $self->{volume};
+  my $pt_objid = $volume->get_pt_objid();
+
+  my $zip_stage = get_config('staging'=>'zip') . "/$pt_objid";
+
+  my $mets_path = $volume->get_mets_path($path);
+  my $zip_path = $volume->get_zip_path($path);
+  HTFeed::Stage::Unpack::unzip_file($self,$zip_path,$zip_stage);
+  my $checksums = $volume->get_checksum_mets($mets_path);
+  my $files = $volume->get_all_directory_files($zip_stage);
+  return $self->validate_zip_checksums($checksums,$files,$zip_stage);
+  #
+}
+
+sub validate_zip {
   my $self = shift;
 
   my $volume = $self->{volume};
@@ -185,7 +206,7 @@ sub validate {
   my $zip_path = $volume->get_zip_path($path);
 
   my $mets = $volume->_parse_xpc($mets_path);
-  my $zipname = $volume->get_zip_filename();;
+  my $zipname = $volume->get_zip_filename();
 
   my $mets_zipsum = $mets->findvalue(
     "//mets:file[mets:FLocat/\@xlink:href='$zipname']/\@CHECKSUM");
@@ -279,6 +300,60 @@ sub mets_size {
   die("Can't get mets size: $!") unless defined $size;
 
   return $size;
+}
+
+sub validate_zip_checksums {
+  my $self             = shift;
+  my $checksums        = shift;
+  my $files = shift;
+  my $path             = shift; 
+
+  # make sure we check every file in the directory except for the checksum file
+  # and make sure we check every file in the checksum file
+
+  my @tovalidate = uniq( sort( @$files, keys(%$checksums) ));
+
+  my @bad_files = ();
+
+  my $ok = 1;
+
+  foreach my $file (@tovalidate) {
+    next if $file =~ /.zip$/;
+    my $expected = $checksums->{$file};
+    if ( not defined $expected ) {
+      $ok = 0;
+      $self->set_error(
+        "BadChecksum",
+        field  => 'checksum',
+        file   => $file,
+        detail => "File present in zip but not in METS"
+      );
+    }
+    elsif ( !-e "$path/$file" ) {
+      $ok = 0;
+      $self->set_error(
+        "MissingFile",
+        file => $file,
+        detail =>
+        "File listed in METS but not present in zip"
+      );
+    }
+    elsif ( ( my $actual = HTFeed::VolumeValidator::md5sum("$path/$file") ) ne $expected ) {
+      $ok = 0;
+      $self->set_error(
+        "BadChecksum",
+        field    => 'checksum',
+        file     => $file,
+        expected => $expected,
+        actual   => $actual
+      );
+      push( @bad_files, "$file" );
+    }
+
+  }
+
+  return $ok;
+
 }
 
 1;
