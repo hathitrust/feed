@@ -168,17 +168,19 @@ sub record_audit {
 sub postvalidate {
   my $self = shift;
 
+  $self->validate_mets($self->object_path) &&
   $self->validate_zip($self->object_path);
 }
 
 sub prevalidate {
   my $self = shift;
 
+  $self->validate_mets($self->stage_path) &&
   $self->validate_zip($self->stage_path) &&
   $self->validate_zip_contents($self->stage_path);
 }
 
-# TODO should this be moved to pack?
+# TODO move this to pack
 sub validate_zip_contents {
   my $self = shift;
   my $path = shift;
@@ -195,6 +197,30 @@ sub validate_zip_contents {
   my $files = $volume->get_all_directory_files($zip_stage);
   return $self->validate_zip_checksums($checksums,$files,$zip_stage);
   #
+}
+
+sub validate_mets {
+  my $self = shift;
+  my $volume = $self->{volume};
+  my $path = shift;
+  my $mets_path = $volume->get_mets_path($path);
+  my $orig_mets_path = $volume->get_mets_path();
+
+  my $mets_checksum = HTFeed::VolumeValidator::md5sum($mets_path);
+  my $orig_mets_checksum = HTFeed::VolumeValidator::md5sum($orig_mets_path);
+
+  unless ( $mets_checksum eq $orig_mets_checksum ) {
+    $self->set_error(
+      "BadChecksum",
+      field    => 'checksum',
+      file     => $mets_path,
+      expected => $orig_mets_checksum,
+      actual   => $mets_checksum
+    );
+    return;
+  }
+
+  return 1;
 }
 
 sub validate_zip {
@@ -306,7 +332,7 @@ sub validate_zip_checksums {
   my $self             = shift;
   my $checksums        = shift;
   my $files = shift;
-  my $path             = shift; 
+  my $path             = shift;
 
   # make sure we check every file in the directory except for the checksum file
   # and make sure we check every file in the checksum file

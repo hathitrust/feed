@@ -197,8 +197,34 @@ describe "HTFeed::Storage" => sub {
       };
 
       context "with a METS that does not match the original METS" => sub {
-        it "returns false";
-        it "logs an error";
+        # Note: prevalidate would catch most kinds of errors with corrupted
+        # METS by either being unable to parse the METS or because the manifest
+        # would not match the zip. This METS has been corrupted in such a way that
+        # it forces us to compare the METS to the orginal volume METS to detect
+        # the problem -- the manifest and checksums are intact, but other
+        # attributes have been changed.
+
+        it "returns false" => sub {
+          my $storage = local_storage($tmpdirs,'test','test');
+          $storage->stage;
+          # validate zip should pass but METS doesn't match volume METS
+          my $other_mets = get_config('staging','fetch') . "/test.mets.xml-corrupted";
+          system("cp",$other_mets,$storage->mets_stage_path);
+
+          ok(!$storage->prevalidate);
+        };
+
+        it "logs an error" => sub {
+          my $storage = local_storage($tmpdirs,'test','test');
+          $storage->stage;
+          # validate zip should pass but METS doesn't match volume METS
+          my $other_mets = get_config('staging','fetch') . "/test.mets.xml-corrupted";
+          system("cp",$other_mets,$storage->mets_stage_path);
+
+          # put a bad METS in staging
+          $storage->prevalidate;
+          ok($testlog->matches(qr(ERROR.*Checksum.*mets.xml)));
+        };
       };
 
       context "with a zip whose contents do not match the METS" => sub {
@@ -208,8 +234,8 @@ describe "HTFeed::Storage" => sub {
           ok(!$storage->prevalidate);
         };
 
-        xit "logs an error about the file" => sub {
-          my $storage = local_storage($tmpdirs,'test','bad_zip');
+        it "logs an error about the file" => sub {
+          my $storage = local_storage($tmpdirs,'test','bad_file_checksum');
           $storage->stage;
           $storage->prevalidate;
 
@@ -247,8 +273,30 @@ describe "HTFeed::Storage" => sub {
       };
 
       context "with a METS that does not match the original METS" => sub {
-        it "returns false";
-        it "logs an error";
+        it "returns false" => sub {
+          my $storage = local_storage($tmpdirs,'test','test');
+          $storage->stage;
+          # validate zip should pass but METS doesn't match volume METS
+          my $other_mets = get_config('staging','fetch') . "/test.mets.xml-corrupted";
+          system("cp",$other_mets,$storage->mets_stage_path);
+          $storage->make_object_path;
+          $storage->move;
+
+          ok(!$storage->postvalidate);
+        };
+
+        it "logs an error" => sub {
+          my $storage = local_storage($tmpdirs,'test','test');
+          $storage->stage;
+          # validate zip should pass but METS doesn't match volume METS
+          my $other_mets = get_config('staging','fetch') . "/test.mets.xml-corrupted";
+          system("cp",$other_mets,$storage->mets_stage_path);
+          $storage->make_object_path;
+          $storage->move;
+          $storage->postvalidate;
+
+          ok($testlog->matches(qr(ERROR.*Checksum.*mets.xml)));
+        };
       };
 
       it "succeeds for a zip whose checksum matches the METS" => sub {
