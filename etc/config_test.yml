@@ -27,3 +27,6 @@ repository:
   obj_stage_dir: /tmp/obj/.tmp
   backup_obj_dir: /tmp/obj_backup
   backup_obj_stage_dir: /tmp/obj_backup/.tmp
+
+storage_classes:
+  - HTFeed::Storage::LocalPairtree

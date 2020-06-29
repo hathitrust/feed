@@ -13,7 +13,7 @@ use warnings;
 use strict;
 use Exporter 'import';
 
-our @EXPORT_OK = qw(mock_premis_mets);
+our @EXPORT_OK = qw(mock_premis_mets stage_volume);
 
 sub mock_premis_mets {
 
@@ -50,4 +50,21 @@ EOT
   *HTFeed::Volume::get_event_info = sub {
     return ("some-event-id", "2017-01-01T00:00:00-04:00", undef, undef);
   }
+}
+
+sub stage_volume {
+  my $tmpdirs = shift;
+  my $namespace = shift;
+  my $objid = shift;
+
+  my $mets = $tmpdirs->test_home . "/fixtures/volumes/$objid.mets.xml";
+  my $zip = $tmpdirs->test_home . "/fixtures/volumes/$objid.zip";
+  system("cp $mets $tmpdirs->{ingest}");
+  mkdir("$tmpdirs->{zipfile}/$objid");
+  system("cp $zip $tmpdirs->{zipfile}/$objid");
+
+  my $volume = HTFeed::Volume->new(
+    namespace => $namespace,
+    objid => $objid,
+    packagetype => 'simple');
 }

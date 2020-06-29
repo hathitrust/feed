@@ -3,30 +3,13 @@ use lib "$FindBin::Bin/lib";
 
 use Test::Spec;
 use HTFeed::Test::Support qw(load_db_fixtures);
-use HTFeed::Test::SpecSupport;
+use HTFeed::Test::SpecSupport qw(stage_volume);
 use HTFeed::Config qw(set_config get_config);
 use HTFeed::DBTools qw(get_dbh);
 
 describe "HTFeed::Storage" => sub {
   my $tmpdirs;
   my $testlog;
-
-  sub setup_dirs {
-    my $tmpdirs = shift;
-    my $namespace = shift;
-    my $objid = shift;
-
-    my $mets = $tmpdirs->test_home . "/fixtures/collate/$objid.mets.xml";
-    my $zip = $tmpdirs->test_home . "/fixtures/collate/$objid.zip";
-    system("cp $mets $tmpdirs->{ingest}");
-    mkdir("$tmpdirs->{zipfile}/$objid");
-    system("cp $zip $tmpdirs->{zipfile}/$objid");
-
-    my $volume = HTFeed::Volume->new(
-      namespace => $namespace,
-      objid => $objid,
-      packagetype => 'simple');
-  }
 
   before all => sub {
     load_db_fixtures;
@@ -39,7 +22,7 @@ describe "HTFeed::Storage" => sub {
     get_dbh()->do("DELETE FROM feed_backups WHERE namespace = 'test'");
     $tmpdirs->setup_example;
     $testlog->reset;
-    set_config($tmpdirs->test_home . "/fixtures/collate",'staging','fetch');
+    set_config($tmpdirs->test_home . "/fixtures/volumes",'staging','fetch');
   };
 
   after each => sub {
@@ -54,7 +37,7 @@ describe "HTFeed::Storage" => sub {
     use HTFeed::Storage::LocalPairtree;
 
     sub local_storage {
-      my $volume = setup_dirs(@_);
+      my $volume = stage_volume(@_);
 
       my $storage = HTFeed::Storage::LocalPairtree->new(
         volume => $volume);
@@ -356,7 +339,7 @@ describe "HTFeed::Storage" => sub {
     use HTFeed::Storage::VersionedPairtree;
 
     sub versioned_storage {
-      my $volume = setup_dirs(@_);
+      my $volume = stage_volume(@_);
 
       my $storage = HTFeed::Storage::VersionedPairtree->new(
         volume => $volume);

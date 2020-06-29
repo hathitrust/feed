@@ -10,7 +10,10 @@ use File::Pairtree qw(id2ppath s2ppchars);
 use File::Path qw(make_path);
 use HTFeed::VolumeValidator;
 use URI::Escape;
+use Carp qw(croak);
+
 use HTFeed::Storage::LocalPairtree;
+use HTFeed::Storage::VersionedPairtree;
 
 =head1 NAME
 
@@ -23,19 +26,36 @@ HTFeed::Stage::Collate.pm
 
 =cut
 
+sub storages_from_config {
+  my $self = shift;
+
+  my @storages;
+  foreach my $storage_class (@{get_config('storage_classes')}) {
+    push(@storages, $storage_class->new(volume => $self->{volume}));
+  }
+
+  return @storages;
+}
+
 sub run{
     my $self = shift;
 
-    my $storage = shift || HTFeed::Storage::LocalPairtree->new(
-      volume => $self->{volume});
+    my @storages = @_;
+    @storages = $self->storages_from_config if !@storages;
 
-    $self->{is_repeat} = 0;
+    foreach my $storage (@storages) {
 
-    $self->stage_and_move($storage) &&
-      $self->post_move($storage);
+      $self->{is_repeat} = 0;
 
-    $self->check_errors($storage);
-    $self->log_repeat($storage);
+      if( $self->collate($storage))  {
+        $storage->cleanup
+      } else {
+        $storage->rollback;
+      }
+
+      $self->check_errors($storage);
+      $self->log_repeat($storage);
+    }
 
     $self->_set_done();
     return $self->succeeded();
@@ -50,25 +70,16 @@ sub log_repeat {
   }
 }
 
-sub stage_and_move {
+sub collate {
   my $self = shift;
   my $storage = shift;
 
   $storage->stage &&
   $storage->prevalidate &&
   $storage->make_object_path &&
-  $storage->move;
-}
-
-sub post_move {
-  my $self = shift;
-  my $storage = shift;
-
-  if( $storage->postvalidate ) {
-    $storage->record_audit && $storage->cleanup;
-  } else {
-    $storage->rollback;
-  }
+  $storage->move &&
+  $storage->postvalidate &&
+  $storage->record_audit
 }
 
 sub check_errors {
