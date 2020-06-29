@@ -21,12 +21,14 @@ services:
     environment:
       - HTFEED_CONFIG=/usr/local/feed/etc/config_test.yml
       - FEED_HOME=/usr/local/feed
+      - TEST=1
 
   travis_test:
     build: .
     environment:
       - HTFEED_CONFIG=/usr/local/feed/etc/config_test.yml
       - FEED_HOME=/usr/local/feed
+      - TEST=1
     command: bin/wait-for --timeout=300 mariadb:3306 -- make test TEST_VERBOSE=1
 
   validate:
