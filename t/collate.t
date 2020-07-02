@@ -16,7 +16,7 @@ describe "HTFeed::Collate" => sub {
 
     before each => sub {
       $storage = Test::MockObject->new();
-      $storage->set_true(qw(stage prevalidate make_object_path move postvalidate record_audit cleanup rollback));
+      $storage->set_true(qw(stage prevalidate make_object_path move postvalidate record_audit cleanup rollback clean_staging));
 
       my $volume = HTFeed::Volume->new(namespace => 'test',
         id => 'test',
@@ -35,7 +35,12 @@ describe "HTFeed::Collate" => sub {
 
         ok(!$storage->called('make_object_path'));
         ok(!$storage->called('move'));
-      }
+      };
+
+      it "cleans up the staging area" => sub {
+        $collate->run($storage);
+        ok($storage->called('clean_staging'));
+      };
     };
 
     context "when move fails" => sub {
@@ -46,7 +51,12 @@ describe "HTFeed::Collate" => sub {
       it "calls rollback" => sub {
         $collate->run($storage);
         ok($storage->called('rollback'));
-      }
+      };
+
+      it "cleans up the staging area" => sub {
+        $collate->run($storage);
+        ok($storage->called('clean_staging'));
+      };
     };
 
     context "when postvalidation fails" => sub {
@@ -65,12 +75,22 @@ describe "HTFeed::Collate" => sub {
 
         ok(!$storage->called('record_audit'));
       };
+
+      it "cleans up the staging area" => sub {
+        $collate->run($storage);
+        ok($storage->called('clean_staging'));
+      };
     };
 
     context "when everything succeeds" => sub {
       it "cleans up" => sub {
         $collate->run($storage);
         ok($storage->called('cleanup'));
+      };
+
+      it "cleans up the staging area" => sub {
+        $collate->run($storage);
+        ok($storage->called('clean_staging'));
       };
 
       it "records an audit" => sub {

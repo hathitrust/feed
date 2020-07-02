@@ -3,7 +3,7 @@ package HTFeed::Test::TempDirs;
 use FindBin;
 use File::Basename qw(dirname);
 use File::Temp qw(tempdir);
-use File::Path qw(rmtree);
+use File::Path qw(remove_tree);
 use Cwd qw(abs_path);
 use HTFeed::Config qw(set_config);
 
@@ -43,7 +43,7 @@ sub repo_dirtypes {
 sub cleanup {
   my $self = shift;
 
-  rmtree($self->{tmpdir});
+  remove_tree($self->{tmpdir});
 }
 
 sub setup_example {
@@ -66,7 +66,7 @@ sub cleanup_example {
   my $self = shift;
 
   foreach my $dirtype ($self->staging_dirtypes, $self->repo_dirtypes) {
-    rmtree $self->{$dirtype};
+    remove_tree $self->{$dirtype};
   }
 
 }

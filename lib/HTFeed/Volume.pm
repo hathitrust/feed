@@ -276,22 +276,17 @@ sub get_checksum_mets {
   my $mets_path = shift;
   my $xpc;
 
-  if ( not defined $self->{checksums_mets} ) {
-
-    my $checksums = {};
-    $xpc = $self->_parse_xpc($mets_path) if $mets_path;
-    $xpc ||= $self->_checksum_mets_xpc();
-    foreach my $node ( $xpc->findnodes('//mets:file[@CHECKSUM][mets:FLocat/@xlink:href]') ) {
-      my $checksum = $xpc->findvalue( './@CHECKSUM', $node );
-      my $filename =
-      $xpc->findvalue( './mets:FLocat/@xlink:href', $node );
-      $checksums->{$filename} = $checksum;
-    }
-
-    $self->{checksums_mets} = $checksums;
+  my $checksums = {};
+  $xpc = $self->_parse_xpc($mets_path) if $mets_path;
+  $xpc ||= $self->_checksum_mets_xpc();
+  foreach my $node ( $xpc->findnodes('//mets:file[@CHECKSUM][mets:FLocat/@xlink:href]') ) {
+    my $checksum = $xpc->findvalue( './@CHECKSUM', $node );
+    my $filename =
+    $xpc->findvalue( './mets:FLocat/@xlink:href', $node );
+    $checksums->{$filename} = $checksum;
   }
 
-  return $self->{checksums_mets};
+  return $checksums;
 }
 
 # override in Volume subclass to fetch checksums from a different METS file

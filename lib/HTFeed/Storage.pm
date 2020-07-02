@@ -3,7 +3,7 @@ package HTFeed::Storage;
 use strict;
 use HTFeed::Config qw(get_config);
 use Log::Log4perl qw(get_logger);
-use File::Path qw(make_path);
+use File::Path qw(make_path remove_tree);
 use File::Pairtree qw(id2ppath s2ppchars);
 use HTFeed::VolumeValidator;
 use URI::Escape;
@@ -152,13 +152,20 @@ sub move {
   }
 }
 
-sub cleanup {
+sub clean_staging {
   my $self = shift;
   my $stage_path = $self->stage_path;
 
   get_logger->trace("Cleaning up $stage_path");
-  system('rmdir',$stage_path)
-    and get_logger()->warn("Can't rmdir $stage_path: $!");
+  remove_tree($stage_path);
+};
+
+sub cleanup {
+  #noop
+}
+
+sub rollback {
+  #noop
 }
 
 sub record_audit {

@@ -33,6 +33,22 @@ sub move {
   $self->SUPER::move;
 }
 
+sub rollback {
+  my $self = shift;
+
+  return unless $self->{can_roll_back};
+
+  my $zipfile = $self->zip_obj_path;
+  my $metsfile = $self->mets_obj_path;
+
+  get_logger()->warn("Rolling back to previous version");
+
+  $self->safe_system('mv','-f',"$metsfile.old",$metsfile) if -e "$metsfile.old";
+  $self->safe_system('mv','-f',"$zipfile.old",$zipfile) if -e "$zipfile.old";
+
+  $self->SUPER::rollback;
+};
+
 sub cleanup {
   my $self = shift;
 

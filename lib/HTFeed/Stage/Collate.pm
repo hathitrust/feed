@@ -40,18 +40,20 @@ sub storages_from_config {
 sub run{
     my $self = shift;
 
+    $self->{is_repeat} = 0;
+
     my @storages = @_;
     @storages = $self->storages_from_config if !@storages;
 
     foreach my $storage (@storages) {
-
-      $self->{is_repeat} = 0;
 
       if( $self->collate($storage))  {
         $storage->cleanup
       } else {
         $storage->rollback;
       }
+
+      $storage->clean_staging();
 
       $self->check_errors($storage);
       $self->log_repeat($storage);
@@ -66,6 +68,7 @@ sub log_repeat {
   my $storage = shift;
 
   if($storage->{is_repeat}) {
+    $self->{is_repeat} = 1;
     $self->set_info('Collating volume that is already in repo');
   }
 }
@@ -96,7 +99,7 @@ sub check_errors {
 
 sub success_info {
     my $self = shift;
-    return "repeat=" . $self->{storage}->{is_repeat};
+    return "repeat=" . $self->{is_repeat};
 }
 
 sub stage_info{

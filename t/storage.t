@@ -295,9 +295,43 @@ describe "HTFeed::Storage" => sub {
 
     describe "#rollback" => sub {
       it "restores the original version" => sub {
-        my $storage = local_storage($tmpdirs,'test','test');
-        make_old_version($storage);
+        make_old_version(local_storage($tmpdirs,'test','test'));
+        my $storage = local_storage($tmpdirs, 'test', 'test');
+
+        $storage->stage;
+        $storage->make_object_path;
+        $storage->move;
+        $storage->rollback;
+
+        ok(! -e "$tmpdirs->{obj_dir}/test/pairtree_root/te/st/test/test.mets.xml.old");
+        ok(! -e "$tmpdirs->{obj_dir}/test/pairtree_root/te/st/test/test.zip.old");
+
+        my ($fh, $contents);
+
+        open($fh, "<", "$tmpdirs->{obj_dir}/test/pairtree_root/te/st/test/test.mets.xml");
+        $contents = <$fh>;
+        is($contents,"old version\n","restores the old mets");
+
+        open($fh, "<", "$tmpdirs->{obj_dir}/test/pairtree_root/te/st/test/test.zip");
+        $contents = <$fh>;
+        is($contents,"old version\n","restores the old zip");
+
       };
+    };
+
+    it "leaves the .old version there if it didn't put it there" => sub {
+      make_old_version(local_storage($tmpdirs,'test','test'));
+      my $oldzip = "$tmpdirs->{obj_dir}/test/pairtree_root/te/st/test/test.zip.old";
+      open(my $fh, ">", $oldzip);
+      print $fh "leftover junk\n";
+
+      my $storage = local_storage($tmpdirs, 'test', 'test');
+
+      $storage->stage;
+      $storage->rollback;
+
+      ok(-e $oldzip);
+
     };
 
     describe "#record_audit" => sub {
@@ -331,6 +365,17 @@ describe "HTFeed::Storage" => sub {
         ok(! -e "$tmpdirs->{obj_dir}/test/pairtree_root/te/st/test/test.zip.old");
 
       }
+    };
+
+    describe "#clean_staging" => sub {
+      it "removes anything in the temporary staging area" => sub {
+        my $storage = local_storage($tmpdirs, 'test', 'test');
+
+        $storage->stage;
+        $storage->clean_staging;
+
+        ok(! -e "$tmpdirs->{obj_stage_dir}/test.test");
+      };
     };
 
   };
@@ -404,18 +449,6 @@ describe "HTFeed::Storage" => sub {
 
         ok(-e "$tmpdirs->{backup_obj_dir}/test/pairtree_root/te/st/test/$storage->{timestamp}/test.zip","copies the zip");
         ok(-e "$tmpdirs->{backup_obj_dir}/test/pairtree_root/te/st/test/$storage->{timestamp}/test.mets.xml","copies the mets");
-      };
-    };
-
-    describe "#cleanup" => sub {
-      it "cleans up the staging dir" => sub {
-        my $storage = versioned_storage($tmpdirs,'test','test');
-        $storage->stage;
-        $storage->make_object_path;
-        $storage->move;
-        $storage->cleanup;
-
-        ok(! -e "$tmpdirs->{backup_obj_stage_dir}/test.test","cleans up the staging dir");
       };
     };
 
