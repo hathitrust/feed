@@ -88,7 +88,7 @@ sub make_object_path {
   # if link_dir==obj_dir we don't want to use the link_dir
   if(get_config('repository'=>'link_dir') ne get_config('repository'=>'obj_dir')) {
     $self->symlink_if_needed;
-  } else{
+  } elsif (! -d $self->object_path) {
     $self->safe_make_path($self->object_path);
   }
 

@@ -127,7 +127,6 @@ describe "HTFeed::Storage" => sub {
         }
       };
 
-
       context "when the object is in the repo with link target matching obj_dir" => sub {
         it "sets is_repeat" => sub {
           make_old_version(local_storage($tmpdirs,'test','test'));
@@ -157,6 +156,34 @@ describe "HTFeed::Storage" => sub {
 
           ok($storage->{is_repeat});
         }
+      };
+
+      context "when link path is the same as object path" => sub {
+        my $old_obj_dir;
+
+        before each => sub {
+          my $old_obj_dir = get_config('repository','obj_dir');
+          set_config(get_config('repository','link_dir'), 'repository','obj_dir');
+        };
+
+        after each => sub {
+          set_config($old_obj_dir,'repository','obj_dir');
+        };
+
+        it "works" => sub {
+          my $storage = local_storage($tmpdirs,'test','test');
+          $storage->make_object_path;
+
+          ok(-e "$tmpdirs->{link_dir}/test/pairtree_root/te/st/test");
+        };
+
+        it "is idempotent" => sub {
+          my $storage = local_storage($tmpdirs,'test','test');
+          $storage->make_object_path;
+          $storage->make_object_path;
+
+          ok(! @{$storage->{errors}});
+        };
       };
     };
 
