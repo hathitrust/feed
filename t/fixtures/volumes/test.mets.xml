@@ -9,7 +9,7 @@
     </METS:fileGrp>
     <METS:fileGrp ID="FG2" USE="source METS">
       <METS:file MIMETYPE="text/xml" CHECKSUM="d41d8cd98f00b204e9800998ecf8427e" CHECKSUMTYPE="MD5" ID="METS00000001" SEQ="00000001">
-        <METS:FLocat LOCTYPE="OTHER" OTHERLOCTYPE="SYSTEM" xlink:href="test.mets.xml"/>
+        <METS:FLocat LOCTYPE="OTHER" OTHERLOCTYPE="SYSTEM" xlink:href="Test.mets.xml"/>
       </METS:file>
     </METS:fileGrp>
     <METS:fileGrp ID="FG3" USE="image">

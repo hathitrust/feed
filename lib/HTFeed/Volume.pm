@@ -282,7 +282,7 @@ sub get_checksum_mets {
   foreach my $node ( $xpc->findnodes('//mets:file[@CHECKSUM][mets:FLocat/@xlink:href]') ) {
     my $checksum = $xpc->findvalue( './@CHECKSUM', $node );
     my $filename =
-    $xpc->findvalue( './mets:FLocat/@xlink:href', $node );
+    lc($xpc->findvalue( './mets:FLocat/@xlink:href', $node ));
     $checksums->{$filename} = $checksum;
   }
 
