@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<METS:mets xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:METS="http://www.loc.gov/METS/" xmlns:xlink="http://www.w3.org/1999/xlink" xsi:schemaLocation="http://www.loc.gov/METS/ http://www.loc.gov/standards/mets/mets.xsd">
+  <METS:metsHdr />
+  <METS:fileSec>
+    <METS:fileGrp ID="FG1" USE="zip archive">
+      <METS:file MIMETYPE="application/zip" CHECKSUM="d41d8cd98f00b204e9800998ecf8427e" SIZE="0" CHECKSUMTYPE="MD5" ID="ZIP00000001" SEQ="00000001" CREATED="2020-04-23T18:59:10Z">
+        <METS:FLocat LOCTYPE="OTHER" OTHERLOCTYPE="SYSTEM" xlink:href="test.zip"/>
+      </METS:file>
+    </METS:fileGrp>
+  </METS:fileSec>
+  <METS:structMap>
+    <METS:div />
+  </METS:structMap>
+</METS:mets>
+
+

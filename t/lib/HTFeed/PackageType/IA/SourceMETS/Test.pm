@@ -18,7 +18,6 @@ sub SourceMETS : Test(1){
 
 	my $self = shift;
 
-  $self->test_setup;
   my $volume = $self->{volume};
   mkdir($volume->get_staging_directory());
 	my $stage = HTFeed::PackageType::IA::SourceMETS->new(volume => $volume);
@@ -28,7 +27,6 @@ sub SourceMETS : Test(1){
   $volume->record_premis_event('source_md5_fixity');
   $volume->record_premis_event('ocr_normalize');
 	ok($stage->run(), 'IA: SourceMETS succeeded with undamaged package');
-  $self->test_cleanup;
 }
 
 # Test for errors with damaged package
@@ -43,7 +41,6 @@ sub Errors : Test(1){
     my $objdir = $volume->get_download_directory();
     my $scandata = "$objdir/${ia_id}_scandata.xml";
 
-    $self->test_setup;
     #get damaged scandata from "samples"
     my $samples = get_config('test_staging','damaged') . "/samples/ia/${ia_id}";
     my $broken_scanData = "$samples/${ia_id}_scandata.xml";
@@ -56,25 +53,7 @@ sub Errors : Test(1){
     #replace with standard scandata for next stage test
     my $clean_copy = get_config('test_staging','undamaged') . "/download/ia/$ia_id/${ia_id}_scandata.xml";
     copy($clean_copy,$objdir) or die "copy failed: $!";
-    $self->test_cleanup;
 
-}
-
-sub test_setup {
-	my $self = shift;
-
-  my $dbh = HTFeed::DBTools::get_dbh();
-  my $volume = $self->{volume};
-  my $objid = $volume->get_objid();
-  my $ns = $volume->get_namespace();
-  $dbh->do("ATTACH '/tmp/rights.db' AS ht_rights");
-}
-
-sub test_cleanup {
-	my $self = shift;
-
-  my $dbh = HTFeed::DBTools::get_dbh();
-  $dbh->do("DETACH ht_rights");
 }
 
 sub pkgtype { 'ia' }

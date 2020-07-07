@@ -193,7 +193,8 @@ sub get_zip_directory {
 
 sub get_zip_path {
   my $self = shift;
-  return $self->get_zip_directory() . q(/) . $self->get_zip_filename();
+  my $path = shift || $self->get_zip_directory();
+  return "$path/" . $self->get_zip_filename();
 }
 
 sub get_download_directory {
@@ -743,12 +744,18 @@ sub get_page_data {
   return $self->{page_data}{$seqnum};
 }
 
+sub get_mets_filename {
+
+  my $self = shift;
+  my $pt_objid = $self->get_pt_objid();
+
+  return "$pt_objid.mets.xml";
+}
+
 sub get_mets_path {
   my $self = shift;
-
-  my $staging_path = get_config('staging'=>'ingest');
-  my $pt_objid = $self->get_pt_objid();
-  my $mets_path = "$staging_path/$pt_objid.mets.xml";
+  my $staging_path = shift || get_config('staging'=>'ingest');
+  my $mets_path = "$staging_path/" . $self->get_mets_filename;
 
   return $mets_path;
 }
