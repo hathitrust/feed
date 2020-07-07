@@ -11,7 +11,7 @@ services:
       - repository_obj:/sdr2
       - backups:/htdataden
     environment:
-      - HTFEED_CONFIG=/usr/local/feed/etc/config_ingest.yml
+      - HTFEED_CONFIG=/usr/local/feed/etc/config_ingest_docker.yml
       - FEED_HOME=/usr/local/feed
 
   test:
