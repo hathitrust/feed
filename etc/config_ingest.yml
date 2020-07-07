@@ -1,12 +1,16 @@
 feed_home: /usr/local/feed
-# shouldn't actually be used
+
+# for end-to-end testing in docker
 repository:
   # The directory in which symbolic links will be created to each volume
-  link_dir: /tmp/obj
+  link_dir: /sdr2/obj
   # The directory into which volumes will be loaded
-  obj_dir: /tmp/obj
+  obj_dir: /sdr1/obj
+  obj_stage_dir: /sdr2/obj/.tmp
+  backup_obj_dir: /htdataden
+  backup_obj_stage_dir: /htdataden/.tmp
 
-staging_root: /tmp/prevalidate
+staging_root: /tmp/ingest
 sip_root: /tmp/stage
 
 kdu_compress: /usr/local/bin/kdu_compress
@@ -23,3 +27,10 @@ database:
 
 xerces: /usr/local/feed/blib/bin/validateCache
 epubcheck: /usr/bin/java -jar /usr/bin/epubcheck
+
+storage_classes:
+  - HTFeed::Storage::LocalPairtree
+  - HTFeed::Storage::VersionedPairtree
+
+jhove: /usr/bin/jhove
+jhoveconf: /etc/jhove/jhove.conf

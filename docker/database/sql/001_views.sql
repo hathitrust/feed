@@ -11,6 +11,7 @@ CREATE OR REPLACE SQL SECURITY INVOKER VIEW `feed_priority` AS SELECT * FROM `ht
 CREATE OR REPLACE SQL SECURITY INVOKER VIEW `feed_queue` AS SELECT * FROM `ht_repository`.`feed_queue`;
 CREATE OR REPLACE SQL SECURITY INVOKER VIEW `feed_queue_done` AS SELECT * FROM `ht_repository`.`feed_queue_done`;
 CREATE OR REPLACE SQL SECURITY INVOKER VIEW `feed_zephir_items` AS SELECT * FROM `ht_repository`.`feed_zephir_items`;
+CREATE OR REPLACE SQL SECURITY INVOKER VIEW `feed_backups` AS SELECT * FROM `ht_repository`.`feed_backups`;
 CREATE OR REPLACE SQL SECURITY INVOKER VIEW `ht_collection_digitizers` AS SELECT * FROM `ht_repository`.`ht_collection_digitizers`;
 CREATE OR REPLACE SQL SECURITY INVOKER VIEW `ht_collections` AS SELECT * FROM `ht_repository`.`ht_collections`;
 

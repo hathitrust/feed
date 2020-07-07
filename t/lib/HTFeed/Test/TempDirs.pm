@@ -3,7 +3,7 @@ package HTFeed::Test::TempDirs;
 use FindBin;
 use File::Basename qw(dirname);
 use File::Temp qw(tempdir);
-use File::Path qw(rmtree);
+use File::Path qw(remove_tree);
 use Cwd qw(abs_path);
 use HTFeed::Config qw(set_config);
 
@@ -29,16 +29,21 @@ sub test_home {
   return $self->{test_home};
 }
 
-sub dirtypes {
+sub staging_dirtypes {
   my $self = shift;
 
   return qw(ingest preingest zipfile zip);
 }
 
+sub repo_dirtypes {
+  my $self = shift;
+  return qw(link_dir obj_dir other_obj_dir obj_stage_dir backup_obj_dir backup_obj_stage_dir);
+}
+
 sub cleanup {
   my $self = shift;
 
-  rmtree($self->{tmpdir});
+  remove_tree($self->{tmpdir});
 }
 
 sub setup_example {
@@ -46,17 +51,22 @@ sub setup_example {
 
   my $tmpdir = $self->{tmpdir};
 
-  foreach my $dirtype ($self->dirtypes) {
+  foreach my $dirtype ($self->staging_dirtypes) {
     $self->{$dirtype} = tempdir("$tmpdir/feed-test-$dirtype-XXXXXX");
     set_config($self->{$dirtype},'staging',$dirtype);
+  }
+
+  foreach my $dirtype ($self->repo_dirtypes) {
+    $self->{$dirtype} = tempdir("$tmpdir/feed-test-$dirtype-XXXXXX");
+    set_config($self->{$dirtype},'repository',$dirtype);
   }
 }
 
 sub cleanup_example {
   my $self = shift;
 
-  foreach my $dirtype ($self->dirtypes) {
-    rmtree $self->{$dirtype};
+  foreach my $dirtype ($self->staging_dirtypes, $self->repo_dirtypes) {
+    remove_tree $self->{$dirtype};
   }
 
 }

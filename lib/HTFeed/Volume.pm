@@ -273,23 +273,20 @@ sub get_checksum_md5 {
 
 sub get_checksum_mets {
   my $self = shift;
+  my $mets_path = shift;
+  my $xpc;
 
-  if ( not defined $self->{checksums_mets} ) {
-
-    my $checksums = {};
-    # try to extract from source METS
-    my $xpc = $self->_checksum_mets_xpc();
-    foreach my $node ( $xpc->findnodes('//mets:file[@CHECKSUM][mets:FLocat/@xlink:href]') ) {
-      my $checksum = $xpc->findvalue( './@CHECKSUM', $node );
-      my $filename =
-      $xpc->findvalue( './mets:FLocat/@xlink:href', $node );
-      $checksums->{$filename} = $checksum;
-    }
-
-    $self->{checksums_mets} = $checksums;
+  my $checksums = {};
+  $xpc = $self->_parse_xpc($mets_path) if $mets_path;
+  $xpc ||= $self->_checksum_mets_xpc();
+  foreach my $node ( $xpc->findnodes('//mets:file[@CHECKSUM][mets:FLocat/@xlink:href]') ) {
+    my $checksum = $xpc->findvalue( './@CHECKSUM', $node );
+    my $filename =
+    lc($xpc->findvalue( './mets:FLocat/@xlink:href', $node ));
+    $checksums->{$filename} = $checksum;
   }
 
-  return $self->{checksums_mets};
+  return $checksums;
 }
 
 # override in Volume subclass to fetch checksums from a different METS file
@@ -989,58 +986,6 @@ sub apparent_digitizer {
   return $capture_agent;
 }
 
-# updates the zip_date in the feed_audit table to the current timestamp for
-# this zip in the repository
-sub update_feed_audit {
-  my $self = shift;
-  my $path = shift;
-
-  my $pt_objid = $self->get_pt_objid();
-
-  my $dbh = HTFeed::DBTools::get_dbh();
-
-  my ($sdr_partition) = ($path =~ qr#/?sdr(\d+)/?#);
-
-  my $stmt =
-  "insert into feed_audit (namespace, id, sdr_partition, zip_size, zip_date, mets_size, mets_date, lastchecked) values(?,?,?,?,?,?,?,CURRENT_TIMESTAMP) \
-  ON DUPLICATE KEY UPDATE sdr_partition = ?, zip_size=?, zip_date =?,mets_size=?,mets_date=?,lastchecked = CURRENT_TIMESTAMP";
-
-  my $zipfile = "$path/$pt_objid.zip";
-  my $zip_seconds;
-  my $zipdate;
-  my $zipsize;
-
-  if ( -e $zipfile ) {
-    $zip_seconds = ( stat($zipfile) )[9];
-    $zipdate = strftime( "%Y-%m-%d %H:%M:%S", localtime($zip_seconds) );
-    $zipsize = -s $zipfile;
-  }
-
-  my $metsfile = "$path/$pt_objid.mets.xml";
-
-  my $mets_seconds;
-  my $metsdate;
-  my $metssize;
-
-  if ( -e $metsfile ) {
-    $mets_seconds = ( stat($metsfile) )[9];
-    $metssize     = -s $metsfile;
-    $metsdate     = strftime( "%Y-%m-%d %H:%M:%S",
-      localtime( ( stat($metsfile) )[9] ) );
-  }
-
-  my $sth  = $dbh->prepare($stmt);
-  $sth->execute( 
-      $self->get_namespace, $self->get_objid, 
-
-      $sdr_partition, $zipsize, $zipdate, $metssize,  $metsdate, 
-
-      # duplicate parameters for duplicate key update
-      $sdr_partition, $zipsize, $zipdate, $metssize,  $metsdate
-    );
-
-  
-}
 
 1;
 

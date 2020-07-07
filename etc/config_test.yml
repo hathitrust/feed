@@ -22,6 +22,11 @@ test_fixtures: /usr/local/feed/etc/feed_fixtures.sql
 repository:
   # The directory in which symbolic links will be created to each volume
   link_dir: /tmp/obj_link
-  # The directory into which volumes will be loaded 
+  # The directory into which volumes will be loaded
   obj_dir: /tmp/obj
   obj_stage_dir: /tmp/obj/.tmp
+  backup_obj_dir: /tmp/obj_backup
+  backup_obj_stage_dir: /tmp/obj_backup/.tmp
+
+storage_classes:
+  - HTFeed::Storage::LocalPairtree

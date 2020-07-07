@@ -111,6 +111,19 @@ CREATE TABLE IF NOT EXISTS `feed_zephir_items` (
   KEY `collection` (`collection`,`digitization_source`)
 );
 
+CREATE TABLE IF NOT EXISTS `feed_backups` (
+  `namespace` varchar(10) NOT NULL,
+  `id` varchar(32) NOT NULL,
+  `version` varchar(16) DEFAULT NULL,
+  `zip_size` bigint(20) DEFAULT NULL,
+  `mets_size` bigint(20) DEFAULT NULL,
+  `lastchecked` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `lastmd5check` timestamp NULL DEFAULT NULL,
+  `md5check_ok` tinyint(1) DEFAULT NULL,
+  `deleted` tinyint(1) DEFAULT NULL,
+  PRIMARY KEY (`namespace`,`id`,`version`)
+);
+
 CREATE TABLE IF NOT EXISTS `ht_collection_digitizers` (
   `collection` varchar(16) DEFAULT NULL,
   `digitization_source` varchar(16) DEFAULT NULL,

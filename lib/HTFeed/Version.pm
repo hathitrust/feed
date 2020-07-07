@@ -17,6 +17,9 @@ our @EXPORT_OK = qw( get_vstring get_full_version_string get_production_ok );
 my ($vstring,$full_version_string,$production_ok) = (undef,undef,undef); # HTFEED_VERSION_STRINGS
 ########## End HTFeed version strings ############
 
+unless($vstring and $full_version_string and defined $production_ok) {
+    _try_test_version(\$vstring,\$full_version_string,\$production_ok);
+}
 # try fs
 unless($vstring and $full_version_string and defined $production_ok) {
     _get_version_from_fs(\$vstring,\$full_version_string,\$production_ok);
@@ -105,6 +108,16 @@ sub _get_version_from_git {
     }
     
     return;
+}
+
+sub _try_test_version {
+  return unless $ENV{TEST};
+
+  my ($vstring,$full_version_string,$production_ok) = @_;
+
+  $$vstring = "0.0.0";
+  $$full_version_string = "TEST";
+  $$production_ok = 0;
 }
 
 sub _get_version_from_fs {
