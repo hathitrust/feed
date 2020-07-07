@@ -4,6 +4,7 @@ repository:
   link_dir: /sdr1/obj
   # The directory into which volumes will be loaded 
   obj_dir: $current_sdr_bucket
+  obj_stage_dir: $current_sdr_bucket/.tmp
 
 staging:
   # where to look for material to ingest

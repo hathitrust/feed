@@ -2,6 +2,18 @@ version: '3'
 
 services:
 
+  ingest:
+    build: .
+    volumes:
+      - .:/usr/local/feed
+      - ./ingest_stage:/tmp/stage
+      - repository_link:/sdr1
+      - repository_obj:/sdr2
+      - backups:/htdataden
+    environment:
+      - HTFEED_CONFIG=/usr/local/feed/etc/config_ingest_docker.yml
+      - FEED_HOME=/usr/local/feed
+
   test:
     build: .
     volumes:
@@ -9,14 +21,15 @@ services:
     environment:
       - HTFEED_CONFIG=/usr/local/feed/etc/config_test.yml
       - FEED_HOME=/usr/local/feed
-
+      - TEST=1
 
   travis_test:
     build: .
     environment:
       - HTFEED_CONFIG=/usr/local/feed/etc/config_test.yml
       - FEED_HOME=/usr/local/feed
-    command: make test TEST_VERBOSE=1
+      - TEST=1
+    command: bin/wait-for --timeout=300 mariadb:3306 -- make test TEST_VERBOSE=1
 
   validate:
     build: .
@@ -26,4 +39,17 @@ services:
     environment:
       - HTFEED_CONFIG=/usr/local/feed/etc/config_prevalidate.yml
       - FEED_HOME=/usr/local/feed
-    command: bash -c "/bin/ls /tmp/stage/toingest/test | sed s/.zip// | perl -w /usr/local/feed/bin/validate_volume.pl -p simple -n test --no-clean"
+    command: bash -c "/bin/ls /tmp/stage/toingest/test/*.zip | xargs -n 1 basename | sed s/.zip// | perl -w /usr/local/feed/bin/validate_volume.pl -p simple -n test --no-clean"
+
+  mariadb:
+    build: docker/database
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: mysqlroot
+
+      # TODO: handle server??
+
+volumes:
+  repository_link:
+  repository_obj:
+  backups:

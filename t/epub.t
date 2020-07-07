@@ -2,6 +2,7 @@ use FindBin;
 use lib "$FindBin::Bin/lib";
 
 use Test::Spec;
+use HTFeed::Test::Support qw(load_db_fixtures);
 use HTFeed::Test::SpecSupport qw(mock_premis_mets);
 use HTFeed::Config qw(set_config);
 
@@ -88,6 +89,7 @@ context "with volume & temporary ingest/preingest/zipfile dirs" => sub {
   my $tmpdirs;
 
   before all => sub {
+    load_db_fixtures;
     $tmpdirs = HTFeed::Test::TempDirs->new();
     $objid = "ark:/87302/t00000001";
     $pt_objid = "ark+=87302=t00000001";

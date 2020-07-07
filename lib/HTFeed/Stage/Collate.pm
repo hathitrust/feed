@@ -5,9 +5,15 @@ use strict;
 
 use base qw(HTFeed::Stage);
 use HTFeed::Config qw(get_config);
-use HTFeed::DBTools;
+use Log::Log4perl qw(get_logger);
 use File::Pairtree qw(id2ppath s2ppchars);
 use File::Path qw(make_path);
+use HTFeed::VolumeValidator;
+use URI::Escape;
+use Carp qw(croak);
+
+use HTFeed::Storage::LocalPairtree;
+use HTFeed::Storage::VersionedPairtree;
 
 =head1 NAME
 
@@ -20,80 +26,75 @@ HTFeed::Stage::Collate.pm
 
 =cut
 
+sub storages_from_config {
+  my $self = shift;
+
+  my @storages;
+  foreach my $storage_class (@{get_config('storage_classes')}) {
+    push(@storages, $storage_class->new(volume => $self->{volume}));
+  }
+
+  return @storages;
+}
+
 sub run{
     my $self = shift;
 
-    my $volume = $self->{volume};
-    my $namespace = $volume->get_namespace();
-    my $objid = $volume->get_objid();
-    my $pairtree_objid = s2ppchars($objid);
-    my $pairtree_object_path = sprintf('%s/%s/%s%s',get_config('repository'=>'obj_dir'),$namespace,id2ppath($objid),$pairtree_objid);
     $self->{is_repeat} = 0;
 
-    # Create link from 'link_dir' area, if needed
-    # if link_dir==obj_dir we don't want to use the link_dir
-    if(get_config('repository'=>'link_dir') ne get_config('repository'=>'obj_dir')) {
-        my $pairtree_link_parent = sprintf('%s/%s/%s',get_config('repository','link_dir'),$namespace,id2ppath($objid));
-        my $pairtree_link_path = $pairtree_link_parent . $pairtree_objid;
+    my @storages = @_;
+    @storages = $self->storages_from_config if !@storages;
 
-        # this is a re-ingest if the dir already exists, log this
-        if (-l $pairtree_link_path){
-            $self->set_info('Collating volume that is already in repo');
-            $self->{is_repeat} = 1;
-            # make sure we have a link
-            unless ($pairtree_object_path = readlink($pairtree_link_path)){
-                # there is no good reason we chould have a dir and no link
-                $self->set_error('OperationFailed', operation => 'readlink', file => $pairtree_link_path, detail => "readlink failed: $!") 
-                    and return;
-            }
-        }
-        # make dir or error and return
-        else{
-            # make object path
-            make_path($pairtree_object_path);
-            # make link path
-            make_path($pairtree_link_parent);
-            # make link
-            symlink ($pairtree_object_path, $pairtree_link_path)
-                or $self->set_error('OperationFailed', operation => 'mkdir', detail => "Could not create dir $pairtree_link_path") and return;
-        }
-    } else{ # handle re-ingest detection and dir creation where link_dir==obj_dir
-        if(-d $pairtree_object_path) {
-            # this is a re-ingest if the dir already exists, log this
-            $self->set_info('Collating volume that is already in repo');
-            $self->{is_repeat} = 1;
-        } else{
-            make_path($pairtree_object_path)
-                or $self->set_error('OperationFailed', operation => 'mkdir', detail => "Could not create dir $pairtree_object_path") and return;
-        }
+    foreach my $storage (@storages) {
+
+      if( $self->collate($storage))  {
+        $storage->cleanup
+      } else {
+        $storage->rollback;
+      }
+
+      $storage->clean_staging();
+
+      $self->check_errors($storage);
+      $self->log_repeat($storage);
     }
 
-    my $mets_source = $volume->get_mets_path();
-    my $zip_source = $volume->get_zip_path();
+    $self->_set_done();
+    return $self->succeeded();
+}
 
-    # make sure the operation will succeed
-    if (-f $mets_source and -f $zip_source and -d $pairtree_object_path){
-        # move mets and zip to repo
-        system('cp','-f',$mets_source,$pairtree_object_path)
-            and $self->set_error('OperationFailed', operation => 'cp', detail => "cp $mets_source $pairtree_object_path failed with status: $?");
-            
-        system('cp','-f',$zip_source,$pairtree_object_path)
-            and $self->set_error('OperationFailed', operation => 'cp', detail => "cp $zip_source $pairtree_object_path failed with status: $?");
+sub log_repeat {
+  my $self = shift;
+  my $storage = shift;
 
-        $volume->update_feed_audit($pairtree_object_path);
+  if($storage->{is_repeat}) {
+    $self->{is_repeat} = 1;
+    $self->set_info('Collating volume that is already in repo');
+  }
+}
 
-        $self->_set_done();
-        return $self->succeeded();
+sub collate {
+  my $self = shift;
+  my $storage = shift;
+
+  $storage->stage &&
+  $storage->prevalidate &&
+  $storage->make_object_path &&
+  $storage->move &&
+  $storage->postvalidate &&
+  $storage->record_audit
+}
+
+sub check_errors {
+  my $self = shift;
+  my $stage = shift;
+
+  foreach my $error (@{$stage->{errors}}) {
+    $self->{failed}++;
+    if ( get_config('stop_on_error') ) {
+        croak("STAGE_ERROR");
     }
-    
-    # report which file(s) are missing
-    my $detail = 'Collate failed, file(s) not found: ';
-    $detail .= $mets_source unless(-f $mets_source);
-    $detail .= $zip_source  unless(-f $zip_source);
-    $detail .= $pairtree_object_path unless(-d $pairtree_object_path);
-    
-    $self->set_error('OperationFailed', detail => $detail);
-    return;
+  }
 }
 
 sub success_info {
