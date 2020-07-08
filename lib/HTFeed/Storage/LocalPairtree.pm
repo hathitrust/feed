@@ -22,7 +22,29 @@ sub object_path {
 sub stage_path {
   my $self = shift;
 
-  $self->SUPER::stage_path('obj_stage_dir');
+  if($self->uses_linked_objdir and -l $self->link_path) {
+    $self->existing_object_tmpdir;
+  } else {
+    $self->SUPER::stage_path('obj_dir');
+  }
+}
+
+sub uses_linked_objdir {
+  return get_config('repository'=>'link_dir') ne get_config('repository'=>'obj_dir');
+}
+
+sub existing_object_tmpdir {
+  my $self = shift;
+
+  my $objdir = $self->follow_existing_link;
+
+  if($objdir =~ qr(^(.*)/$self->{namespace}/pairtree_root/.*)) {
+    get_logger()->trace("Using existing object dir $objdir; staging to $1/.tmp");
+    return $self->stage_path_from_base($1);
+  } else {
+    die("Can't determine storage root from existing storage $objdir");
+  }
+
 }
 
 sub move {
@@ -86,7 +108,7 @@ sub make_object_path {
 
   # Create link from 'link_dir' area, if needed
   # if link_dir==obj_dir we don't want to use the link_dir
-  if(get_config('repository'=>'link_dir') ne get_config('repository'=>'obj_dir')) {
+  if($self->uses_linked_objdir) {
     $self->symlink_if_needed;
   } elsif (! -d $self->object_path) {
     $self->safe_make_path($self->object_path);
@@ -101,15 +123,18 @@ sub make_object_path {
   return 1;
 }
 
-sub check_existing_link {
+sub follow_existing_link {
   my $self = shift;
-  my $link_path = shift;
 
+  my $object_path;
+  my $link_path = $self->link_path;
   # set object directory to target of existing link
-  unless ($self->{object_path} = readlink($link_path)){
+  unless ($object_path = readlink($link_path)){
     # there is no good reason we chould have a dir and no link
     $self->set_error('OperationFailed', operation => 'readlink', file => $link_path, detail => "readlink failed: $!")
   }
+
+  return $object_path;
 }
 
 sub make_link {
@@ -122,6 +147,18 @@ sub make_link {
     or $self->set_error('OperationFailed', operation => 'symlink', detail => "Could not symlink $object_path to $link_path $!");
 }
 
+sub link_parent {
+  my $self = shift;
+  return sprintf('%s/%s/%s',get_config('repository','link_dir'),$self->{namespace},id2ppath($self->{objid}));
+}
+
+sub link_path {
+  my $self = shift;
+  my $pt_objid = s2ppchars($self->{objid});
+
+  return $self->link_parent . $pt_objid;
+};
+
 sub symlink_if_needed {
   my $self = shift;
 
@@ -131,11 +168,11 @@ sub symlink_if_needed {
   my $pt_objid = s2ppchars($objid);
   $self->{is_repeat} = 0;
 
-  my $link_parent = sprintf('%s/%s/%s',get_config('repository','link_dir'),$namespace,id2ppath($objid));
-  my $link_path = $link_parent . $pt_objid;
+  my $link_parent = $self->link_parent;
+  my $link_path = $self->link_path;
 
   if (-l $link_path){
-    $self->check_existing_link($link_path);
+    $self->{object_path} = $self->follow_existing_link;
   }
   else{
     my $object_path = $self->object_path;
