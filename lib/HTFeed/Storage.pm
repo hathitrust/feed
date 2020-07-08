@@ -43,9 +43,12 @@ sub stage {
   my $self = shift;
   my $volume = $self->{volume};
   my $mets_source = $volume->get_mets_path();
+  get_logger()->trace("copying METS from: $mets_source");
   my $zip_source = $volume->get_zip_path();
+  get_logger()->trace("copying ZIP from: $mets_source");
 
   my $stage_path = $self->stage_path;
+  get_logger()->trace("staging to: $stage_path");
   my $err;
 
   $self->safe_make_path($stage_path);
@@ -115,20 +118,26 @@ sub object_path {
     s2ppchars($self->{objid}));
 }
 
+sub stage_path_from_base {
+  my $self = shift;
+  my $base = shift;
+
+  return sprintf('%s/.tmp/%s.%s',
+    $base,
+    $self->{namespace},
+    s2ppchars($self->{objid}));
+};
+
 sub stage_path {
   my $self = shift;
   my $config_key = shift;
 
-  return sprintf('%s/%s.%s',
-    get_config('repository'=>$config_key),
-    $self->{namespace},
-    s2ppchars($self->{objid}));
+  return $self->stage_path_from_base(get_config('repository' => $config_key));
 }
 
 sub move {
   my $self = shift;
   my $volume = $self->{volume};
-  my $stage_path = $self->stage_path;
   my $mets_stage = $self->mets_stage_path;
   my $zip_stage = $self->zip_stage_path;
 
