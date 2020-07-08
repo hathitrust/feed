@@ -33,7 +33,7 @@ sub object_path {
 sub stage_path {
   my $self = shift;
 
-  $self->SUPER::stage_path('backup_obj_stage_dir');
+  $self->SUPER::stage_path('backup_obj_dir');
 }
 
 sub record_audit {

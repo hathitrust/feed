@@ -37,7 +37,7 @@ sub staging_dirtypes {
 
 sub repo_dirtypes {
   my $self = shift;
-  return qw(link_dir obj_dir other_obj_dir obj_stage_dir backup_obj_dir backup_obj_stage_dir);
+  return qw(link_dir obj_dir other_obj_dir backup_obj_dir);
 }
 
 sub cleanup {

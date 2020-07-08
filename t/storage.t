@@ -401,7 +401,30 @@ describe "HTFeed::Storage" => sub {
         $storage->stage;
         $storage->clean_staging;
 
-        ok(! -e "$tmpdirs->{obj_stage_dir}/test.test");
+        ok(! -e "$tmpdirs->{obj_dir}/.tmp/test.test");
+      };
+    };
+
+    describe "#stage" => sub {
+      context "when the item is not in repository" => sub {
+        it "stages to the configured staging location" => sub {
+          my $storage = local_storage($tmpdirs, 'test', 'test');
+          $storage->stage;
+
+          ok(-e "$tmpdirs->{obj_dir}/.tmp/test.test/test.mets.xml");
+          ok(-e "$tmpdirs->{obj_dir}/.tmp/test.test/test.zip");
+        };
+      };
+
+      context "when the item is in the repository with a different storage path" => sub {
+        it "deposits to a staging area under that path" => sub {
+          make_old_version_other_dir(local_storage($tmpdirs, 'test','test'));
+          my $storage = local_storage($tmpdirs, 'test', 'test');
+          $storage->stage;
+
+          ok(-e "$tmpdirs->{other_obj_dir}/.tmp/test.test/test.mets.xml");
+          ok(-e "$tmpdirs->{other_obj_dir}/.tmp/test.test/test.zip");
+        };
       };
     };
 
@@ -452,8 +475,8 @@ describe "HTFeed::Storage" => sub {
         my $storage = versioned_storage($tmpdirs, 'test', 'test');
         $storage->stage;
 
-        ok(-e "$tmpdirs->{backup_obj_stage_dir}/test.test/test.mets.xml");
-        ok(-e "$tmpdirs->{backup_obj_stage_dir}/test.test/test.zip");
+        ok(-e "$tmpdirs->{backup_obj_dir}/.tmp/test.test/test.mets.xml");
+        ok(-e "$tmpdirs->{backup_obj_dir}/.tmp/test.test/test.zip");
       }
     };
 
