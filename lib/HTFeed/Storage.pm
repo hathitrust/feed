@@ -352,8 +352,11 @@ sub validate_zip_checksums {
 
   # make sure we check every file in the directory except for the checksum file
   # and make sure we check every file in the checksum file
+  
+  @$files = map { lc($_) } @$files;
+  %$checksums = map { lc($_) } %$checksums;
 
-  my @tovalidate = uniq( sort( map { lc($_) } @$files, map { lc($_) } keys(%$checksums) ));
+  my @tovalidate = uniq( sort( @$files, keys(%$checksums) ));
 
   my @bad_files = ();
 
