@@ -211,7 +211,11 @@ sub validate_zip_contents {
   HTFeed::Stage::Unpack::unzip_file($self,$zip_path,$zip_stage);
   my $checksums = $volume->get_checksum_mets($mets_path);
   my $files = $volume->get_all_directory_files($zip_stage);
-  return $self->validate_zip_checksums($checksums,$files,$zip_stage);
+  my $ok = $self->validate_zip_checksums($checksums,$files,$zip_stage);
+
+  remove_tree($zip_stage);
+
+  return $ok;
   #
 }
 
@@ -352,7 +356,7 @@ sub validate_zip_checksums {
 
   # make sure we check every file in the directory except for the checksum file
   # and make sure we check every file in the checksum file
-  
+
   @$files = map { lc($_) } @$files;
   %$checksums = map { lc($_) } %$checksums;
 
