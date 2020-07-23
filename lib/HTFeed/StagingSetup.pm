@@ -21,7 +21,7 @@ sub _wipe_dirs{
 sub _make_dirs{
     foreach my $dir (@{$_[0]}){
         get_logger()->debug("Making " . $dir . " in HTFeed::StagingSetup\n");
-        make_path $dir;
+        make_path $dir unless -d $dir;
     }
 }
 
