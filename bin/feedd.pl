@@ -69,7 +69,7 @@ $SIG{'TERM'} =
     };
 
 
-HTFeed::StagingSetup::make_stage($clean);
+HTFeed::StagingSetup::make_stage();
 
 my $i = 0;
 while( continue_running_server() ){
@@ -226,12 +226,8 @@ END{
             sleep 20;
         }
         
-        # delete staging dirs
+        # release locks
         if ($clean){
-            print "cleaning staging dirs...\n";
-            # delete everything in staging, except download
-            HTFeed::StagingSetup::clear_stage();
-
             # release all locks
             print "releasing db locks...\n";
             HTFeed::DBTools::reset_in_flight_locks();   
