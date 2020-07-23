@@ -88,8 +88,8 @@ sub runlite{
     $volumegroup = HTFeed::VolumeGroup->new(ns_objids => $args->{volumes}, packagetype => $args->{packagetype})
         if (!$args->{volumegroup});
 
-    # wipe staging directories
-    HTFeed::StagingSetup::make_stage($clean);
+    # ensure staging directories exist
+    HTFeed::StagingSetup::make_stage();
 
     $volume_count = $volumegroup->size();
     $volumes_processed = 0;
