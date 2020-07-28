@@ -215,6 +215,8 @@ sub zipcheck {
 
   return unless $do_md5 or $do_mets;
 
+  return if is_tombstoned($namespace, $objid);
+
   # don't check this item if we just looked at it
   if(defined $checkpoint) {
     my $sth = execute_stmt($checkpoint_sel,$checkpoint,$namespace,$objid);
