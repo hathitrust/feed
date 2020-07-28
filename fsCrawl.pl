@@ -53,9 +53,15 @@ open( RUN, "find $base -follow -type f|" )
   or die("Can't open pipe to find: $!");
 
 while ( my $line = <RUN> ) {
+  chomp($line);
 
   my @newList = ();    #initialize array
   next if $line =~ /\Qpre_uplift.mets.xml\E/;
+  # ignore temporary location
+  next if $line =~ qr(obj/\.tmp);
+  
+  # ignore ".old" files if they're recent
+  next if recent_previous_version($line);
 
   eval {
     $filesProcessed++;
@@ -63,7 +69,7 @@ while ( my $line = <RUN> ) {
     #        if($filesProcessed % 10000== 0) {
     #            print "$filesProcessed files processed\n";
     #        }
-    chomp($line);
+
 
     # strip trailing / from path
     my ( $pt_objid, $path, $type ) =
@@ -155,6 +161,7 @@ while ( my $line = <RUN> ) {
       next
       if $file eq '.'
         or $file eq '..'
+        or recent_previous_version("$path/$file")
         or $file =~ /pre_uplift.mets.xml$/;    # ignore backup mets
       if ( $file !~ /^([^.]+)\.(zip|mets.xml)$/ ) {
         print("BAD_FILE $path $file\n");
@@ -549,6 +556,18 @@ sub is_tombstoned {
   } else {
     return 0;
   }
+}
+
+sub recent_previous_version {
+  my $file = shift;
+
+  return unless $file =~ /.old$/;
+
+  my $ctime = ( stat($file) )[10];
+  my $ctime_age = time() - $ctime;
+
+  return 1 if $ctime_age < (86400 * 2);
+  
 }
 
 get_dbh()->disconnect();
