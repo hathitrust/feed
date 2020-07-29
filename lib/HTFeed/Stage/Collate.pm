@@ -31,7 +31,8 @@ sub storages_from_config {
 
   my @storages;
   foreach my $storage_class (@{get_config('storage_classes')}) {
-    push(@storages, $storage_class->new(volume => $self->{volume}));
+    push(@storages, $storage_class->{class}->new(volume => $self->{volume},
+                                                 config => $storage_class));
   }
 
   return @storages;

@@ -30,7 +30,9 @@ sub stage_path {
 }
 
 sub uses_linked_objdir {
-  return get_config('repository'=>'link_dir') ne get_config('repository'=>'obj_dir');
+  my $self = shift;
+
+  return $self->{config}->{link_dir} ne $self->{config}->{obj_dir};
 }
 
 sub existing_object_tmpdir {
@@ -149,7 +151,7 @@ sub make_link {
 
 sub link_parent {
   my $self = shift;
-  return sprintf('%s/%s/%s',get_config('repository','link_dir'),$self->{namespace},id2ppath($self->{objid}));
+  return sprintf('%s/%s/%s',$self->get_storage_config('link_dir'),$self->{namespace},id2ppath($self->{objid}));
 }
 
 sub link_path {

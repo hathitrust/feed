@@ -17,18 +17,40 @@ sub new {
   die("Missing required argument 'volume'")
     unless $args{volume};
 
-  my $volume = $args{volume};
+  die("Missing required argument 'config'")
+    unless $args{volume};
 
+
+  my $volume = $args{volume};
+  my $config = $args{config};
 
   my $self = {
     volume => $volume,
     namespace => $volume->get_namespace(),
     objid => $volume->get_objid(),
     errors => [],
+    config => $config,
   };
 
   bless($self, $class);
   return $self;
+}
+
+# Should only be used for testing.
+sub get_storage_config {
+  my $self = shift;
+  my $key  = shift;
+
+  return $self->{config}->{$key};
+}
+
+# Ditto
+sub set_storage_config {
+  my $self  = shift;
+  my $value = shift;
+  my $key   = shift;
+
+  $self->{config}->{$key} = $value;
 }
 
 sub make_object_path {
@@ -112,7 +134,7 @@ sub object_path {
   my $config_key = shift;
 
   return sprintf('%s/%s/%s%s',
-    get_config('repository'=>$config_key),
+    $self->{config}->{$config_key},
     $self->{namespace},
     id2ppath($self->{objid}),
     s2ppchars($self->{objid}));
@@ -132,7 +154,7 @@ sub stage_path {
   my $self = shift;
   my $config_key = shift;
 
-  return $self->stage_path_from_base(get_config('repository' => $config_key));
+  return $self->stage_path_from_base($self->{config}->{$config_key});
 }
 
 sub move {

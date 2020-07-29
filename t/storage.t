@@ -7,6 +7,19 @@ use HTFeed::Test::SpecSupport qw(stage_volume);
 use HTFeed::Config qw(set_config get_config);
 use HTFeed::DBTools qw(get_dbh);
 
+sub config_for_class {
+  my $class = shift;
+
+  foreach my $storage_class (@{get_config('storage_classes')}) {
+    if ($class eq $storage_class->{class}) {
+      my $config = { %$storage_class };
+      delete $config->{class};
+      return $config;
+    }
+  }
+  return get_config('repository');
+}
+
 describe "HTFeed::Storage" => sub {
   my $tmpdirs;
   my $testlog;
@@ -40,21 +53,21 @@ describe "HTFeed::Storage" => sub {
       my $volume = stage_volume(@_);
 
       my $storage = HTFeed::Storage::LocalPairtree->new(
-        volume => $volume);
+        volume => $volume,
+        config => config_for_class('HTFeed::Storage::LocalPairtree'));
 
       return $storage;
     }
 
     sub make_old_version_other_dir {
       my $storage = shift;
-
-      my $real_obj_dir = get_config('repository','obj_dir');
-      my $other_obj_dir = get_config('repository','other_obj_dir');
-      set_config($other_obj_dir,'repository','obj_dir');
+      my $real_obj_dir = $storage->get_storage_config('obj_dir');
+      my $other_obj_dir = $storage->get_storage_config('other_obj_dir');
+      $storage->set_storage_config($other_obj_dir,'obj_dir');
 
       make_old_version($storage);
 
-      set_config($real_obj_dir,'repository','obj_dir');
+      $storage->set_storage_config($real_obj_dir,'obj_dir');
     }
 
     sub make_old_version {
@@ -159,19 +172,9 @@ describe "HTFeed::Storage" => sub {
       };
 
       context "when link path is the same as object path" => sub {
-        my $old_obj_dir;
-
-        before each => sub {
-          my $old_obj_dir = get_config('repository','obj_dir');
-          set_config(get_config('repository','link_dir'), 'repository','obj_dir');
-        };
-
-        after each => sub {
-          set_config($old_obj_dir,'repository','obj_dir');
-        };
-
         it "works" => sub {
           my $storage = local_storage($tmpdirs,'test','test');
+          $storage->set_storage_config(config_for_class('HTFeed::Storage::LocalPairtree')->{link_dir},'obj_dir');
           $storage->make_object_path;
 
           ok(-e "$tmpdirs->{link_dir}/test/pairtree_root/te/st/test");
@@ -179,6 +182,7 @@ describe "HTFeed::Storage" => sub {
 
         it "is idempotent" => sub {
           my $storage = local_storage($tmpdirs,'test','test');
+          $storage->set_storage_config(config_for_class('HTFeed::Storage::LocalPairtree')->{link_dir},'obj_dir');
           $storage->make_object_path;
           $storage->make_object_path;
 
@@ -443,7 +447,8 @@ describe "HTFeed::Storage" => sub {
       my $volume = stage_volume(@_);
 
       my $storage = HTFeed::Storage::VersionedPairtree->new(
-        volume => $volume);
+        volume => $volume,
+        config => config_for_class('HTFeed::Storage::VersionedPairtree'));
 
       return $storage;
     }
@@ -452,15 +457,11 @@ describe "HTFeed::Storage" => sub {
     describe "#object_path" => sub {
 
       it "uses config for object root" => sub {
-        my $old_storage = get_config('repository','backup_obj_dir');
-        set_config('/backup-location/obj','repository','backup_obj_dir');
-
         eval {
           my $storage = versioned_storage($tmpdirs, 'test', 'test');
+          $storage->set_storage_config('/backup-location/obj','backup_obj_dir');
           like( $storage->object_path(), qr{^/backup-location/obj/});
         };
-
-        set_config($old_storage, 'repository','backup_obj_dir');
       };
 
       it "includes the namespace and pairtreeized object id in the path" => sub {

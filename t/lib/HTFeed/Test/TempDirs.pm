@@ -5,7 +5,7 @@ use File::Basename qw(dirname);
 use File::Temp qw(tempdir);
 use File::Path qw(remove_tree);
 use Cwd qw(abs_path);
-use HTFeed::Config qw(set_config);
+use HTFeed::Config qw(set_config get_config);
 
 use warnings;
 use strict;
@@ -59,6 +59,11 @@ sub setup_example {
   foreach my $dirtype ($self->repo_dirtypes) {
     $self->{$dirtype} = tempdir("$tmpdir/feed-test-$dirtype-XXXXXX");
     set_config($self->{$dirtype},'repository',$dirtype);
+    my $storage_classes = get_config('storage_classes');
+    foreach my $storage_class (@$storage_classes) {
+      $storage_class->{$dirtype} = $self->{$dirtype};
+    }
+    set_config($storage_classes,'storage_classes');
   }
 }
 
