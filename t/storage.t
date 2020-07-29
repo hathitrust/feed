@@ -187,6 +187,28 @@ describe "HTFeed::Storage" => sub {
       };
     };
 
+    describe "#zipvalidate" => sub {
+      context "with a zip whose contents do not match the METS" => sub {
+        it "returns false" => sub {
+          my $storage = local_storage($tmpdirs,'test','bad_file_checksum');
+          ok(!$storage->zipvalidate);
+        };
+
+        it "logs an error about the file" => sub {
+          my $storage = local_storage($tmpdirs,'test','bad_file_checksum');
+          $storage->zipvalidate;
+
+          ok($testlog->matches(qr(ERROR.*Checksum.*00000001.jp2)));
+        };
+      };
+
+      it "with a zip whose contents match the METS returns true" => sub {
+        my $storage = local_storage($tmpdirs,'test','test');
+        $storage->stage;
+        ok($storage->zipvalidate);
+      };
+    };
+
     describe "#prevalidate" => sub {
 
       context "with a zip whose checksum does not match the one in the METS" => sub {
@@ -237,23 +259,7 @@ describe "HTFeed::Storage" => sub {
         };
       };
 
-      context "with a zip whose contents do not match the METS" => sub {
-        it "returns false" => sub {
-          my $storage = local_storage($tmpdirs,'test','bad_file_checksum');
-          $storage->stage;
-          ok(!$storage->prevalidate);
-        };
-
-        it "logs an error about the file" => sub {
-          my $storage = local_storage($tmpdirs,'test','bad_file_checksum');
-          $storage->stage;
-          $storage->prevalidate;
-
-          ok($testlog->matches(qr(ERROR.*Checksum.*00000001.jp2)));
-        };
-      };
-
-      it "with a zip whose checksum and contents match the METS returns true" => sub {
+      it "with a zip whose checksum matches the METS returns true" => sub {
         my $storage = local_storage($tmpdirs,'test','test');
         $storage->stage;
         ok($storage->prevalidate);
