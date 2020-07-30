@@ -188,26 +188,16 @@ sub postvalidate {
   $self->validate_zip($self->object_path);
 }
 
-sub prevalidate {
+sub zipvalidate {
   my $self = shift;
-
-  $self->validate_mets($self->stage_path) &&
-  $self->validate_zip($self->stage_path) &&
-  $self->validate_zip_contents($self->stage_path);
-}
-
-# TODO move this to pack
-sub validate_zip_contents {
-  my $self = shift;
-  my $path = shift;
 
   my $volume = $self->{volume};
   my $pt_objid = $volume->get_pt_objid();
 
   my $zip_stage = get_config('staging'=>'zip') . "/$pt_objid";
 
-  my $mets_path = $volume->get_mets_path($path);
-  my $zip_path = $volume->get_zip_path($path);
+  my $mets_path = $volume->get_mets_path();
+  my $zip_path = $volume->get_zip_path();
   HTFeed::Stage::Unpack::unzip_file($self,$zip_path,$zip_stage);
   my $checksums = $volume->get_checksum_mets($mets_path);
   my $files = $volume->get_all_directory_files($zip_stage);
@@ -216,7 +206,13 @@ sub validate_zip_contents {
   remove_tree($zip_stage);
 
   return $ok;
-  #
+}
+
+sub prevalidate {
+  my $self = shift;
+
+  $self->validate_mets($self->stage_path) &&
+  $self->validate_zip($self->stage_path)
 }
 
 sub validate_mets {

@@ -77,6 +77,7 @@ sub collate {
   my $self = shift;
   my $storage = shift;
 
+  $storage->zipvalidate &&
   $storage->stage &&
   $storage->prevalidate &&
   $storage->make_object_path &&

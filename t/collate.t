@@ -16,13 +16,25 @@ describe "HTFeed::Collate" => sub {
 
     before each => sub {
       $storage = Test::MockObject->new();
-      $storage->set_true(qw(stage prevalidate make_object_path move postvalidate record_audit cleanup rollback clean_staging));
+      $storage->set_true(qw(stage zipvalidate prevalidate make_object_path move postvalidate record_audit cleanup rollback clean_staging));
 
       my $volume = HTFeed::Volume->new(namespace => 'test',
         id => 'test',
         packagetype => 'simple');
       $collate = HTFeed::Stage::Collate->new(volume => $volume);
 
+    };
+
+    context "when zip contents validation fails" => sub {
+      before each => sub {
+        $storage->set_false('zipvalidate');
+      };
+
+      it "doesn't move to staging area" => sub {
+        $collate->run($storage);
+
+        ok(!$storage->called('stage'));
+      };
     };
 
     context "when prevalidation fails" => sub {
