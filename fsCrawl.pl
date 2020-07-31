@@ -76,6 +76,12 @@ while ( my $line = <RUN> ) {
     fileparse( $line, qr/\.mets\.xml/, qr/\.zip/ );
     $path =~ s/\/$//;    # remove trailing /
     return if ( $prevpath and $path eq $prevpath );
+
+    # check mtime on directory - do not check if mtime is in the past two days
+    # to let synciq catch up
+    
+    return if recently_modified_path($path);
+
     $prevpath = $path;
 
     my @pathcomp = split( "/", $path );
@@ -558,6 +564,15 @@ sub is_tombstoned {
   } else {
     return 0;
   }
+}
+
+sub recently_modified_path {
+  my $path = shift;
+
+  my $mtime = ( stat($path) )[9];
+  my $mtime_age = time() - $mtime;
+
+  return 1 if $mtime_age < (86400 * 2);
 }
 
 sub recent_previous_version {
