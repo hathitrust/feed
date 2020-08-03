@@ -192,8 +192,8 @@ describe "HTFeed::Collate" => sub {
         ok(-e "$tmpdirs->{obj_dir}/test/pairtree_root/te/st/test/test.mets.xml",'copies mets to local storage');
         ok(-e "$tmpdirs->{obj_dir}/test/pairtree_root/te/st/test/test.zip",'copies zip to local storage');
 
-        ok(-e "$tmpdirs->{backup_obj_dir}/test/pairtree_root/te/st/test/$timestamp/test.zip","copies the zip to backup storage");
-        ok(-e "$tmpdirs->{backup_obj_dir}/test/pairtree_root/te/st/test/$timestamp/test.mets.xml","copies the mets backup storage");
+        ok(-e "$tmpdirs->{obj_dir}/test/pairtree_root/te/st/test/$timestamp/test.zip","copies the zip to backup storage");
+        ok(-e "$tmpdirs->{obj_dir}/test/pairtree_root/te/st/test/$timestamp/test.mets.xml","copies the mets backup storage");
 
         ok(! -e "$tmpdirs->{zip}/test/00000001.jp2","cleans up the extracted zip files");
         ok(! -e "$tmpdirs->{zip}/test","cleans up the zip file tmpdir");

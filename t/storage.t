@@ -7,21 +7,9 @@ use HTFeed::Test::SpecSupport qw(stage_volume);
 use HTFeed::Config qw(set_config get_config);
 use HTFeed::DBTools qw(get_dbh);
 
-sub config_for_class {
-  my $class = shift;
-
-  foreach my $storage_class (@{get_config('storage_classes')}) {
-    if ($class eq $storage_class->{class}) {
-      my $config = { %$storage_class };
-      delete $config->{class};
-      return $config;
-    }
-  }
-  return get_config('repository');
-}
 
 describe "HTFeed::Storage" => sub {
-  my $tmpdirs;
+  local our $tmpdirs;
   my $testlog;
 
   before all => sub {
@@ -54,7 +42,7 @@ describe "HTFeed::Storage" => sub {
 
       my $storage = HTFeed::Storage::LocalPairtree->new(
         volume => $volume,
-        config => config_for_class('HTFeed::Storage::LocalPairtree'));
+        config => $tmpdirs->config_for_storage_class('HTFeed::Storage::LocalPairtree'));
 
       return $storage;
     }
@@ -111,12 +99,13 @@ describe "HTFeed::Storage" => sub {
       it "moves the existing version aside when the link target doesn't match current objdir" => sub {
         make_old_version_other_dir(local_storage($tmpdirs, 'test','test'));
         my $storage = local_storage($tmpdirs, 'test', 'test');
+        my $config = $tmpdirs->config_for_storage_class('HTFeed::Storage::LocalPairtree');
         $storage->stage;
         $storage->make_object_path;
         $storage->move;
 
-        ok(-e "$tmpdirs->{other_obj_dir}/test/pairtree_root/te/st/test/test.mets.xml.old");
-        ok(-e "$tmpdirs->{other_obj_dir}/test/pairtree_root/te/st/test/test.zip.old");
+        ok(-e "$config->{other_obj_dir}/test/pairtree_root/te/st/test/test.mets.xml.old");
+        ok(-e "$config->{other_obj_dir}/test/pairtree_root/te/st/test/test.zip.old");
 
       };
     };
@@ -174,7 +163,7 @@ describe "HTFeed::Storage" => sub {
       context "when link path is the same as object path" => sub {
         it "works" => sub {
           my $storage = local_storage($tmpdirs,'test','test');
-          $storage->set_storage_config(config_for_class('HTFeed::Storage::LocalPairtree')->{link_dir},'obj_dir');
+          $storage->set_storage_config($tmpdirs->config_for_storage_class('HTFeed::Storage::LocalPairtree')->{link_dir},'obj_dir');
           $storage->make_object_path;
 
           ok(-e "$tmpdirs->{link_dir}/test/pairtree_root/te/st/test");
@@ -182,7 +171,7 @@ describe "HTFeed::Storage" => sub {
 
         it "is idempotent" => sub {
           my $storage = local_storage($tmpdirs,'test','test');
-          $storage->set_storage_config(config_for_class('HTFeed::Storage::LocalPairtree')->{link_dir},'obj_dir');
+          $storage->set_storage_config($tmpdirs->config_for_storage_class('HTFeed::Storage::LocalPairtree')->{link_dir},'obj_dir');
           $storage->make_object_path;
           $storage->make_object_path;
 
@@ -448,7 +437,7 @@ describe "HTFeed::Storage" => sub {
 
       my $storage = HTFeed::Storage::VersionedPairtree->new(
         volume => $volume,
-        config => config_for_class('HTFeed::Storage::VersionedPairtree'));
+        config => $tmpdirs->config_for_storage_class('HTFeed::Storage::VersionedPairtree'));
 
       return $storage;
     }
@@ -459,7 +448,7 @@ describe "HTFeed::Storage" => sub {
       it "uses config for object root" => sub {
         eval {
           my $storage = versioned_storage($tmpdirs, 'test', 'test');
-          $storage->set_storage_config('/backup-location/obj','backup_obj_dir');
+          $storage->set_storage_config('/backup-location/obj','obj_dir');
           like( $storage->object_path(), qr{^/backup-location/obj/});
         };
       };
@@ -482,8 +471,8 @@ describe "HTFeed::Storage" => sub {
         my $storage = versioned_storage($tmpdirs, 'test', 'test');
         $storage->stage;
 
-        ok(-e "$tmpdirs->{backup_obj_dir}/.tmp/test.test/test.mets.xml");
-        ok(-e "$tmpdirs->{backup_obj_dir}/.tmp/test.test/test.zip");
+        ok(-e "$tmpdirs->{obj_dir}/.tmp/test.test/test.mets.xml");
+        ok(-e "$tmpdirs->{obj_dir}/.tmp/test.test/test.zip");
       }
     };
 
@@ -493,7 +482,7 @@ describe "HTFeed::Storage" => sub {
 
         $storage->make_object_path;
 
-        ok(-d "$tmpdirs->{backup_obj_dir}/test/pairtree_root/te/st/test/$storage->{timestamp}");
+        ok(-d "$tmpdirs->{obj_dir}/test/pairtree_root/te/st/test/$storage->{timestamp}");
       }
     };
 
@@ -504,8 +493,8 @@ describe "HTFeed::Storage" => sub {
         $storage->make_object_path;
         $storage->move;
 
-        ok(-e "$tmpdirs->{backup_obj_dir}/test/pairtree_root/te/st/test/$storage->{timestamp}/test.zip","copies the zip");
-        ok(-e "$tmpdirs->{backup_obj_dir}/test/pairtree_root/te/st/test/$storage->{timestamp}/test.mets.xml","copies the mets");
+        ok(-e "$tmpdirs->{obj_dir}/test/pairtree_root/te/st/test/$storage->{timestamp}/test.zip","copies the zip");
+        ok(-e "$tmpdirs->{obj_dir}/test/pairtree_root/te/st/test/$storage->{timestamp}/test.mets.xml","copies the mets");
       };
     };
 

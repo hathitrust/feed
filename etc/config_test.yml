@@ -32,7 +32,6 @@ storage_classes:
     link_dir: /tmp/obj_link
     # The directory into which volumes will be loaded
     obj_dir: /tmp/obj
-    backup_obj_dir: /tmp/obj_backup
 
 jhove: /usr/bin/jhove
 jhoveconf: /etc/jhove/jhove.conf

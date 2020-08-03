@@ -46,6 +46,22 @@ sub cleanup {
   remove_tree($self->{tmpdir});
 }
 
+sub config_for_storage_class {
+  my $self  = shift;
+  my $class = shift;
+
+  my $tmpdir = $self->{tmpdir};
+  my $config = {};
+
+  foreach my $dirtype ($self->repo_dirtypes) {
+    unless (exists $self->{$dirtype}) {
+      $self->{$dirtype} = tempdir("$tmpdir/feed-test-$dirtype-XXXXXX");
+    }
+    $config->{$dirtype} = $self->{$dirtype};
+  }
+  return $config;
+}
+
 sub setup_example {
   my $self = shift;
 
