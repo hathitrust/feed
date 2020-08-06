@@ -58,7 +58,7 @@ sub setup_example {
 
   foreach my $dirtype ($self->repo_dirtypes) {
     $self->{$dirtype} = tempdir("$tmpdir/feed-test-$dirtype-XXXXXX");
-    set_config($self->{$dirtype},'repository',$dirtype);
+
   }
 }
 

@@ -164,7 +164,18 @@ describe "HTFeed::Collate" => sub {
       my $old_storage_classes;
       before each => sub {
         $old_storage_classes = get_config('storage_classes');
-        set_config(['HTFeed::Storage::LocalPairtree','HTFeed::Storage::VersionedPairtree'],'storage_classes');
+        my $new_storage_classes = [
+          {
+            class => 'HTFeed::Storage::LocalPairtree',
+            obj_dir => $tmpdirs->{obj_dir},
+            link_dir => $tmpdirs->{link_dir}
+          },
+          {
+            class => 'HTFeed::Storage::VersionedPairtree',
+            obj_dir => $tmpdirs->{backup_obj_dir}
+          }
+        ];
+        set_config($new_storage_classes,'storage_classes');
       };
 
       after each => sub {
@@ -183,7 +194,6 @@ describe "HTFeed::Collate" => sub {
         is(scalar(@{$backups}),1,'records a backup');
 
         my $timestamp = $backups->[0][0];
-
         ok(-e "$tmpdirs->{obj_dir}/test/pairtree_root/te/st/test/test.mets.xml",'copies mets to local storage');
         ok(-e "$tmpdirs->{obj_dir}/test/pairtree_root/te/st/test/test.zip",'copies zip to local storage');
 
