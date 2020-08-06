@@ -4,7 +4,6 @@ use HTFeed::Storage;
 use base qw(HTFeed::Storage);
 
 use strict;
-use HTFeed::Config qw(get_config);
 use Log::Log4perl qw(get_logger);
 use File::Pairtree qw(id2ppath s2ppchars);
 use File::Path qw(make_path);
@@ -32,7 +31,7 @@ sub stage_path {
 sub uses_linked_objdir {
   my $self = shift;
 
-  return $self->{config}->{link_dir} ne $self->{config}->{obj_dir};
+  return $self->{config}{link_dir} ne $self->{config}{obj_dir};
 }
 
 sub existing_object_tmpdir {
@@ -151,7 +150,7 @@ sub make_link {
 
 sub link_parent {
   my $self = shift;
-  return sprintf('%s/%s/%s',$self->get_storage_config('link_dir'),$self->{namespace},id2ppath($self->{objid}));
+  return sprintf('%s/%s/%s',$self->{config}{link_dir},$self->{namespace},id2ppath($self->{objid}));
 }
 
 sub link_path {

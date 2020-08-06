@@ -18,7 +18,7 @@ sub new {
     unless $args{volume};
 
   die("Missing required argument 'config'")
-    unless $args{volume};
+    unless $args{config};
 
 
   my $volume = $args{volume};
@@ -34,23 +34,6 @@ sub new {
 
   bless($self, $class);
   return $self;
-}
-
-# Should only be used for testing.
-sub get_storage_config {
-  my $self = shift;
-  my $key  = shift;
-
-  return $self->{config}->{$key};
-}
-
-# Ditto
-sub set_storage_config {
-  my $self  = shift;
-  my $value = shift;
-  my $key   = shift;
-
-  $self->{config}->{$key} = $value;
 }
 
 sub make_object_path {

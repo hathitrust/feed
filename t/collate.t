@@ -164,12 +164,17 @@ describe "HTFeed::Collate" => sub {
       my $old_storage_classes;
       before each => sub {
         $old_storage_classes = get_config('storage_classes');
-        my $new_storage_classes = [{class => 'HTFeed::Storage::LocalPairtree'},
-                                   {class => 'HTFeed::Storage::VersionedPairtree'}];
-        my $repo = get_config('repository');
-        foreach my $class (@$new_storage_classes) {
-          $class = {%$class, %$repo};
-        }
+        my $new_storage_classes = [
+          {
+            class => 'HTFeed::Storage::LocalPairtree',
+            obj_dir => $tmpdirs->{obj_dir},
+            link_dir => $tmpdirs->{link_dir}
+          },
+          {
+            class => 'HTFeed::Storage::VersionedPairtree',
+            obj_dir => $tmpdirs->{backup_obj_dir}
+          }
+        ];
         set_config($new_storage_classes,'storage_classes');
       };
 
@@ -192,8 +197,8 @@ describe "HTFeed::Collate" => sub {
         ok(-e "$tmpdirs->{obj_dir}/test/pairtree_root/te/st/test/test.mets.xml",'copies mets to local storage');
         ok(-e "$tmpdirs->{obj_dir}/test/pairtree_root/te/st/test/test.zip",'copies zip to local storage');
 
-        ok(-e "$tmpdirs->{obj_dir}/test/pairtree_root/te/st/test/$timestamp/test.zip","copies the zip to backup storage");
-        ok(-e "$tmpdirs->{obj_dir}/test/pairtree_root/te/st/test/$timestamp/test.mets.xml","copies the mets backup storage");
+        ok(-e "$tmpdirs->{backup_obj_dir}/test/pairtree_root/te/st/test/$timestamp/test.zip","copies the zip to backup storage");
+        ok(-e "$tmpdirs->{backup_obj_dir}/test/pairtree_root/te/st/test/$timestamp/test.mets.xml","copies the mets backup storage");
 
         ok(! -e "$tmpdirs->{zip}/test/00000001.jp2","cleans up the extracted zip files");
         ok(! -e "$tmpdirs->{zip}/test","cleans up the zip file tmpdir");

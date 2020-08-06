@@ -37,25 +37,46 @@ describe "HTFeed::Storage" => sub {
   describe "HTFeed::Storage::LocalPairtree" => sub {
     use HTFeed::Storage::LocalPairtree;
 
-    sub local_storage {
-      my $volume = stage_volume(@_);
+    sub linked_storage {
+      my $volume = stage_volume($tmpdirs,@_);
 
       my $storage = HTFeed::Storage::LocalPairtree->new(
         volume => $volume,
-        config => $tmpdirs->config_for_storage_class('HTFeed::Storage::LocalPairtree'));
+        config => {
+          obj_dir => $tmpdirs->{obj_dir},
+          link_dir => $tmpdirs->{link_dir}
+        }
+      );
+
+      return $storage;
+    }
+
+    sub nonlinked_storage {
+      my $volume = stage_volume($tmpdirs,@_);
+
+      my $storage = HTFeed::Storage::LocalPairtree->new(
+        volume => $volume,
+        config => {
+          obj_dir => $tmpdirs->{link_dir},
+          link_dir => $tmpdirs->{link_dir}
+        }
+      );
 
       return $storage;
     }
 
     sub make_old_version_other_dir {
-      my $storage = shift;
-      my $real_obj_dir = $storage->get_storage_config('obj_dir');
-      my $other_obj_dir = $storage->get_storage_config('other_obj_dir');
-      $storage->set_storage_config($other_obj_dir,'obj_dir');
+      my $volume = stage_volume($tmpdirs,@_);
+
+      my $storage = HTFeed::Storage::LocalPairtree->new(
+        volume => $volume,
+        config => {
+          obj_dir => $tmpdirs->{other_obj_dir},
+          link_dir => $tmpdirs->{link_dir}
+        }
+      );
 
       make_old_version($storage);
-
-      $storage->set_storage_config($real_obj_dir,'obj_dir');
     }
 
     sub make_old_version {
@@ -74,7 +95,7 @@ describe "HTFeed::Storage" => sub {
 
     describe "#move" => sub {
       it "copies the mets and zip to the repository" => sub {
-        my $storage = local_storage($tmpdirs, 'test', 'test');
+        my $storage = linked_storage( 'test', 'test');
         $storage->stage;
         $storage->make_object_path;
         $storage->move;
@@ -84,8 +105,8 @@ describe "HTFeed::Storage" => sub {
       };
 
       it "moves the existing version aside" => sub {
-        make_old_version(local_storage($tmpdirs,'test','test'));
-        my $storage = local_storage($tmpdirs, 'test', 'test');
+        make_old_version(linked_storage('test','test'));
+        my $storage = linked_storage( 'test', 'test');
 
         $storage->stage;
         $storage->make_object_path;
@@ -97,15 +118,14 @@ describe "HTFeed::Storage" => sub {
       };
 
       it "moves the existing version aside when the link target doesn't match current objdir" => sub {
-        make_old_version_other_dir(local_storage($tmpdirs, 'test','test'));
-        my $storage = local_storage($tmpdirs, 'test', 'test');
-        my $config = $tmpdirs->config_for_storage_class('HTFeed::Storage::LocalPairtree');
+        make_old_version_other_dir('test','test');
+        my $storage = linked_storage( 'test', 'test');
         $storage->stage;
         $storage->make_object_path;
         $storage->move;
 
-        ok(-e "$config->{other_obj_dir}/test/pairtree_root/te/st/test/test.mets.xml.old");
-        ok(-e "$config->{other_obj_dir}/test/pairtree_root/te/st/test/test.zip.old");
+        ok(-e "$tmpdirs->{other_obj_dir}/test/pairtree_root/te/st/test/test.mets.xml.old");
+        ok(-e "$tmpdirs->{other_obj_dir}/test/pairtree_root/te/st/test/test.zip.old");
 
       };
     };
@@ -114,7 +134,7 @@ describe "HTFeed::Storage" => sub {
 
       context "when the object is not in the repo" => sub {
         it "creates a symlink for the volume" => sub {
-          my $storage = local_storage($tmpdirs,'test','test');
+          my $storage = linked_storage('test','test');
           $storage->make_object_path;
 
           is("$tmpdirs->{obj_dir}/test/pairtree_root/te/st/test",
@@ -122,7 +142,7 @@ describe "HTFeed::Storage" => sub {
         };
 
         it "does not set is_repeat if the object is not in the repo" => sub {
-          my $storage = local_storage($tmpdirs,'test','test');
+          my $storage = linked_storage('test','test');
           $storage->make_object_path;
 
           ok(!$storage->{is_repeat});
@@ -131,9 +151,9 @@ describe "HTFeed::Storage" => sub {
 
       context "when the object is in the repo with link target matching obj_dir" => sub {
         it "sets is_repeat" => sub {
-          make_old_version(local_storage($tmpdirs,'test','test'));
+          make_old_version(linked_storage('test','test'));
 
-          my $storage = local_storage($tmpdirs,'test','test');
+          my $storage = linked_storage('test','test');
           $storage->make_object_path;
 
           ok($storage->{is_repeat});
@@ -142,18 +162,18 @@ describe "HTFeed::Storage" => sub {
 
       context "when the object is in the repo but link target doesn't match current obj dir" => sub {
         it "uses existing target of the link" => sub {
-          make_old_version_other_dir(local_storage($tmpdirs,'test','test'));
+          make_old_version_other_dir('test','test');
 
-          my $storage = local_storage($tmpdirs,'test','test');
+          my $storage = linked_storage('test','test');
           $storage->make_object_path;
 
           is($storage->object_path,"$tmpdirs->{other_obj_dir}/test/pairtree_root/te/st/test");
         };
 
         it "sets is_repeat" => sub {
-          make_old_version_other_dir(local_storage($tmpdirs,'test','test'));
+          make_old_version_other_dir('test','test');
 
-          my $storage = local_storage($tmpdirs,'test','test');
+          my $storage = linked_storage('test','test');
           $storage->make_object_path;
 
           ok($storage->{is_repeat});
@@ -162,16 +182,14 @@ describe "HTFeed::Storage" => sub {
 
       context "when link path is the same as object path" => sub {
         it "works" => sub {
-          my $storage = local_storage($tmpdirs,'test','test');
-          $storage->set_storage_config($tmpdirs->config_for_storage_class('HTFeed::Storage::LocalPairtree')->{link_dir},'obj_dir');
+          my $storage = nonlinked_storage('test','test');
           $storage->make_object_path;
 
           ok(-e "$tmpdirs->{link_dir}/test/pairtree_root/te/st/test");
         };
 
         it "is idempotent" => sub {
-          my $storage = local_storage($tmpdirs,'test','test');
-          $storage->set_storage_config($tmpdirs->config_for_storage_class('HTFeed::Storage::LocalPairtree')->{link_dir},'obj_dir');
+          my $storage = nonlinked_storage('test','test');
           $storage->make_object_path;
           $storage->make_object_path;
 
@@ -183,12 +201,12 @@ describe "HTFeed::Storage" => sub {
     describe "#zipvalidate" => sub {
       context "with a zip whose contents do not match the METS" => sub {
         it "returns false" => sub {
-          my $storage = local_storage($tmpdirs,'test','bad_file_checksum');
+          my $storage = linked_storage('test','bad_file_checksum');
           ok(!$storage->zipvalidate);
         };
 
         it "logs an error about the file" => sub {
-          my $storage = local_storage($tmpdirs,'test','bad_file_checksum');
+          my $storage = linked_storage('test','bad_file_checksum');
           $storage->zipvalidate;
 
           ok($testlog->matches(qr(ERROR.*Checksum.*00000001.jp2)));
@@ -196,7 +214,7 @@ describe "HTFeed::Storage" => sub {
       };
 
       it "with a zip whose contents match the METS returns true" => sub {
-        my $storage = local_storage($tmpdirs,'test','test');
+        my $storage = linked_storage('test','test');
         $storage->stage;
         ok($storage->zipvalidate);
       };
@@ -206,14 +224,14 @@ describe "HTFeed::Storage" => sub {
 
       context "with a zip whose checksum does not match the one in the METS" => sub {
         it "returns false" => sub {
-          my $storage = local_storage($tmpdirs,'test','bad_zip');
+          my $storage = linked_storage('test','bad_zip');
           $storage->stage;
 
           ok(!$storage->prevalidate);
         };
 
         it "logs an error about the zip" => sub {
-          my $storage = local_storage($tmpdirs,'test','bad_zip');
+          my $storage = linked_storage('test','bad_zip');
           $storage->stage;
           $storage->prevalidate;
 
@@ -230,7 +248,7 @@ describe "HTFeed::Storage" => sub {
         # attributes have been changed.
 
         it "returns false" => sub {
-          my $storage = local_storage($tmpdirs,'test','test');
+          my $storage = linked_storage('test','test');
           $storage->stage;
           # validate zip should pass but METS doesn't match volume METS
           my $other_mets = get_config('staging','fetch') . "/test.mets.xml-corrupted";
@@ -240,7 +258,7 @@ describe "HTFeed::Storage" => sub {
         };
 
         it "logs an error" => sub {
-          my $storage = local_storage($tmpdirs,'test','test');
+          my $storage = linked_storage('test','test');
           $storage->stage;
           # validate zip should pass but METS doesn't match volume METS
           my $other_mets = get_config('staging','fetch') . "/test.mets.xml-corrupted";
@@ -253,7 +271,7 @@ describe "HTFeed::Storage" => sub {
       };
 
       it "with a zip whose checksum matches the METS returns true" => sub {
-        my $storage = local_storage($tmpdirs,'test','test');
+        my $storage = linked_storage('test','test');
         $storage->stage;
         ok($storage->prevalidate);
       };
@@ -262,7 +280,7 @@ describe "HTFeed::Storage" => sub {
     describe "#postvalidate" => sub {
       context "with a zip whose checksum does not match the one in the METS" => sub {
         it "fails for a zip whose checksum does not match the one in the METS" => sub {
-          my $storage = local_storage($tmpdirs,'test','bad_zip');
+          my $storage = linked_storage('test','bad_zip');
           $storage->stage;
           $storage->make_object_path;
           $storage->move;
@@ -271,7 +289,7 @@ describe "HTFeed::Storage" => sub {
         };
 
         it "logs an error" => sub {
-          my $storage = local_storage($tmpdirs,'test','bad_zip');
+          my $storage = linked_storage('test','bad_zip');
           $storage->stage;
           $storage->make_object_path;
           $storage->move;
@@ -283,7 +301,7 @@ describe "HTFeed::Storage" => sub {
 
       context "with a METS that does not match the original METS" => sub {
         it "returns false" => sub {
-          my $storage = local_storage($tmpdirs,'test','test');
+          my $storage = linked_storage('test','test');
           $storage->stage;
           # validate zip should pass but METS doesn't match volume METS
           my $other_mets = get_config('staging','fetch') . "/test.mets.xml-corrupted";
@@ -295,7 +313,7 @@ describe "HTFeed::Storage" => sub {
         };
 
         it "logs an error" => sub {
-          my $storage = local_storage($tmpdirs,'test','test');
+          my $storage = linked_storage('test','test');
           $storage->stage;
           # validate zip should pass but METS doesn't match volume METS
           my $other_mets = get_config('staging','fetch') . "/test.mets.xml-corrupted";
@@ -309,7 +327,7 @@ describe "HTFeed::Storage" => sub {
       };
 
       it "succeeds for a zip whose checksum matches the METS" => sub {
-        my $storage = local_storage($tmpdirs,'test','test');
+        my $storage = linked_storage('test','test');
         $storage->stage;
         $storage->make_object_path;
         $storage->move;
@@ -321,8 +339,8 @@ describe "HTFeed::Storage" => sub {
 
     describe "#rollback" => sub {
       it "restores the original version" => sub {
-        make_old_version(local_storage($tmpdirs,'test','test'));
-        my $storage = local_storage($tmpdirs, 'test', 'test');
+        make_old_version(linked_storage('test','test'));
+        my $storage = linked_storage( 'test', 'test');
 
         $storage->stage;
         $storage->make_object_path;
@@ -346,12 +364,12 @@ describe "HTFeed::Storage" => sub {
     };
 
     it "leaves the .old version there if it didn't put it there" => sub {
-      make_old_version(local_storage($tmpdirs,'test','test'));
+      make_old_version(linked_storage('test','test'));
       my $oldzip = "$tmpdirs->{obj_dir}/test/pairtree_root/te/st/test/test.zip.old";
       open(my $fh, ">", $oldzip);
       print $fh "leftover junk\n";
 
-      my $storage = local_storage($tmpdirs, 'test', 'test');
+      my $storage = linked_storage( 'test', 'test');
 
       $storage->stage;
       $storage->rollback;
@@ -364,7 +382,7 @@ describe "HTFeed::Storage" => sub {
       it "records an md5 check in the feed_audit table" => sub {
         my $dbh = get_dbh();
 
-        my $storage = local_storage($tmpdirs,'test','test');
+        my $storage = linked_storage('test','test');
         $storage->stage;
         $storage->make_object_path;
         $storage->move;
@@ -379,8 +397,8 @@ describe "HTFeed::Storage" => sub {
 
     describe "#cleanup" => sub {
       it "removes the moved-aside old version" => sub {
-        make_old_version(local_storage($tmpdirs,'test','test'));
-        my $storage = local_storage($tmpdirs, 'test', 'test');
+        make_old_version(linked_storage('test','test'));
+        my $storage = linked_storage( 'test', 'test');
 
         $storage->stage;
         $storage->make_object_path;
@@ -395,7 +413,7 @@ describe "HTFeed::Storage" => sub {
 
     describe "#clean_staging" => sub {
       it "removes anything in the temporary staging area" => sub {
-        my $storage = local_storage($tmpdirs, 'test', 'test');
+        my $storage = linked_storage( 'test', 'test');
 
         $storage->stage;
         $storage->clean_staging;
@@ -407,7 +425,7 @@ describe "HTFeed::Storage" => sub {
     describe "#stage" => sub {
       context "when the item is not in repository" => sub {
         it "stages to the configured staging location" => sub {
-          my $storage = local_storage($tmpdirs, 'test', 'test');
+          my $storage = linked_storage( 'test', 'test');
           $storage->stage;
 
           ok(-e "$tmpdirs->{obj_dir}/.tmp/test.test/test.mets.xml");
@@ -417,8 +435,8 @@ describe "HTFeed::Storage" => sub {
 
       context "when the item is in the repository with a different storage path" => sub {
         it "deposits to a staging area under that path" => sub {
-          make_old_version_other_dir(local_storage($tmpdirs, 'test','test'));
-          my $storage = local_storage($tmpdirs, 'test', 'test');
+          make_old_version_other_dir('test','test');
+          my $storage = linked_storage( 'test', 'test');
           $storage->stage;
 
           ok(-e "$tmpdirs->{other_obj_dir}/.tmp/test.test/test.mets.xml");
@@ -433,34 +451,36 @@ describe "HTFeed::Storage" => sub {
     use HTFeed::Storage::VersionedPairtree;
 
     sub versioned_storage {
-      my $volume = stage_volume(@_);
+      my $volume = stage_volume($tmpdirs,@_);
 
       my $storage = HTFeed::Storage::VersionedPairtree->new(
         volume => $volume,
-        config => $tmpdirs->config_for_storage_class('HTFeed::Storage::VersionedPairtree'));
+        config => {
+          obj_dir => $tmpdirs->{obj_dir},
+        }
+      );
 
       return $storage;
     }
-
 
     describe "#object_path" => sub {
 
       it "uses config for object root" => sub {
         eval {
-          my $storage = versioned_storage($tmpdirs, 'test', 'test');
+          my $storage = versioned_storage('test', 'test');
           $storage->set_storage_config('/backup-location/obj','obj_dir');
           like( $storage->object_path(), qr{^/backup-location/obj/});
         };
       };
 
       it "includes the namespace and pairtreeized object id in the path" => sub {
-        my $storage = versioned_storage($tmpdirs, 'test', 'test');
+        my $storage = versioned_storage('test', 'test');
 
         like( $storage->object_path(), qr{/test/pairtree_root/te/st/test});
       };
 
       it "includes a datestamp in the object directory" => sub {
-        my $storage = versioned_storage($tmpdirs,'test','test');
+        my $storage = versioned_storage('test','test');
 
         like( $storage->object_path(), qr{/test/\d{14}});
       };
@@ -468,7 +488,7 @@ describe "HTFeed::Storage" => sub {
 
     describe "#stage" => sub {
       it "deposits to a staging area under the configured object location" => sub {
-        my $storage = versioned_storage($tmpdirs, 'test', 'test');
+        my $storage = versioned_storage('test', 'test');
         $storage->stage;
 
         ok(-e "$tmpdirs->{obj_dir}/.tmp/test.test/test.mets.xml");
@@ -478,7 +498,7 @@ describe "HTFeed::Storage" => sub {
 
     describe "#make_object_path" => sub {
       it "makes the path with a timestamp" => sub {
-        my $storage = versioned_storage($tmpdirs, 'test','test');
+        my $storage = versioned_storage('test','test');
 
         $storage->make_object_path;
 
@@ -488,7 +508,7 @@ describe "HTFeed::Storage" => sub {
 
     describe "#move" => sub {
       it "moves from the staging location to the object path" => sub {
-        my $storage = versioned_storage($tmpdirs,'test','test');
+        my $storage = versioned_storage('test','test');
         $storage->stage;
         $storage->make_object_path;
         $storage->move;
@@ -500,7 +520,7 @@ describe "HTFeed::Storage" => sub {
 
     describe "#record_backup" => sub {
       it "records the copy in the feed_backups table" => sub {
-        my $storage = versioned_storage($tmpdirs,'test','test');
+        my $storage = versioned_storage('test','test');
         $storage->stage;
         $storage->make_object_path;
         $storage->move;
@@ -513,7 +533,7 @@ describe "HTFeed::Storage" => sub {
 
       it "does not record anything in feed_backups if the volume wasn't moved" => sub {
 
-        my $storage = versioned_storage($tmpdirs,'test','test');
+        my $storage = versioned_storage('test','test');
         $storage->stage;
 
         eval { $storage->record_backup };
