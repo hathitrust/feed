@@ -30,8 +30,9 @@ sub storages_from_config {
   my $self = shift;
 
   my @storages;
-  foreach my $storage_class (@{get_config('storage_classes')}) {
-    push(@storages, $storage_class->new(volume => $self->{volume}));
+  foreach my $storage_config (@{get_config('storage_classes')}) {
+    push(@storages, $storage_config->{class}->new(volume => $self->{volume},
+                                                 config => $storage_config));
   }
 
   return @storages;
@@ -77,6 +78,7 @@ sub collate {
   my $self = shift;
   my $storage = shift;
 
+  $storage->zipvalidate &&
   $storage->stage &&
   $storage->prevalidate &&
   $storage->make_object_path &&

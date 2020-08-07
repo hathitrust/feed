@@ -16,13 +16,25 @@ describe "HTFeed::Collate" => sub {
 
     before each => sub {
       $storage = Test::MockObject->new();
-      $storage->set_true(qw(stage prevalidate make_object_path move postvalidate record_audit cleanup rollback clean_staging));
+      $storage->set_true(qw(stage zipvalidate prevalidate make_object_path move postvalidate record_audit cleanup rollback clean_staging));
 
       my $volume = HTFeed::Volume->new(namespace => 'test',
         id => 'test',
         packagetype => 'simple');
       $collate = HTFeed::Stage::Collate->new(volume => $volume);
 
+    };
+
+    context "when zip contents validation fails" => sub {
+      before each => sub {
+        $storage->set_false('zipvalidate');
+      };
+
+      it "doesn't move to staging area" => sub {
+        $collate->run($storage);
+
+        ok(!$storage->called('stage'));
+      };
     };
 
     context "when prevalidation fails" => sub {
@@ -152,7 +164,18 @@ describe "HTFeed::Collate" => sub {
       my $old_storage_classes;
       before each => sub {
         $old_storage_classes = get_config('storage_classes');
-        set_config(['HTFeed::Storage::LocalPairtree','HTFeed::Storage::VersionedPairtree'],'storage_classes');
+        my $new_storage_classes = [
+          {
+            class => 'HTFeed::Storage::LocalPairtree',
+            obj_dir => $tmpdirs->{obj_dir},
+            link_dir => $tmpdirs->{link_dir}
+          },
+          {
+            class => 'HTFeed::Storage::VersionedPairtree',
+            obj_dir => $tmpdirs->{backup_obj_dir}
+          }
+        ];
+        set_config($new_storage_classes,'storage_classes');
       };
 
       after each => sub {
@@ -171,7 +194,6 @@ describe "HTFeed::Collate" => sub {
         is(scalar(@{$backups}),1,'records a backup');
 
         my $timestamp = $backups->[0][0];
-
         ok(-e "$tmpdirs->{obj_dir}/test/pairtree_root/te/st/test/test.mets.xml",'copies mets to local storage');
         ok(-e "$tmpdirs->{obj_dir}/test/pairtree_root/te/st/test/test.zip",'copies zip to local storage');
 

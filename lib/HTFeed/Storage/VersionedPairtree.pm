@@ -26,14 +26,14 @@ sub object_path {
 
   $self->{timestamp} ||= strftime("%Y%m%d%H%M%S",gmtime);
 
-  $self->SUPER::object_path('backup_obj_dir') .
+  $self->SUPER::object_path('obj_dir') .
     "/" . $self->{timestamp};
 }
 
 sub stage_path {
   my $self = shift;
 
-  $self->SUPER::stage_path('backup_obj_dir');
+  $self->SUPER::stage_path('obj_dir');
 }
 
 sub record_audit {

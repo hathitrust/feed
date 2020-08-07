@@ -1,13 +1,5 @@
 feed_home: /usr/local/feed
 
-# for end-to-end testing in docker
-repository:
-  # The directory in which symbolic links will be created to each volume
-  link_dir: /sdr2/obj
-  # The directory into which volumes will be loaded
-  obj_dir: /sdr1/obj
-  backup_obj_dir: /htdataden
-
 staging_root: /tmp/ingest
 sip_root: /tmp/stage
 
@@ -27,8 +19,13 @@ xerces: /usr/local/feed/blib/bin/validateCache
 epubcheck: /usr/bin/java -jar /usr/bin/epubcheck
 
 storage_classes:
-  - HTFeed::Storage::LocalPairtree
-  - HTFeed::Storage::VersionedPairtree
+  - class: HTFeed::Storage::LocalPairtree
+    # The directory in which symbolic links will be created to each volume
+    link_dir: /sdr2/obj
+    # The directory into which volumes will be loaded
+    obj_dir: /sdr1/obj
+  - class: HTFeed::Storage::VersionedPairtree
+    obj_dir: /htdataden
 
 jhove: /usr/bin/jhove
 jhoveconf: /etc/jhove/jhove.conf

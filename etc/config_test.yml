@@ -27,7 +27,11 @@ repository:
   backup_obj_dir: /tmp/obj_backup
 
 storage_classes:
-  - HTFeed::Storage::LocalPairtree
+  - class: HTFeed::Storage::LocalPairtree
+    # The directory in which symbolic links will be created to each volume
+    link_dir: /tmp/obj_link
+    # The directory into which volumes will be loaded
+    obj_dir: /tmp/obj
 
 jhove: /usr/bin/jhove
 jhoveconf: /etc/jhove/jhove.conf

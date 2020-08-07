@@ -17,14 +17,19 @@ sub new {
   die("Missing required argument 'volume'")
     unless $args{volume};
 
-  my $volume = $args{volume};
+  die("Missing required argument 'config'")
+    unless $args{config};
 
+
+  my $volume = $args{volume};
+  my $config = $args{config};
 
   my $self = {
     volume => $volume,
     namespace => $volume->get_namespace(),
     objid => $volume->get_objid(),
     errors => [],
+    config => $config,
   };
 
   bless($self, $class);
@@ -112,7 +117,7 @@ sub object_path {
   my $config_key = shift;
 
   return sprintf('%s/%s/%s%s',
-    get_config('repository'=>$config_key),
+    $self->{config}->{$config_key},
     $self->{namespace},
     id2ppath($self->{objid}),
     s2ppchars($self->{objid}));
@@ -132,7 +137,7 @@ sub stage_path {
   my $self = shift;
   my $config_key = shift;
 
-  return $self->stage_path_from_base(get_config('repository' => $config_key));
+  return $self->stage_path_from_base($self->{config}->{$config_key});
 }
 
 sub move {
@@ -188,26 +193,16 @@ sub postvalidate {
   $self->validate_zip($self->object_path);
 }
 
-sub prevalidate {
+sub zipvalidate {
   my $self = shift;
-
-  $self->validate_mets($self->stage_path) &&
-  $self->validate_zip($self->stage_path) &&
-  $self->validate_zip_contents($self->stage_path);
-}
-
-# TODO move this to pack
-sub validate_zip_contents {
-  my $self = shift;
-  my $path = shift;
 
   my $volume = $self->{volume};
   my $pt_objid = $volume->get_pt_objid();
 
   my $zip_stage = get_config('staging'=>'zip') . "/$pt_objid";
 
-  my $mets_path = $volume->get_mets_path($path);
-  my $zip_path = $volume->get_zip_path($path);
+  my $mets_path = $volume->get_mets_path();
+  my $zip_path = $volume->get_zip_path();
   HTFeed::Stage::Unpack::unzip_file($self,$zip_path,$zip_stage);
   my $checksums = $volume->get_checksum_mets($mets_path);
   my $files = $volume->get_all_directory_files($zip_stage);
@@ -216,7 +211,13 @@ sub validate_zip_contents {
   remove_tree($zip_stage);
 
   return $ok;
-  #
+}
+
+sub prevalidate {
+  my $self = shift;
+
+  $self->validate_mets($self->stage_path) &&
+  $self->validate_zip($self->stage_path)
 }
 
 sub validate_mets {
