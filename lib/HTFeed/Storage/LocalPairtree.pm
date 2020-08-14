@@ -21,17 +21,7 @@ sub object_path {
 sub stage_path {
   my $self = shift;
 
-  if($self->uses_linked_objdir and -l $self->link_path) {
-    $self->existing_object_tmpdir;
-  } else {
-    $self->SUPER::stage_path('obj_dir');
-  }
-}
-
-sub uses_linked_objdir {
-  my $self = shift;
-
-  return $self->{config}{link_dir} ne $self->{config}{obj_dir};
+  $self->SUPER::stage_path('obj_dir');
 }
 
 sub existing_object_tmpdir {
@@ -104,83 +94,25 @@ sub existing_object {
   return -f $self->zip_obj_path && -f $self->mets_obj_path;
 }
 
-sub make_object_path {
+sub set_is_repeat {
   my $self = shift;
-
-  # Create link from 'link_dir' area, if needed
-  # if link_dir==obj_dir we don't want to use the link_dir
-  if($self->uses_linked_objdir) {
-    $self->symlink_if_needed;
-  } elsif (! -d $self->object_path) {
-    $self->safe_make_path($self->object_path);
-  }
 
   if($self->existing_object) {
     $self->{is_repeat} = 1;
   } else {
     $self->{is_repeat} = 0;
   }
-
-  return 1;
 }
 
-sub follow_existing_link {
+sub make_object_path {
   my $self = shift;
 
-  my $object_path;
-  my $link_path = $self->link_path;
-  # set object directory to target of existing link
-  unless ($object_path = readlink($link_path)){
-    # there is no good reason we chould have a dir and no link
-    $self->set_error('OperationFailed', operation => 'readlink', file => $link_path, detail => "readlink failed: $!")
+  if (! -d $self->object_path) {
+    $self->safe_make_path($self->object_path);
   }
 
-  return $object_path;
-}
+  $self->set_is_repeat;
 
-sub make_link {
-  my $self = shift;
-  my $object_path = shift;
-  my $link_path = shift;
-
-  get_logger->trace("Symlinking $object_path to $link_path");
-  symlink ($object_path, $link_path)
-    or $self->set_error('OperationFailed', operation => 'symlink', detail => "Could not symlink $object_path to $link_path $!");
-}
-
-sub link_parent {
-  my $self = shift;
-  return sprintf('%s/%s/%s',$self->{config}{link_dir},$self->{namespace},id2ppath($self->{objid}));
-}
-
-sub link_path {
-  my $self = shift;
-  my $pt_objid = s2ppchars($self->{objid});
-
-  return $self->link_parent . $pt_objid;
-};
-
-sub symlink_if_needed {
-  my $self = shift;
-
-  my $volume = $self->{volume};
-  my $namespace = $self->{namespace};
-  my $objid = $self->{objid};
-  my $pt_objid = s2ppchars($objid);
-  $self->{is_repeat} = 0;
-
-  my $link_parent = $self->link_parent;
-  my $link_path = $self->link_path;
-
-  if (-l $link_path){
-    $self->{object_path} = $self->follow_existing_link;
-  }
-  else{
-    my $object_path = $self->object_path;
-    $self->safe_make_path($object_path);
-    $self->safe_make_path($link_parent);
-    $self->make_link($object_path,$link_path);
-  }
 
   return 1;
 }

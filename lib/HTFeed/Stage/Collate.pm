@@ -13,6 +13,7 @@ use URI::Escape;
 use Carp qw(croak);
 
 use HTFeed::Storage::LocalPairtree;
+use HTFeed::Storage::LinkedPairtree;
 use HTFeed::Storage::VersionedPairtree;
 
 =head1 NAME

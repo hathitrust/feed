@@ -166,7 +166,7 @@ describe "HTFeed::Collate" => sub {
         $old_storage_classes = get_config('storage_classes');
         my $new_storage_classes = [
           {
-            class => 'HTFeed::Storage::LocalPairtree',
+            class => 'HTFeed::Storage::LinkedPairtree',
             obj_dir => $tmpdirs->{obj_dir},
             link_dir => $tmpdirs->{link_dir}
           },
