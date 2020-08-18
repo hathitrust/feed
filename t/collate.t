@@ -166,12 +166,12 @@ describe "HTFeed::Collate" => sub {
         $old_storage_classes = get_config('storage_classes');
         my $new_storage_classes = [
           {
-            class => 'HTFeed::Storage::LinkedPairtree',
+            class => 'HTFeed::Collator::LinkedPairtree',
             obj_dir => $tmpdirs->{obj_dir},
             link_dir => $tmpdirs->{link_dir}
           },
           {
-            class => 'HTFeed::Storage::VersionedPairtree',
+            class => 'HTFeed::Collator::VersionedPairtree',
             obj_dir => $tmpdirs->{backup_obj_dir}
           }
         ];

@@ -8,7 +8,7 @@ use HTFeed::Config qw(set_config get_config);
 use HTFeed::DBTools qw(get_dbh);
 
 
-describe "HTFeed::Storage" => sub {
+describe "HTFeed::Collator" => sub {
   local our $tmpdirs;
   my $testlog;
 
@@ -49,13 +49,13 @@ describe "HTFeed::Storage" => sub {
     $mets_fh->close;
   }
 
-  describe "HTFeed::Storage::LinkedPairtree" => sub {
-    use HTFeed::Storage::LinkedPairtree;
+  describe "HTFeed::Collator::LinkedPairtree" => sub {
+    use HTFeed::Collator::LinkedPairtree;
 
     sub make_old_version_other_dir {
       my $volume = stage_volume($tmpdirs,@_);
 
-      my $storage = HTFeed::Storage::LinkedPairtree->new(
+      my $storage = HTFeed::Collator::LinkedPairtree->new(
         volume => $volume,
         config => {
           obj_dir => $tmpdirs->{other_obj_dir},
@@ -69,7 +69,7 @@ describe "HTFeed::Storage" => sub {
     sub linked_storage {
       my $volume = stage_volume($tmpdirs,@_);
 
-      my $storage = HTFeed::Storage::LinkedPairtree->new(
+      my $storage = HTFeed::Collator::LinkedPairtree->new(
         volume => $volume,
         config => {
           obj_dir => $tmpdirs->{obj_dir},
@@ -157,13 +157,13 @@ describe "HTFeed::Storage" => sub {
     };
   };
 
-  describe "HTFeed::Storage::LocalPairtree" => sub {
-    use HTFeed::Storage::LocalPairtree;
+  describe "HTFeed::Collator::LocalPairtree" => sub {
+    use HTFeed::Collator::LocalPairtree;
 
     sub local_storage {
       my $volume = stage_volume($tmpdirs,@_);
 
-      my $storage = HTFeed::Storage::LocalPairtree->new(
+      my $storage = HTFeed::Collator::LocalPairtree->new(
         volume => $volume,
         config => {
           obj_dir => $tmpdirs->{obj_dir},
@@ -464,13 +464,13 @@ describe "HTFeed::Storage" => sub {
 
   };
 
-  describe "HTFeed::Storage::VersionedPairtree" => sub {
-    use HTFeed::Storage::VersionedPairtree;
+  describe "HTFeed::Collator::VersionedPairtree" => sub {
+    use HTFeed::Collator::VersionedPairtree;
 
     sub versioned_storage {
       my $volume = stage_volume($tmpdirs,@_);
 
-      my $storage = HTFeed::Storage::VersionedPairtree->new(
+      my $storage = HTFeed::Collator::VersionedPairtree->new(
         volume => $volume,
         config => {
           obj_dir => $tmpdirs->{obj_dir},
