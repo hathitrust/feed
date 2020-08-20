@@ -26,8 +26,8 @@ repository:
   obj_dir: /tmp/obj
   backup_obj_dir: /tmp/obj_backup
 
-storage_classes:
-  - class: HTFeed::Storage::LinkedPairtree
+collators:
+  - class: HTFeed::Collator::LinkedPairtree
     # The directory in which symbolic links will be created to each volume
     link_dir: /tmp/obj_link
     # The directory into which volumes will be loaded

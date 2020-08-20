@@ -1,4 +1,5 @@
 package HTFeed::Collator::LinkedPairtree;
+use HTFeed::Storage::LinkedPairtree;
 
 use HTFeed::Collator;
 use base qw(HTFeed::Collator::LocalPairtree);
@@ -11,6 +12,16 @@ use HTFeed::VolumeValidator;
 use URI::Escape;
 use POSIX qw(strftime);
 use HTFeed::DBTools qw(get_dbh);
+
+sub new {
+  my $class = shift;
+
+  my $self = $class->SUPER::new(@_);
+
+  $self->{storage} = HTFeed::Storage::LinkedPairtree->new($self->{config});
+
+  return $self;
+}
 
 sub stage_path {
   my $self = shift;

@@ -36,15 +36,15 @@ describe "HTFeed::Collator" => sub {
 
 
   sub make_old_version {
-    my $storage = shift;
+    my $collator = shift;
 
-    $storage->make_object_path;
+    $collator->make_object_path;
 
-    open(my $zip_fh, ">", $storage->zip_obj_path);
+    open(my $zip_fh, ">", $collator->zip_obj_path);
     print $zip_fh "old version\n";
     $zip_fh->close;
 
-    open(my $mets_fh,">",$storage->mets_obj_path);
+    open(my $mets_fh,">",$collator->mets_obj_path);
     print $mets_fh "old version\n";
     $mets_fh->close;
   }
@@ -55,7 +55,7 @@ describe "HTFeed::Collator" => sub {
     sub make_old_version_other_dir {
       my $volume = stage_volume($tmpdirs,@_);
 
-      my $storage = HTFeed::Collator::LinkedPairtree->new(
+      my $collator = HTFeed::Collator::LinkedPairtree->new(
         volume => $volume,
         config => {
           obj_dir => $tmpdirs->{other_obj_dir},
@@ -63,13 +63,13 @@ describe "HTFeed::Collator" => sub {
         }
       );
 
-      make_old_version($storage);
+      make_old_version($collator);
     }
 
-    sub linked_storage {
+    sub linked_collator {
       my $volume = stage_volume($tmpdirs,@_);
 
-      my $storage = HTFeed::Collator::LinkedPairtree->new(
+      my $collator = HTFeed::Collator::LinkedPairtree->new(
         volume => $volume,
         config => {
           obj_dir => $tmpdirs->{obj_dir},
@@ -77,15 +77,15 @@ describe "HTFeed::Collator" => sub {
         }
       );
 
-      return $storage;
+      return $collator;
     }
 
     it "moves the existing version aside when the link target doesn't match current objdir" => sub {
       make_old_version_other_dir('test','test');
-      my $storage = linked_storage( 'test', 'test');
-      $storage->stage;
-      $storage->make_object_path;
-      $storage->move;
+      my $collator = linked_collator( 'test', 'test');
+      $collator->stage;
+      $collator->make_object_path;
+      $collator->move;
 
       ok(-e "$tmpdirs->{other_obj_dir}/test/pairtree_root/te/st/test/test.mets.xml.old");
       ok(-e "$tmpdirs->{other_obj_dir}/test/pairtree_root/te/st/test/test.zip.old");
@@ -96,29 +96,29 @@ describe "HTFeed::Collator" => sub {
 
       context "when the object is not in the repo" => sub {
         it "creates a symlink for the volume" => sub {
-          my $storage = linked_storage('test','test');
-          $storage->make_object_path;
+          my $collator = linked_collator('test','test');
+          $collator->make_object_path;
 
           is("$tmpdirs->{obj_dir}/test/pairtree_root/te/st/test",
             readlink("$tmpdirs->{link_dir}/test/pairtree_root/te/st/test"));
         };
 
         it "does not set is_repeat if the object is not in the repo" => sub {
-          my $storage = linked_storage('test','test');
-          $storage->make_object_path;
+          my $collator = linked_collator('test','test');
+          $collator->make_object_path;
 
-          ok(!$storage->{is_repeat});
+          ok(!$collator->{is_repeat});
         }
       };
 
       context "when the object is in the repo with link target matching obj_dir" => sub {
         it "sets is_repeat" => sub {
-          make_old_version(linked_storage('test','test'));
+          make_old_version(linked_collator('test','test'));
 
-          my $storage = linked_storage('test','test');
-          $storage->make_object_path;
+          my $collator = linked_collator('test','test');
+          $collator->make_object_path;
 
-          ok($storage->{is_repeat});
+          ok($collator->{is_repeat});
         };
       };
 
@@ -126,29 +126,29 @@ describe "HTFeed::Collator" => sub {
         it "uses existing target of the link" => sub {
           make_old_version_other_dir('test','test');
 
-          my $storage = linked_storage('test','test');
-          $storage->make_object_path;
+          my $collator = linked_collator('test','test');
+          $collator->make_object_path;
 
-          is($storage->object_path,"$tmpdirs->{other_obj_dir}/test/pairtree_root/te/st/test");
+          is($collator->object_path,"$tmpdirs->{other_obj_dir}/test/pairtree_root/te/st/test");
         };
 
         it "sets is_repeat" => sub {
           make_old_version_other_dir('test','test');
 
-          my $storage = linked_storage('test','test');
-          $storage->make_object_path;
+          my $collator = linked_collator('test','test');
+          $collator->make_object_path;
 
-          ok($storage->{is_repeat});
+          ok($collator->{is_repeat});
         }
       };
     };
 
     describe "#stage" => sub {
-      context "when the item is in the repository with a different storage path" => sub {
+      context "when the item is in the repository with a different collator path" => sub {
         it "deposits to a staging area under that path" => sub {
           make_old_version_other_dir('test','test');
-          my $storage = linked_storage( 'test', 'test');
-          $storage->stage;
+          my $collator = linked_collator( 'test', 'test');
+          $collator->stage;
 
           ok(-e "$tmpdirs->{other_obj_dir}/.tmp/test.test/test.mets.xml");
           ok(-e "$tmpdirs->{other_obj_dir}/.tmp/test.test/test.zip");
@@ -160,37 +160,37 @@ describe "HTFeed::Collator" => sub {
   describe "HTFeed::Collator::LocalPairtree" => sub {
     use HTFeed::Collator::LocalPairtree;
 
-    sub local_storage {
+    sub local_collator {
       my $volume = stage_volume($tmpdirs,@_);
 
-      my $storage = HTFeed::Collator::LocalPairtree->new(
+      my $collator = HTFeed::Collator::LocalPairtree->new(
         volume => $volume,
         config => {
           obj_dir => $tmpdirs->{obj_dir},
         }
       );
 
-      return $storage;
+      return $collator;
     }
 
     describe "#move" => sub {
       it "copies the mets and zip to the repository" => sub {
-        my $storage = local_storage( 'test', 'test');
-        $storage->stage;
-        $storage->make_object_path;
-        $storage->move;
+        my $collator = local_collator( 'test', 'test');
+        $collator->stage;
+        $collator->make_object_path;
+        $collator->move;
 
         ok(-e "$tmpdirs->{obj_dir}/test/pairtree_root/te/st/test/test.mets.xml");
         ok(-e "$tmpdirs->{obj_dir}/test/pairtree_root/te/st/test/test.zip");
       };
 
       it "moves the existing version aside" => sub {
-        make_old_version(local_storage('test','test'));
-        my $storage = local_storage( 'test', 'test');
+        make_old_version(local_collator('test','test'));
+        my $collator = local_collator( 'test', 'test');
 
-        $storage->stage;
-        $storage->make_object_path;
-        $storage->move;
+        $collator->stage;
+        $collator->make_object_path;
+        $collator->move;
 
         ok(-e "$tmpdirs->{obj_dir}/test/pairtree_root/te/st/test/test.mets.xml.old");
         ok(-e "$tmpdirs->{obj_dir}/test/pairtree_root/te/st/test/test.zip.old");
@@ -202,48 +202,48 @@ describe "HTFeed::Collator" => sub {
 
       context "when the object is not in the repo" => sub {
         it "does not set is_repeat if the object is not in the repo" => sub {
-          my $storage = local_storage('test','test');
-          $storage->make_object_path;
+          my $collator = local_collator('test','test');
+          $collator->make_object_path;
 
-          ok(!$storage->{is_repeat});
+          ok(!$collator->{is_repeat});
         }
       };
 
       it "works" => sub {
-        my $storage = local_storage('test','test');
-        $storage->make_object_path;
+        my $collator = local_collator('test','test');
+        $collator->make_object_path;
 
         ok(-e "$tmpdirs->{obj_dir}/test/pairtree_root/te/st/test");
       };
 
       it "is idempotent" => sub {
-        my $storage = local_storage('test','test');
-        $storage->make_object_path;
-        $storage->make_object_path;
+        my $collator = local_collator('test','test');
+        $collator->make_object_path;
+        $collator->make_object_path;
 
-        ok(! @{$storage->{errors}});
+        ok(! @{$collator->{errors}});
       };
     };
 
     describe "#zipvalidate" => sub {
       context "with a zip whose contents do not match the METS" => sub {
         it "returns false" => sub {
-          my $storage = local_storage('test','bad_file_checksum');
-          ok(!$storage->zipvalidate);
+          my $collator = local_collator('test','bad_file_checksum');
+          ok(!$collator->zipvalidate);
         };
 
         it "logs an error about the file" => sub {
-          my $storage = local_storage('test','bad_file_checksum');
-          $storage->zipvalidate;
+          my $collator = local_collator('test','bad_file_checksum');
+          $collator->zipvalidate;
 
           ok($testlog->matches(qr(ERROR.*Checksum.*00000001.jp2)));
         };
       };
 
       it "with a zip whose contents match the METS returns true" => sub {
-        my $storage = local_storage('test','test');
-        $storage->stage;
-        ok($storage->zipvalidate);
+        my $collator = local_collator('test','test');
+        $collator->stage;
+        ok($collator->zipvalidate);
       };
     };
 
@@ -251,16 +251,16 @@ describe "HTFeed::Collator" => sub {
 
       context "with a zip whose checksum does not match the one in the METS" => sub {
         it "returns false" => sub {
-          my $storage = local_storage('test','bad_zip');
-          $storage->stage;
+          my $collator = local_collator('test','bad_zip');
+          $collator->stage;
 
-          ok(!$storage->prevalidate);
+          ok(!$collator->prevalidate);
         };
 
         it "logs an error about the zip" => sub {
-          my $storage = local_storage('test','bad_zip');
-          $storage->stage;
-          $storage->prevalidate;
+          my $collator = local_collator('test','bad_zip');
+          $collator->stage;
+          $collator->prevalidate;
 
           ok($testlog->matches(qr(ERROR.*Checksum.*bad_zip.zip)));
         };
@@ -275,52 +275,52 @@ describe "HTFeed::Collator" => sub {
         # attributes have been changed.
 
         it "returns false" => sub {
-          my $storage = local_storage('test','test');
-          $storage->stage;
+          my $collator = local_collator('test','test');
+          $collator->stage;
           # validate zip should pass but METS doesn't match volume METS
           my $other_mets = get_config('staging','fetch') . "/test.mets.xml-corrupted";
-          system("cp",$other_mets,$storage->mets_stage_path);
+          system("cp",$other_mets,$collator->mets_stage_path);
 
-          ok(!$storage->prevalidate);
+          ok(!$collator->prevalidate);
         };
 
         it "logs an error" => sub {
-          my $storage = local_storage('test','test');
-          $storage->stage;
+          my $collator = local_collator('test','test');
+          $collator->stage;
           # validate zip should pass but METS doesn't match volume METS
           my $other_mets = get_config('staging','fetch') . "/test.mets.xml-corrupted";
-          system("cp",$other_mets,$storage->mets_stage_path);
+          system("cp",$other_mets,$collator->mets_stage_path);
 
           # put a bad METS in staging
-          $storage->prevalidate;
+          $collator->prevalidate;
           ok($testlog->matches(qr(ERROR.*Checksum.*mets.xml)));
         };
       };
 
       it "with a zip whose checksum matches the METS returns true" => sub {
-        my $storage = local_storage('test','test');
-        $storage->stage;
-        ok($storage->prevalidate);
+        my $collator = local_collator('test','test');
+        $collator->stage;
+        ok($collator->prevalidate);
       };
     };
 
     describe "#postvalidate" => sub {
       context "with a zip whose checksum does not match the one in the METS" => sub {
         it "fails for a zip whose checksum does not match the one in the METS" => sub {
-          my $storage = local_storage('test','bad_zip');
-          $storage->stage;
-          $storage->make_object_path;
-          $storage->move;
+          my $collator = local_collator('test','bad_zip');
+          $collator->stage;
+          $collator->make_object_path;
+          $collator->move;
 
-          ok(!$storage->postvalidate);
+          ok(!$collator->postvalidate);
         };
 
         it "logs an error" => sub {
-          my $storage = local_storage('test','bad_zip');
-          $storage->stage;
-          $storage->make_object_path;
-          $storage->move;
-          $storage->postvalidate;
+          my $collator = local_collator('test','bad_zip');
+          $collator->stage;
+          $collator->make_object_path;
+          $collator->move;
+          $collator->postvalidate;
 
           ok($testlog->matches(qr(ERROR.*Checksum.*bad_zip.zip)));
         };
@@ -328,51 +328,51 @@ describe "HTFeed::Collator" => sub {
 
       context "with a METS that does not match the original METS" => sub {
         it "returns false" => sub {
-          my $storage = local_storage('test','test');
-          $storage->stage;
+          my $collator = local_collator('test','test');
+          $collator->stage;
           # validate zip should pass but METS doesn't match volume METS
           my $other_mets = get_config('staging','fetch') . "/test.mets.xml-corrupted";
-          system("cp",$other_mets,$storage->mets_stage_path);
-          $storage->make_object_path;
-          $storage->move;
+          system("cp",$other_mets,$collator->mets_stage_path);
+          $collator->make_object_path;
+          $collator->move;
 
-          ok(!$storage->postvalidate);
+          ok(!$collator->postvalidate);
         };
 
         it "logs an error" => sub {
-          my $storage = local_storage('test','test');
-          $storage->stage;
+          my $collator = local_collator('test','test');
+          $collator->stage;
           # validate zip should pass but METS doesn't match volume METS
           my $other_mets = get_config('staging','fetch') . "/test.mets.xml-corrupted";
-          system("cp",$other_mets,$storage->mets_stage_path);
-          $storage->make_object_path;
-          $storage->move;
-          $storage->postvalidate;
+          system("cp",$other_mets,$collator->mets_stage_path);
+          $collator->make_object_path;
+          $collator->move;
+          $collator->postvalidate;
 
           ok($testlog->matches(qr(ERROR.*Checksum.*mets.xml)));
         };
       };
 
       it "succeeds for a zip whose checksum matches the METS" => sub {
-        my $storage = local_storage('test','test');
-        $storage->stage;
-        $storage->make_object_path;
-        $storage->move;
+        my $collator = local_collator('test','test');
+        $collator->stage;
+        $collator->make_object_path;
+        $collator->move;
 
-        ok($storage->postvalidate);
+        ok($collator->postvalidate);
       };
 
     };
 
     describe "#rollback" => sub {
       it "restores the original version" => sub {
-        make_old_version(local_storage('test','test'));
-        my $storage = local_storage( 'test', 'test');
+        make_old_version(local_collator('test','test'));
+        my $collator = local_collator( 'test', 'test');
 
-        $storage->stage;
-        $storage->make_object_path;
-        $storage->move;
-        $storage->rollback;
+        $collator->stage;
+        $collator->make_object_path;
+        $collator->move;
+        $collator->rollback;
 
         ok(! -e "$tmpdirs->{obj_dir}/test/pairtree_root/te/st/test/test.mets.xml.old");
         ok(! -e "$tmpdirs->{obj_dir}/test/pairtree_root/te/st/test/test.zip.old");
@@ -391,15 +391,15 @@ describe "HTFeed::Collator" => sub {
     };
 
     it "leaves the .old version there if it didn't put it there" => sub {
-      make_old_version(local_storage('test','test'));
+      make_old_version(local_collator('test','test'));
       my $oldzip = "$tmpdirs->{obj_dir}/test/pairtree_root/te/st/test/test.zip.old";
       open(my $fh, ">", $oldzip);
       print $fh "leftover junk\n";
 
-      my $storage = local_storage( 'test', 'test');
+      my $collator = local_collator( 'test', 'test');
 
-      $storage->stage;
-      $storage->rollback;
+      $collator->stage;
+      $collator->rollback;
 
       ok(-e $oldzip);
 
@@ -409,11 +409,11 @@ describe "HTFeed::Collator" => sub {
       it "records an md5 check in the feed_audit table" => sub {
         my $dbh = get_dbh();
 
-        my $storage = local_storage('test','test');
-        $storage->stage;
-        $storage->make_object_path;
-        $storage->move;
-        $storage->record_audit;
+        my $collator = local_collator('test','test');
+        $collator->stage;
+        $collator->make_object_path;
+        $collator->move;
+        $collator->record_audit;
 
         my $r = $dbh->selectall_arrayref("SELECT lastmd5check from feed_audit WHERE namespace = 'test' and id = 'test'");
 
@@ -425,8 +425,8 @@ describe "HTFeed::Collator" => sub {
 		describe "#stage" => sub {
       context "when the item is not in repository" => sub {
         it "stages to the configured staging location" => sub {
-          my $storage = local_storage( 'test', 'test');
-          $storage->stage;
+          my $collator = local_collator( 'test', 'test');
+          $collator->stage;
 
           ok(-e "$tmpdirs->{obj_dir}/.tmp/test.test/test.mets.xml");
           ok(-e "$tmpdirs->{obj_dir}/.tmp/test.test/test.zip");
@@ -436,13 +436,13 @@ describe "HTFeed::Collator" => sub {
 
     describe "#cleanup" => sub {
       it "removes the moved-aside old version" => sub {
-        make_old_version(local_storage('test','test'));
-        my $storage = local_storage( 'test', 'test');
+        make_old_version(local_collator('test','test'));
+        my $collator = local_collator( 'test', 'test');
 
-        $storage->stage;
-        $storage->make_object_path;
-        $storage->move;
-        $storage->cleanup;
+        $collator->stage;
+        $collator->make_object_path;
+        $collator->move;
+        $collator->cleanup;
 
         ok(! -e "$tmpdirs->{obj_dir}/test/pairtree_root/te/st/test/test.mets.xml.old");
         ok(! -e "$tmpdirs->{obj_dir}/test/pairtree_root/te/st/test/test.zip.old");
@@ -452,10 +452,10 @@ describe "HTFeed::Collator" => sub {
 
     describe "#clean_staging" => sub {
       it "removes anything in the temporary staging area" => sub {
-        my $storage = local_storage( 'test', 'test');
+        my $collator = local_collator( 'test', 'test');
 
-        $storage->stage;
-        $storage->clean_staging;
+        $collator->stage;
+        $collator->clean_staging;
 
         ok(! -e "$tmpdirs->{obj_dir}/.tmp/test.test");
       };
@@ -467,46 +467,46 @@ describe "HTFeed::Collator" => sub {
   describe "HTFeed::Collator::VersionedPairtree" => sub {
     use HTFeed::Collator::VersionedPairtree;
 
-    sub versioned_storage {
+    sub versioned_collator {
       my $volume = stage_volume($tmpdirs,@_);
 
-      my $storage = HTFeed::Collator::VersionedPairtree->new(
+      my $collator = HTFeed::Collator::VersionedPairtree->new(
         volume => $volume,
         config => {
           obj_dir => $tmpdirs->{obj_dir},
         }
       );
 
-      return $storage;
+      return $collator;
     }
 
     describe "#object_path" => sub {
 
       it "uses config for object root" => sub {
         eval {
-          my $storage = versioned_storage('test', 'test');
-          $storage->set_storage_config('/backup-location/obj','obj_dir');
-          like( $storage->object_path(), qr{^/backup-location/obj/});
+          my $collator = versioned_collator('test', 'test');
+          $collator->set_collator_config('/backup-location/obj','obj_dir');
+          like( $collator->object_path(), qr{^/backup-location/obj/});
         };
       };
 
       it "includes the namespace and pairtreeized object id in the path" => sub {
-        my $storage = versioned_storage('test', 'test');
+        my $collator = versioned_collator('test', 'test');
 
-        like( $storage->object_path(), qr{/test/pairtree_root/te/st/test});
+        like( $collator->object_path(), qr{/test/pairtree_root/te/st/test});
       };
 
       it "includes a datestamp in the object directory" => sub {
-        my $storage = versioned_storage('test','test');
+        my $collator = versioned_collator('test','test');
 
-        like( $storage->object_path(), qr{/test/\d{14}});
+        like( $collator->object_path(), qr{/test/\d{14}});
       };
     };
 
     describe "#stage" => sub {
       it "deposits to a staging area under the configured object location" => sub {
-        my $storage = versioned_storage('test', 'test');
-        $storage->stage;
+        my $collator = versioned_collator('test', 'test');
+        $collator->stage;
 
         ok(-e "$tmpdirs->{obj_dir}/.tmp/test.test/test.mets.xml");
         ok(-e "$tmpdirs->{obj_dir}/.tmp/test.test/test.zip");
@@ -515,45 +515,45 @@ describe "HTFeed::Collator" => sub {
 
     describe "#make_object_path" => sub {
       it "makes the path with a timestamp" => sub {
-        my $storage = versioned_storage('test','test');
+        my $collator = versioned_collator('test','test');
 
-        $storage->make_object_path;
+        $collator->make_object_path;
 
-        ok(-d "$tmpdirs->{obj_dir}/test/pairtree_root/te/st/test/$storage->{timestamp}");
+        ok(-d "$tmpdirs->{obj_dir}/test/pairtree_root/te/st/test/$collator->{timestamp}");
       }
     };
 
     describe "#move" => sub {
       it "moves from the staging location to the object path" => sub {
-        my $storage = versioned_storage('test','test');
-        $storage->stage;
-        $storage->make_object_path;
-        $storage->move;
+        my $collator = versioned_collator('test','test');
+        $collator->stage;
+        $collator->make_object_path;
+        $collator->move;
 
-        ok(-e "$tmpdirs->{obj_dir}/test/pairtree_root/te/st/test/$storage->{timestamp}/test.zip","copies the zip");
-        ok(-e "$tmpdirs->{obj_dir}/test/pairtree_root/te/st/test/$storage->{timestamp}/test.mets.xml","copies the mets");
+        ok(-e "$tmpdirs->{obj_dir}/test/pairtree_root/te/st/test/$collator->{timestamp}/test.zip","copies the zip");
+        ok(-e "$tmpdirs->{obj_dir}/test/pairtree_root/te/st/test/$collator->{timestamp}/test.mets.xml","copies the mets");
       };
     };
 
     describe "#record_backup" => sub {
       it "records the copy in the feed_backups table" => sub {
-        my $storage = versioned_storage('test','test');
-        $storage->stage;
-        $storage->make_object_path;
-        $storage->move;
-        $storage->record_backup;
+        my $collator = versioned_collator('test','test');
+        $collator->stage;
+        $collator->make_object_path;
+        $collator->move;
+        $collator->record_backup;
 
         my $r = get_dbh()->selectall_arrayref("SELECT version from feed_backups WHERE namespace = 'test' and id = 'test'");
 
-        is($r->[0][0],$storage->{timestamp});
+        is($r->[0][0],$collator->{timestamp});
       };
 
       it "does not record anything in feed_backups if the volume wasn't moved" => sub {
 
-        my $storage = versioned_storage('test','test');
-        $storage->stage;
+        my $collator = versioned_collator('test','test');
+        $collator->stage;
 
-        eval { $storage->record_backup };
+        eval { $collator->record_backup };
 
         my $r = get_dbh()->selectall_arrayref("SELECT version from feed_backups WHERE namespace = 'test' and id = 'test'");
 

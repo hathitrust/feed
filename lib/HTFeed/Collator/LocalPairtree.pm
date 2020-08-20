@@ -1,4 +1,5 @@
 package HTFeed::Collator::LocalPairtree;
+use HTFeed::Storage::LocalPairtree;
 
 use HTFeed::Collator;
 use base qw(HTFeed::Collator);
@@ -11,6 +12,17 @@ use HTFeed::VolumeValidator;
 use URI::Escape;
 use POSIX qw(strftime);
 use HTFeed::DBTools qw(get_dbh);
+
+sub new {
+  my $class = shift;
+
+  my $self = $class->SUPER::new(@_);
+
+  $self->{storage} = HTFeed::Storage::LocalPairtree->new($self->{config});
+
+  return $self;
+}
+
 
 sub object_path {
   my $self = shift;

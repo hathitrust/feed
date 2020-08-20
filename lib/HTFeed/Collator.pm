@@ -20,7 +20,6 @@ sub new {
   die("Missing required argument 'config'")
     unless $args{config};
 
-
   my $volume = $args{volume};
   my $config = $args{config};
 

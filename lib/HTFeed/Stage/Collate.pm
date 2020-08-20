@@ -12,9 +12,9 @@ use HTFeed::VolumeValidator;
 use URI::Escape;
 use Carp qw(croak);
 
-use HTFeed::Storage::LocalPairtree;
-use HTFeed::Storage::LinkedPairtree;
-use HTFeed::Storage::VersionedPairtree;
+use HTFeed::Collator::LocalPairtree;
+use HTFeed::Collator::LinkedPairtree;
+use HTFeed::Collator::VersionedPairtree;
 
 =head1 NAME
 
@@ -27,16 +27,16 @@ HTFeed::Stage::Collate.pm
 
 =cut
 
-sub storages_from_config {
+sub collators_from_config {
   my $self = shift;
 
-  my @storages;
-  foreach my $storage_config (@{get_config('storage_classes')}) {
-    push(@storages, $storage_config->{class}->new(volume => $self->{volume},
+  my @collators;
+  foreach my $storage_config (@{get_config('collators')}) {
+    push(@collators, $storage_config->{class}->new(volume => $self->{volume},
                                                  config => $storage_config));
   }
 
-  return @storages;
+  return @collators;
 }
 
 sub run{
@@ -44,10 +44,10 @@ sub run{
 
     $self->{is_repeat} = 0;
 
-    my @storages = @_;
-    @storages = $self->storages_from_config if !@storages;
+    my @collators = @_;
+    @collators = $self->collators_from_config if !@collators;
 
-    foreach my $storage (@storages) {
+    foreach my $storage (@collators) {
 
       if( $self->collate($storage))  {
         $storage->cleanup

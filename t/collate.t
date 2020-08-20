@@ -161,10 +161,10 @@ describe "HTFeed::Collate" => sub {
     };
 
     context "with multiple real storage classes" => sub {
-      my $old_storage_classes;
+      my $old_collators;
       before each => sub {
-        $old_storage_classes = get_config('storage_classes');
-        my $new_storage_classes = [
+        $old_collators = get_config('collators');
+        my $new_collators = [
           {
             class => 'HTFeed::Collator::LinkedPairtree',
             obj_dir => $tmpdirs->{obj_dir},
@@ -175,11 +175,11 @@ describe "HTFeed::Collate" => sub {
             obj_dir => $tmpdirs->{backup_obj_dir}
           }
         ];
-        set_config($new_storage_classes,'storage_classes');
+        set_config($new_collators,'collators');
       };
 
       after each => sub {
-        set_config($old_storage_classes,'storage_classes');
+        set_config($old_collators,'collators');
       };
 
       it "copies and records to all configured storages" => sub {
