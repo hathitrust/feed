@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<SubmissionPackage submission_id="u5f94f62cq42" xmlns="https://emma.lib.virginia.edu/schema" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+  <emma_recordId>hathiTrust-hvd.32044086819505-epub-1.1</emma_recordId>
+  <emma_titleId>648a2004-ced1-4281-988f-a113c01b9d63</emma_titleId>
+  <emma_repository>hathiTrust</emma_repository>
+  <emma_collection>
+    <xs:string>Harvard University</xs:string>
+  </emma_collection>
+  <emma_repositoryRecordId>hvd.32044086819505</emma_repositoryRecordId>
+  <emma_lastRemediationDate>2020-07-29T16:35:31Z</emma_lastRemediationDate>
+  <emma_repositoryMetadataUpdateDate>2020-07-29T16:35:31Z</emma_repositoryMetadataUpdateDate>
+  <emma_lastRemediationNote>REMEDIATION NOTE 1&#xD;
+REMEDIATION NOTE 2&#xD;
+REMEDIATION NOTE 3</emma_lastRemediationNote>
+  <emma_formatVersion>1.1</emma_formatVersion>
+  <emma_formatFeature>
+    <xs:string>grade1</xs:string>
+    <xs:string>nemeth</xs:string>
+    <xs:string>ueb</xs:string>
+  </emma_formatFeature>
+  <dc_title>RWL - Christmas books.</dc_title>
+  <dc_creator>
+    <xs:string>Dickens, Charles, 1812-1870.</xs:string>
+  </dc_creator>
+  <dc_identifier>
+    <xs:string>oclc:15208853</xs:string>
+  </dc_identifier>
+  <dc_publisher>Chapman and Hall; Ticknor and Fields</dc_publisher>
+  <dc_relation>
+    <xs:string>isbn:0192545140</xs:string>
+  </dc_relation>
+  <dc_language>
+    <xs:string>eng</xs:string>
+  </dc_language>
+  <dc_rights>publicDomain</dc_rights>
+  <dc_description>DESCRIPTION LINE 1&#xD;
+DESCRIPTION LINE 2&#xD;
+DESCRIPTION LINE 3&#xD;</dc_description>
+  <dc_format>epub</dc_format>
+  <dc_type>text</dc_type>
+  <dc_subject>
+    <xs:string>SUBJECT 1</xs:string>
+    <xs:string>SUBJECT 2</xs:string>
+    <xs:string>SUBJECT 3</xs:string>
+  </dc_subject>
+  <dcterms_dateAccepted>2012-05-27T19:31:09</dcterms_dateAccepted>
+  <dcterms_dateCopyright>1859</dcterms_dateCopyright>
+  <s_accessibilityFeature>
+    <xs:string>alternativeText</xs:string>
+    <xs:string>annotations</xs:string>
+    <xs:string>bookmarks</xs:string>
+    <xs:string>printPageNumbers</xs:string>
+    <xs:string>tableOfContents</xs:string>
+  </s_accessibilityFeature>
+  <s_accessibilityControl>
+    <xs:string>fullKeyboardControl</xs:string>
+    <xs:string>fullMouseControl</xs:string>
+    <xs:string>fullTouchControl</xs:string>
+  </s_accessibilityControl>
+  <s_accessibilityHazard>
+    <xs:string>flashing</xs:string>
+    <xs:string>motionSimulation</xs:string>
+    <xs:string>sound</xs:string>
+  </s_accessibilityHazard>
+  <s_accessMode>
+    <xs:string>mathOnVisual</xs:string>
+    <xs:string>textOnVisual</xs:string>
+    <xs:string>textual</xs:string>
+    <xs:string>visual</xs:string>
+  </s_accessMode>
+  <s_accessModeSufficient>
+    <xs:string>textual</xs:string>
+    <xs:string>visual</xs:string>
+  </s_accessModeSufficient>
+  <s_accessibilitySummary>The publication was generated using automated character recognition, therefore it may not be an accurate rendition of the original text, and it may not offer the correct reading sequence.This publication is missing meaningful alternative text.The publication otherwise meets WCAG 2.0 Level A.</s_accessibilitySummary>
+  <bib_series>JOURNAL NAME</bib_series>
+  <bib_seriesType>journal</bib_seriesType>
+  <bib_seriesPosition>JOURNAL VOLUME</bib_seriesPosition>
+  <bib_version>EDITION NUMBER</bib_version>
+  <rem_source>PROVIDER OF SOURCE</rem_source>
+  <rem_metadataSource>
+    <xs:string>METADATA SOURCE 1</xs:string>
+    <xs:string>METADATA SOURCE 2</xs:string>
+    <xs:string>METADATA SOURCE 3</xs:string>
+  </rem_metadataSource>
+  <rem_remediatedBy>
+    <xs:string>REMEDIATED BY 1</xs:string>
+    <xs:string>REMEDIATED BY 2</xs:string>
+    <xs:string>REMEDIATED BY 3</xs:string>
+  </rem_remediatedBy>
+  <rem_complete>false</rem_complete>
+  <rem_coverage>
+    <xs:string>CHAPTERS 1-3</xs:string>
+    <xs:string>CHAPTERS 5-6</xs:string>
+    <xs:string>APPENDIX</xs:string>
+  </rem_coverage>
+  <rem_remediation>REMEDIATION ASPECT 1&#xD;
+REMEDIATION ASPECT 2&#xD;
+REMEDIATION ASPECT 3&#xD;</rem_remediation>
+  <rem_quality>
+    <xs:string>cleaned_ocr</xs:string>
+    <xs:string>proofread</xs:string>
+  </rem_quality>
+  <rem_status>remediated</rem_status>
+</SubmissionPackage>
