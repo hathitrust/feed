@@ -22,7 +22,6 @@ sub new {
     my $pt_objid = $volume->get_pt_objid();
     $self->{outfile} = "$stage_path/$pt_objid.mets.xml";
     $self->{pagedata} = sub { $volume->get_srcmets_page_data(@_); };
-    $self->{volume}->record_premis_event('page_md5_fixity');
 
     return $self;
 }

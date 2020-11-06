@@ -13,14 +13,9 @@ use warnings;
 use strict;
 use Exporter 'import';
 
-our @EXPORT_OK = qw(mock_premis_mets stage_volume);
+our @EXPORT_OK = qw(mock_zephir stage_volume);
 
-sub mock_premis_mets {
-
-  # don't hit the database
-  *HTFeed::Volume::record_premis_event = sub {
-    1;
-  };
+sub mock_zephir {
 
   *HTFeed::Volume::get_sources = sub {
     return ( 'ht_test','ht_test','ht_test' );
@@ -47,9 +42,6 @@ EOT
 
   };
 
-  *HTFeed::Volume::get_event_info = sub {
-    return ("some-event-id", "2017-01-01T00:00:00-04:00", undef, undef);
-  }
 }
 
 sub stage_volume {
