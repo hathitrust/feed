@@ -30,10 +30,60 @@ sub new {
     objid => $volume->get_objid(),
     errors => [],
     config => $config,
+    zip_suffix => "",
   };
 
   bless($self, $class);
   return $self;
+}
+
+sub encrypt {
+  my $self = shift;
+
+  my $key = $self->{config}{encryption_key};
+
+  return 1 unless $key;
+
+  my $original = $self->zip_source();
+  my $encrypted = "$original.gpg";
+
+  my $cmd = "cat \"$key\" | gpg --quiet --passphrase-fd 0 --batch --no-tty --output $encrypted --symmetric $original";
+
+  get_logger()->trace("Running $cmd");
+  system($cmd);
+
+  $self->{zip_suffix} = ".gpg";
+
+  return ! $?;
+
+}
+
+sub verify_crypt {
+  my $self = shift;
+  my $volume = $self->{volume};
+  my $encrypted = $self->zip_source();
+
+  my $key = $self->{config}{encryption_key};
+
+  return 1 unless $key;
+
+  my $actual_checksum = $self->crypted_md5sum($encrypted,$key);
+
+  return $self->validate_zip_checksum($volume->get_mets_path(), "gpg --decrypt " . $self->zip_source(), $actual_checksum);
+}
+
+sub crypted_md5sum {
+  my $self = shift;
+  my $encrypted = shift;
+  my $key = shift;
+
+  my $cmd = "cat \"$key\" | gpg --quiet --passphrase-fd 0 --batch --no-tty --decrypt $encrypted | md5sum | cut -f 1 -d ' '";
+  get_logger()->trace("Running $cmd");
+
+  my $actual_checksum = `$cmd`;
+  chomp($actual_checksum);
+
+  return $actual_checksum;
 }
 
 sub make_object_path {
@@ -44,13 +94,21 @@ sub make_object_path {
   }
 }
 
+sub zip_source {
+  my $self = shift;
+  my $volume = $self->{volume};
+
+  return $volume->get_zip_path() . $self->{zip_suffix};
+
+}
+
 sub stage {
   my $self = shift;
   my $volume = $self->{volume};
   my $mets_source = $volume->get_mets_path();
   get_logger()->trace("copying METS from: $mets_source");
-  my $zip_source = $volume->get_zip_path();
-  get_logger()->trace("copying ZIP from: $mets_source");
+  my $zip_source = $self->zip_source();
+  get_logger()->trace("copying ZIP from: $zip_source");
 
   my $stage_path = $self->stage_path;
   get_logger()->trace("staging to: $stage_path");
@@ -193,7 +251,7 @@ sub postvalidate {
   $self->validate_zip($self->object_path);
 }
 
-sub zipvalidate {
+sub validate_zip_completeness {
   my $self = shift;
 
   my $volume = $self->{volume};
@@ -244,28 +302,27 @@ sub validate_mets {
   return 1;
 }
 
-sub validate_zip {
+sub validate_zip_checksum {
   my $self = shift;
-
+  my $mets_path = shift;
+  my $zip_path = shift;
+  my $actual_checksum = shift;
   my $volume = $self->{volume};
-  my $path = shift;
-  my $mets_path = $volume->get_mets_path($path);
-  my $zip_path = $volume->get_zip_path($path);
 
   my $mets = $volume->_parse_xpc($mets_path);
   my $zipname = $volume->get_zip_filename();
 
-  my $mets_zipsum = $mets->findvalue(
+  my $mets_zip_checksum = $mets->findvalue(
     "//mets:file[mets:FLocat/\@xlink:href='$zipname']/\@CHECKSUM");
 
-  if(not defined $mets_zipsum or length($mets_zipsum) ne 32) {
+  if(not defined $mets_zip_checksum or length($mets_zip_checksum) ne 32) {
     # zip name may be uri-escaped in some cases
     $zipname = uri_escape($zipname);
-    $mets_zipsum = $mets->findvalue(
+    $mets_zip_checksum = $mets->findvalue(
       "//mets:file[mets:FLocat/\@xlink:href='$zipname']/\@CHECKSUM");
   }
 
-  if ( not defined $mets_zipsum or length($mets_zipsum) ne 32 ) {
+  if ( not defined $mets_zip_checksum or length($mets_zip_checksum) ne 32 ) {
     $self->set_error('MissingValue',
       file => $mets_path,
       field => 'checksum',
@@ -273,21 +330,39 @@ sub validate_zip {
     return;
   }
 
-  my $realsum = HTFeed::VolumeValidator::md5sum(
-    $zip_path );
-
-  unless ( $mets_zipsum eq $realsum ) {
+  unless ( $mets_zip_checksum eq $actual_checksum ) {
     $self->set_error(
       "BadChecksum",
       field    => 'checksum',
       file     => $zip_path,
-      expected => $mets_zipsum,
-      actual   => $realsum
+      expected => $mets_zip_checksum,
+      actual   => $actual_checksum
     );
     return;
   }
 
   return 1;
+
+}
+
+sub validate_zip {
+  my $self = shift;
+
+  my $volume = $self->{volume};
+  my $path = shift;
+  my $mets_path = $volume->get_mets_path($path);
+  my $zip_path = $volume->get_zip_path($path) . $self->{zip_suffix};
+
+  my $key = $self->{config}{encryption_key};
+  my $actual_checksum;
+  if($key) {
+    $actual_checksum = $self->crypted_md5sum($zip_path,$key);
+  } else {
+  my $zip_path = $volume->get_zip_path($path) . $self->{zip_suffix};
+    $actual_checksum = HTFeed::VolumeValidator::md5sum($zip_path);
+  }
+
+  return $self->validate_zip_checksum($mets_path,$zip_path,$actual_checksum);
 }
 
 sub set_error {
@@ -309,7 +384,7 @@ sub set_error {
 
 sub zip_obj_path {
   my $self = shift;
-  $self->{volume}->get_zip_path($self->object_path());
+  $self->{volume}->get_zip_path($self->object_path()) . $self->{zip_suffix};
 }
 
 sub mets_obj_path {
@@ -319,7 +394,7 @@ sub mets_obj_path {
 
 sub zip_stage_path {
   my $self = shift;
-  $self->{volume}->get_zip_path($self->stage_path());
+  $self->{volume}->get_zip_path($self->stage_path()) . $self->{zip_suffix};
 }
 
 sub mets_stage_path {
