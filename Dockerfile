@@ -3,6 +3,7 @@
 FROM hathitrust/feed_base:buster
 
 RUN apt-get update && apt-get install -y \
+    awscli \
     epubcheck \
     libclamav-client-perl \
     libswitch-perl \
@@ -14,4 +15,5 @@ RUN apt-get update && apt-get install -y \
 RUN mkdir -p /tmp/stage/grin
 RUN mkdir -p /tmp/prep/toingest /tmp/prep/failed /tmp/prep/ingested /tmp/prep/logs
 
+COPY ./docker/aws /root/.aws
 WORKDIR /usr/local/feed

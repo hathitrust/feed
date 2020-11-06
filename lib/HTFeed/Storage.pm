@@ -49,8 +49,7 @@ sub encrypt {
 
   my $cmd = "cat \"$key\" | gpg --quiet --passphrase-fd 0 --batch --no-tty --output $encrypted --symmetric $original";
 
-  get_logger()->trace("Running $cmd");
-  system($cmd);
+  $self->safe_system($cmd);
 
   $self->{zip_suffix} = ".gpg";
 
