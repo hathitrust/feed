@@ -16,7 +16,7 @@ describe "HTFeed::Collate" => sub {
 
     before each => sub {
       $storage = Test::MockObject->new();
-      $storage->set_true(qw(stage zipvalidate prevalidate make_object_path move postvalidate record_audit cleanup rollback clean_staging));
+      $storage->set_true(qw(stage validate_zip_completeness prevalidate make_object_path move postvalidate record_audit cleanup rollback clean_staging encrypt verify_crypt));
 
       my $volume = HTFeed::Volume->new(namespace => 'test',
         id => 'test',
@@ -27,7 +27,7 @@ describe "HTFeed::Collate" => sub {
 
     context "when zip contents validation fails" => sub {
       before each => sub {
-        $storage->set_false('zipvalidate');
+        $storage->set_false('validate_zip_completeness');
       };
 
       it "doesn't move to staging area" => sub {
@@ -95,6 +95,16 @@ describe "HTFeed::Collate" => sub {
     };
 
     context "when everything succeeds" => sub {
+      it "encrypts the item" => sub {
+        $collate->run($storage);
+        ok($storage->called('encrypt'));
+      };
+
+      it "verifies the encrypted item" => sub {
+        $collate->run($storage);
+        ok($storage->called('verify_crypt'));
+      };
+
       it "cleans up" => sub {
         $collate->run($storage);
         ok($storage->called('cleanup'));
@@ -119,7 +129,30 @@ describe "HTFeed::Collate" => sub {
         $collate->run($storage);
         ok(!$storage->called('rollback'));
       }
-    }
+    };
+
+
+    context "when encryption fails" => sub {
+      before each => sub {
+        $storage->set_false('encrypt');
+      };
+
+      it "doesn't move to staging" => sub { 
+        $collate->run($storage);
+        ok(!$storage->called('stage'));
+      };
+    };
+
+    context "when verifying the encrypted zip fails" => sub {
+      before each => sub {
+        $storage->set_false('encrypt');
+      };
+
+      it "doesn't move to staging" => sub { 
+        $collate->run($storage);
+        ok(!$storage->called('stage'));
+      };
+    };
   };
 
   context "with real volumes" => sub {
@@ -172,7 +205,8 @@ describe "HTFeed::Collate" => sub {
           },
           {
             class => 'HTFeed::Storage::VersionedPairtree',
-            obj_dir => $tmpdirs->{backup_obj_dir}
+            obj_dir => $tmpdirs->{backup_obj_dir},
+            encryption_key => $tmpdirs->test_home . "/fixtures/encryption_key"
           }
         ];
         set_config($new_storage_classes,'storage_classes');
@@ -197,7 +231,7 @@ describe "HTFeed::Collate" => sub {
         ok(-e "$tmpdirs->{obj_dir}/test/pairtree_root/te/st/test/test.mets.xml",'copies mets to local storage');
         ok(-e "$tmpdirs->{obj_dir}/test/pairtree_root/te/st/test/test.zip",'copies zip to local storage');
 
-        ok(-e "$tmpdirs->{backup_obj_dir}/test/pairtree_root/te/st/test/$timestamp/test.zip","copies the zip to backup storage");
+        ok(-e "$tmpdirs->{backup_obj_dir}/test/pairtree_root/te/st/test/$timestamp/test.zip.gpg","copies the encrypted zip to backup storage");
         ok(-e "$tmpdirs->{backup_obj_dir}/test/pairtree_root/te/st/test/$timestamp/test.mets.xml","copies the mets backup storage");
 
         ok(! -e "$tmpdirs->{zip}/test/00000001.jp2","cleans up the extracted zip files");

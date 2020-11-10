@@ -117,6 +117,7 @@ CREATE TABLE IF NOT EXISTS `feed_backups` (
   `version` varchar(16) DEFAULT NULL,
   `zip_size` bigint(20) DEFAULT NULL,
   `mets_size` bigint(20) DEFAULT NULL,
+  `saved_md5sum` char(32) DEFAULT NULL,
   `lastchecked` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `lastmd5check` timestamp NULL DEFAULT NULL,
   `md5check_ok` tinyint(1) DEFAULT NULL,
