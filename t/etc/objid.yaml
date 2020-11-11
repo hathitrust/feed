@@ -1,5 +1,5 @@
 damaged:
-  count: '29'
+  count: '30'
   package_types:
     simple:
       txi:
@@ -42,8 +42,10 @@ damaged:
       uml:
       - 'aslalskdjf'
       - 'abc12345678901'
+      coo:
+      - '31924028621642'
 undamaged:
-  count: '39'
+  count: '40'
   package_types:
     google:
       inu:
@@ -83,6 +85,8 @@ undamaged:
       wu:
       - '89003277829'
       - '89001867225'
+      coo:
+      - '31924028806797'
     simple:
       hva:
       - 'a11412038999'
