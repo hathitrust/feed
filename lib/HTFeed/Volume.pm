@@ -137,7 +137,7 @@ sub get_sources {
                             JOIN ht_collections c ON n.collection = c.collection 
                             LEFT JOIN ht_collection_digitizers d ON n.collection = d.collection 
                               AND n.digitization_source = d.digitization_source 
-                            JOIN ht_rights.sources s on n.digitization_source = s.name 
+                            JOIN sources s on n.digitization_source = s.name 
                             WHERE n.namespace = ? and n.id = ?");
   $sth->execute($self->get_namespace(),$self->get_objid());
   if(my ($content_providers,$responsible_entity,$collection,$digitization_agents,$access_profile) = $sth->fetchrow_array()) {
@@ -630,6 +630,12 @@ sub record_premis_event {
     croak("Event code / type not found") unless $eventtype;
 
     my $date = ($params{date} or $self->_get_current_date());
+
+    # insert gmt time zone without indicator
+    # time with explicitly-indicated timezone will fail
+    if($date =~ /Z$/) {
+      chop($date);
+    }
 
     my $outcome_xml = $params{outcome}->to_node()->toString() if defined $params{outcome};
 

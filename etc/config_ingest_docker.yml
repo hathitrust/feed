@@ -11,9 +11,9 @@ database:
   # The Perl DBI DSN to use when connecting with mysql. See perldoc DBD::mysql.
   datasource: dbi:mysql:ht:mariadb
   # The username used to connect to the database.
-  username: ht_repository
+  username: feed
   # The password used to connect to the database.
-  password: ht_repository
+  password: feed
 
 xerces: /usr/local/feed/blib/bin/validateCache
 epubcheck: /usr/bin/java -jar /usr/bin/epubcheck

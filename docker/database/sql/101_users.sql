@@ -1,0 +1,3 @@
+
+GRANT USAGE ON *.* TO 'feed'@'%' IDENTIFIED BY 'feed';
+GRANT SELECT, INSERT, UPDATE, DELETE, LOCK TABLES ON `ht`.* TO 'feed'@'%';
