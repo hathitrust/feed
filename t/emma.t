@@ -31,6 +31,14 @@ shared_examples_for "an emma mets" => sub {
 
   it "has a PREMIS message digest calculation event" => sub {
     ok($xc->findnodes('//premis:eventType[text()="message digest calculation"]')->size() == 1);
+  };
+
+  it "has the EMMA metadata in a dmdSec" => sub {
+    ok($xc->findnodes('//mets:dmdSec//emma:SubmissionPackage')->size() == 1);
+  };
+
+  it "does not include a reference to MARC metadata" => sub {
+    ok($xc->findnodes('//mets:mdref[@MDTYPE="MARC"]')->size() == 0);
   }
 
 };
@@ -56,7 +64,7 @@ context "with volume & temporary ingest/preingest/zipfile dirs" => sub {
     $tmpdirs->setup_example;
     set_config($tmpdirs->test_home . "/fixtures/emma",'staging','fetch');
 
-    $volume = HTFeed::Volume->new(namespace => 'emma',
+    $volume = HTFeed::Volume->new(namespace => 'test',
       objid => $objid,
       packagetype => 'emma');
   };
@@ -140,7 +148,7 @@ context "with volume & temporary ingest/preingest/zipfile dirs" => sub {
       HTFeed::Stage::Pack->new(volume => $volume)->run();
 
       # expire cached info in volume
-      $volume = HTFeed::Volume->new(namespace => 'emma',
+      $volume = HTFeed::Volume->new(namespace => 'test',
         objid => $objid,
         packagetype => 'emma');
 

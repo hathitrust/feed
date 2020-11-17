@@ -47,7 +47,6 @@ sub _add_dmdsecs {
     $self->{mets}->add_dmd_sec($dmdsec);
   }
 
-# need to add dmdsec with the XML
 # should NOT add dmdSec referncing metadata management system
 
 # filegroups have mime type application/octet-stream - omit? use a fancier detector?
