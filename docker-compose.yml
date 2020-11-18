@@ -35,7 +35,7 @@ services:
       - TEST=1
       - CLAMAV_HOST=clamav
       - CLAMAV_PORT=3310
-    command: bin/wait-for --timeout=300 mariadb:3306 -- bin/wait-for --timeout=300 clamav:3310 -- make test TEST_VERBOSE=1
+    command: bin/wait-for --timeout=300 mariadb:3306 clamav:3310 -- make test TEST_VERBOSE=1
 
   validate:
     build: .
@@ -57,9 +57,6 @@ services:
 
   clamav:
     image: openbridge/clamav
-    container_name: clamav
-    ports:
-      - 3310
     tty: true
     restart: unless-stopped
     tmpfs: /var/cache
