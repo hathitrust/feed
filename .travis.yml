@@ -10,6 +10,7 @@ before_install:
   - git submodule update --init metslib
   - docker-compose build
   - docker-compose up -d mariadb
+  - docker-compose up -d clamav
 
 script:
   - docker-compose run travis_test

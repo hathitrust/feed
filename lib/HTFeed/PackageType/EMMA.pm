@@ -41,9 +41,8 @@ our $config = {
     # what stage to run given the current state
     stage_map => {
         ready            => 'HTFeed::PackageType::EMMA::Unpack',
-        #        unpacked         => 'HTFeed::Stage::VirusScan',
-        #        scanned          => 'HTFeed::PackageType::EMMA::SourceMETS',
-        unpacked         => 'HTFeed::PackageType::EMMA::SourceMETS',
+        unpacked         => 'HTFeed::PackageType::EMMA::VirusScan',
+        scanned         => 'HTFeed::PackageType::EMMA::SourceMETS',
         src_metsed    => 'HTFeed::Stage::Pack',
         packed           => 'HTFeed::PackageType::EMMA::METS',
         metsed           => 'HTFeed::Stage::Handle',
@@ -55,7 +54,7 @@ our $config = {
     source_premis_events => [
         # creation - included manually
         'source_mets_creation',
-        #    'virus_scan', - TODO
+        'virus_scan',
         'page_md5_create',
         'mets_validation',
     ],
@@ -71,7 +70,7 @@ our $config = {
     # configured in config.yaml)
     premis_events => [
       # 'creation',
-        #        'virus_scan', - TODO
+        'virus_scan',
         'zip_compression',
         'zip_md5_create',
         'ingestion',
@@ -92,6 +91,13 @@ our $config = {
             executor => 'umich',
             executor_type => 'HathiTrust Institution ID',
             tools => ['DIGEST_MD5']
+          },
+          'virus_scan' => 
+          { type => 'virus scan',
+            detail => 'Scan for virus',
+            executor => 'umich',
+            executor_type => 'HathiTrust Institution ID',
+            tools => ['CLAMAV']
           }
         },
 

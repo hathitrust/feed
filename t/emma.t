@@ -33,6 +33,10 @@ shared_examples_for "an emma mets" => sub {
     ok($xc->findnodes('//premis:eventType[text()="message digest calculation"]')->size() == 1);
   };
 
+  it "has a PREMIS virus scan event" => sub {
+    ok($xc->findnodes('//premis:eventType[text()="virus scan"]')->size() == 1);
+  };
+
   it "has the EMMA metadata in a dmdSec" => sub {
     ok($xc->findnodes('//mets:dmdSec//emma:SubmissionPackage')->size() == 1);
   };
@@ -99,11 +103,28 @@ context "with volume & temporary ingest/preingest/zipfile dirs" => sub {
     };
   };
 
+  describe "HTFeed::PackageType::EMMA::VirusScan" => sub {
+    my $stage;
+
+    before each => sub {
+      my $unpack = HTFeed::PackageType::EMMA::Unpack->new(volume => $volume);
+      $unpack->run();
+      $stage = HTFeed::PackageType::EMMA::VirusScan->new(volume => $volume);
+
+    };
+
+    it "succeeds" => sub {
+      $stage->run();
+      ok($stage->succeeded());
+    };
+  };
+
   describe "HTFeed::PackageType::EMMA::SourceMETS" => sub {
     my $stage;
 
     before each => sub {
       HTFeed::PackageType::EMMA::Unpack->new(volume => $volume)->run();
+      HTFeed::PackageType::EMMA::VirusScan->new(volume => $volume)->run();
 
       $stage = HTFeed::PackageType::EMMA::SourceMETS->new(volume => $volume);
 
@@ -144,6 +165,7 @@ context "with volume & temporary ingest/preingest/zipfile dirs" => sub {
       mock_zephir();
 
       HTFeed::PackageType::EMMA::Unpack->new(volume => $volume)->run();
+      HTFeed::PackageType::EMMA::VirusScan->new(volume => $volume)->run();
       HTFeed::PackageType::EMMA::SourceMETS->new(volume => $volume)->run();
       HTFeed::Stage::Pack->new(volume => $volume)->run();
 
