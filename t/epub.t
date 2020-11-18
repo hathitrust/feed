@@ -3,7 +3,7 @@ use lib "$FindBin::Bin/lib";
 
 use Test::Spec;
 use HTFeed::Test::Support qw(load_db_fixtures);
-use HTFeed::Test::SpecSupport qw(mock_premis_mets);
+use HTFeed::Test::SpecSupport qw(mock_zephir);
 use HTFeed::Config qw(set_config);
 
 shared_examples_for "an epub mets" => sub { 
@@ -140,11 +140,6 @@ context "with volume & temporary ingest/preingest/zipfile dirs" => sub {
     before each => sub {
       HTFeed::PackageType::EPUB::Unpack->new(volume => $volume)->run();
       $stage = HTFeed::PackageType::EPUB::VerifyManifest->new(volume => $volume);
-
-      # don't hit the database
-      *HTFeed::Volume::record_premis_event = sub {
-        1;
-      }
     };
 
     it "succeeds" => sub {
@@ -174,7 +169,7 @@ context "with volume & temporary ingest/preingest/zipfile dirs" => sub {
 
       $stage = HTFeed::PackageType::EPUB::SourceMETS->new(volume => $volume);
 
-      mock_premis_mets();
+      mock_zephir();
     };
 
     it "succeeds" => sub {
@@ -206,7 +201,7 @@ context "with volume & temporary ingest/preingest/zipfile dirs" => sub {
 
     before each => sub {
 
-      mock_premis_mets();
+      mock_zephir();
 
       HTFeed::PackageType::EPUB::Unpack->new(volume => $volume)->run();
       HTFeed::PackageType::EPUB::VerifyManifest->new(volume => $volume)->run();
@@ -218,10 +213,11 @@ context "with volume & temporary ingest/preingest/zipfile dirs" => sub {
         objid => $objid,
         packagetype => 'epub');
 
+      # not running volume validation, but we need to record a premis event for it
+      # to make the METS happy
+      $volume->record_premis_event( 'package_validation' );
+
       $stage = HTFeed::PackageType::EPUB::METS->new(volume => $volume);
-      # mocked premis events..
-      $stage->{required_events} = ['creation'];
-      $HTFeed::PackageType::EPUB::config->{source_premis_events_extract} = ['creation']; 
 
     };
 
@@ -252,7 +248,7 @@ context "with volume & temporary ingest/preingest/zipfile dirs" => sub {
     my $stage;
     before each => sub {
 
-      mock_premis_mets();
+      mock_zephir();
 
       HTFeed::PackageType::EPUB::Unpack->new(volume => $volume)->run();
       HTFeed::PackageType::EPUB::VerifyManifest->new(volume => $volume)->run();
@@ -264,9 +260,6 @@ context "with volume & temporary ingest/preingest/zipfile dirs" => sub {
         packagetype => 'epub');
 
       $stage = HTFeed::PackageType::EPUB::VolumeValidator->new(volume => $volume);
-      # mocked premis events..
-      $stage->{required_events} = ['creation'];
-      $HTFeed::PackageType::EPUB::config->{source_premis_events_extract} = ['creation']; 
 
     };
 
