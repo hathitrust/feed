@@ -7,6 +7,7 @@ use Log::Log4perl qw(get_logger);
 use HTFeed::SourceMETS;
 use HTFeed::XMLNamespaces qw(:namespaces :schemas register_namespaces);
 use Image::ExifTool;
+use HTFeed::DBTools qw(get_dbh);
 use base qw(HTFeed::SourceMETS);
 
 sub new {
@@ -26,30 +27,77 @@ sub new {
     return $self;
 }
 
-sub _add_dmdsecs {
-    my $self = shift;
-    my $volume = $self->{volume};
-    my $namespace = $volume->get_namespace();
-    my $objid = $volume->get_objid();
-    my $sip_directory = $volume->get_sip_directory();
-    my $emma_xml_path = "$sip_directory/$namespace/$objid.xml";
+sub _handle_emma_xml {
+  my $self = shift;
+  my $volume = $self->{volume};
+  my $namespace = $volume->get_namespace();
+  my $objid = $volume->get_objid();
+  my $sip_directory = $volume->get_sip_directory();
 
-    my $parser = new XML::LibXML;
-    my $emma_xml = $parser->parse_file($emma_xml_path);
+  $self->{emma_xml_path} = "$sip_directory/$namespace/$objid.xml";
 
-    my $dmdsec = new METS::MetadataSection( 'dmdSec', 'id' => $self->_get_subsec_id("DMD"));
-    $dmdsec->set_xml_node(
-        $emma_xml->documentElement(),
-        mdtype => 'OTHER',
-        othermdtype => 'EMMA',
-        label  => 'remediation metadata'
-    );
-    $self->{mets}->add_dmd_sec($dmdsec);
+  my $parser = new XML::LibXML;
+  my $emma_xml = $parser->parse_file($self->{emma_xml_path});
+  my $emma_xc = new XML::LibXML::XPathContext($emma_xml);
+  register_namespaces($emma_xc);
+
+  $self->_validate_remediation_metadata($emma_xc);
+  $self->_cache_remediation_metadata($emma_xc);
+
+  return $emma_xml->documentElement();
+}
+
+sub _validate_remediation_metadata {
+  my $self = shift;
+  my $emma_xc = shift;
+
+  # ensure the XML is actually about this object
+
+  my $emma_submission_id = $emma_xc->findvalue('//emma:SubmissionPackage/@submission_id');
+  my $objid = $self->{volume}->get_objid();
+
+  if ($objid ne $emma_submission_id) {
+    $self->set_error("BadValue",
+      details => "Submission ID in EMMA XML does not match filename",
+      field => 'submission_id',
+      file => $self->{emma_xml_path},
+      actual => $emma_submission_id,
+      expected => $objid);
   }
 
-# should NOT add dmdSec referncing metadata management system
+}
 
-# filegroups have mime type application/octet-stream - omit? use a fancier detector?
+sub _add_dmdsecs {
+  my $self = shift;
+
+  my $emma_xml = $self->_handle_emma_xml();
+
+  my $dmdsec = new METS::MetadataSection( 'dmdSec', 'id' => $self->_get_subsec_id("DMD"));
+  $dmdsec->set_xml_node(
+    $emma_xml,
+    mdtype => 'OTHER',
+    othermdtype => 'EMMA',
+    label  => 'remediation metadata'
+  );
+  $self->{mets}->add_dmd_sec($dmdsec);
+}
+
+sub _cache_remediation_metadata {
+  my $self = shift;
+  my $emma_xc = shift;
+
+  my $remediated_item_id = $self->{volume}->get_namespace() . '.' . $self->{volume}->get_objid();
+  my $original_item_id = $emma_xc->findvalue('//emma:emma_repositoryRecordId');
+  my $dc_format = $emma_xc->findvalue('//emma:dc_format');
+  my $rem_coverage = join(", ", map { $_->textContent } $emma_xc->findnodes('//emma:rem_coverage/xs:string'));
+  my $rem_remediation= $emma_xc->findvalue('//emma:rem_remediation');
+
+  my $sth = get_dbh()->prepare("REPLACE INTO emma_items (remediated_item_id, original_item_id, dc_format, rem_coverage, rem_remediation) VALUES (?,?,?,?,?)");
+
+  $sth->execute($remediated_item_id,$original_item_id,$dc_format,$rem_coverage,$rem_remediation);
+}
+
+# TODO: filegroups have mime type application/octet-stream - omit? use a fancier detector?
 
 sub _add_capture_event {
     my $self = shift;
