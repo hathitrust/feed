@@ -9,8 +9,8 @@ services:
 before_install:
   - git submodule update --init metslib
   - docker-compose build
-  - docker-compose up -d mariadb
-  - docker-compose up -d clamav
+  - docker-compose up -d mariadb clamav
+  - docker-compose run test bin/setup_dev.sh
 
 script:
-  - docker-compose run travis_test
+  - docker-compose run test

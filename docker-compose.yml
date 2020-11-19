@@ -24,17 +24,6 @@ services:
       - TEST=1
       - CLAMAV_HOST=clamav
       - CLAMAV_PORT=3310
-
-  travis_test:
-    build: .
-    volumes:
-      - .:/usr/local/feed
-    environment:
-      - HTFEED_CONFIG=/usr/local/feed/etc/config_test.yml
-      - FEED_HOME=/usr/local/feed
-      - TEST=1
-      - CLAMAV_HOST=clamav
-      - CLAMAV_PORT=3310
     command: bin/wait-for --timeout=300 mariadb:3306 clamav:3310 -- make test TEST_VERBOSE=1
 
   validate:
