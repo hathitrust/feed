@@ -7,12 +7,12 @@ use HTFeed::Test::SpecSupport qw(mock_zephir);
 use HTFeed::Config qw(set_config);
 use HTFeed::DBTools qw(get_dbh);
 
-shared_examples_for "an emma mets" => sub { 
+shared_examples_for "an emma mets" => sub {
 
   share my %mets_vars;
-  my $xc; 
+  my $xc;
 
-  before each => sub { 
+  before each => sub {
     $xc = $mets_vars{xc};
   };
 
@@ -30,6 +30,14 @@ shared_examples_for "an emma mets" => sub {
     ok($xc->findnodes('//mets:mets[@PROFILE="http://www.hathitrust.org/documents/hathitrust-emma-mets-profile1.0.xml"]')->size() == 1);
   };
 
+  it "has a PREMIS creation event" => sub {
+    ok($xc->findnodes('//premis:eventType[text()="creation"]')->size() == 1);
+  };
+
+  it "has a creation date extracted from the EMMA XML" => sub {
+    ok($xc->findnodes('//premis:event[premis:eventType[text()="creation"]]/premis:eventDateTime[text()="2020-07-29T16:35:31Z"]')->size() == 1);
+  };
+
   it "has a PREMIS message digest calculation event" => sub {
     ok($xc->findnodes('//premis:eventType[text()="message digest calculation"]')->size() == 1);
   };
@@ -44,7 +52,7 @@ shared_examples_for "an emma mets" => sub {
 
   it "does not include a reference to MARC metadata" => sub {
     ok($xc->findnodes('//mets:mdref[@MDTYPE="MARC"]')->size() == 0);
-  }
+  };
 
 };
 

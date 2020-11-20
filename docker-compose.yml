@@ -52,6 +52,7 @@ services:
     volumes:
       - clamd_data:/var/lib/clamav
       - .:/usr/local/feed
+      - ./ingest_stage:/tmp/stage
 
 volumes:
   clamd_data:

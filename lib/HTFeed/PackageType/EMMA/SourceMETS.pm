@@ -24,10 +24,19 @@ sub new {
     $self->{outfile} = "$stage_path/$pt_objid.mets.xml";
     $self->{profile} = "http://www.hathitrust.org/documents/hathitrust-emma-mets-profile1.0.xml";
 
+
     return $self;
 }
 
-sub _handle_emma_xml {
+sub run {
+  my $self = shift;
+
+  $self->_load_emma_xml;
+
+  $self->SUPER::run(@_);
+}
+
+sub _load_emma_xml {
   my $self = shift;
   my $volume = $self->{volume};
   my $namespace = $volume->get_namespace();
@@ -41,19 +50,20 @@ sub _handle_emma_xml {
   my $emma_xc = new XML::LibXML::XPathContext($emma_xml);
   register_namespaces($emma_xc);
 
-  $self->_validate_remediation_metadata($emma_xc);
-  $self->_cache_remediation_metadata($emma_xc);
+  $self->{emma_xml} = $emma_xml->documentElement();
+  $self->{emma_xc} = $emma_xc;
 
-  return $emma_xml->documentElement();
+  $self->_validate_remediation_metadata;
+  $self->_cache_remediation_metadata;
+
 }
 
 sub _validate_remediation_metadata {
   my $self = shift;
-  my $emma_xc = shift;
 
   # ensure the XML is actually about this object
 
-  my $emma_submission_id = $emma_xc->findvalue('//emma:SubmissionPackage/@submission_id');
+  my $emma_submission_id = $self->{emma_xc}->findvalue('//emma:SubmissionPackage/@submission_id');
   my $objid = $self->{volume}->get_objid();
 
   if ($objid ne $emma_submission_id) {
@@ -70,11 +80,9 @@ sub _validate_remediation_metadata {
 sub _add_dmdsecs {
   my $self = shift;
 
-  my $emma_xml = $self->_handle_emma_xml();
-
   my $dmdsec = new METS::MetadataSection( 'dmdSec', 'id' => $self->_get_subsec_id("DMD"));
   $dmdsec->set_xml_node(
-    $emma_xml,
+    $self->{emma_xml},
     mdtype => 'OTHER',
     othermdtype => 'EMMA',
     label  => 'remediation metadata'
@@ -84,7 +92,7 @@ sub _add_dmdsecs {
 
 sub _cache_remediation_metadata {
   my $self = shift;
-  my $emma_xc = shift;
+  my $emma_xc = $self->{emma_xc};
 
   my $remediated_item_id = $self->{volume}->get_namespace() . '.' . $self->{volume}->get_objid();
   my $original_item_id = $emma_xc->findvalue('//emma:emma_repositoryRecordId');
@@ -92,32 +100,34 @@ sub _cache_remediation_metadata {
   my $rem_coverage = join(", ", map { $_->textContent } $emma_xc->findnodes('//emma:rem_coverage/xs:string'));
   my $rem_remediation= $emma_xc->findvalue('//emma:rem_remediation');
 
+  my $creation_date = $emma_xc->findvalue('//emma:emma_lastRemediationDate');
+  $self->set_error('MissingValue',
+    file=>$self->{emma_xml_path},
+    field=>'emma_lastRemediationDate') unless defined $creation_date;
+
+  $self->{creation_date} = $creation_date;
+
   my $sth = get_dbh()->prepare("REPLACE INTO emma_items (remediated_item_id, original_item_id, dc_format, rem_coverage, rem_remediation) VALUES (?,?,?,?,?)");
 
   $sth->execute($remediated_item_id,$original_item_id,$dc_format,$rem_coverage,$rem_remediation);
 }
 
-# TODO: filegroups have mime type application/octet-stream - omit? use a fancier detector?
-
 sub _add_capture_event {
     my $self = shift;
     my $volume = $self->{volume};
 
+    my $eventcode = 'creation';
+    my $eventid = $volume->make_premis_uuid($eventcode,$self->{creation_date});
+    my $event = PREMIS::Event->new($eventid,
+      'UUID',
+      'creation',
+      $self->{creation_date},
+      "Creation of remediated version");
 
-    # TODO: get from EMMA metadata
-    #    my $creation_date = GET_FROM_EMMA_METADATA
-    #    $self->set_error('MissingValue',file=>EMMA_XML,field=>'creation_date') unless defined $creation_date;
-    #
-    #    my $eventcode = 'creation';
-    #    my $eventconfig = $volume->get_nspkg()->get_event_configuration($eventcode);
-    #    $eventconfig->{'eventid'} = $volume->make_premis_uuid($eventconfig->{'type'},$creation_date);
-    #    $eventconfig->{'executor'} = GET_FROM_EMMA_METADATA
-    #    $self->set_error('MissingValue',file=>'meta.yml',field=>'creation_agent') unless defined $eventconfig->{'executor'};
-    #    $eventconfig->{'executor_type'} = 'TBD from emma metadata';
-    #    $eventconfig->{'date'} = $creation_date;
-    #    my $creation_event = $self->add_premis_event($eventconfig);
+    $self->{included_events}{$eventid} = $event;
+    $self->{premis}->add_event($event);
 
-    # return $creation_event;
+    return $event;
 }
 
 sub _add_struct_map {
