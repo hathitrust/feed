@@ -22,14 +22,9 @@ services:
       - HTFEED_CONFIG=/usr/local/feed/etc/config_test.yml
       - FEED_HOME=/usr/local/feed
       - TEST=1
-
-  travis_test:
-    build: .
-    environment:
-      - HTFEED_CONFIG=/usr/local/feed/etc/config_test.yml
-      - FEED_HOME=/usr/local/feed
-      - TEST=1
-    command: bin/wait-for --timeout=300 mariadb:3306 -- make test TEST_VERBOSE=1
+      - CLAMAV_HOST=clamav
+      - CLAMAV_PORT=3310
+    command: bin/wait-for --timeout=300 mariadb:3306 clamav:3310 -- make test TEST_VERBOSE=1
 
   validate:
     build: .
@@ -49,7 +44,18 @@ services:
 
       # TODO: handle server??
 
+  clamav:
+    image: openbridge/clamav
+    tty: true
+    restart: unless-stopped
+    tmpfs: /var/cache
+    volumes:
+      - clamd_data:/var/lib/clamav
+      - .:/usr/local/feed
+
 volumes:
+  clamd_data:
+    driver: 'local'
   repository_link:
   repository_obj:
   backups:
