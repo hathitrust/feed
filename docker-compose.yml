@@ -6,6 +6,7 @@ services:
     build: .
     volumes:
       - .:/usr/local/feed
+      - ./ingest_sips:/tmp/sips
       - ./ingest_stage:/tmp/stage
       - repository_link:/sdr1
       - repository_obj:/sdr2
@@ -13,6 +14,8 @@ services:
     environment:
       - HTFEED_CONFIG=/usr/local/feed/etc/config_ingest_docker.yml
       - FEED_HOME=/usr/local/feed
+      - CLAMAV_HOST=clamav
+      - CLAMAV_PORT=3310
 
   test:
     build: .
@@ -34,6 +37,8 @@ services:
     environment:
       - HTFEED_CONFIG=/usr/local/feed/etc/config_prevalidate.yml
       - FEED_HOME=/usr/local/feed
+      - CLAMAV_HOST=clamav
+      - CLAMAV_PORT=3310
     command: bash -c "/bin/ls /tmp/stage/toingest/test/*.zip | xargs -n 1 basename | sed s/.zip// | perl -w /usr/local/feed/bin/validate_volume.pl -p simple -n test --no-clean"
 
   mariadb:
@@ -52,6 +57,7 @@ services:
     volumes:
       - clamd_data:/var/lib/clamav
       - .:/usr/local/feed
+      - ./ingest_sips:/tmp/sips
       - ./ingest_stage:/tmp/stage
 
 volumes:

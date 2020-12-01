@@ -1,7 +1,7 @@
 feed_home: /usr/local/feed
 
-staging_root: /tmp/ingest
-sip_root: /tmp/stage
+staging_root: /tmp/stage
+sip_root: /tmp/sips
 
 kdu_compress: /usr/local/bin/kdu_compress
 
