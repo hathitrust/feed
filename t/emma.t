@@ -6,6 +6,7 @@ use HTFeed::Test::Support qw(load_db_fixtures);
 use HTFeed::Test::SpecSupport qw(mock_zephir);
 use HTFeed::Config qw(set_config);
 use HTFeed::DBTools qw(get_dbh);
+use File::Path qw(remove_tree);
 
 shared_examples_for "an emma mets" => sub {
 
@@ -245,7 +246,52 @@ context "with volume & temporary ingest/preingest/zipfile dirs" => sub {
 
       it_should_behave_like "an emma mets";
 
-    }
+    };
+  };
+
+  describe "HTFeed::PackageType::EMMA::Volume" => sub {
+    my $fetchdir;
+
+    before each => sub {
+      $fetchdir = $tmpdirs->dir_for("fetch");
+      set_config($fetchdir,'staging','fetch');
+      mkdir("$fetchdir/test");
+      system("touch","$fetchdir/test/$objid.zip");
+      system("touch","$fetchdir/test/$objid.xml");
+    };
+
+    after each => sub {
+      remove_tree($fetchdir);
+    };
+
+    describe "#clean_sip_success" => sub {
+      it "moves the zip" => sub {
+        $volume->clean_sip_success();
+
+        ok(-e "$tmpdirs->{ingested}/test/$objid.zip");
+      };
+
+      it "moves the xml" => sub {
+        $volume->clean_sip_success();
+
+        ok(-e "$tmpdirs->{ingested}/test/$objid.xml");
+      };
+    };
+
+    describe "#clean_sip_failure" => sub {
+      it "moves the zip" => sub {
+        $volume->clean_sip_failure();
+
+        ok(-e "$tmpdirs->{punted}/test/$objid.zip");
+      };
+
+      it "moves the xml" => sub {
+        $volume->clean_sip_failure();
+
+        ok(-e "$tmpdirs->{punted}/test/$objid.xml");
+      };
+    };
+
   };
 
 };

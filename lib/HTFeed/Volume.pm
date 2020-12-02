@@ -885,16 +885,26 @@ sub clean_sip_failure {
   $self->move_sip($self->get_failure_sip_location());
 }
 
-sub move_sip {
+sub real_sip_location {
   my $self = shift;
+
   my $source = $self->get_sip_location();
   if( not -e $source) {
     $source = $self->get_failure_sip_location(); # for retries
   }
 
+  if( not -e $source) {
+    $self->set_error("MissingFile",file => $source, detail=>"can't find sip in ingest or failure location");
+    $source = undef;
+  }
 
+  return $source;
+}
+
+sub move_sip {
+  my $self = shift;
+  my $source = $self->real_sip_location();
   my $target = shift;
-
 
   if( -e $source and $source ne $target) {
     if( not -d dirname($target) ) {

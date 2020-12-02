@@ -12,7 +12,7 @@ our $config = {
     %{$HTFeed::PackageType::config},
     description => 'SIP from EMMA',
 
-    volume_module => 'HTFeed::Volume',
+    volume_module => 'HTFeed::PackageType::EMMA::Volume',
 
     # Regular expression that distinguishes valid files in the file package
     valid_file_pattern => qr/^(.*)/,
