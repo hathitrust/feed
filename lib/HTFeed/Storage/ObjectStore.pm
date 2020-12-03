@@ -4,6 +4,7 @@ use Log::Log4perl qw(get_logger);
 use HTFeed::Storage;
 use File::Pairtree qw(id2ppath s2ppchars);
 use POSIX qw(strftime);
+use HTFeed::Storage::S3;
 
 use base qw(HTFeed::Storage);
 use strict;
