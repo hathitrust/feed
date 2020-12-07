@@ -55,6 +55,10 @@ shared_examples_for "an emma mets" => sub {
     ok($xc->findnodes('//mets:mdref[@MDTYPE="MARC"]')->size() == 0);
   };
 
+  it "does not include source metadata" => sub {
+    ok($xc->findnodes('//ht:sources')->size() == 0);
+  }
+
 };
 
 context "with volume & temporary ingest/preingest/zipfile dirs" => sub {

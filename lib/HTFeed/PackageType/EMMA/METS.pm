@@ -18,6 +18,10 @@ sub new {
     return $self;
 }
 
+sub _add_sourcemd {
+  # noop - do not add source metadata
+}
+
 sub _add_dmdsecs {
 
   my $self = shift;
