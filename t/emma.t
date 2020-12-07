@@ -5,13 +5,15 @@ use Test::Spec;
 use HTFeed::Test::Support qw(load_db_fixtures);
 use HTFeed::Test::SpecSupport qw(mock_zephir);
 use HTFeed::Config qw(set_config);
+use HTFeed::DBTools qw(get_dbh);
+use File::Path qw(remove_tree);
 
-shared_examples_for "an emma mets" => sub { 
+shared_examples_for "an emma mets" => sub {
 
   share my %mets_vars;
-  my $xc; 
+  my $xc;
 
-  before each => sub { 
+  before each => sub {
     $xc = $mets_vars{xc};
   };
 
@@ -29,6 +31,14 @@ shared_examples_for "an emma mets" => sub {
     ok($xc->findnodes('//mets:mets[@PROFILE="http://www.hathitrust.org/documents/hathitrust-emma-mets-profile1.0.xml"]')->size() == 1);
   };
 
+  it "has a PREMIS creation event" => sub {
+    ok($xc->findnodes('//premis:eventType[text()="creation"]')->size() == 1);
+  };
+
+  it "has a creation date extracted from the EMMA XML" => sub {
+    ok($xc->findnodes('//premis:event[premis:eventType[text()="creation"]]/premis:eventDateTime[text()="2020-07-29T16:35:31Z"]')->size() == 1);
+  };
+
   it "has a PREMIS message digest calculation event" => sub {
     ok($xc->findnodes('//premis:eventType[text()="message digest calculation"]')->size() == 1);
   };
@@ -43,6 +53,10 @@ shared_examples_for "an emma mets" => sub {
 
   it "does not include a reference to MARC metadata" => sub {
     ok($xc->findnodes('//mets:mdref[@MDTYPE="MARC"]')->size() == 0);
+  };
+
+  it "does not include source metadata" => sub {
+    ok($xc->findnodes('//ht:sources')->size() == 0);
   }
 
 };
@@ -56,16 +70,19 @@ context "with volume & temporary ingest/preingest/zipfile dirs" => sub {
   my $tmpdir;
 
   my $tmpdirs;
+  my $testlog;
 
   before all => sub {
     load_db_fixtures;
     $tmpdirs = HTFeed::Test::TempDirs->new();
+    $testlog = HTFeed::Test::Logger->new();
     $objid = "emmatest";
     $pt_objid = "emmatest";
   };
 
   before each => sub {
     $tmpdirs->setup_example;
+    $testlog->reset;
     set_config($tmpdirs->test_home . "/fixtures/emma",'staging','fetch');
 
     $volume = HTFeed::Volume->new(namespace => 'test',
@@ -122,38 +139,72 @@ context "with volume & temporary ingest/preingest/zipfile dirs" => sub {
   describe "HTFeed::PackageType::EMMA::SourceMETS" => sub {
     my $stage;
 
-    before each => sub {
-      HTFeed::PackageType::EMMA::Unpack->new(volume => $volume)->run();
-      HTFeed::PackageType::EMMA::VirusScan->new(volume => $volume)->run();
-
-      $stage = HTFeed::PackageType::EMMA::SourceMETS->new(volume => $volume);
-
-      mock_zephir();
-    };
-
-    it "succeeds" => sub {
-      $stage->run();
-      ok($stage->succeeded());
-    };
-
-    it "generates the METS xml" => sub {
-      $stage->run();
-      ok(-e "$tmpdirs->{ingest}/$pt_objid/$pt_objid.mets.xml");
-    };
-
-    it "caches metadata from the emma xml to the database";
-
-    context "with a mets xml" => sub {
-      share my %mets_vars;
+    context 'with a good volume' => sub {
 
       before each => sub {
-        $stage->run;
-        $mets_vars{xc} = $volume->_parse_xpc("$tmpdirs->{ingest}/$pt_objid/$pt_objid.mets.xml");
+        HTFeed::PackageType::EMMA::Unpack->new(volume => $volume)->run();
+        HTFeed::PackageType::EMMA::VirusScan->new(volume => $volume)->run();
+
+        $stage = HTFeed::PackageType::EMMA::SourceMETS->new(volume => $volume);
+
+        mock_zephir();
       };
 
-      it_should_behave_like "an emma mets";
+      it "succeeds" => sub {
+        $stage->run();
+        ok($stage->succeeded());
+      };
+
+      it "generates the METS xml" => sub {
+        $stage->run();
+        ok(-e "$tmpdirs->{ingest}/$pt_objid/$pt_objid.mets.xml");
+      };
+
+      it "caches metadata from the emma xml to the database" => sub {
+        $stage->run();
+
+        my $dbh = get_dbh();
+
+        my $row = $dbh->selectrow_hashref("SELECT * FROM emma_items WHERE remediated_item_id = 'test.emmatest'");
+
+        is($row->{original_item_id},'hvd.32044086819505');
+        is($row->{dc_format},'epub');
+        is($row->{rem_coverage},'CHAPTERS 1-3, CHAPTERS 5-6, APPENDIX');
+        ok($row->{rem_remediation} =~ /REMEDIATION ASPECT/);
+      };
+
+      context "with a mets xml" => sub {
+        share my %mets_vars;
+
+        before each => sub {
+          $stage->run;
+          $mets_vars{xc} = $volume->_parse_xpc("$tmpdirs->{ingest}/$pt_objid/$pt_objid.mets.xml");
+        };
+
+        it_should_behave_like "an emma mets";
+      };
     };
 
+    context 'with mismatched metadata' => sub {
+      before each => sub {
+        my $volume = HTFeed::Volume->new( namespace => 'test',
+          objid => 'bad_id',
+          packagetype => 'emma');
+
+        HTFeed::PackageType::EMMA::Unpack->new(volume => $volume)->run();
+        HTFeed::PackageType::EMMA::VirusScan->new(volume => $volume)->run();
+
+        $stage = HTFeed::PackageType::EMMA::SourceMETS->new(volume => $volume);
+
+        mock_zephir();
+      };
+
+      it "fails with a message about the submission id" => sub {
+        eval { $stage->run() };
+        ok($testlog->matches(qr(ERROR.*submission_id)));
+      };
+
+    };
 
   };
 
@@ -199,7 +250,52 @@ context "with volume & temporary ingest/preingest/zipfile dirs" => sub {
 
       it_should_behave_like "an emma mets";
 
-    }
+    };
+  };
+
+  describe "HTFeed::PackageType::EMMA::Volume" => sub {
+    my $fetchdir;
+
+    before each => sub {
+      $fetchdir = $tmpdirs->dir_for("fetch");
+      set_config($fetchdir,'staging','fetch');
+      mkdir("$fetchdir/test");
+      system("touch","$fetchdir/test/$objid.zip");
+      system("touch","$fetchdir/test/$objid.xml");
+    };
+
+    after each => sub {
+      remove_tree($fetchdir);
+    };
+
+    describe "#clean_sip_success" => sub {
+      it "moves the zip" => sub {
+        $volume->clean_sip_success();
+
+        ok(-e "$tmpdirs->{ingested}/test/$objid.zip");
+      };
+
+      it "moves the xml" => sub {
+        $volume->clean_sip_success();
+
+        ok(-e "$tmpdirs->{ingested}/test/$objid.xml");
+      };
+    };
+
+    describe "#clean_sip_failure" => sub {
+      it "moves the zip" => sub {
+        $volume->clean_sip_failure();
+
+        ok(-e "$tmpdirs->{punted}/test/$objid.zip");
+      };
+
+      it "moves the xml" => sub {
+        $volume->clean_sip_failure();
+
+        ok(-e "$tmpdirs->{punted}/test/$objid.xml");
+      };
+    };
+
   };
 
 };

@@ -79,7 +79,7 @@ describe "HTFeed::PackageType::Simple" => sub {
     };
 
     it "ignores Thumbs.db when it is in the checksum file and the package, but the checksum is wrong" => sub {
-      ok(unpack_and_verify("thumbs_in_checksum_and_pkg_bad_checksum")->succeeded());
+      ok(unpack_and_verify("thumbs_bad_checksum")->succeeded());
     };
 
     it "ignores Thumbs.db when it is in both the checksum file and the package" => sub {

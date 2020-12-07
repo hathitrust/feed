@@ -12,7 +12,7 @@ our $config = {
     %{$HTFeed::PackageType::config},
     description => 'SIP from EMMA',
 
-    volume_module => 'HTFeed::Volume',
+    volume_module => 'HTFeed::PackageType::EMMA::Volume',
 
     # Regular expression that distinguishes valid files in the file package
     valid_file_pattern => qr/^(.*)/,
@@ -61,16 +61,15 @@ our $config = {
 
      # What PREMIS event types  to extract from the source METS and include in the HT METS
     source_premis_events_extract => [
-        # 'creation',
+        'creation',
         'source_mets_creation',
         'page_md5_create',
+        'virus_scan',
     ],
 
     # What PREMIS events to include (by internal PREMIS identifier,
     # configured in config.yaml)
     premis_events => [
-      # 'creation',
-        'virus_scan',
         'zip_compression',
         'zip_md5_create',
         'ingestion',

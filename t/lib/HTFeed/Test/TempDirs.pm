@@ -32,7 +32,7 @@ sub test_home {
 sub staging_dirtypes {
   my $self = shift;
 
-  return qw(ingest preingest zipfile zip);
+  return qw(ingest preingest zipfile zip download ingested punted);
 }
 
 sub repo_dirtypes {
@@ -49,17 +49,23 @@ sub cleanup {
 sub setup_example {
   my $self = shift;
 
-  my $tmpdir = $self->{tmpdir};
-
   foreach my $dirtype ($self->staging_dirtypes) {
-    $self->{$dirtype} = tempdir("$tmpdir/feed-test-$dirtype-XXXXXX");
+    $self->{$dirtype} = $self->dir_for($dirtype);
     set_config($self->{$dirtype},'staging',$dirtype);
   }
 
   foreach my $dirtype ($self->repo_dirtypes) {
-    $self->{$dirtype} = tempdir("$tmpdir/feed-test-$dirtype-XXXXXX");
-
+    $self->{$dirtype} = $self->dir_for($dirtype);
   }
+}
+
+sub dir_for {
+  my $self = shift;
+  my $dirtype = shift;
+
+  my $tmpdir = $self->{tmpdir};
+
+  return tempdir("$tmpdir/feed-test-$dirtype-XXXXXX");
 }
 
 sub cleanup_example {

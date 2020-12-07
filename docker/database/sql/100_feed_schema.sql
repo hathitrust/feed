@@ -1,6 +1,4 @@
-CREATE DATABASE IF NOT EXISTS `ht_repository`;
-
-USE `ht_repository`;
+USE `ht`;
 
 CREATE TABLE IF NOT EXISTS `feed_audit` (
   `namespace` varchar(10) NOT NULL,
@@ -123,19 +121,4 @@ CREATE TABLE IF NOT EXISTS `feed_backups` (
   `md5check_ok` tinyint(1) DEFAULT NULL,
   `deleted` tinyint(1) DEFAULT NULL,
   PRIMARY KEY (`namespace`,`id`,`version`)
-);
-
-CREATE TABLE IF NOT EXISTS `ht_collection_digitizers` (
-  `collection` varchar(16) DEFAULT NULL,
-  `digitization_source` varchar(16) DEFAULT NULL,
-  `access_profile` tinyint(4) DEFAULT NULL
-);
-
-CREATE TABLE IF NOT EXISTS `ht_collections` (
-  `collection` varchar(16) NOT NULL,
-  `content_provider_cluster` varchar(255) DEFAULT NULL,
-  `responsible_entity` varchar(64) DEFAULT NULL,
-  `original_from_inst_id` varchar(32) DEFAULT NULL,
-  `billing_entity` varchar(64) DEFAULT NULL,
-  PRIMARY KEY (`collection`)
 );

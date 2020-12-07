@@ -13,10 +13,13 @@ sub new {
         @_,
     );
     $self->{profile} = "http://www.hathitrust.org/documents/hathitrust-emma-mets-profile1.0.xml";
-    #    $self->{required_events} = ["creation","message digest calculation","virus scan","ingestion"];
-    $self->{required_events} = ["message digest calculation","virus scan","ingestion"];
+    $self->{required_events} = ["creation","message digest calculation","virus scan","ingestion"];
 
     return $self;
+}
+
+sub _add_sourcemd {
+  # noop - do not add source metadata
 }
 
 sub _add_dmdsecs {

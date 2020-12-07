@@ -22,9 +22,7 @@ sub new {
     my $clamav_port = $ENV{CLAMAV_PORT} || 3310;
     $scanner = ClamAV::Client->new(socket_host => $clamav_host,
                                    socket_port => $clamav_port);
-    $scanner->ping();
   };
-  die "unable to connect to ClamAV: $@" if $@;
   $self->{scanner} = $scanner;
   return $self;
 }
@@ -36,6 +34,9 @@ sub run {
   my $dest = $volume->get_staging_directory();
 
   my $scanner = $self->{scanner};
+  $scanner->ping();
+  die "unable to connect to ClamAV: $@" if $@;
+
   my $files = $volume->get_all_content_files();
   my $virus_count = 0;
   foreach my $file (@$files) {
