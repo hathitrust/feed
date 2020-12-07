@@ -71,7 +71,28 @@ sub put_object {
   my $key = shift;
   my $source = shift;
 
-  $self->{s3}->s3api("put-object","--key","'$key'","--body","'$source'");
+  my $md5_base64 = $self->md5_base64($source);
+
+  $self->{s3}->s3api("put-object",
+    "--key","'$key'",
+    "--body","'$source'",
+    "--content-md5",$md5_base64,
+    "--metadata","content-md5=" . $md5_base64);
 }
+
+sub md5_base64 {
+  my $self = shift;
+  my $file= shift;
+
+  open( my $fh, "<", $file ) or croak("Can't open $file: $!");
+  # From perldoc Digest::MD5:
+  #
+  # The base64 encoded string returned is not padded to be a multiple of 4
+  # bytes long. If you want interoperability with other base64 encoded md5
+  # digests you might want to append the string "==" to the result.
+
+  return Digest::MD5->new->addfile($fh)->b64digest . '==';
+}
+
 
 1;

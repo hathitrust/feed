@@ -83,14 +83,40 @@ describe "HTFeed::Storage::ObjectStore" => sub {
       my $storage = object_storage('test','test');
       $storage->move;
 
-      #  my $result = $s3->s3api('head-object',"test.test.$storage->{timestamp}.zip");
-      # aws s3api head-object --bucket test --key test.test.$storage->{timestamp}.zip
-      # then get Metadata -> "content-md5", base64 decode & hex encode
+      my $result = $s3->s3api('head-object','--key',"test.test.$storage->{timestamp}.zip");
+      # openssl md5 -binary test.zip | base64
+      is($result->{Metadata}{'content-md5'}, 'LUDWXBrs2Fez94DoW8m9kg==', 'metadata for md5 checksum');
     };
 
     # basically we want to test that we're properly using the checksum verification
-    it "returns false if upload file doesn't match expected checksum";
-    # other checks for if upload doesn't complete successfully?
+    it "passes --content-md5 argument" => sub {
+      my $storage = object_storage('test','test');
+      my $mock_s3 = HTFeed::Test::MockS3->new();
+      $storage->{s3} = $mock_s3;
+
+      $storage->move;
+
+      # openssl md5 -binary test.mets.xml | base64
+      like($mock_s3->{calls}[0],qr(.*test.mets.xml.*--content-md5 YqtkiMjGHD6t4tiKsERIFA==));
+      # openssl md5 -binary test.zip | base64
+      like($mock_s3->{calls}[1],qr(.*test.zip.*--content-md5 LUDWXBrs2Fez94DoW8m9kg==));
+
+    };
+
+    it "S3 storage call fails if provided md5 is wrong" => sub {
+      my $storage = object_storage('test','test');
+
+      my $s3 = $storage->{s3};
+
+      dies_ok( sub {
+        $s3->s3api("put-object",
+          "--key","test-wrong-md5",
+          "--body",$storage->zip_source,
+          # echo 'mashed potatoes' | openssl md5 --binary | base64
+          "--content-md5",'8wSepo2ze/YjjW1rawM6Lg==');
+      });
+    };
+
   };
 
   describe "#make_object_path" => sub {
@@ -114,3 +140,20 @@ describe "HTFeed::Storage::ObjectStore" => sub {
 };
 
 runtests unless caller;
+
+package HTFeed::Test::MockS3;
+
+sub new {
+  my $class = shift;
+
+  my $self = {
+    calls => []
+  };
+
+  return bless($self,$class);
+}
+
+sub s3api {
+  my $self = shift;
+  push(@{$self->{calls}},join(' ',@_));
+}
