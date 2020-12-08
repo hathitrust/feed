@@ -14,6 +14,7 @@ describe "HTFeed::Storage::ObjectStore" => sub {
       bucket => $bucket,
       awscli => ['aws','--endpoint-url','http://minio:9000']
     );
+    $ENV{AWS_MAX_ATTEMPTS} = 1;
 
     $s3->mb;
   };
@@ -127,10 +128,66 @@ describe "HTFeed::Storage::ObjectStore" => sub {
   };
 
   describe "#postvalidate" => sub {
-    it "returns false if zip is not in s3";
-    it "returns false if mets is not in s3";
-    it "returns false if zip does not have correct checksum metadata";
-    it "returns false if mets does not have correct checksum metadata";
+    before each => sub {
+      $s3->rm("/","--recursive");
+    };
+
+    it "returns false without calling move (i.e. nothing in s3)" => sub {
+      my $storage = object_storage('test','test');
+      ok( ! $storage->postvalidate);
+    };
+
+    it "returns false if zip is not in s3" => sub {
+      my $storage = object_storage('test','test');
+      $storage->put_mets;
+      ok( ! $storage->postvalidate);
+    };
+
+    it "returns false if mets is not in s3" => sub {
+      my $storage = object_storage('test','test');
+      ok( ! $storage->postvalidate);
+    };
+
+    it "returns false if zip is missing checksum metadata" => sub {
+      my $storage = object_storage('test','test');
+      $storage->put_mets;
+
+      $s3->s3api("put-object",
+        "--key",$storage->object_path . $storage->zip_suffix,
+        "--body",$storage->zip_source);
+
+      ok ( !$storage->postvalidate);
+    };
+
+    it "returns false if zip does not have correct checksum metadata" => sub {
+      my $storage = object_storage('test','test');
+      $storage->put_mets;
+
+      $s3->s3api("put-object",
+        "--key",$storage->object_path . $storage->zip_suffix,
+        "--body",$storage->zip_source,
+        "--metadata" => "content-md5=invalid");
+
+      ok ( !$storage->postvalidate);
+    };
+
+    it "returns false if mets does not have correct checksum metadata" => sub {
+      my $storage = object_storage('test','test');
+      $storage->put_zip;
+
+      $s3->s3api("put-object",
+        "--key",$storage->object_path . ".mets.xml",
+        "--body",$storage->{volume}->get_mets_path(),
+        "--metadata" => "content-md5=invalid");
+
+      ok ( !$storage->postvalidate);
+    };
+
+    it "returns true after successful move" => sub {
+      my $storage = object_storage('test','test');
+      ok($storage->move);
+      ok($storage->postvalidate);
+    };
   };
 
   describe "#record_audit" => sub {

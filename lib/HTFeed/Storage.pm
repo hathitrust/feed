@@ -480,4 +480,9 @@ sub validate_zip_checksums {
 
 }
 
+sub zip_suffix {
+  my $self = shift;
+  return '.zip' . $self->{zip_suffix};
+}
+
 1;

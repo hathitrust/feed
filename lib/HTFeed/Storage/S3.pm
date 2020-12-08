@@ -1,6 +1,7 @@
 package HTFeed::Storage::S3;
 
 use Log::Log4perl qw(get_logger);
+use IPC::Run qw(run);
 use JSON::XS;
 use strict;
 
@@ -59,12 +60,15 @@ sub s3api {
   my $subcommand = shift;
   my @args = @_;
   my @cmd = $self->cmd;
-  my $fullcmd = join(" ",@cmd) . " s3api $subcommand --bucket $self->{bucket} " . join(" ",@args);
-  get_logger->trace("Running $fullcmd");
-  my $result = `$fullcmd`;
-  die("awscli failed with status $?") if $?;
+  my $fullcmd = [@cmd, 's3api', $subcommand, '--bucket', $self->{bucket}, @args];
+  get_logger->trace("Running " . join(' ',@$fullcmd));
 
-  return decode_json($result);
+  my $out = "";
+  my $err = "";
+  run $fullcmd, \undef, \$out, \$err;
+  die("awscli failed with status $?, error $err") if $?;
+
+  return decode_json($out);
 }
 
 sub s3_has {
@@ -72,10 +76,23 @@ sub s3_has {
 
   my $key = shift;
 
-  my $result = $self->s3api("list-objects","--prefix",$key);
+  return exists $self->list_objects("--prefix" => $key)->{$key}
 
-  return grep { $_->{Key} eq $key } @{$result->{Contents}}
+}
 
+sub head_object {
+  my $self = shift;
+  my $key = shift;
+
+  return $self->s3api('head-object','--key',$key);
+}
+
+sub list_objects {
+  my $self = shift;
+
+  my $objects = $self->s3api("list-objects-v2",@_)->{Contents};
+
+  return { map { ($_->{Key}, $_) } @$objects }
 }
 
 1;

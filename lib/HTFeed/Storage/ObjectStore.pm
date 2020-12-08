@@ -1,5 +1,6 @@
 package HTFeed::Storage::ObjectStore;
 
+use Carp;
 use Log::Log4perl qw(get_logger);
 use HTFeed::Storage;
 use File::Pairtree qw(id2ppath s2ppchars);
@@ -20,6 +21,8 @@ sub new {
     bucket => $self->{config}{bucket},
     awscli => $self->{config}{awscli}
   );
+
+  $self->{checksums} = {};
 
   return $self;
 }
@@ -51,19 +54,68 @@ sub make_object_path {
   return 1;
 }
 
+sub postvalidate {
+  my $self = shift;
+
+  my $prefix = $self->object_path;
+
+  foreach my $suffix ($self->zip_suffix, ".mets.xml") {
+    my $key = $prefix . $suffix;
+    my $s3path = "s3://$self->{s3}{bucket}/$key";
+    my $result;
+
+    eval { $result = $self->{s3}->s3api('head-object','--key' => $key) };
+
+    if ($@ and $@ =~ /Not Found/) {
+      $self->set_error('MissingFile',
+        file => $s3path,
+        detail => $@);
+
+      return;
+    }
+
+    unless ( exists $result->{Metadata}{'content-md5'} ) {
+      $self->set_error('MissingField',
+        field => 'Content-MD5',
+        file => $s3path,
+        detail => 'No md5 checksum recorded in object metadata');
+
+      return;
+    }
+
+    unless ( $result->{Metadata}{'content-md5'} eq $self->{checksums}{$key}  ) {
+      $self->set_error('BadValue',
+        field => 'Content-MD5',
+        file => $s3path,
+        actual => $result->{Metadata}{'content-md5'},
+        expected => $self->{checksums}{$key},
+        detail => 'Content-MD5 metadata value in S3 does not match expected value');
+
+      return;
+    }
+  }
+
+  return 1;
+  # does it have the checksum metadata?
+
+}
+
 sub move {
   my $self = shift;
-  my $volume = $self->{volume};
-  # TODO include --content-md5 and --metadata md5-checksum
-  my $key_prefix = $self->object_path();
+  $self->put_mets;
+  $self->put_zip;
+}
 
-  my $mets_source = $volume->get_mets_path();
-  get_logger()->trace("copying METS from: $mets_source");
-  $self->put_object("$key_prefix.mets.xml",$mets_source);
+sub put_mets {
+  my $self = shift;
 
-  my $zip_source = $self->zip_source();
-  my $zip_suffix = ".zip" . $self->{zip_suffix};
-  $self->put_object("$key_prefix$zip_suffix",$zip_source);
+  $self->put_object($self->object_path . ".mets.xml",$self->{volume}->get_mets_path());
+}
+
+sub put_zip {
+  my $self = shift;
+
+  $self->put_object($self->object_path . $self->zip_suffix,$self->zip_source);
 }
 
 sub put_object {
@@ -73,11 +125,13 @@ sub put_object {
 
   my $md5_base64 = $self->md5_base64($source);
 
+  $self->{checksums}{$key} = $md5_base64;
+
   $self->{s3}->s3api("put-object",
-    "--key","'$key'",
-    "--body","'$source'",
-    "--content-md5",$md5_base64,
-    "--metadata","content-md5=" . $md5_base64);
+    "--key" => $key,
+    "--body" => $source,
+    "--content-md5" => $md5_base64,
+    "--metadata" => "content-md5=" . $md5_base64);
 }
 
 sub md5_base64 {
