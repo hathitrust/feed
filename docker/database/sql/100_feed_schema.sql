@@ -112,6 +112,7 @@ CREATE TABLE IF NOT EXISTS `feed_zephir_items` (
 CREATE TABLE IF NOT EXISTS `feed_backups` (
   `namespace` varchar(10) NOT NULL,
   `id` varchar(32) NOT NULL,
+  `path` text,
   `version` varchar(16) DEFAULT NULL,
   `zip_size` bigint(20) DEFAULT NULL,
   `mets_size` bigint(20) DEFAULT NULL,

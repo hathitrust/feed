@@ -6,6 +6,7 @@ use HTFeed::Storage;
 use File::Pairtree qw(id2ppath s2ppchars);
 use POSIX qw(strftime);
 use HTFeed::Storage::S3;
+use MIME::Base64 qw(decode_base64);
 
 use base qw(HTFeed::Storage);
 use strict;
@@ -54,13 +55,22 @@ sub make_object_path {
   return 1;
 }
 
+sub zip_key {
+  my $self = shift;
+
+  return $self->object_path . $self->zip_suffix;
+}
+
+sub mets_key {
+  my $self = shift;
+
+  return $self->object_path . ".mets.xml";
+}
+
 sub postvalidate {
   my $self = shift;
 
-  my $prefix = $self->object_path;
-
-  foreach my $suffix ($self->zip_suffix, ".mets.xml") {
-    my $key = $prefix . $suffix;
+  foreach my $key ($self->zip_key, $self->mets_key) {
     my $s3path = "s3://$self->{s3}{bucket}/$key";
     my $result;
 
@@ -102,20 +112,8 @@ sub postvalidate {
 
 sub move {
   my $self = shift;
-  $self->put_mets;
-  $self->put_zip;
-}
-
-sub put_mets {
-  my $self = shift;
-
-  $self->put_object($self->object_path . ".mets.xml",$self->{volume}->get_mets_path());
-}
-
-sub put_zip {
-  my $self = shift;
-
-  $self->put_object($self->object_path . $self->zip_suffix,$self->zip_source);
+  $self->put_object($self->mets_key,$self->{volume}->get_mets_path());
+  $self->put_object($self->zip_key,$self->zip_source);
 }
 
 sub put_object {
@@ -126,6 +124,7 @@ sub put_object {
   my $md5_base64 = $self->md5_base64($source);
 
   $self->{checksums}{$key} = $md5_base64;
+  $self->{filesize}{$key} = -s $source;
 
   $self->{s3}->s3api("put-object",
     "--key" => $key,
@@ -146,6 +145,28 @@ sub md5_base64 {
   # digests you might want to append the string "==" to the result.
 
   return Digest::MD5->new->addfile($fh)->b64digest . '==';
+}
+
+sub record_backup {
+  my $self = shift;
+
+  my $dbh = HTFeed::DBTools::get_dbh();
+
+  my $b64_checksum = $self->{checksums}{$self->zip_key};
+  my $hex_checksum = unpack("H*",decode_base64($b64_checksum));
+
+  my $stmt =
+  "insert into feed_backups (namespace, id, path, version, zip_size, \
+    mets_size, saved_md5sum, lastchecked, lastmd5check, md5check_ok) \
+    values(?,?,?,?,?,?,?,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,1)";
+
+  my $sth  = $dbh->prepare($stmt);
+  $sth->execute(
+      $self->{namespace}, $self->{objid},
+      "s3://$self->{s3}{bucket}/" . $self->object_path,
+      $self->{timestamp}, $self->{filesize}{$self->zip_key},
+      $self->{filesize}{$self->object_path . '.mets.xml'}, $hex_checksum);
+
 }
 
 

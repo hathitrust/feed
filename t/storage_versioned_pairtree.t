@@ -76,6 +76,10 @@ describe "HTFeed::Storage::VersionedPairtree" => sub {
   };
 
   describe "#record_backup" => sub {
+    before each => sub {
+      get_dbh()->do("DELETE FROM feed_backups");
+    };
+
     it "records the copy in the feed_backups table" => sub {
       my $storage = versioned_storage('test','test');
       $storage->stage;
@@ -88,7 +92,7 @@ describe "HTFeed::Storage::VersionedPairtree" => sub {
       is($r->[0][0],$storage->{timestamp});
     };
 
-    it "does not record anything in feed_backups if the volume wasn't moved" => sub {
+    it "does not record anything if the volume wasn't moved" => sub {
 
       my $storage = versioned_storage('test','test');
       $storage->stage;
@@ -99,6 +103,18 @@ describe "HTFeed::Storage::VersionedPairtree" => sub {
 
       is(scalar(@$r),0);
 
+    };
+
+    it "records the full path" => sub {
+      my $storage = versioned_storage('test','test');
+      $storage->stage;
+      $storage->make_object_path;
+      $storage->move;
+      $storage->record_backup;
+
+      my $r = get_dbh()->selectall_arrayref("SELECT path from feed_backups WHERE namespace = 'test' and id = 'test'");
+
+      is($r->[0][0],$storage->object_path);
     };
   };
 

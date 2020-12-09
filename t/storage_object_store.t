@@ -139,18 +139,19 @@ describe "HTFeed::Storage::ObjectStore" => sub {
 
     it "returns false if zip is not in s3" => sub {
       my $storage = object_storage('test','test');
-      $storage->put_mets;
+      $storage->put_object($storage->mets_key,$storage->{volume}->get_mets_path());
       ok( ! $storage->postvalidate);
     };
 
     it "returns false if mets is not in s3" => sub {
       my $storage = object_storage('test','test');
+      $storage->put_object($storage->zip_key,$storage->zip_source);
       ok( ! $storage->postvalidate);
     };
 
     it "returns false if zip is missing checksum metadata" => sub {
       my $storage = object_storage('test','test');
-      $storage->put_mets;
+      $storage->put_object($storage->mets_key,$storage->{volume}->get_mets_path());
 
       $s3->s3api("put-object",
         "--key",$storage->object_path . $storage->zip_suffix,
@@ -161,7 +162,7 @@ describe "HTFeed::Storage::ObjectStore" => sub {
 
     it "returns false if zip does not have correct checksum metadata" => sub {
       my $storage = object_storage('test','test');
-      $storage->put_mets;
+      $storage->put_object($storage->mets_key,$storage->{volume}->get_mets_path());
 
       $s3->s3api("put-object",
         "--key",$storage->object_path . $storage->zip_suffix,
@@ -173,7 +174,7 @@ describe "HTFeed::Storage::ObjectStore" => sub {
 
     it "returns false if mets does not have correct checksum metadata" => sub {
       my $storage = object_storage('test','test');
-      $storage->put_zip;
+      $storage->put_object($storage->zip_key,$storage->zip_source);
 
       $s3->s3api("put-object",
         "--key",$storage->object_path . ".mets.xml",
@@ -190,10 +191,72 @@ describe "HTFeed::Storage::ObjectStore" => sub {
     };
   };
 
-  describe "#record_audit" => sub {
-    it "records the backup";
+  describe "#record_backup" => sub {
+    before each => sub {
+      get_dbh()->do("DELETE FROM feed_backups");
+    };
+
+    it "records the item info in the feed_backups table" => sub {
+      my $storage = object_storage('test','test');
+      $storage->move;
+      $storage->record_backup;
+
+      my $r = get_dbh()->selectall_arrayref("SELECT version, path,
+        saved_md5sum from feed_backups WHERE namespace = 'test' and id =
+        'test'");
+
+      is($r->[0][0],$storage->{timestamp});
+      is($r->[0][1],"s3://$s3->{bucket}/test.test.$storage->{timestamp}");
+      # md5sum test.zip - hex rather than base64 checksum here
+      is($r->[0][2],"2d40d65c1aecd857b3f780e85bc9bd92");
+    };
+
+    it "does not record anything if the volume wasn't copied";
     it "records the checksum of the encrypted zip";
   };
+
+  context "with encryption enabled" => sub {
+    sub encrypted_object_storage {
+      my $volume = stage_volume($tmpdirs,@_);
+
+      my $storage = HTFeed::Storage::ObjectStore->new(
+        volume => $volume,
+        config => {
+          bucket => $s3->{bucket},
+          awscli => $s3->{awscli},
+          encryption_key => $tmpdirs->test_home . "/fixtures/encryption_key"
+        },
+      );
+
+      return $storage;
+    }
+
+    it "stores the mets and encrypted zip" => sub {
+      my $storage = encrypted_object_storage('test','test');
+      $storage->encrypt;
+      $storage->move;
+
+      ok($s3->s3_has("test.test.$storage->{timestamp}.zip.gpg"));
+      ok(!$s3->s3_has("test.test.$storage->{timestamp}.zip"));
+      ok($s3->s3_has("test.test.$storage->{timestamp}.mets.xml"));
+    };
+
+    it "saves the checksum of the encrypted zip" => sub {
+      get_dbh()->do("DELETE FROM feed_backups");
+      my $storage = encrypted_object_storage('test', 'test');
+
+      $storage->encrypt;
+      $storage->move;
+      $storage->record_backup;
+
+      my $r = get_dbh()->selectall_arrayref("SELECT saved_md5sum from feed_backups WHERE namespace = 'test' and id = 'test'");
+      my $crypted = $storage->zip_source();
+      ok($crypted =~ /\.gpg$/);
+      my $checksum = `md5sum $crypted | cut -f 1 -d ' '`;
+      chomp $checksum;
+      is($r->[0][0],$checksum);
+    };
+  }
 };
 
 runtests unless caller;
