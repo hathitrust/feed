@@ -6,23 +6,8 @@ use strict;
 
 describe "HTFeed::Storage::ObjectStore" => sub {
   spec_helper 'storage_helper.pl';
+  spec_helper 's3_helper.pl';
   local our ($tmpdirs, $testlog, $bucket, $s3);
-
-  before all => sub {
-    $bucket = "bucket" . sprintf("%08d",rand(1000000));
-    $s3 = HTFeed::Storage::S3->new(
-      bucket => $bucket,
-      awscli => ['aws','--endpoint-url','http://minio:9000']
-    );
-    $ENV{AWS_MAX_ATTEMPTS} = 1;
-
-    $s3->mb;
-  };
-
-  after all => sub {
-    $s3->rm('/',"--recursive");
-    $s3->rb;
-  };
 
   sub object_storage {
     my $volume = stage_volume($tmpdirs,@_);
@@ -153,8 +138,7 @@ describe "HTFeed::Storage::ObjectStore" => sub {
       my $storage = object_storage('test','test');
       $storage->put_object($storage->mets_key,$storage->{volume}->get_mets_path());
 
-      $s3->s3api("put-object",
-        "--key",$storage->object_path . $storage->zip_suffix,
+      $s3->put_object($storage->object_path . $storage->zip_suffix,
         "--body",$storage->zip_source);
 
       ok ( !$storage->postvalidate);
@@ -164,8 +148,7 @@ describe "HTFeed::Storage::ObjectStore" => sub {
       my $storage = object_storage('test','test');
       $storage->put_object($storage->mets_key,$storage->{volume}->get_mets_path());
 
-      $s3->s3api("put-object",
-        "--key",$storage->object_path . $storage->zip_suffix,
+      $s3->put_object($storage->object_path . $storage->zip_suffix,
         "--body",$storage->zip_source,
         "--metadata" => "content-md5=invalid");
 
@@ -176,8 +159,7 @@ describe "HTFeed::Storage::ObjectStore" => sub {
       my $storage = object_storage('test','test');
       $storage->put_object($storage->zip_key,$storage->zip_source);
 
-      $s3->s3api("put-object",
-        "--key",$storage->object_path . ".mets.xml",
+      $s3->put_object($storage->object_path . ".mets.xml",
         "--body",$storage->{volume}->get_mets_path(),
         "--metadata" => "content-md5=invalid");
 
@@ -275,5 +257,10 @@ sub new {
 
 sub s3api {
   my $self = shift;
-  push(@{$self->{calls}},join(' ',@_));
+  push(@{$self->{calls}},join(' ','s3api',@_));
+}
+
+sub put_object {
+  my $self = shift;
+  push(@{$self->{calls}},join(' ','put_object',@_));
 }

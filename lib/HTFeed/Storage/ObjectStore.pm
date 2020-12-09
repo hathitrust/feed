@@ -126,9 +126,8 @@ sub put_object {
   $self->{checksums}{$key} = $md5_base64;
   $self->{filesize}{$key} = -s $source;
 
-  $self->{s3}->s3api("put-object",
-    "--key" => $key,
-    "--body" => $source,
+  $self->{s3}->put_object($key,
+    "--body",$source,
     "--content-md5" => $md5_base64,
     "--metadata" => "content-md5=" . $md5_base64);
 }

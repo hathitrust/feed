@@ -35,3 +35,10 @@ storage_classes:
 
 jhove: /usr/bin/jhove
 jhoveconf: /etc/jhove/jhove.conf
+
+emma:
+  namespace: test
+  packagetype: emma
+  bucket: emma-test-bucket
+
+awscli: ['aws','--endpoint-url','http://minio:9000']
