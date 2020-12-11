@@ -15,8 +15,11 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
+      - name: Check out submodules
+        run: git submodule update --init metslib
+
+      - name: Build docker image
+        run: docker-compose --file docker-compose.test.yml build
+
       - name: Run tests
-        run: |
-          git submodule update --init metslib
-          docker-compose --file docker-compose.test.yml build
-          docker-compose --file docker-compose.test.yml run sut
+        run: docker-compose --file docker-compose.test.yml run sut
