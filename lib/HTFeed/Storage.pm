@@ -49,8 +49,7 @@ sub encrypt {
 
   my $cmd = "cat \"$key\" | gpg --quiet --passphrase-fd 0 --batch --no-tty --output $encrypted --symmetric $original";
 
-  get_logger()->trace("Running $cmd");
-  system($cmd);
+  $self->safe_system($cmd);
 
   $self->{zip_suffix} = ".gpg";
 
@@ -479,6 +478,11 @@ sub validate_zip_checksums {
 
   return $ok;
 
+}
+
+sub zip_suffix {
+  my $self = shift;
+  return '.zip' . $self->{zip_suffix};
 }
 
 1;

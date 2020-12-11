@@ -47,7 +47,14 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: mysqlroot
 
-      # TODO: handle server??
+  # S3 compatible object storage
+  minio:
+    image: minio/minio
+    restart: always
+    environment:
+      MINIO_ACCESS_KEY: TESTINGACCESSKEY
+      MINIO_SECRET_KEY: testingsecretkey
+    command: server /data
 
   clamav:
     image: openbridge/clamav
