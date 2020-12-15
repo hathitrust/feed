@@ -73,26 +73,53 @@ sub s3api {
 
 sub s3_has {
   my $self = shift;
-
   my $key = shift;
 
-  return exists $self->list_objects("--prefix" => $key)->{$key}
-
+  my $results = $self->list_objects("--prefix" => $key);
+  return grep { $_->{Key} eq $key } @$results;
 }
 
 sub head_object {
   my $self = shift;
   my $key = shift;
 
-  return $self->s3api('head-object','--key',$key);
+  return $self->s3api('head-object','--key',$key,@_);
+}
+
+sub put_object {
+  my $self = shift;
+  my $key = shift;
+
+  return $self->s3api('put-object','--key',$key,@_);
+}
+
+sub get_object {
+  my $self = shift;
+  my $bucket = shift;
+  my $key = shift;
+  my $dest = shift;
+
+  return $self->s3api('get-object','--key',$key,@_,$dest);
 }
 
 sub list_objects {
   my $self = shift;
 
-  my $objects = $self->s3api("list-objects-v2",@_)->{Contents};
+  my $objects = [];
+  my @params = @_;
+  my @next_token_params = ();
 
-  return { map { ($_->{Key}, $_) } @$objects }
+  while(1) {
+    my $result = $self->s3api("list-objects-v2",@next_token_params,@params);
+
+    push(@$objects,@{$result->{Contents}});
+
+    if($result->{NextToken}) {
+      @next_token_params = ('--starting-token',$result->{NextToken});
+    } else {
+      return $objects;
+    }
+  }
 }
 
 1;

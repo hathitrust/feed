@@ -4,7 +4,7 @@ use lib "$FindBin::Bin/lib";
 use Test::Spec;
 use HTFeed::Test::Support qw(load_db_fixtures);
 use HTFeed::Test::SpecSupport qw(mock_zephir);
-use HTFeed::Config qw(set_config);
+use HTFeed::Config qw(set_config get_config);
 use HTFeed::DBTools qw(get_dbh);
 use File::Path qw(remove_tree);
 
@@ -98,6 +98,68 @@ context "with volume & temporary ingest/preingest/zipfile dirs" => sub {
     $tmpdirs->cleanup;
   };
 
+  describe "HTFeed::PackageType::EMMA::Enqueue" => sub {
+    use HTFeed::Storage::S3;
+    use HTFeed::PackageType::EMMA::Enqueue;
+
+    spec_helper 's3_helper.pl';
+
+    my $fetchdir;
+    my $emma_queue;
+    my $namespace = get_config('emma','namespace');
+    local our ($s3, $bucket);
+
+    before each => sub {
+      get_dbh->do("DELETE FROM feed_queue");
+      $s3->rm("/","--recursive");
+
+      $fetchdir = $tmpdirs->dir_for("fetch");
+      set_config($fetchdir,'staging','fetch');
+      mkdir("$fetchdir/$namespace");
+
+      $emma_queue = HTFeed::PackageType::EMMA::Enqueue->new(
+        s3 => $s3
+      );
+    };
+
+    after each => sub {
+      remove_tree($fetchdir);
+    };
+
+    it "downloads the items in the bucket" => sub {
+      my @files = qw(emma_test.zip emma_test.xml emma_test_2.zip emma_test_2.xml);
+      put_s3_files(@files);
+
+      $emma_queue->run();
+
+      foreach my $file (@files) {
+        ok(-f "$fetchdir/$namespace/$file", "$fetchdir/$namespace/$file");
+      }
+    };
+
+    it "zips non-zipped stuff" => sub {
+      my @files = qw(emma_test.rtf emma_test.xml);
+      put_s3_files(@files);
+
+      $emma_queue->run();
+
+      my $results = `unzip -l $fetchdir/$namespace/emma_test.zip`;
+      like($results,qr(emma_test\.rtf));
+    };
+
+    it "queues the items in the bucket" => sub {
+      my @files = qw(emma_test.zip emma_test.xml emma_test_2.zip emma_test_2.xml);
+      put_s3_files(@files);
+
+      $emma_queue->run();
+
+      foreach my $id (qw(emma_test emma_test_2)) {
+        my $results = get_dbh()->selectrow_arrayref("SELECT COUNT(*) FROM feed_queue WHERE namespace = ? and id = ?",undef,$namespace,$id);
+        is($results->[0],1);
+      }
+    };
+  };
+
   describe "HTFeed::PackageType::EMMA::Unpack" => sub {
     my $stage;
 
@@ -127,7 +189,6 @@ context "with volume & temporary ingest/preingest/zipfile dirs" => sub {
       my $unpack = HTFeed::PackageType::EMMA::Unpack->new(volume => $volume);
       $unpack->run();
       $stage = HTFeed::PackageType::EMMA::VirusScan->new(volume => $volume);
-
     };
 
     it "succeeds" => sub {

@@ -13,7 +13,7 @@ RUN apt-get update && apt-get install -y \
     netcat
 
 RUN mkdir -p /tmp/stage/grin
-RUN mkdir -p /tmp/prep/toingest /tmp/prep/failed /tmp/prep/ingested /tmp/prep/logs
+RUN mkdir -p /tmp/prep/toingest /tmp/prep/failed /tmp/prep/ingested /tmp/prep/logs /tmp/prep/toingest/emma
 
 COPY ./docker/aws /root/.aws
 WORKDIR /usr/local/feed

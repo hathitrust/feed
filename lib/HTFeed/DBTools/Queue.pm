@@ -46,6 +46,7 @@ sub enqueue_volumes{
         volumes       => undef,
         status        => undef,
         ignore        => undef,
+        no_bibdata_ok    => undef,
         use_blacklist => 1,
         priority      => undef,
         @_
@@ -57,8 +58,9 @@ sub enqueue_volumes{
     my $volumes             = $args{volumes};
     $volumes = [$args{volume}]
         if (defined $args{volume});
-    my $arg_status              = $args{status};
+    my $arg_status          = $args{status};
     my $ignore              = $args{ignore};
+    my $no_bibdata_ok       = $args{no_bibdata_ok};
     my $use_blacklist       = $args{use_blacklist};
     my $priority_modifier   = $args{priority};
     
@@ -89,12 +91,14 @@ sub enqueue_volumes{
             }
 
             my $has_bib_data = 0;
-            $has_bibdata_sth->execute($namespace,$objid);
-            if($has_bibdata_sth->fetchrow_array()) {
-                $has_bib_data = 1;
-            } else {
-                get_logger()->warn("NoBibData",namespace=>$namespace,objid=>$objid);
-                push(@results,0);
+            unless ($no_bibdata_ok) {
+              $has_bibdata_sth->execute($namespace,$objid);
+              if($has_bibdata_sth->fetchrow_array()) {
+                  $has_bib_data = 1;
+              } else {
+                  get_logger()->warn("NoBibData",namespace=>$namespace,objid=>$objid);
+                  push(@results,0);
+              }
             }
 
             my $blacklisted = 0;
@@ -107,10 +111,10 @@ sub enqueue_volumes{
                 }
             }
 
-            if($has_bib_data and !$blacklisted) {
+            if(($no_bibdata_ok or $has_bib_data) and !$blacklisted) {
                 my $res = $sth->execute($pkg_type, $namespace, $objid, initial_priority($volume,$priority_modifier), $status);
                 push @results, $res;
-                if($res) {
+                if($res and $has_bib_data) {
                   # set returned=1 in feed_zephir_items
                   # would be a good place to use a transaction.. but probably not super-important. audit
                   # should catch anything that is marked as 'returned' but not actually queued or in the
