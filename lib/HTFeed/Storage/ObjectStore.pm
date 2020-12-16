@@ -39,6 +39,10 @@ sub object_path {
     $self->{timestamp});
 }
 
+sub clean_staging {
+  # No staging path, so nothing to clean
+}
+
 sub stage_path {
   die("Not implemented for ObjectStore");
 }
@@ -145,6 +149,11 @@ sub md5_base64 {
   # digests you might want to append the string "==" to the result.
 
   return Digest::MD5->new->addfile($fh)->b64digest . '==';
+}
+
+sub record_audit {
+  my $self = shift;
+  $self->record_backup;
 }
 
 sub record_backup {

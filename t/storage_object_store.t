@@ -6,23 +6,8 @@ use strict;
 
 describe "HTFeed::Storage::ObjectStore" => sub {
   spec_helper 'storage_helper.pl';
+  spec_helper 's3_helper.pl';
   local our ($tmpdirs, $testlog, $bucket, $s3);
-
-  before all => sub {
-    $bucket = "bucket" . sprintf("%08d",rand(1000000));
-    $s3 = HTFeed::Storage::S3->new(
-      bucket => $bucket,
-      awscli => ['aws','--endpoint-url','http://minio:9000']
-    );
-    $ENV{AWS_MAX_ATTEMPTS} = 1;
-
-    $s3->mb;
-  };
-
-  after all => sub {
-    $s3->rm('/',"--recursive");
-    $s3->rb;
-  };
 
   sub object_storage {
     my $volume = stage_volume($tmpdirs,@_);

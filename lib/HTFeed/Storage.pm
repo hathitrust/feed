@@ -31,6 +31,7 @@ sub new {
     errors => [],
     config => $config,
     zip_suffix => "",
+    did_encryption => 0,
   };
 
   bless($self, $class);
@@ -52,6 +53,7 @@ sub encrypt {
   $self->safe_system($cmd);
 
   $self->{zip_suffix} = ".gpg";
+  $self->{did_encryption} = 1;
 
   return ! $?;
 
@@ -63,7 +65,6 @@ sub verify_crypt {
   my $encrypted = $self->zip_source();
 
   my $key = $self->{config}{encryption_key};
-
   return 1 unless $key;
 
   my $actual_checksum = $self->crypted_md5sum($encrypted,$key);
@@ -232,7 +233,12 @@ sub clean_staging {
 };
 
 sub cleanup {
-  #noop
+  my $self = shift;
+
+  return unless $self->{did_encryption};
+
+  $self->safe_system('rm','-f',$self->zip_source);
+
 }
 
 sub rollback {
@@ -352,12 +358,11 @@ sub validate_zip {
   my $mets_path = $volume->get_mets_path($path);
   my $zip_path = $volume->get_zip_path($path) . $self->{zip_suffix};
 
-  my $key = $self->{config}{encryption_key};
   my $actual_checksum;
-  if($key) {
-    $actual_checksum = $self->crypted_md5sum($zip_path,$key);
+  if($self->{did_encryption}) {
+    $actual_checksum = $self->crypted_md5sum($zip_path,$self->{config}{encryption_key});
   } else {
-  my $zip_path = $volume->get_zip_path($path) . $self->{zip_suffix};
+    my $zip_path = $volume->get_zip_path($path) . $self->{zip_suffix};
     $actual_checksum = HTFeed::VolumeValidator::md5sum($zip_path);
   }
 

@@ -194,7 +194,11 @@ describe "HTFeed::Collate" => sub {
     };
 
     context "with multiple real storage classes" => sub {
+      spec_helper 's3_helper.pl';
+
+      local our ($bucket, $s3);
       my $old_storage_classes;
+
       before each => sub {
         $old_storage_classes = get_config('storage_classes');
         my $new_storage_classes = [
@@ -206,6 +210,12 @@ describe "HTFeed::Collate" => sub {
           {
             class => 'HTFeed::Storage::VersionedPairtree',
             obj_dir => $tmpdirs->{backup_obj_dir},
+            encryption_key => $tmpdirs->test_home . "/fixtures/encryption_key"
+          },
+          {
+            class => 'HTFeed::Storage::ObjectStore',
+            bucket => $s3->{bucket},
+            awscli => $s3->{awscli},
             encryption_key => $tmpdirs->test_home . "/fixtures/encryption_key"
           }
         ];
@@ -223,16 +233,24 @@ describe "HTFeed::Collate" => sub {
 
         my $dbh = get_dbh();
         my $audits = $dbh->selectall_arrayref("SELECT * from feed_audit WHERE namespace = 'test' and id = 'test'");
-        my $backups = $dbh->selectall_arrayref("SELECT version from feed_backups WHERE namespace = 'test' and id = 'test'");
-        is(scalar(@{$audits}),1,'records an audit');
-        is(scalar(@{$backups}),1,'records a backup');
+        my $versioned_backup = $dbh->selectall_arrayref("SELECT version from feed_backups WHERE namespace = 'test' and id = 'test' and path like ?",undef,$tmpdirs->{backup_obj_dir} . '%');
+        my $s3_backup = $dbh->selectall_arrayref("SELECT version from feed_backups WHERE namespace = 'test' and id = 'test' and path like ?",undef,"s3://$bucket%");
 
-        my $timestamp = $backups->[0][0];
+        is(scalar(@{$audits}),1,'records an audit');
+        is(scalar(@{$versioned_backup}),1,'records a backup for versioned pairtree');
+        is(scalar(@{$s3_backup}),1,'records a backup for object store');
+
+        my $timestamp = $versioned_backup->[0][0];
         ok(-e "$tmpdirs->{obj_dir}/test/pairtree_root/te/st/test/test.mets.xml",'copies mets to local storage');
         ok(-e "$tmpdirs->{obj_dir}/test/pairtree_root/te/st/test/test.zip",'copies zip to local storage');
 
         ok(-e "$tmpdirs->{backup_obj_dir}/test/pairtree_root/te/st/test/$timestamp/test.zip.gpg","copies the encrypted zip to backup storage");
         ok(-e "$tmpdirs->{backup_obj_dir}/test/pairtree_root/te/st/test/$timestamp/test.mets.xml","copies the mets backup storage");
+
+        my $s3_timestamp = $s3_backup->[0][0];
+
+        ok($s3->s3_has("test.test.$s3_timestamp.zip.gpg"));
+        ok($s3->s3_has("test.test.$s3_timestamp.mets.xml"));
 
         ok(! -e "$tmpdirs->{zip}/test/00000001.jp2","cleans up the extracted zip files");
         ok(! -e "$tmpdirs->{zip}/test","cleans up the zip file tmpdir");
