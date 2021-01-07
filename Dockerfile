@@ -2,13 +2,18 @@
 
 FROM hathitrust/feed_base:buster
 
-RUN apt-get install -y libtest-class-perl libswitch-perl libtest-spec-perl epubcheck netcat libtest-mockobject-perl
+RUN apt-get update && apt-get install -y \
+    awscli \
+    epubcheck \
+    libclamav-client-perl \
+    libswitch-perl \
+    libtest-class-perl \
+    libtest-mockobject-perl \
+    libtest-spec-perl \
+    netcat
 
 RUN mkdir -p /tmp/stage/grin
-RUN mkdir -p /tmp/prep/toingest /tmp/prep/failed /tmp/prep/ingested /tmp/prep/logs
+RUN mkdir -p /tmp/prep/toingest /tmp/prep/failed /tmp/prep/ingested /tmp/prep/logs /tmp/prep/toingest/emma
 
-COPY . /usr/local/feed
+COPY ./docker/aws /root/.aws
 WORKDIR /usr/local/feed
-RUN bin/setup_dev.sh
-RUN ln -sf /usr/local/feed/t/fixtures/UNDAMAGED /tmp/prep/UNDAMAGED
-RUN ln -sf /usr/local/feed/t/fixtures/DAMAGED /tmp/prep/DAMAGED

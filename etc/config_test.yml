@@ -5,9 +5,9 @@ database:
   # The Perl DBI DSN to use when connecting with mysql. See perldoc DBD::mysql.
   datasource: dbi:mysql:ht:mariadb
   # The username used to connect to the database.
-  username: ht_repository
+  username: feed
   # The password used to connect to the database.
-  password: ht_repository
+  password: feed
 
 test_staging:
   damaged: /tmp/prep/DAMAGED
@@ -35,3 +35,10 @@ storage_classes:
 
 jhove: /usr/bin/jhove
 jhoveconf: /etc/jhove/jhove.conf
+
+emma:
+  namespace: test
+  packagetype: emma
+  bucket: emma-test-bucket
+
+awscli: ['aws','--endpoint-url','http://minio:9000']

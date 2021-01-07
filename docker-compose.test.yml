@@ -1,0 +1,40 @@
+version: '3'
+
+services:
+
+  sut:
+    build: .
+    volumes:
+      - .:/usr/local/feed
+    environment:
+      - HTFEED_CONFIG=/usr/local/feed/etc/config_test.yml
+      - FEED_HOME=/usr/local/feed
+      - TEST=1
+      - CLAMAV_HOST=clamav
+      - CLAMAV_PORT=3310
+    command: bash -c "bin/setup_dev.sh && bin/wait-for --timeout=300 mariadb:3306 clamav:3310 minio:9000 -- make test TEST_VERBOSE=1"
+    depends_on:
+      - mariadb
+      - clamav
+      - minio
+
+  mariadb:
+    build: docker/database
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: mysqlroot
+
+  clamav:
+    image: openbridge/clamav
+    restart: unless-stopped
+    tmpfs: /var/cache
+    volumes:
+      - .:/usr/local/feed
+
+  minio:
+    image: minio/minio
+    restart: always
+    environment:
+      MINIO_ACCESS_KEY: TESTINGACCESSKEY
+      MINIO_SECRET_KEY: testingsecretkey
+    command: server /data

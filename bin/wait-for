@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # From https://github.com/eficode/wait-for
 
@@ -35,7 +35,7 @@ usage() {
   exitcode="$1"
   cat << USAGE >&2
 Usage:
-  $cmdname host:port [-t timeout] [-- command args]
+  $cmdname host:port [host:port ...] [-t timeout] [-- command args]
   -q | --quiet                        Do not output any status messages
   -t TIMEOUT | --timeout=timeout      Timeout in seconds, zero for no timeout
   -- COMMAND ARGS                     Execute command with args after the test finishes
@@ -46,9 +46,23 @@ USAGE
 wait_for() {
   command="$*"
   for i in `seq $TIMEOUT` ; do
-    nc -z "$HOST" "$PORT" > /dev/null 2>&1
-    
-    result=$?
+
+    result=0
+
+    for dep in $DEPENDENCIES; do
+      host=$(printf "%s\n" "$dep"| cut -d : -f 1)
+      port=$(printf "%s\n" "$dep"| cut -d : -f 2)
+      if [ "$host" = "" -o "$port" = "" ]; then
+        echoerr "Error: you need to provide a host and port to test."
+        usage 2
+      fi
+      nc -z "$host" "$port" > /dev/null 2>&1
+      nc_result=$?
+      if [ $nc_result -ne 0 ] ; then
+        result=1
+      fi
+    done
+
     if [ $result -eq 0 ] ; then
       if [ -n "$command" ] ; then
         exec $command
@@ -61,12 +75,12 @@ wait_for() {
   exit 1
 }
 
+DEPENDENCIES=""
 while [ $# -gt 0 ]
 do
   case "$1" in
     *:* )
-    HOST=$(printf "%s\n" "$1"| cut -d : -f 1)
-    PORT=$(printf "%s\n" "$1"| cut -d : -f 2)
+    DEPENDENCIES+=" $1"
     shift 1
     ;;
     -q | --quiet)
@@ -96,7 +110,7 @@ do
   esac
 done
 
-if [ "$HOST" = "" -o "$PORT" = "" ]; then
+if [ "${#DEPENDENCIES[@]}" -eq "0" ]; then
   echoerr "Error: you need to provide a host and port to test."
   usage 2
 fi

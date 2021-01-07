@@ -14,7 +14,7 @@ our %EXPORT_TAGS = ( 'namespaces' =>
 
 use constant {
     NS_DC     => 'http://purl.org/dc/elements/1.1/',
-	NS_EAD	  => 'urn:isbn:1-931666-22-9',
+    NS_EAD	  => 'urn:isbn:1-931666-22-9',
     NS_JHOVE  => 'http://hul.harvard.edu/ois/xml/ns/jhove',
     NS_MARC   => 'http://www.loc.gov/MARC21/slim',
     NS_METS   => 'http://www.loc.gov/METS/',
@@ -25,10 +25,12 @@ use constant {
     NS_RDF    => 'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
     NS_TIFF   => 'http://ns.adobe.com/tiff/1.0/',
     NS_XLINK  => 'http://www.w3.org/1999/xlink',
+    NS_XS     => 'http://www.w3.org/2001/XMLSchema',
     NS_XSI    => 'http://www.w3.org/2001/XMLSchema-instance',
-	NS_AES	  => 'http://www.aes.org/audioObject',
+    NS_AES	  => 'http://www.aes.org/audioObject',
     NS_HT_PREMIS     => 'http://www.hathitrust.org/premis_extension',
-    NS_HT     => 'http://www.hathitrust.org/ht_extension'
+    NS_HT     => 'http://www.hathitrust.org/ht_extension',
+    NS_EMMA   => 'https://emma.lib.virginia.edu/schema'
 };
 
 use constant {
@@ -63,9 +65,11 @@ sub register_namespaces {
     $xpc->registerNs( 'tiff',   NS_TIFF );
     $xpc->registerNs( 'xlink',  NS_XLINK );
     $xpc->registerNs( 'xsi',    NS_XSI );
-    $xpc->registerNs( 'aes', 	NS_AES );
+    $xpc->registerNs( 'xs',     NS_XS );
+    $xpc->registerNs( 'aes', 	  NS_AES );
     $xpc->registerNs( 'htpremis',     NS_HT_PREMIS );
     $xpc->registerNs( 'ht',     NS_HT );
+    $xpc->registerNs( 'emma',   NS_EMMA );
 
     return;
 }

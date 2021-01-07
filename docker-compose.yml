@@ -6,6 +6,7 @@ services:
     build: .
     volumes:
       - .:/usr/local/feed
+      - ./ingest_sips:/tmp/sips
       - ./ingest_stage:/tmp/stage
       - repository_link:/sdr1
       - repository_obj:/sdr2
@@ -13,6 +14,8 @@ services:
     environment:
       - HTFEED_CONFIG=/usr/local/feed/etc/config_ingest_docker.yml
       - FEED_HOME=/usr/local/feed
+      - CLAMAV_HOST=clamav
+      - CLAMAV_PORT=3310
 
   test:
     build: .
@@ -22,14 +25,9 @@ services:
       - HTFEED_CONFIG=/usr/local/feed/etc/config_test.yml
       - FEED_HOME=/usr/local/feed
       - TEST=1
-
-  travis_test:
-    build: .
-    environment:
-      - HTFEED_CONFIG=/usr/local/feed/etc/config_test.yml
-      - FEED_HOME=/usr/local/feed
-      - TEST=1
-    command: bin/wait-for --timeout=300 mariadb:3306 -- make test TEST_VERBOSE=1
+      - CLAMAV_HOST=clamav
+      - CLAMAV_PORT=3310
+    command: bin/wait-for --timeout=300 mariadb:3306 clamav:3310 -- make test TEST_VERBOSE=1
 
   validate:
     build: .
@@ -39,6 +37,8 @@ services:
     environment:
       - HTFEED_CONFIG=/usr/local/feed/etc/config_prevalidate.yml
       - FEED_HOME=/usr/local/feed
+      - CLAMAV_HOST=clamav
+      - CLAMAV_PORT=3310
     command: bash -c "/bin/ls /tmp/stage/toingest/test/*.zip | xargs -n 1 basename | sed s/.zip// | perl -w /usr/local/feed/bin/validate_volume.pl -p simple -n test --no-clean"
 
   mariadb:
@@ -47,9 +47,29 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: mysqlroot
 
-      # TODO: handle server??
+  # S3 compatible object storage
+  minio:
+    image: minio/minio
+    restart: always
+    environment:
+      MINIO_ACCESS_KEY: TESTINGACCESSKEY
+      MINIO_SECRET_KEY: testingsecretkey
+    command: server /data
+
+  clamav:
+    image: openbridge/clamav
+    tty: true
+    restart: unless-stopped
+    tmpfs: /var/cache
+    volumes:
+      - clamd_data:/var/lib/clamav
+      - .:/usr/local/feed
+      - ./ingest_sips:/tmp/sips
+      - ./ingest_stage:/tmp/stage
 
 volumes:
+  clamd_data:
+    driver: 'local'
   repository_link:
   repository_obj:
   backups:

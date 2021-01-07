@@ -41,11 +41,11 @@ sub _extract_file {
     my $requester = shift; # not necessarily self..
     my $infile = shift;
     my $outdir = shift;
-    my $otheroptions = shift;
+    my $otheroptions = shift || '';
 
-    $otheroptions = '' if not defined $otheroptions;
+    my $full_command= sprintf($command, $infile, $outdir, $otheroptions);
 
-    get_logger()->trace("Extracting $infile with command $command");
+    get_logger()->trace("Extracting $infile with command $full_command");
 
     # make directory
     if(not -d $outdir) {
@@ -56,8 +56,7 @@ sub _extract_file {
         $requester->set_error('MissingFile',file=>$infile);
     }
 
-    my $cmd = sprintf($command, $infile, $outdir, $otheroptions);
-    my $rstring = `$cmd`;
+    my $rstring = `$full_command`;
     my $rval = $?;
 
     # 1 is a non-fatal warning for both tar and unzip -- ignore it and let

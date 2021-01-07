@@ -137,7 +137,7 @@ sub get_sources {
                             JOIN ht_collections c ON n.collection = c.collection 
                             LEFT JOIN ht_collection_digitizers d ON n.collection = d.collection 
                               AND n.digitization_source = d.digitization_source 
-                            JOIN ht_rights.sources s on n.digitization_source = s.name 
+                            JOIN sources s on n.digitization_source = s.name 
                             WHERE n.namespace = ? and n.id = ?");
   $sth->execute($self->get_namespace(),$self->get_objid());
   if(my ($content_providers,$responsible_entity,$collection,$digitization_agents,$access_profile) = $sth->fetchrow_array()) {
@@ -631,6 +631,12 @@ sub record_premis_event {
 
     my $date = ($params{date} or $self->_get_current_date());
 
+    # insert gmt time zone without indicator
+    # time with explicitly-indicated timezone will fail
+    if($date =~ /Z$/) {
+      chop($date);
+    }
+
     my $outcome_xml = $params{outcome}->to_node()->toString() if defined $params{outcome};
 
     my $uuid = $self->make_premis_uuid($eventtype,$date); 
@@ -879,16 +885,26 @@ sub clean_sip_failure {
   $self->move_sip($self->get_failure_sip_location());
 }
 
-sub move_sip {
+sub real_sip_location {
   my $self = shift;
+
   my $source = $self->get_sip_location();
   if( not -e $source) {
     $source = $self->get_failure_sip_location(); # for retries
   }
 
+  if( not -e $source) {
+    $self->set_error("MissingFile",file => $source, detail=>"can't find sip in ingest or failure location");
+    $source = undef;
+  }
 
+  return $source;
+}
+
+sub move_sip {
+  my $self = shift;
+  my $source = $self->real_sip_location();
   my $target = shift;
-
 
   if( -e $source and $source ne $target) {
     if( not -d dirname($target) ) {

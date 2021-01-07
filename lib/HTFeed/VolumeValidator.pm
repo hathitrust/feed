@@ -236,9 +236,15 @@ sub _validate_checksums {
   else {
     $outcome = PREMIS::Outcome->new('pass');
   }
-  $volume->record_premis_event( 'page_md5_fixity', outcome => $outcome );
+  $volume->record_premis_event('page_md5_fixity', outcome => $outcome);
 
   return;
+
+}
+
+sub _record_fixity_check {
+  my $self = shift;
+  my $outcome = shift;
 
 }
 

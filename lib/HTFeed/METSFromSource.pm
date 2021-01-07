@@ -23,7 +23,7 @@ sub _add_struct_map {
         $self->set_error(
             "MissingField",
             file        => $volume->get_source_mets_file(),
-            fileid      => 'mets:structMap',
+            field      => 'mets:structMap',
             description => "Can't find structMap in source METS"
         );
     }
@@ -32,7 +32,7 @@ sub _add_struct_map {
         $self->set_error(
             "BadField",
             file        => $volume->get_source_mets_file(),
-            fileid      => 'mets:structMap',
+            field      => 'mets:structMap',
             description => '$count structMaps found in source METS'
         );
     }

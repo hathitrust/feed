@@ -7,20 +7,18 @@ git clone https://github.com/hathitrust/feed
 cd feed
 git submodule update --init metslib
 docker-compose build
-```
-
-Running tests as in continuous integration
-
-```bash
-docker-compose run travis_test
-```
-
-Development
-
-```bash
-docker-compose up -d mariadb
-# Wait a few minutes for MariaDB to come up
 docker-compose run test bin/setup_dev.sh
+```
+
+# Development
+
+Start services via Docker if necessary:
+```
+docker-compose up -d mariadb clamav
+```
+
+Then:
+```
 docker-compose run test make test
 ```
 
@@ -36,7 +34,7 @@ docker-compose run test perl -I lib t/storage.t
 
 Validating volumes
 
-* Put volumes in volumes_to_test
+* Put volumes in `volumes_to_test/`
 
 ```bash
 docker-compose run validate

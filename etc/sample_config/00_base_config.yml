@@ -114,6 +114,7 @@ premis_tools:
   KDU_COMPRESS: qq(kdu_compress 6.4.0)
   EPUBCHECK: qq(epubcheck 4.0.2)
   MP3VAL: qq(mp3val 0.1.8)
+  CLAMAV: qq(ClamAV 0.102.3)
 
 
 #########################################

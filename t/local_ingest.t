@@ -2,7 +2,7 @@ use FindBin;
 use lib "$FindBin::Bin/lib";
 
 use Test::Spec;
-use HTFeed::Test::SpecSupport qw(mock_premis_mets);
+use HTFeed::Test::SpecSupport qw(mock_zephir);
 use HTFeed::Test::Support qw(load_db_fixtures);
 use HTFeed::Config qw(set_config);
 
@@ -79,7 +79,7 @@ describe "HTFeed::PackageType::Simple" => sub {
     };
 
     it "ignores Thumbs.db when it is in the checksum file and the package, but the checksum is wrong" => sub {
-      ok(unpack_and_verify("thumbs_in_checksum_and_pkg_bad_checksum")->succeeded());
+      ok(unpack_and_verify("thumbs_bad_checksum")->succeeded());
     };
 
     it "ignores Thumbs.db when it is in both the checksum file and the package" => sub {
@@ -90,7 +90,7 @@ describe "HTFeed::PackageType::Simple" => sub {
   describe "meta.yml" => sub {
 
     before all => sub {
-      mock_premis_mets();
+      mock_zephir();
     };
 
     it "reports a relevant error when meta.yml is missing" => sub {
