@@ -48,7 +48,7 @@ sub encrypt {
   my $original = $self->zip_source();
   my $encrypted = "$original.gpg";
 
-  my $cmd = "cat \"$key\" | gpg --quiet --passphrase-fd 0 --batch --no-tty --output $encrypted --symmetric $original";
+  my $cmd = "cat \"$key\" | gpg --quiet --passphrase-fd 0 --batch --no-tty --output '$encrypted' --symmetric $original";
 
   $self->safe_system($cmd);
 
@@ -77,7 +77,7 @@ sub crypted_md5sum {
   my $encrypted = shift;
   my $key = shift;
 
-  my $cmd = "cat \"$key\" | gpg --quiet --passphrase-fd 0 --batch --no-tty --decrypt $encrypted | md5sum | cut -f 1 -d ' '";
+  my $cmd = "cat \"$key\" | gpg --quiet --passphrase-fd 0 --batch --no-tty --decrypt '$encrypted' | md5sum | cut -f 1 -d ' '";
   get_logger()->trace("Running $cmd");
 
   my $actual_checksum = `$cmd`;
