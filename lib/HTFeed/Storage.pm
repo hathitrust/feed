@@ -48,7 +48,7 @@ sub encrypt {
   my $original = $self->zip_source();
   my $encrypted = "$original.gpg";
 
-  my $cmd = "cat \"$key\" | gpg --quiet --passphrase-fd 0 --batch --no-tty --output '$encrypted' --symmetric $original";
+  my $cmd = "cat \"$key\" | gpg --quiet --passphrase-fd 0 --batch --no-tty --output '$encrypted' --symmetric '$original'";
 
   $self->safe_system($cmd);
 
@@ -68,8 +68,9 @@ sub verify_crypt {
   return 1 unless $key;
 
   my $actual_checksum = $self->crypted_md5sum($encrypted,$key);
+  my $encrypted = $self->zip_source();
 
-  return $self->validate_zip_checksum($volume->get_mets_path(), "gpg --decrypt " . $self->zip_source(), $actual_checksum);
+  return $self->validate_zip_checksum($volume->get_mets_path(), "gpg --decrypt '$encrypted'", $actual_checksum);
 }
 
 sub crypted_md5sum {
