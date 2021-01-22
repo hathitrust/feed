@@ -317,12 +317,16 @@ context "with volume & temporary ingest/preingest/zipfile dirs" => sub {
   describe "HTFeed::PackageType::EMMA::Volume" => sub {
     my $fetchdir;
 
+    local our ($s3, $bucket);
     before each => sub {
       $fetchdir = $tmpdirs->dir_for("fetch");
       set_config($fetchdir,'staging','fetch');
       mkdir("$fetchdir/test");
       system("touch","$fetchdir/test/$objid.zip");
       system("touch","$fetchdir/test/$objid.xml");
+      my @files = qw(emma_test.zip emma_test.xml);
+      put_s3_files(@files);
+      set_config($bucket,'emma','bucket');
     };
 
     after each => sub {
@@ -340,6 +344,12 @@ context "with volume & temporary ingest/preingest/zipfile dirs" => sub {
         $volume->clean_sip_success();
 
         ok(-e "$tmpdirs->{ingested}/test/$objid.xml");
+      };
+
+      it "removes everything from the bucket" => sub {
+        $volume->clean_sip_success();
+
+        is(scalar @{$s3->list_objects()}, 0);
       };
     };
 
