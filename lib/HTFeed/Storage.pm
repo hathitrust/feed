@@ -68,7 +68,6 @@ sub verify_crypt {
   return 1 unless $key;
 
   my $actual_checksum = $self->crypted_md5sum($encrypted,$key);
-  my $encrypted = $self->zip_source();
 
   return $self->validate_zip_checksum($volume->get_mets_path(), "gpg --decrypt '$encrypted'", $actual_checksum);
 }

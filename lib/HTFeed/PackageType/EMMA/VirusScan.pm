@@ -7,6 +7,7 @@ use strict;
 use base qw(HTFeed::Stage);
 
 use Log::Log4perl qw(get_logger);
+use HTFeed::Config qw(get_config);
 use PREMIS::Outcome;
 use ClamAV::Client;
 
@@ -18,10 +19,12 @@ sub new {
   );
   my $scanner;
   eval {
-    my $clamav_host = $ENV{CLAMAV_HOST} || '127.0.0.1';
-    my $clamav_port = $ENV{CLAMAV_PORT} || 3310;
-    $scanner = ClamAV::Client->new(socket_host => $clamav_host,
-                                   socket_port => $clamav_port);
+
+    my $clamav_options = get_config('clamav') || {};
+    $clamav_options->{'socket_host'} = $ENV{CLAMAV_HOST} if $ENV{CLAMAV_HOST};
+    $clamav_options->{'socket_port'} = $ENV{CLAMAV_PORT} if $ENV{CLAMAV_PORT};
+
+    $scanner = ClamAV::Client->new(%$clamav_options);
   };
   $self->{scanner} = $scanner;
   return $self;

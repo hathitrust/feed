@@ -5,5 +5,6 @@ CREATE TABLE IF NOT EXISTS `emma_items` (
   `original_item_id` varchar(255) NOT NULL,
   `dc_format` varchar(255),
   `rem_coverage` text,
-  `rem_remediation` text
+  `rem_remediation` text,
+  `indexed_date` datetime
 );
