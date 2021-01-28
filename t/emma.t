@@ -99,7 +99,6 @@ context "with volume & temporary ingest/preingest/zipfile dirs" => sub {
   };
 
   describe "HTFeed::PackageType::EMMA::Enqueue" => sub {
-    use HTFeed::Storage::S3;
     use HTFeed::PackageType::EMMA::Enqueue;
 
     spec_helper 's3_helper.pl';

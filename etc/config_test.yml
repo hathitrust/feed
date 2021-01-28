@@ -40,5 +40,6 @@ emma:
   namespace: test
   packagetype: emma
   bucket: emma-test-bucket
+  awscli: ['aws','--endpoint-url','http://minio:9000']
 
-awscli: ['aws','--endpoint-url','http://minio:9000']
+test_awscli: ['aws','--endpoint-url','http://minio:9000']
