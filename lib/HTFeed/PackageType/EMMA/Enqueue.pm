@@ -6,9 +6,9 @@ use HTFeed::DBTools qw(get_dbh);
 use HTFeed::Config qw(get_config);
 use HTFeed::Storage::S3;
 use HTFeed::DBTools::Queue qw(enqueue_volumes);
+use HTFeed::Volume;
 use File::Temp qw(tempdir);
 use File::Copy;
-use AWS;
 
 use base qw( Exporter );
 our @EXPORT_OK = qw( run );
@@ -25,7 +25,7 @@ sub new {
 
 	$self->{s3} ||= HTFeed::Storage::S3->new(
     bucket => get_config('emma','bucket'),
-    awscli => get_config('awscli')
+    awscli => get_config('emma','awscli')
   );
 
   bless $self, $class;
