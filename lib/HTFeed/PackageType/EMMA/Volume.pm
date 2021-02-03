@@ -31,7 +31,11 @@ sub clean_sip_success {
     bucket => get_config('emma','bucket'),
     awscli => get_config('awscli')
   );
-  $s3->rm('/',"--recursive");
+  my $zip = $self->get_zip_filename;
+  my $xml = $zip;
+  $xml =~ s/\.zip$/.xml/;
+  $s3->rm('/' . $zip);
+  $s3->rm('/' . $xml);
 }
 
 1;

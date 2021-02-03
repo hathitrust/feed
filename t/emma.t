@@ -324,7 +324,7 @@ context "with volume & temporary ingest/preingest/zipfile dirs" => sub {
       mkdir("$fetchdir/test");
       system("touch","$fetchdir/test/$objid.zip");
       system("touch","$fetchdir/test/$objid.xml");
-      my @files = qw(emma_test.zip emma_test.xml);
+      my @files = qw(emmatest.zip emmatest.xml);
       put_s3_files(@files);
       set_config($bucket,'emma','bucket');
     };
@@ -346,10 +346,11 @@ context "with volume & temporary ingest/preingest/zipfile dirs" => sub {
         ok(-e "$tmpdirs->{ingested}/test/$objid.xml");
       };
 
-      it "removes everything from the bucket" => sub {
+      it "removes everything from the bucket that we have ingested" => sub {
+        my $before = scalar @{$s3->list_objects()};
         $volume->clean_sip_success();
-
-        is(scalar @{$s3->list_objects()}, 0);
+        my $after = scalar @{$s3->list_objects()};
+        is($before - $after, 2);
       };
     };
 
