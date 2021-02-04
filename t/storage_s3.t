@@ -17,8 +17,13 @@ describe "HTFeed::Storage::S3" => sub {
 
       my @keys = map { $_->{Key} } @{$s3->list_objects('--max-items' => '2')};
       is_deeply(\@keys, \@files);
+    };
 
-    }
+    it "handles empty bucket" => sub {
+      $s3->rm('/',"--recursive");
+      my $result = $s3->list_objects();
+      is(scalar @{$result}, 0);
+    };
   };
 
 };
