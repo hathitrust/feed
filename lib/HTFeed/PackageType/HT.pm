@@ -43,8 +43,10 @@ our $config = {
 
     # source_mets_file => qr/\w+\.xml$/,
 
-    # use HTFeed::Volume::set_stage_map to setup a workflow with this packagetype
-    stage_map => undef,
+    # or use HTFeed::Volume::set_stage_map to setup a workflow with this packagetype
+    stage_map => {
+      needs_migrate => 'HTFeed::Stage::StorageMigrate'
+    }
 };
 
 __END__

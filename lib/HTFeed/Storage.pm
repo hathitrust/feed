@@ -9,6 +9,19 @@ use HTFeed::VolumeValidator;
 use URI::Escape;
 use List::MoreUtils qw(uniq);
 
+sub for_volume {
+  my $volume = shift;
+  my $config_key = shift || 'storage_classes';
+
+  my @storages;
+  foreach my $storage_config (@{get_config($config_key)}) {
+    push(@storages, $storage_config->{class}->new(volume => $volume,
+                                                 config => $storage_config));
+  }
+
+  return @storages;
+}
+
 sub new {
   my $class = shift;
 

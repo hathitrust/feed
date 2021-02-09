@@ -5,11 +5,6 @@ use strict;
 
 use base qw(HTFeed::Stage);
 use HTFeed::Config qw(get_config);
-use Log::Log4perl qw(get_logger);
-use File::Pairtree qw(id2ppath s2ppchars);
-use File::Path qw(make_path);
-use HTFeed::VolumeValidator;
-use URI::Escape;
 use Carp qw(croak);
 
 use HTFeed::Storage::LocalPairtree;
@@ -19,25 +14,18 @@ use HTFeed::Storage::ObjectStore;
 
 =head1 NAME
 
-HTFeed::Stage::Collate.pm
+HTFeed::Stage::Collate
 
 =head1 SYNOPSIS
 
-	Base class for Collate stage
-	Establishes pairtree object path for ingest
+  Deposits object to configured storage back end and verifies that it was
+  deposited correctly.
 
 =cut
 
-sub storages_from_config {
+sub storages {
   my $self = shift;
-
-  my @storages;
-  foreach my $storage_config (@{get_config('storage_classes')}) {
-    push(@storages, $storage_config->{class}->new(volume => $self->{volume},
-                                                 config => $storage_config));
-  }
-
-  return @storages;
+  return HTFeed::Storage::for_volume($self->{volume});
 }
 
 sub run{
@@ -46,7 +34,7 @@ sub run{
     $self->{is_repeat} = 0;
 
     my @storages = @_;
-    @storages = $self->storages_from_config if !@storages;
+    @storages = $self->storages unless @storages;
 
     foreach my $storage (@storages) {
 
@@ -70,6 +58,8 @@ sub log_repeat {
   my $self = shift;
   my $storage = shift;
 
+  # TODO - move to specific storage class? not really a property of collate as
+  # such
   if($storage->{is_repeat}) {
     $self->{is_repeat} = 1;
     $self->set_info('Collating volume that is already in repo');
