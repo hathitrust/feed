@@ -156,30 +156,9 @@ describe "HTFeed::Collate" => sub {
   };
 
   context "with real volumes" => sub {
-    my $tmpdirs;
-    my $testlog;
+    spec_helper 'storage_helper.pl';
 
-    before all => sub {
-      load_db_fixtures;
-      $tmpdirs = HTFeed::Test::TempDirs->new();
-      $testlog = HTFeed::Test::Logger->new();
-    };
-
-    before each => sub {
-      get_dbh()->do("DELETE FROM feed_audit WHERE namespace = 'test'");
-      get_dbh()->do("DELETE FROM feed_backups WHERE namespace = 'test'");
-      $tmpdirs->setup_example;
-      $testlog->reset;
-      set_config($tmpdirs->test_home . "/fixtures/volumes",'staging','fetch');
-    };
-
-    after each => sub {
-      $tmpdirs->cleanup_example;
-    };
-
-    after all => sub {
-      $tmpdirs->cleanup;
-    };
+    local our ($tmpdirs, $testlog);
 
     it "logs a repeat when collated twice" => sub {
       my $volume = stage_volume($tmpdirs,'test','test');
@@ -257,7 +236,9 @@ describe "HTFeed::Collate" => sub {
 
         ok($stage->succeeded);
       };
+
     };
+
   };
 };
 
