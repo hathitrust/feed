@@ -17,6 +17,7 @@ before all => sub {
 before each => sub {
   get_dbh()->do("DELETE FROM feed_audit WHERE namespace = 'test'");
   get_dbh()->do("DELETE FROM feed_backups WHERE namespace = 'test'");
+  get_dbh()->do("DELETE FROM feed_audit_detail WHERE namespace = 'test'");
   $tmpdirs->setup_example;
   $testlog->reset;
   set_config($tmpdirs->test_home . "/fixtures/volumes",'staging','fetch');

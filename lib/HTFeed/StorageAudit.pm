@@ -21,18 +21,6 @@ sub new {
   return $object;
 }
 
-sub set_error {
-  my $self  = shift;
-  my $error = shift;
-
-  # log error w/ l4p
-  my $logger = get_logger( ref($self) );
-  $logger->error(
-    $error,
-    @_
-  );
-}
-
 # Iterates through feed_backups produces an error for each zip/xml not in AWS.
 # If limit is defined, checks that number of volumes.
 # Returns number of errors.
@@ -51,11 +39,11 @@ sub run_not_in_aws_check {
   foreach my $row (@{get_dbh()->selectall_arrayref($sql)}) {
     my ($namespace, $id, $version) = @$row;
     unless ($s3->s3_has("$namespace.$id.$version.zip")) {
-      $self->set_error('MissingFile', detail => "$namespace.$id.$version.zip not found in AWS");
+      $self->log_error($namespace, $id, 'MissingFile', "$namespace.$id.$version.zip not found in AWS");
       $err_count++;
     }
     unless ($s3->s3_has("$namespace.$id.$version.mets.xml")) {
-      $self->set_error('MissingFile', detail => "$namespace.$id.$version.mets.xml not found in AWS");
+      $self->log_error($namespace, $id, 'MissingFile', "$namespace.$id.$version.mets.xml not found in AWS");
       $err_count++;
     }
   }
@@ -86,7 +74,7 @@ sub run_not_in_db_check {
       my $sql = 'SELECT COUNT(*) FROM feed_backups WHERE namespace = ? AND id = ? AND version = ?';
       my $row = get_dbh()->selectrow_arrayref($sql, undef, $namespace, $id, $version);
       if ($row->[0] == 0) {
-        $self->set_error('MissingField', detail => "AWS object $object->{Key} not found in feed_backups");
+        $self->log_error($namespace, $id, 'MissingField', "AWS object $object->{Key} not found in feed_backups");
         $err_count++;
       }
       $count++;
@@ -98,6 +86,20 @@ sub run_not_in_db_check {
     @next_token_params = ('--starting-token',$result->{NextToken});
   }
   return $err_count;
+}
+
+sub log_error {
+  my $self      = shift;
+  my $namespace = shift;
+  my $id        = shift;
+  my $errcode   = shift;
+  my $detail    = shift;
+
+  my $logger = get_logger( ref($self) );
+  $logger->error($errcode, detail => $detail);
+  my $sql = 'INSERT INTO feed_audit_detail (namespace, id, status, detail)'.
+            ' values (?,?,?,?)';
+  get_dbh()->prepare($sql)->execute($namespace, $id, $errcode, $detail);
 }
 
 1;

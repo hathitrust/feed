@@ -94,6 +94,9 @@ describe "HTFeed::StorageAudit" => sub {
       ok($testlog->matches(qr(test\.test2\.\d{14}\.mets\.xml)s));
       ok($testlog->matches(qr(test\.test3\.\d{14}\.zip)s));
       ok($testlog->matches(qr(test\.test3\.\d{14}\.mets\.xml)s));
+      my $sql = 'SELECT COUNT(*) FROM feed_audit_detail WHERE namespace = ? AND (id = ? OR id = ?)';
+      my @res = HTFeed::DBTools::get_dbh->selectrow_array($sql, undef, 'test', 'test2', 'test3' );
+      is($res[0],4,"4 test2/test3 errors logged in feed_audit_detail");
     };
   };
   
@@ -107,7 +110,7 @@ describe "HTFeed::StorageAudit" => sub {
     
     it "reports errors when database entries are missing" => sub {
       setup_storage();
-      # Remove test1 from database, leave test1 alone.
+      # Remove test1 from database, leave test0 alone.
       my $sql = 'DELETE FROM feed_backups WHERE namespace = ? AND id = ?';
       my $sth = HTFeed::DBTools::get_dbh()->prepare($sql);
       $sth->execute('test', 'test1');
@@ -117,6 +120,11 @@ describe "HTFeed::StorageAudit" => sub {
       is($audit->run_not_in_db_check(), 2, '2 errors reported');
       ok($testlog->matches(qr(test\.test1\.\d{14})s), 'errors reported for missing DB entry');
       ok($testlog->matches(qr(test\.test0\.\d{14})s), 'no errors reported for intact DB entry');
+      $sql = 'SELECT COUNT(*) FROM feed_audit_detail WHERE namespace = ? AND id = ?';
+      my @res = HTFeed::DBTools::get_dbh->selectrow_array($sql, undef, 'test', 'test1');
+      is($res[0],2,"test1 errors logged in feed_audit_detail");
+      @res = HTFeed::DBTools::get_dbh->selectrow_array($sql, undef, 'test', 'test0');
+      is($res[0],0,"no test0 errors logged in feed_audit_detail");
     };
   };
 };
