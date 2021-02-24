@@ -52,7 +52,7 @@ describe "HTFeed::StorageAudit" => sub {
       $storage->record_backup;
     }
   }
-  
+
   # Add nonexistent test2 and test3 to DB
   sub add_db_entries {
     my $dbh = HTFeed::DBTools::get_dbh();
@@ -99,7 +99,7 @@ describe "HTFeed::StorageAudit" => sub {
       is($res[0],4,"4 test2/test3 errors logged in feed_audit_detail");
     };
   };
-  
+
   describe "#run_not_in_db_check" => sub {
     it "reports no errors" => sub {
       setup_storage();
@@ -107,7 +107,7 @@ describe "HTFeed::StorageAudit" => sub {
                                             awscli => $s3->{awscli});
       is($audit->run_not_in_db_check(), 0, 'no errors reported');
     };
-    
+
     it "reports errors when database entries are missing" => sub {
       setup_storage();
       # Remove test1 from database, leave test0 alone.
@@ -125,6 +125,23 @@ describe "HTFeed::StorageAudit" => sub {
       is($res[0],2,"test1 errors logged in feed_audit_detail");
       @res = HTFeed::DBTools::get_dbh->selectrow_array($sql, undef, 'test', 'test0');
       is($res[0],0,"no test0 errors logged in feed_audit_detail");
+    };
+  };
+
+  describe "#run" => sub {
+    it "reports no errors" => sub {
+      setup_storage();
+      my $audit = HTFeed::StorageAudit->new(bucket => $s3->{bucket},
+                                            awscli => $s3->{awscli});
+      is($audit->run(), 0, 'no errors reported');
+    };
+
+    it "populates audit->{lastchecked}" => sub {
+      setup_storage();
+      my $audit = HTFeed::StorageAudit->new(bucket => $s3->{bucket},
+                                            awscli => $s3->{awscli});
+      $audit->run();
+      ok(defined $audit->{lastchecked}, 'audit->{lastchecked} exists');
     };
   };
 };
