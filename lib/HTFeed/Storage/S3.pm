@@ -67,7 +67,8 @@ sub s3api {
   my $err = "";
   run $fullcmd, \undef, \$out, \$err;
   die("awscli failed with status $?, error $err") if $?;
-
+  # Bail out with undef if result is empty string, which is not valid JSON.
+  return unless length $out;
   return decode_json($out);
 }
 
@@ -111,15 +112,14 @@ sub list_objects {
 
   while(1) {
     my $result = $self->s3api("list-objects-v2",@next_token_params,@params);
+    last unless $result;
 
     push(@$objects,@{$result->{Contents}});
+    last unless $result->{NextToken};
 
-    if($result->{NextToken}) {
-      @next_token_params = ('--starting-token',$result->{NextToken});
-    } else {
-      return $objects;
-    }
+    @next_token_params = ('--starting-token',$result->{NextToken});
   }
+  return $objects;
 }
 
 1;
