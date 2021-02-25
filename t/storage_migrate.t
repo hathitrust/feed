@@ -46,14 +46,20 @@ describe "HTFeed::Stage::StorageMigrate" => sub {
 
     # deposit the test item in the main repository, but not to the configured
     # backup locations
-    my $local_storage = HTFeed::Storage::LocalPairtree->new(
+    my $local_storage = HTFeed::Storage::LinkedPairtree->new(
       volume => $init_volume,
-      config => { obj_dir => $tmpdirs->{obj_dir} }
+      config => { obj_dir => $tmpdirs->{obj_dir}, link_dir => $tmpdirs->{link_dir} }
     );
     my $collate = HTFeed::Stage::Collate->new(volume => $init_volume);
     $collate->run($local_storage);
-    ok($collate->succeeded());
+    ok($collate->succeeded(),'collate to repository succeeds');
 
+    # make sure we're copying from the repository, not from temporary
+    # directories, but leave them intact when we're done
+    foreach my $dirtype ($tmpdirs->staging_dirtypes) {
+      remove_tree $tmpdirs->{$dirtype};
+      mkdir $tmpdirs->{$dirtype};
+    }
 
     # then run the storage migration and make sure volumes show up in the
     # expected location

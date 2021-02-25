@@ -180,6 +180,21 @@ sub clean_download {
     return 1;
 }
 
+# Returns path to item in the repository rather than in the staging area
+sub get_mets_path {
+  my $self = shift;
+  my $path = shift || $self->get_repository_symlink;
+
+  return $self->SUPER::get_mets_path($path);
+}
+
+sub get_zip_path {
+  my $self = shift;
+  my $path = shift || $self->get_repository_symlink();
+
+  return $self->SUPER::get_zip_path($path);
+}
+
 
 
 1;
