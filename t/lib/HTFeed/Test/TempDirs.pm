@@ -56,6 +56,7 @@ sub setup_example {
 
   foreach my $dirtype ($self->repo_dirtypes) {
     $self->{$dirtype} = $self->dir_for($dirtype);
+    set_config($self->{$dirtype},'repository',$dirtype);
   }
 }
 
