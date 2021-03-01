@@ -38,4 +38,28 @@ sub success_info {
     return "";
 }
 
+sub collate {
+  my $self = shift;
+  my $storage = shift;
+
+  # Unlike regular collate, don't validate the zip completeness
+
+  $storage->encrypt &&
+  $storage->verify_crypt &&
+  $storage->stage &&
+  $storage->prevalidate &&
+  $storage->make_object_path &&
+  $storage->move &&
+  $storage->postvalidate &&
+  $storage->record_audit
+}
+
+sub clean_always {
+  # nothing needed
+}
+
+sub clean_success {
+  # nothing needed
+}
+
 1;
