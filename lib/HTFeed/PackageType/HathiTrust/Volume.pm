@@ -26,7 +26,7 @@ sub get_file_groups {
 
         my $nspkg_filegroups = $self->{nspkg}->get('filegroups');
         my $xpc = $self->get_repository_mets_xpc();
-        
+
         while( my ($key,$val) = each (%{ $nspkg_filegroups })) {
             my $files = [];
 
@@ -195,7 +195,21 @@ sub get_zip_path {
   return $self->SUPER::get_zip_path($path);
 }
 
+sub clean_zip {
+  # don't clean the zip in the repo
+}
 
+sub clean_mets {
+  # don't clean the mets in the repo
+}
+
+sub clean_sip_success {
+  # not applicable, no action needed
+}
+
+sub clean_sip_failure {
+  # not applicable, no action needed
+}
 
 1;
 

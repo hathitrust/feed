@@ -9,6 +9,8 @@ use HTFeed::DBTools qw(get_dbh);
 
 use HTFeed::Stage::StorageMigrate;
 use File::Path qw(remove_tree);
+use File::Basename qw(dirname);
+use File::Pairtree qw(id2ppath s2ppchars);
 use strict;
 
 describe "HTFeed::Stage::StorageMigrate" => sub {
@@ -41,53 +43,142 @@ describe "HTFeed::Stage::StorageMigrate" => sub {
     set_config($old_storage_classes,'storage_migrate');
   };
 
-  it "copies from the repository to all configured storages" => sub {
-    my $init_volume = stage_volume($tmpdirs,'test','test');
+  sub copy_to_repo {
+    my $namespace = shift;
+    my $objid = shift;
+    my $tmpdirs = shift;
 
-    # deposit the test item in the main repository, but not to the configured
-    # backup locations
-    my $local_storage = HTFeed::Storage::LinkedPairtree->new(
-      volume => $init_volume,
-      config => { obj_dir => $tmpdirs->{obj_dir}, link_dir => $tmpdirs->{link_dir} }
-    );
-    my $collate = HTFeed::Stage::Collate->new(volume => $init_volume);
-    $collate->run($local_storage);
-    ok($collate->succeeded(),'collate to repository succeeds');
+    my $pt_objid = s2ppchars($objid);
+    my $pt_path = id2ppath($objid);
 
-    # make sure we're copying from the repository, not from temporary
-    # directories, but leave them intact when we're done
-    foreach my $dirtype ($tmpdirs->staging_dirtypes) {
-      remove_tree $tmpdirs->{$dirtype};
-      mkdir $tmpdirs->{$dirtype};
-    }
+    my $objdir = "$tmpdirs->{obj_dir}/test/$pt_path/$pt_objid";
+    my $link_base = "$tmpdirs->{link_dir}/test/$pt_path";
+
+    my $mets = $tmpdirs->test_home . "/fixtures/volumes/$pt_objid.mets.xml";
+    my $zip = $tmpdirs->test_home . "/fixtures/volumes/$pt_objid.zip";
+
+    system("mkdir -p $objdir");
+    system("mkdir -p $link_base");
+    system("ln -s $objdir $link_base");
+    system("cp $zip $objdir/$pt_objid.zip");
+    system("cp $mets $objdir/$pt_objid.mets.xml");
+  }
+
+  sub test_storage_migrate {
+    my $namespace = shift;
+    my $objid = shift;
+    my $tmpdirs = shift;
+
+    my $pt_objid = s2ppchars($objid);
+    my $obj_path = "$namespace/" . id2ppath($objid) . '/' . $pt_objid;
 
     # then run the storage migration and make sure volumes show up in the
     # expected location
-    my $volume = HTFeed::Volume->new(namespace => 'test', objid => 'test', packagetype => 'ht');
+    my $volume = HTFeed::Volume->new(namespace => $namespace, objid => $objid, packagetype => 'ht');
     my $stage = HTFeed::Stage::StorageMigrate->new(volume => $volume);
     $stage->run;
 
     my $dbh = get_dbh();
-    my $audits = $dbh->selectall_arrayref("SELECT * from feed_audit WHERE namespace = 'test' and id = 'test'");
-    my $versioned_backup = $dbh->selectall_arrayref("SELECT version from feed_backups WHERE namespace = 'test' and id = 'test' and path like ?",undef,$tmpdirs->{backup_obj_dir} . '%');
-    my $s3_backup = $dbh->selectall_arrayref("SELECT version from feed_backups WHERE namespace = 'test' and id = 'test' and path like ?",undef,"s3://$bucket%");
+    my $audits = $dbh->selectall_arrayref("SELECT * from feed_audit WHERE namespace = '$namespace' and id = '$objid'");
+    my $versioned_backup = $dbh->selectall_arrayref("SELECT version from feed_backups WHERE namespace = '$namespace' and id = '$objid' and path like ?",undef,$tmpdirs->{backup_obj_dir} . '%');
+    my $s3_backup = $dbh->selectall_arrayref("SELECT version from feed_backups WHERE namespace = '$namespace' and id = '$objid' and path like ?",undef,"s3://$bucket%");
 
     is(scalar(@{$versioned_backup}),1,'records a backup for versioned pairtree');
     is(scalar(@{$s3_backup}),1,'records a backup for object store');
 
     my $timestamp = $versioned_backup->[0][0];
-    ok(-e "$tmpdirs->{backup_obj_dir}/test/pairtree_root/te/st/test/$timestamp/test.zip.gpg","copies the encrypted zip to backup storage");
-    ok(-e "$tmpdirs->{backup_obj_dir}/test/pairtree_root/te/st/test/$timestamp/test.mets.xml","copies the mets backup storage");
+    ok(-e "$tmpdirs->{backup_obj_dir}/$obj_path/$timestamp/$pt_objid.zip.gpg","copies the encrypted zip to backup storage");
+    ok(-e "$tmpdirs->{backup_obj_dir}/$obj_path/$timestamp/$pt_objid.mets.xml","copies the mets backup storage");
 
     my $s3_timestamp = $s3_backup->[0][0];
-    ok($s3->s3_has("test.test.$s3_timestamp.zip.gpg"),"copies the zip to s3");
-    ok($s3->s3_has("test.test.$s3_timestamp.mets.xml"),"copies the mets to s3");
+    ok($s3->s3_has("$namespace.$pt_objid.$s3_timestamp.zip.gpg"),"copies the zip to s3");
+    ok($s3->s3_has("$namespace.$pt_objid.$s3_timestamp.mets.xml"),"copies the mets to s3");
 
     ok($stage->succeeded);
+  }
 
-    ok(-e "$tmpdirs->{obj_dir}/test/pairtree_root/te/st/test/test.zip","original zip still exists");
-    ok(-e "$tmpdirs->{obj_dir}/test/pairtree_root/te/st/test/test.mets.xml","original mets still exists");
+  sub dir_is_empty {
+    my $dirname = shift;
+    opendir(my $dh, $dirname) or die "$dirname doesn't exist or is not a directory";
+    return scalar(grep { $_ ne "." && $_ ne ".." } readdir($dh)) == 0;
+  }
+
+  it "copies from the repository to all configured storages" => sub {
+    my $namespace = 'test';
+    my $objid = 'test';
+
+    copy_to_repo($namespace,$objid,$tmpdirs);
+    test_storage_migrate($namespace,$objid,$tmpdirs);
   };
+
+  it "copies items that don't meet current specs" => sub {
+    my $namespace = 'test';
+    my $objid = "extra_files_in_zip";
+
+    copy_to_repo($namespace,$objid,$tmpdirs);
+    test_storage_migrate($namespace,$objid,$tmpdirs);
+
+  };
+
+  it "clean leaves files in the repo untouched on success" => sub {
+    my $namespace = 'test';
+    my $objid = 'test';
+    my $pt_objid = s2ppchars($objid);
+    my $obj_path = "$namespace/" . id2ppath($objid) . '/' . $pt_objid;
+
+    copy_to_repo($namespace,$objid,$tmpdirs);
+
+    my $volume = HTFeed::Volume->new(namespace => $namespace, objid => $objid, packagetype => 'ht');
+    my $stage = HTFeed::Stage::StorageMigrate->new(volume => $volume);
+
+    # pretend success
+    $stage->{has_run} = 1;
+    $stage->{failed} = 0;
+
+    $stage->clean;
+
+    ok(-e "$tmpdirs->{obj_dir}/$obj_path/$pt_objid.zip");
+    ok(-e "$tmpdirs->{obj_dir}/$obj_path/$pt_objid.mets.xml");
+  };
+
+  it "clean leaves files in the repo untouched on failure" => sub {
+    my $namespace = 'test';
+    my $objid = 'test';
+    my $pt_objid = s2ppchars($objid);
+    my $obj_path = "$namespace/" . id2ppath($objid) . '/' . $pt_objid;
+
+    copy_to_repo($namespace,$objid,$tmpdirs);
+
+    my $volume = HTFeed::Volume->new(namespace => $namespace, objid => $objid, packagetype => 'ht');
+    my $stage = HTFeed::Stage::StorageMigrate->new(volume => $volume);
+
+    # pretend failure
+    $stage->{has_run} = 1;
+    $stage->{failed} = 1;
+
+    $stage->clean;
+
+    ok(-e "$tmpdirs->{obj_dir}/$obj_path/$pt_objid.zip");
+    ok(-e "$tmpdirs->{obj_dir}/$obj_path/$pt_objid.mets.xml");
+  };
+
+  it "doesn't leave behind garbage in staging directories" => sub {
+    my $namespace = 'test';
+    my $objid = 'test';
+
+    copy_to_repo($namespace,$objid,$tmpdirs);
+
+    my $volume = HTFeed::Volume->new(namespace => $namespace, objid => $objid, packagetype => 'ht');
+    my $stage = HTFeed::Stage::StorageMigrate->new(volume => $volume);
+
+    $stage->run;
+    ok($stage->succeeded);
+
+    foreach my $dirtype ($tmpdirs->staging_dirtypes) {
+      ok(dir_is_empty($tmpdirs->{$dirtype}),"$dirtype dir is empty");
+    }
+
+  }
 };
 
 runtests unless caller;
