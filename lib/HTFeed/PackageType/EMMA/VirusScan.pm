@@ -17,16 +17,21 @@ sub new {
   my $self = $class->SUPER::new(
       @_,
   );
-  my $scanner;
-  eval {
 
-    my $clamav_options = get_config('clamav') || {};
-    $clamav_options->{'socket_host'} = $ENV{CLAMAV_HOST} if $ENV{CLAMAV_HOST};
-    $clamav_options->{'socket_port'} = $ENV{CLAMAV_PORT} if $ENV{CLAMAV_PORT};
+  if(!$self->{scanner}) {
+    my $scanner;
 
-    $scanner = ClamAV::Client->new(%$clamav_options);
-  };
-  $self->{scanner} = $scanner;
+    eval {
+
+      my $clamav_options = get_config('clamav') || {};
+      $clamav_options->{'socket_host'} = $ENV{CLAMAV_HOST} if $ENV{CLAMAV_HOST};
+      $clamav_options->{'socket_port'} = $ENV{CLAMAV_PORT} if $ENV{CLAMAV_PORT};
+
+      $scanner = ClamAV::Client->new(%$clamav_options);
+    };
+
+    $self->{scanner} = $scanner;
+  }
   return $self;
 }
 

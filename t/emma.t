@@ -3,7 +3,7 @@ use lib "$FindBin::Bin/lib";
 
 use Test::Spec;
 use HTFeed::Test::Support qw(load_db_fixtures);
-use HTFeed::Test::SpecSupport qw(mock_zephir);
+use HTFeed::Test::SpecSupport qw(mock_zephir mock_clamav);
 use HTFeed::Config qw(set_config get_config);
 use HTFeed::DBTools qw(get_dbh);
 use File::Path qw(remove_tree);
@@ -187,7 +187,7 @@ context "with volume & temporary ingest/preingest/zipfile dirs" => sub {
     before each => sub {
       my $unpack = HTFeed::PackageType::EMMA::Unpack->new(volume => $volume);
       $unpack->run();
-      $stage = HTFeed::PackageType::EMMA::VirusScan->new(volume => $volume);
+      $stage = HTFeed::PackageType::EMMA::VirusScan->new(volume => $volume, scanner => mock_clamav());
     };
 
     it "succeeds" => sub {
@@ -203,7 +203,7 @@ context "with volume & temporary ingest/preingest/zipfile dirs" => sub {
 
       before each => sub {
         HTFeed::PackageType::EMMA::Unpack->new(volume => $volume)->run();
-        HTFeed::PackageType::EMMA::VirusScan->new(volume => $volume)->run();
+        HTFeed::PackageType::EMMA::VirusScan->new(volume => $volume, scanner => mock_clamav())->run();
 
         $stage = HTFeed::PackageType::EMMA::SourceMETS->new(volume => $volume);
 
@@ -252,7 +252,7 @@ context "with volume & temporary ingest/preingest/zipfile dirs" => sub {
           packagetype => 'emma');
 
         HTFeed::PackageType::EMMA::Unpack->new(volume => $volume)->run();
-        HTFeed::PackageType::EMMA::VirusScan->new(volume => $volume)->run();
+        HTFeed::PackageType::EMMA::VirusScan->new(volume => $volume, scanner => mock_clamav())->run();
 
         $stage = HTFeed::PackageType::EMMA::SourceMETS->new(volume => $volume);
 
@@ -276,7 +276,7 @@ context "with volume & temporary ingest/preingest/zipfile dirs" => sub {
       mock_zephir();
 
       HTFeed::PackageType::EMMA::Unpack->new(volume => $volume)->run();
-      HTFeed::PackageType::EMMA::VirusScan->new(volume => $volume)->run();
+      HTFeed::PackageType::EMMA::VirusScan->new(volume => $volume, scanner => mock_clamav())->run();
       HTFeed::PackageType::EMMA::SourceMETS->new(volume => $volume)->run();
       HTFeed::Stage::Pack->new(volume => $volume)->run();
 

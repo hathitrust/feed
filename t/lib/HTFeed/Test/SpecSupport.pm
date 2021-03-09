@@ -13,7 +13,7 @@ use warnings;
 use strict;
 use Exporter 'import';
 
-our @EXPORT_OK = qw(mock_zephir stage_volume);
+our @EXPORT_OK = qw(mock_zephir mock_clamav stage_volume);
 
 sub mock_zephir {
 
@@ -42,6 +42,12 @@ EOT
 
   };
 
+}
+
+sub mock_clamav {
+  use HTFeed::Test::MockClamAV;
+
+  return HTFeed::Test::MockClamAV->new();
 }
 
 sub stage_volume {

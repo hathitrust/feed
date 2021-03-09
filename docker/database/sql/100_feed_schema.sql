@@ -123,4 +123,14 @@ CREATE TABLE IF NOT EXISTS `feed_backups` (
   `deleted` tinyint(1) DEFAULT NULL,
   KEY `feed_backups_objid` (`namespace`,`id`),
   KEY `feed_backups_version` (`version`)
-)
+);
+
+CREATE TABLE IF NOT EXISTS `feed_audit_detail` (
+  `namespace` varchar(10) NOT NULL,
+  `id` varchar(30) NOT NULL,
+  `path` varchar(255) DEFAULT NULL,
+  `status` varchar(30) DEFAULT NULL,
+  `detail` tinytext,
+  `time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  KEY `fs_log_status_objid_idx` (`namespace`,`id`)
+);
