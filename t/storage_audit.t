@@ -62,9 +62,9 @@ describe "HTFeed::StorageAudit" => sub {
       "INSERT INTO feed_backups (namespace, id, path, version, zip_size, \
         mets_size, saved_md5sum, lastchecked, lastmd5check, md5check_ok) \
         VALUES (?,?,?,?,0,0,'00000000', \
-        CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,1)";
+        SUBTIME(CURRENT_TIMESTAMP,'01:00'),SUBTIME(CURRENT_TIMESTAMP,'01:00'),3)";
       my $sth  = $dbh->prepare($stmt);
-      $sth->execute('test', 'test' . $n, "s3://$s3->bucket/" . $n, $version);
+      $sth->execute('test', 'test' . $n, "s3://" . $s3->{bucket} . "/" . $n, $version);
     }
   }
 
@@ -81,14 +81,16 @@ describe "HTFeed::StorageAudit" => sub {
       setup_storage();
       my $audit = HTFeed::StorageAudit->new(bucket => $s3->{bucket},
                                             awscli => $s3->{awscli});
+      $audit->run_not_in_db_check();
       is($audit->run_not_in_aws_check(), 0, 'no errors reported');
     };
-    
-    it "reports errors when AWS objects are missing" => sub {
+
+    it "reports errors when AWS objects have not been checked" => sub {
       setup_storage();
       add_db_entries();
       my $audit = HTFeed::StorageAudit->new(bucket => $s3->{bucket},
                                             awscli => $s3->{awscli});
+      $audit->run_not_in_db_check();
       is($audit->run_not_in_aws_check(), 4, '4 errors reported');
       ok($testlog->matches(qr(test\.test2\.\d{14}\.zip)s));
       ok($testlog->matches(qr(test\.test2\.\d{14}\.mets\.xml)s));

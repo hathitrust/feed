@@ -45,13 +45,21 @@ sub run_not_in_aws_check {
   my $err_count = 0;
   my $s3 = HTFeed::Storage::S3->new(bucket => $self->{bucket},
                                     awscli => $self->{awscli});
+
+                                  
   my $sql = 'SELECT namespace,id,version FROM feed_backups'.
-            ' WHERE path LIKE "s3://%"'.
+            ' WHERE path LIKE ?'.
             ' AND deleted IS NULL';
+  my @bindvals = ("s3://$self->{bucket}%");
   if ($self->{lastchecked}) {
-    $sql .= " AND lastchecked < '$self->{lastchecked}'";
+    $sql .= " AND lastchecked < ?";
+    push(@bindvals,$self->{lastchecked});
   }
-  foreach my $row (@{get_dbh()->selectall_arrayref($sql)}) {
+
+  my $sth = get_dbh()->prepare($sql);
+  $sth->execute(@bindvals);
+
+  while (my $row = $sth->fetchrow_arrayref()) {
     my ($namespace, $id, $version) = @$row;
     unless ($s3->s3_has("$namespace.$id.$version.zip")) {
       $self->log_error($namespace, $id, 'MissingFile', "$namespace.$id.$version.zip not found in AWS");
@@ -73,6 +81,8 @@ sub run_not_in_aws_check {
 sub run_not_in_db_check {
   my $self  = shift;
 
+  my $count = 0;
+  my $batch_size = 1000;
   my $err_count = 0;
   my $s3 = HTFeed::Storage::S3->new(bucket => $self->{bucket},
                                     awscli => $self->{awscli});
@@ -83,17 +93,22 @@ sub run_not_in_db_check {
   $self->{lastchecked} = $lastchecked;
 
   while(1) {
-    my $result = $s3->s3api('list-objects-v2', '--max-items' ,1000, @next_token_params);
+    my $result = $s3->s3api('list-objects-v2', '--max-items' ,$batch_size, @next_token_params);
     last unless $result;
 
     foreach my $object (@{$result->{Contents}}) {
-      my ($namespace, $id, $version, $_rest) = split m/\./, $object->{Key};
+      my ($namespace, $pt_objid, $version, $_rest) = split m/\./, $object->{Key};
+      my $id = ppchars2s($pt_objid);
      my $rows = $self->update_lastchecked($namespace, $id, $version);
       if (!$rows) {
         $self->log_error($namespace, $id, 'MissingField', "AWS object $object->{Key} not found in feed_backups");
         $err_count++;
       }
     }
+    print STDERR ".";
+    $count += $batch_size;
+    print STDERR "$count\n" if ($count % 100000 == 0);
+
     last unless $result->{NextToken};
 
     @next_token_params = ('--starting-token', $result->{NextToken});
@@ -128,6 +143,33 @@ sub log_error {
   my $sql = 'INSERT INTO feed_audit_detail (namespace, id, status, detail)'.
             ' values (?,?,?,?)';
   get_dbh()->prepare($sql)->execute($namespace, $id, $errcode, $detail);
+}
+
+sub ppchars2s {
+  # adapted from File::Pairtree::ppath2id
+
+  my $id = shift;
+
+  # Reverse the single-char to single-char mapping.
+  # This might add formerly hex-encoded chars back in.
+  #
+  $id =~ tr /=+,/\/:./;   # per spec, =+, become /:.
+
+  # Reject if there are any ^'s not followed by two hex digits.
+  #
+  die "error: impossible hex-encoding in $id" if
+    $id =~ /\^($|.$|[^0-9a-fA-F].|.[^0-9a-fA-F])/;
+
+  # Now reverse the hex conversion.
+  #
+  $id =~ s{
+    \^([0-9a-fA-F]{2})
+  }{
+    chr(hex("0x"."$1"))
+  }xeg;
+
+  return $id;
+
 }
 
 1;
