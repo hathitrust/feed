@@ -19,20 +19,15 @@ use Log::Log4perl;
 sub choose {
   my $path_prefix = shift || '/htdataden';
 
-  my $sql = 'SELECT COUNT(*) FROM feed_backups' .
-            " WHERE path LIKE '$path_prefix%'" .
-            ' AND deleted IS NULL AND saved_md5sum IS NOT NULL';
   my $dbh = HTFeed::DBTools->get_dbh();
-  my ($rows) = $dbh->selectrow_array($sql);
-  my $random_row = int(rand($rows));
   my ($namespace, $objid, $path, $version);
-  $sql = 'SELECT namespace,id,path,version FROM feed_backups' .
-         " WHERE path LIKE '$path_prefix%'" .
-         ' AND deleted IS NULL' .
-         ' AND saved_md5sum IS NOT NULL' .
-         ' LIMIT ?,1';
+  my $sql = 'SELECT namespace,id,path,version FROM feed_backups' .
+            " WHERE path LIKE '$path_prefix%'" .
+            ' AND deleted IS NULL' .
+            ' AND saved_md5sum IS NOT NULL' .
+            ' ORDER BY RAND() LIMIT 1';
   eval {
-    ($namespace, $objid, $path, $version) = $dbh->selectrow_array($sql, undef, $random_row);
+    ($namespace, $objid, $path, $version) = $dbh->selectrow_array($sql);
   };
   if ($@) {
     die "Database query failed: $@";
@@ -44,30 +39,30 @@ sub choose {
 sub new {
   my $class = shift;
 
-  my $object = {
+  my $self = {
       @_,
   };
   if ( $class ne __PACKAGE__ ) {
       croak "use __PACKAGE__ constructor to create $class object";
   }
   # check parameters
-  unless ($object->{namespace} && $object->{objid} &&
-          $object->{version} && $object->{path}) {
+  unless ($self->{namespace} && $self->{objid} &&
+          $self->{version} && $self->{path}) {
     croak "invalid args: namespace, objid, version, path required";
   }
-  $object->{mets_path} = $object->{path} . '/' . $object->{objid} . '.mets.xml';
-  $object->{zip_path} = $object->{path} . '/' . $object->{objid} . '.zip.gpg';
+  $self->{mets_path} = $self->{path} . '/' . $self->{objid} . '.mets.xml';
+  $self->{zip_path} = $self->{path} . '/' . $self->{objid} . '.zip.gpg';
   
   my $volume = HTFeed::Volume->new(
     packagetype => 'pkgtype',
-    namespace   => $object->{namespace},
-    objid       => $object->{objid}
+    namespace   => $self->{namespace},
+    objid       => $self->{objid}
   );
-  $object->{volume} = $volume;
+  $self->{volume} = $volume;
   # EVIL HACK that may break in production.
-  $object->{storage} ||= (HTFeed::Storage::for_volume($volume))[0];
-  bless( $object, $class );
-  return $object;
+  $self->{storage} ||= (HTFeed::Storage::for_volume($volume))[0];
+  bless( $self, $class );
+  return $self;
 }
 
 my $insert_detail =
