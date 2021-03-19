@@ -42,13 +42,25 @@ sub new {
     namespace => $volume->get_namespace(),
     objid => $volume->get_objid(),
     errors => [],
+    zip_source => $volume->get_zip_path(),
     config => $config,
-    zip_suffix => "",
     did_encryption => 0,
   };
 
   bless($self, $class);
   return $self;
+}
+
+sub zip_source {
+  my $self = shift;
+
+  return $self->{zip_source};
+}
+
+sub encrypted_zip_staging {
+  my $self = shift;
+
+  return $self->{volume}->get_zip_path(get_config('staging','zipfile')) . '.gpg';
 }
 
 sub encrypt {
@@ -58,13 +70,14 @@ sub encrypt {
 
   return 1 unless $key;
 
-  my $original = $self->zip_source();
-  my $encrypted = "$original.gpg";
+  my $original = $self->{zip_source};
+  my $encrypted = $self->encrypted_zip_staging;
 
   my $cmd = "cat \"$key\" | gpg --quiet --passphrase-fd 0 --batch --no-tty --output '$encrypted' --symmetric '$original'";
 
   $self->safe_system($cmd);
 
+  $self->{zip_source} = $encrypted;
   $self->{zip_suffix} = ".gpg";
   $self->{did_encryption} = 1;
 
@@ -75,7 +88,7 @@ sub encrypt {
 sub verify_crypt {
   my $self = shift;
   my $volume = $self->{volume};
-  my $encrypted = $self->zip_source();
+  my $encrypted = $self->{zip_source};
 
   my $key = $self->{config}{encryption_key};
   return 1 unless $key;
@@ -107,20 +120,12 @@ sub make_object_path {
   }
 }
 
-sub zip_source {
-  my $self = shift;
-  my $volume = $self->{volume};
-
-  return $volume->get_zip_path() . $self->{zip_suffix};
-
-}
-
 sub stage {
   my $self = shift;
   my $volume = $self->{volume};
   my $mets_source = $volume->get_mets_path();
   get_logger()->trace("copying METS from: $mets_source");
-  my $zip_source = $self->zip_source();
+  my $zip_source = $self->{zip_source};
   get_logger()->trace("copying ZIP from: $zip_source");
 
   my $stage_path = $self->stage_path;
@@ -247,10 +252,11 @@ sub clean_staging {
 
 sub cleanup {
   my $self = shift;
+  get_logger->trace("in storage cleanup, did_encryption: $self->{did_encryption}");
 
   return unless $self->{did_encryption};
 
-  $self->safe_system('rm','-f',$self->zip_source);
+  $self->safe_system('rm','-f',$self->{zip_source});
 
 }
 

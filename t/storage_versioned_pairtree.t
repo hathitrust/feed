@@ -198,9 +198,9 @@ describe "HTFeed::Storage::VersionedPairtree" => sub {
 
       it "fails with a corrupted encrypted zip" => sub {
         my $storage = encrypted_storage('test', 'test');
-        my $encrypted = $storage->zip_source . ".gpg";
 
         $storage->encrypt;
+        my $encrypted = $storage->zip_source;
 
         open(my $fh, "+< $encrypted") or die($!);
         seek($fh,0,0);

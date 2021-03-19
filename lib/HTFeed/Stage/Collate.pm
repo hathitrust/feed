@@ -4,6 +4,7 @@ use warnings;
 use strict;
 
 use base qw(HTFeed::Stage);
+use Log::Log4perl qw(get_logger);
 use HTFeed::Config qw(get_config);
 use Carp qw(croak);
 
@@ -39,8 +40,10 @@ sub run{
     foreach my $storage (@storages) {
 
       if( $self->collate($storage))  {
+        get_logger->trace("finished collate to $storage, cleaning up");
         $storage->cleanup
       } else {
+        get_logger->warn("collate to $storage failed, rolling back");
         $storage->rollback;
       }
 
@@ -69,6 +72,8 @@ sub log_repeat {
 sub collate {
   my $self = shift;
   my $storage = shift;
+
+  get_logger->trace("Starting collate for $storage");
 
   $storage->validate_zip_completeness &&
   $storage->encrypt &&
