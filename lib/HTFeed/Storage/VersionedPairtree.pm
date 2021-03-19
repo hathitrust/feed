@@ -20,6 +20,7 @@ use base qw(HTFeed::Storage);
 use strict;
 use POSIX qw(strftime);
 use HTFeed::DBTools qw(get_dbh);
+use Log::Log4perl qw(get_logger);
 
 sub object_path {
   my $self = shift;
@@ -44,6 +45,7 @@ sub record_audit {
 sub record_backup {
   my $self = shift;
 
+  get_logger->trace("recording backup for $self");
   my $dbh = HTFeed::DBTools::get_dbh();
 
   my $saved_checksum = HTFeed::VolumeValidator::md5sum($self->zip_obj_path());
@@ -59,6 +61,33 @@ sub record_backup {
       $self->object_path,
       $self->{timestamp}, $self->zip_size,
       $self->mets_size, $saved_checksum);
+
+}
+
+# Trust that if move succeeds, the object is the same
+sub postvalidate {
+  my $self = shift;
+  my $volume = $self->{volume};
+  my $path = $self->object_path;
+
+  my $mets_path = $volume->get_mets_path($path);
+  my $zip_path = $volume->get_zip_path($path) . $self->{zip_suffix};
+
+  get_logger->trace("In postvalidate for $self");
+
+  foreach my $file ($mets_path, $zip_path) {
+    unless(-f $file) {
+      $self->set_error(
+        "OperationFailed",
+        file => $file,
+        operation => 'move',
+        detail => 'Target file missing after move'
+      );
+      return 0;
+    }
+  }
+
+  return 1;
 
 }
 
