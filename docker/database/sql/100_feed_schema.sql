@@ -120,6 +120,7 @@ CREATE TABLE IF NOT EXISTS `feed_backups` (
   `saved_md5sum` char(32) DEFAULT NULL,
   `lastchecked` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `lastmd5check` timestamp NULL DEFAULT NULL,
+  `restore_request` timestamp NULL DEFAULT NULL,
   `md5check_ok` tinyint(1) DEFAULT NULL,
   `deleted` tinyint(1) DEFAULT NULL,
   KEY `feed_backups_objid` (`namespace`,`id`),
