@@ -96,7 +96,7 @@ sub lock_volumes{
     # trying to make sure MySQL uses index
     my $rows = eval {
       $dbh->begin_work();
-      my $sth = $dbh->prepare(qq(UPDATE ht_repository.feed_queue SET node = ?, reset_status = status WHERE node IS NULL AND status not in ($release_status) ORDER BY priority, date_added LIMIT ?;));
+      my $sth = $dbh->prepare(qq(UPDATE feed_queue use index (queue_priority_idx) SET node = ?, reset_status = status WHERE node IS NULL AND status not in ($release_status) ORDER BY priority, date_added LIMIT ?;));
       $sth->execute(hostname,$item_count);
       $dbh->commit();
       return $sth->rows;
@@ -122,7 +122,7 @@ sub reset_in_flight_locks{
     my $rows = eval {
       $dbh->begin_work();
       my $release_status = join(',', map {$dbh->quote($_)} @{get_config('release_states')});
-      my $sth = $dbh->prepare(qq(UPDATE ht_repository.feed_queue SET node = NULL, status = reset_status, reset_status = NULL WHERE node = ? AND status not in ($release_status);));
+      my $sth = $dbh->prepare(qq(UPDATE feed_queue SET node = NULL, status = reset_status, reset_status = NULL WHERE node = ? AND status not in ($release_status);));
       return $sth->execute(hostname);
       $dbh->commit();
 
@@ -143,7 +143,7 @@ sub reset_in_flight_locks{
 
 sub count_locks{
     my $dbh = get_dbh();
-    my $sth = get_dbh()->prepare(q(SELECT COUNT(*) FROM ht_repository.feed_queue WHERE node = ?;));
+    my $sth = get_dbh()->prepare(q(SELECT COUNT(*) FROM feed_queue WHERE node = ?;));
     $sth->execute(hostname);
     my $res = $sth->fetchrow;
     return $res;
@@ -198,7 +198,7 @@ sub set_watched_ready {
 
 sub get_volumes_with_status {
     my ($pkg_type, $namespace, $status, $limit) = @_;
-    my $query = qq(SELECT id FROM ht_repository.feed_queue WHERE namespace = ? and pkg_type = ? and status = ?);
+    my $query = qq(SELECT id FROM feed_queue WHERE namespace = ? and pkg_type = ? and status = ?);
     if($limit) { $query .= " LIMIT $limit"; }
     my $dbh = get_dbh();
     my $sth = $dbh->prepare($query);
