@@ -92,11 +92,13 @@ sub lock_volumes{
     my $item_count = shift;
     return 0 unless ($item_count > 0);
     my $release_status = join(',', map {$dbh->quote($_)} @{get_config('release_states')});
-    
+
+    my $realdb = get_config('realdb');
+
     # trying to make sure MySQL uses index
     my $rows = eval {
       $dbh->begin_work();
-      my $sth = $dbh->prepare(qq(UPDATE feed_queue use index (queue_priority_idx) SET node = ?, reset_status = status WHERE node IS NULL AND status not in ($release_status) ORDER BY priority, date_added LIMIT ?;));
+      my $sth = $dbh->prepare(qq(UPDATE $realdb.feed_queue use index (queue_priority_idx) SET node = ?, reset_status = status WHERE node IS NULL AND status not in ($release_status) ORDER BY priority, date_added LIMIT ?;));
       $sth->execute(hostname,$item_count);
       $dbh->commit();
       return $sth->rows;
