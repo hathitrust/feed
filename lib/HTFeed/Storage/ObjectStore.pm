@@ -74,6 +74,7 @@ sub mets_key {
 sub postvalidate {
   my $self = shift;
 
+  get_logger->trace("  starting postvalidate");
   foreach my $key ($self->zip_key, $self->mets_key) {
     my $s3path = "s3://$self->{s3}{bucket}/$key";
     my $result;
@@ -109,6 +110,7 @@ sub postvalidate {
     }
   }
 
+  get_logger->trace("  finished postvalidate");
   return 1;
   # does it have the checksum metadata?
 
@@ -158,6 +160,7 @@ sub record_audit {
 sub record_backup {
   my $self = shift;
 
+  get_logger->trace("  starting record_backup");
   my $dbh = HTFeed::DBTools::get_dbh();
 
   my $b64_checksum = $self->{checksums}{$self->zip_key};
@@ -175,6 +178,7 @@ sub record_backup {
       $self->{timestamp}, $self->{filesize}{$self->zip_key},
       $self->{filesize}{$self->object_path . '.mets.xml'}, $hex_checksum);
 
+  get_logger->trace("  finished record_backup");
 }
 
 

@@ -39,7 +39,15 @@ sub stage_path {
 
 sub record_audit {
   my $self = shift;
+  get_logger->trace("  starting record_audit");
   $self->record_backup;
+  get_logger->trace("  finished record_audit");
+}
+
+sub verify_crypt {
+  # no-op here, since we'll verify we can decrypt it after we copy to staging
+
+  return 1;
 }
 
 sub record_backup {
@@ -73,7 +81,7 @@ sub postvalidate {
   my $mets_path = $volume->get_mets_path($path);
   my $zip_path = $volume->get_zip_path($path) . $self->{zip_suffix};
 
-  get_logger->trace("In postvalidate for $self");
+  get_logger->debug("  starting postvalidate");
 
   foreach my $file ($mets_path, $zip_path) {
     unless(-f $file) {
@@ -86,6 +94,7 @@ sub postvalidate {
       return 0;
     }
   }
+  get_logger->debug("  finished postvalidate");
 
   return 1;
 

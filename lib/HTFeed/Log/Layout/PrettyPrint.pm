@@ -31,7 +31,8 @@ sub render {
     my($self, $incoming_message, $category, $priority, $caller_level) = @_;
 
     my @message = @$incoming_message;
-    
+    my $time = localtime();
+
     my $error_message;
 
     # transform ("ErrorCode",field => "data",...) if $message has 2+ fields
@@ -60,7 +61,7 @@ sub render {
         $error_message = shift @message;
     }
     
-    return "$priority - $error_message\n";
+    return "$priority: $error_message\n";
 }
 
 1;
