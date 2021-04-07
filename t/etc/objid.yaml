@@ -1,5 +1,5 @@
 damaged:
-  count: '30'
+  count: '31'
   package_types:
     simple:
       txi:
@@ -44,8 +44,10 @@ damaged:
       - 'abc12345678901'
       coo:
       - '31924028621642'
+      utk:
+      - 'ark:/87290/v8tm7895'
 undamaged:
-  count: '40'
+  count: '41'
   package_types:
     google:
       inu:
@@ -106,4 +108,6 @@ undamaged:
       yul:
       - '11084322_000_00'
       - '11737238_1945-1950_93-159'
+      utk:
+      - 'ark:/87290/v8tm7893'
 

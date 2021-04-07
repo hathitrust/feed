@@ -9,6 +9,7 @@ RUN apt-get update && apt-get install -y \
     libswitch-perl \
     libtest-class-perl \
     libtest-mockobject-perl \
+    libtest-most-perl \
     libtest-spec-perl \
     netcat
 
