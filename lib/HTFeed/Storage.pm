@@ -66,6 +66,8 @@ sub encrypted_zip_staging {
 sub encrypt {
   my $self = shift;
 
+  get_logger->debug("  starting encrypt");
+
   my $key = $self->{config}{encryption_key};
 
   return 1 unless $key;
@@ -74,14 +76,16 @@ sub encrypt {
   my $encrypted = $self->encrypted_zip_staging;
 
   my $cmd = "cat \"$key\" | gpg --quiet --passphrase-fd 0 --batch --no-tty --output '$encrypted' --symmetric '$original'";
+  my $success = ! $?;
 
   $self->safe_system($cmd);
 
   $self->{zip_source} = $encrypted;
   $self->{zip_suffix} = ".gpg";
   $self->{did_encryption} = 1;
+  get_logger->debug("  finished encrypt");
 
-  return ! $?;
+  return $success;
 
 }
 
@@ -90,12 +94,17 @@ sub verify_crypt {
   my $volume = $self->{volume};
   my $encrypted = $self->{zip_source};
 
+  get_logger()->debug("  starting verify_crypt");
   my $key = $self->{config}{encryption_key};
   return 1 unless $key;
 
   my $actual_checksum = $self->crypted_md5sum($encrypted,$key);
 
-  return $self->validate_zip_checksum($volume->get_mets_path(), "gpg --decrypt '$encrypted'", $actual_checksum);
+  my $valid = $self->validate_zip_checksum($volume->get_mets_path(), "gpg --decrypt '$encrypted'", $actual_checksum);
+
+  get_logger()->debug("  finished verify_crypt");
+
+  return $valid;
 }
 
 sub crypted_md5sum {
@@ -115,14 +124,17 @@ sub crypted_md5sum {
 sub make_object_path {
   my $self = shift;
 
+  get_logger()->debug("  starting make_object_path");
   if(! -d $self->object_path) {
     $self->safe_make_path($self->object_path);
   }
+  get_logger()->debug("  finished make_object_path");
 }
 
 sub stage {
   my $self = shift;
   my $volume = $self->{volume};
+  get_logger()->debug("  starting stage");
   my $mets_source = $volume->get_mets_path();
   get_logger()->trace("copying METS from: $mets_source");
   my $zip_source = $self->{zip_source};
@@ -139,6 +151,7 @@ sub stage {
     $self->safe_system('cp','-f',$mets_source,$stage_path);
     $self->safe_system('cp','-f',$zip_source,$stage_path);
 
+    get_logger()->debug("  finished stage");
     return 1;
 
   } else {
@@ -219,6 +232,8 @@ sub stage_path {
 sub move {
   my $self = shift;
   my $volume = $self->{volume};
+  get_logger->debug("  starting move");
+
   my $mets_stage = $self->mets_stage_path;
   my $zip_stage = $self->zip_stage_path;
 
@@ -229,6 +244,7 @@ sub move {
     $self->safe_system('mv','-f',$mets_stage,$object_path);
     $self->safe_system('mv','-f',$zip_stage,$object_path);
 
+    get_logger->debug("  finished move");
     return 1;
   } else {
     # report which file(s) are missing
@@ -238,6 +254,7 @@ sub move {
     $detail .= $object_path unless(-d $object_path);
 
     $self->set_error('OperationFailed', detail => $detail);
+    get_logger->debug("  finished move");
     return;
   }
 }
@@ -271,12 +288,20 @@ sub record_audit {
 sub postvalidate {
   my $self = shift;
 
-  $self->validate_mets($self->object_path) &&
-  $self->validate_zip($self->object_path);
+  get_logger->debug(" starting postvalidate");
+
+  my $valid = ($self->validate_mets($self->object_path) &&
+               $self->validate_zip($self->object_path));
+
+  get_logger->debug(" finished postvalidate");
+
+  return $valid;
 }
 
 sub validate_zip_completeness {
   my $self = shift;
+
+  get_logger->debug("  starting validate_zip_completeness");
 
   my $volume = $self->{volume};
   my $pt_objid = $volume->get_pt_objid();
@@ -291,6 +316,7 @@ sub validate_zip_completeness {
   my $ok = $self->validate_zip_checksums($checksums,$files,$zip_stage);
 
   remove_tree($zip_stage);
+  get_logger->debug("  finished validate_zip_completeness");
 
   return $ok;
 }
@@ -298,8 +324,12 @@ sub validate_zip_completeness {
 sub prevalidate {
   my $self = shift;
 
-  $self->validate_mets($self->stage_path) &&
-  $self->validate_zip($self->stage_path)
+  get_logger->debug("  starting prevalidate");
+  my $valid = ($self->validate_mets($self->stage_path) &&
+               $self->validate_zip($self->stage_path));
+  get_logger->debug("  finished prevalidate");
+
+  return $valid;
 }
 
 sub validate_mets {
@@ -308,6 +338,8 @@ sub validate_mets {
   my $path = shift;
   my $mets_path = $volume->get_mets_path($path);
   my $orig_mets_path = $volume->get_mets_path();
+
+  get_logger()->trace("Validating mets at $mets_path, orig at $orig_mets_path");
 
   my $mets_checksum = HTFeed::VolumeValidator::md5sum($mets_path);
   my $orig_mets_checksum = HTFeed::VolumeValidator::md5sum($orig_mets_path);
@@ -376,6 +408,8 @@ sub validate_zip {
   my $path = shift;
   my $mets_path = $volume->get_mets_path($path);
   my $zip_path = $volume->get_zip_path($path) . $self->{zip_suffix};
+
+  get_logger()->trace("Validating zip at $zip_path vs. checksum in METS $mets_path");
 
   my $actual_checksum;
   if($self->{did_encryption}) {
@@ -453,6 +487,7 @@ sub validate_zip_checksums {
   my $files = shift;
   my $path             = shift;
 
+  get_logger()->trace("Validating zip checksums");
   # make sure we check every file in the directory except for the checksum file
   # and make sure we check every file in the checksum file
 

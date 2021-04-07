@@ -98,6 +98,7 @@ sub lock_volumes{
     # trying to make sure MySQL uses index
     my $rows = eval {
       $dbh->begin_work();
+      $dbh->do("SET innodb_lock_wait_timeout = 1;");
       my $sth = $dbh->prepare(qq(UPDATE $realdb.feed_queue use index (queue_priority_idx) SET node = ?, reset_status = status WHERE node IS NULL AND status not in ($release_status) ORDER BY priority, date_added LIMIT ?;));
       $sth->execute(hostname,$item_count);
       $dbh->commit();
