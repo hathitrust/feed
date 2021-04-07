@@ -15,7 +15,7 @@ log4perl.appender.dbi.warp_message      = HTFeed::Log::Warp::toDBArray
 # appender screen
 log4perl.appender.screen                = Log::Log4perl::Appender::ScreenColoredLevels
 log4perl.appender.screen.stderr         = 0
-log4perl.appender.screen.layout         = HTFeed::Log::Layout::PrettyPrintPID
+log4perl.appender.screen.layout         = HTFeed::Log::Layout::PrettyPrintSyslog
 log4perl.appender.screen.color.TRACE    = white
 log4perl.appender.screen.color.DEBUG    = white
 log4perl.appender.screen.color.INFO     = bold cyan

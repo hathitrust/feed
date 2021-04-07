@@ -189,32 +189,39 @@ describe "HTFeed::Storage::VersionedPairtree" => sub {
       ok($storage->postvalidate);
     };
 
-    describe "#verify_crypt" => sub {
+    describe "#prevalidate" => sub {
       it "fails with no encrypted zip" => sub {
         my $storage = encrypted_storage('test', 'test');
+        $storage->encrypt;
+        $storage->stage;
+        my $volume = $storage->{volume};
+        system('rm', $volume->get_zip_path($storage->stage_path) . ".gpg");
 
-        ok(! $storage->verify_crypt());
+        ok(! $storage->prevalidate());
       };
 
       it "fails with a corrupted encrypted zip" => sub {
         my $storage = encrypted_storage('test', 'test');
 
         $storage->encrypt;
-        my $encrypted = $storage->zip_source;
+        $storage->stage;
+        my $volume = $storage->{volume};
+        my $encrypted = $volume->get_zip_path($storage->stage_path) . ".gpg";
 
         open(my $fh, "+< $encrypted") or die($!);
         seek($fh,0,0);
         print $fh "mashed potatoes";
         close($fh);
 
-        ok(! $storage->verify_crypt());
+        ok(! $storage->prevalidate());
       };
 
       it "succeeds with an intact encrypted zip" => sub {
         my $storage = encrypted_storage('test', 'test');
 
         $storage->encrypt;
-        ok($storage->verify_crypt());
+        $storage->stage;
+        ok($storage->prevalidate());
       };
 
     };
