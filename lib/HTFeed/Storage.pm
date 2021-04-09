@@ -123,12 +123,15 @@ sub crypted_md5sum {
 
 sub make_object_path {
   my $self = shift;
+  my $ok = 1;
 
   get_logger()->debug("  starting make_object_path");
   if(! -d $self->object_path) {
-    $self->safe_make_path($self->object_path);
+    $ok = $self->safe_make_path($self->object_path);
   }
   get_logger()->debug("  finished make_object_path");
+
+  return $ok;
 }
 
 sub stage {

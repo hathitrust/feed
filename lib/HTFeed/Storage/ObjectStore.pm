@@ -172,13 +172,15 @@ sub record_backup {
     values(?,?,?,?,?,?,?,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,1)";
 
   my $sth  = $dbh->prepare($stmt);
-  $sth->execute(
+  my $rval = $sth->execute(
       $self->{namespace}, $self->{objid},
       "s3://$self->{s3}{bucket}/" . $self->object_path,
       $self->{timestamp}, $self->{filesize}{$self->zip_key},
       $self->{filesize}{$self->object_path . '.mets.xml'}, $hex_checksum);
 
   get_logger->trace("  finished record_backup");
+
+  return $rval;
 }
 
 
