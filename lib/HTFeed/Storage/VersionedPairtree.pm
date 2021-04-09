@@ -40,8 +40,10 @@ sub stage_path {
 sub record_audit {
   my $self = shift;
   get_logger->trace("  starting record_audit");
-  $self->record_backup;
+  my $rval = $self->record_backup;
   get_logger->trace("  finished record_audit");
+
+  return $rval;
 }
 
 sub verify_crypt {

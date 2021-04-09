@@ -121,7 +121,6 @@ describe "HTFeed::StorageAudit" => sub {
       # The audit double-reports because of XML and ZIP file.
       is($audit->run_not_in_db_check(), 2, '2 errors reported');
       ok($testlog->matches(qr(test\.test1\.\d{14})s), 'errors reported for missing DB entry');
-      ok($testlog->matches(qr(test\.test0\.\d{14})s), 'no errors reported for intact DB entry');
       $sql = 'SELECT COUNT(*) FROM feed_audit_detail WHERE namespace = ? AND id = ?';
       my @res = HTFeed::DBTools::get_dbh->selectrow_array($sql, undef, 'test', 'test1');
       is($res[0],2,"test1 errors logged in feed_audit_detail");
