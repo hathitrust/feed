@@ -1,16 +1,16 @@
 use Test::Spec;
-use HTFeed::Storage::VersionedPairtree;
+use HTFeed::Storage::PrefixedVersions;
 
 use strict;
 
-describe "HTFeed::Storage::VersionedPairtree" => sub {
+describe "HTFeed::Storage::PrefixedVersions" => sub {
   spec_helper 'storage_helper.pl';
   local our ($tmpdirs, $testlog);
 
-  sub versioned_storage {
-    my $volume = stage_volume($tmpdirs,@_);
+  sub storage_for_volume {
+    my $volume = shift;
 
-    my $storage = HTFeed::Storage::VersionedPairtree->new(
+    my $storage = HTFeed::Storage::PrefixedVersions->new(
       volume => $volume,
       config => {
         obj_dir => $tmpdirs->{obj_dir},
@@ -20,58 +20,82 @@ describe "HTFeed::Storage::VersionedPairtree" => sub {
     return $storage;
   }
 
+  sub staged_volume_storage {
+    my $volume = stage_volume($tmpdirs,@_);
+
+    return storage_for_volume($volume);
+
+  }
+
+  sub storage {
+    my ($namespace, $objid) = @_;
+    my $volume = HTFeed::Volume->new(
+      namespace => $namespace,
+      objid => $objid,
+      packagetype => 'simple');
+
+    return storage_for_volume($volume);
+  }
+
   describe "#object_path" => sub {
 
     it "uses config for object root" => sub {
       eval {
-        my $storage = versioned_storage('test', 'test');
+        my $storage = storage('test', 'test');
         $storage->set_storage_config('/backup-location/obj','obj_dir');
         like( $storage->object_path(), qr{^/backup-location/obj/});
       };
     };
 
-    it "includes the namespace and pairtreeized object id in the path" => sub {
-      my $storage = versioned_storage('test', 'test');
+    it "includes the namespace and first three characters in the path for object ids >= 3 chars" => sub {
+      my $storage = storage('test', 'test');
 
-      like( $storage->object_path(), qr{/test/pairtree_root/te/st/test});
+      like( $storage->object_path(), qr{/test/tes});
     };
 
-    it "includes a datestamp in the object directory" => sub {
-      my $storage = versioned_storage('test','test');
+    it "includes the namespace and all but the last four characters in the path for object ids >= 7 chars" => sub {
+      my $storage = storage('test', 'test123456');
 
-      like( $storage->object_path(), qr{/test/\d{14}});
+      like( $storage->object_path(), qr{/test/test12});
     };
+
+    it "includes the entire object id in the path for object ids < 3 chars" => sub {
+      my $storage = storage('test', '12');
+
+      like( $storage->object_path(), qr{/test/12});
+    }
+
   };
 
   describe "#stage" => sub {
-    it "deposits to a staging area under the configured object location" => sub {
-      my $storage = versioned_storage('test', 'test');
+    it "deposits to a staging area under the configured object location with the timestamp in the filename" => sub {
+      my $storage = staged_volume_storage('test', 'test');
       $storage->stage;
 
-      ok(-e "$tmpdirs->{obj_dir}/.tmp/test.test/test.mets.xml");
-      ok(-e "$tmpdirs->{obj_dir}/.tmp/test.test/test.zip");
+      ok(-e "$tmpdirs->{obj_dir}/.tmp/test.test/test.$storage->{timestamp}.mets.xml");
+      ok(-e "$tmpdirs->{obj_dir}/.tmp/test.test/test.$storage->{timestamp}.zip");
     }
   };
 
   describe "#make_object_path" => sub {
-    it "makes the path with a timestamp" => sub {
-      my $storage = versioned_storage('test','test');
+    it "makes the path" => sub {
+      my $storage = storage('test','test');
 
       $storage->make_object_path;
 
-      ok(-d "$tmpdirs->{obj_dir}/test/pairtree_root/te/st/test/$storage->{timestamp}");
+      ok(-d "$tmpdirs->{obj_dir}/test/tes");
     }
   };
 
   describe "#move" => sub {
     it "moves from the staging location to the object path" => sub {
-      my $storage = versioned_storage('test','test');
+      my $storage = staged_volume_storage('test','test');
       $storage->stage;
       $storage->make_object_path;
       $storage->move;
 
-      ok(-e "$tmpdirs->{obj_dir}/test/pairtree_root/te/st/test/$storage->{timestamp}/test.zip","copies the zip");
-      ok(-e "$tmpdirs->{obj_dir}/test/pairtree_root/te/st/test/$storage->{timestamp}/test.mets.xml","copies the mets");
+      ok(-e "$tmpdirs->{obj_dir}/test/tes/test.$storage->{timestamp}.zip","copies the zip");
+      ok(-e "$tmpdirs->{obj_dir}/test/tes/test.$storage->{timestamp}.mets.xml","copies the mets");
     };
   };
 
@@ -81,7 +105,7 @@ describe "HTFeed::Storage::VersionedPairtree" => sub {
     };
 
     it "records the copy in the feed_backups table" => sub {
-      my $storage = versioned_storage('test','test');
+      my $storage = staged_volume_storage('test','test');
       $storage->stage;
       $storage->make_object_path;
       $storage->move;
@@ -94,7 +118,7 @@ describe "HTFeed::Storage::VersionedPairtree" => sub {
 
     it "does not record anything if the volume wasn't moved" => sub {
 
-      my $storage = versioned_storage('test','test');
+      my $storage = staged_volume_storage('test','test');
       $storage->stage;
 
       eval { $storage->record_backup };
@@ -106,7 +130,7 @@ describe "HTFeed::Storage::VersionedPairtree" => sub {
     };
 
     it "records the full path" => sub {
-      my $storage = versioned_storage('test','test');
+      my $storage = staged_volume_storage('test','test');
       $storage->stage;
       $storage->make_object_path;
       $storage->move;
@@ -122,7 +146,7 @@ describe "HTFeed::Storage::VersionedPairtree" => sub {
     sub encrypted_storage {
       my $volume = stage_volume($tmpdirs,@_);
 
-      my $storage = HTFeed::Storage::VersionedPairtree->new(
+      my $storage = HTFeed::Storage::PrefixedVersions->new(
         volume => $volume,
         config => {
           obj_dir => $tmpdirs->{obj_dir},
@@ -139,8 +163,8 @@ describe "HTFeed::Storage::VersionedPairtree" => sub {
       $storage->encrypt;
       $storage->stage;
 
-      ok(-e "$tmpdirs->{obj_dir}/.tmp/test.test/test.zip.gpg", "copies the encrypted zip");
-      ok(!-e "$tmpdirs->{obj_dir}/.tmp/test.test/test.zip", "does not copy the unencrypted zip");
+      ok(-e "$tmpdirs->{obj_dir}/.tmp/test.test/test.$storage->{timestamp}.zip.gpg", "copies the encrypted zip");
+      ok(!-e "$tmpdirs->{obj_dir}/.tmp/test.test/test.$storage->{timestamp}.zip", "does not copy the unencrypted zip");
     };
 
     it "puts only the encrypted zip in object storage" => sub {
@@ -150,8 +174,8 @@ describe "HTFeed::Storage::VersionedPairtree" => sub {
       $storage->make_object_path;
       $storage->move;
 
-      ok(-e "$tmpdirs->{obj_dir}/test/pairtree_root/te/st/test/$storage->{timestamp}/test.zip.gpg","copies the encrypted zip");
-      ok(! -e "$tmpdirs->{obj_dir}/test/pairtree_root/te/st/test/$storage->{timestamp}/test.zip","does not copy the unencrypted zip");
+      ok(-e "$tmpdirs->{obj_dir}/test/tes/test.$storage->{timestamp}.zip.gpg","copies the encrypted zip");
+      ok(! -e "$tmpdirs->{obj_dir}/test/tes/test.$storage->{timestamp}.zip","does not copy the unencrypted zip");
     };
 
     it "records the checksum of the encrypted zip" => sub {
@@ -195,7 +219,7 @@ describe "HTFeed::Storage::VersionedPairtree" => sub {
         $storage->encrypt;
         $storage->stage;
         my $volume = $storage->{volume};
-        system('rm', $volume->get_zip_path($storage->stage_path) . ".gpg");
+        system('rm', $storage->zip_stage_path);
 
         ok(! $storage->prevalidate());
       };
@@ -206,7 +230,7 @@ describe "HTFeed::Storage::VersionedPairtree" => sub {
         $storage->encrypt;
         $storage->stage;
         my $volume = $storage->{volume};
-        my $encrypted = $volume->get_zip_path($storage->stage_path) . ".gpg";
+        my $encrypted = $storage->zip_stage_path;
 
         open(my $fh, "+< $encrypted") or die($!);
         seek($fh,0,0);

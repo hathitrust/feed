@@ -118,7 +118,7 @@ sub postvalidate {
 
 sub move {
   my $self = shift;
-  $self->put_object($self->mets_key,$self->{volume}->get_mets_path());
+  $self->put_object($self->mets_key,$self->{mets_source});
   $self->put_object($self->zip_key,$self->{zip_source});
 }
 

@@ -25,7 +25,7 @@ describe "HTFeed::Stage::StorageMigrate" => sub {
     $old_storage_classes = get_config('storage_migrate');
     my $new_storage_classes = [
       {
-        class => 'HTFeed::Storage::VersionedPairtree',
+        class => 'HTFeed::Storage::PrefixedVersions',
         obj_dir => $tmpdirs->{backup_obj_dir},
         encryption_key => $tmpdirs->test_home . "/fixtures/encryption_key"
       },
@@ -67,10 +67,11 @@ describe "HTFeed::Stage::StorageMigrate" => sub {
   sub test_storage_migrate {
     my $namespace = shift;
     my $objid = shift;
+    my $obj_prefix = shift;
     my $tmpdirs = shift;
 
     my $pt_objid = s2ppchars($objid);
-    my $obj_path = "$namespace/" . id2ppath($objid) . '/' . $pt_objid;
+    my $obj_path = "$namespace/$obj_prefix";
 
     # then run the storage migration and make sure volumes show up in the
     # expected location
@@ -87,8 +88,8 @@ describe "HTFeed::Stage::StorageMigrate" => sub {
     is(scalar(@{$s3_backup}),1,'records a backup for object store');
 
     my $timestamp = $versioned_backup->[0][0];
-    ok(-e "$tmpdirs->{backup_obj_dir}/$obj_path/$timestamp/$pt_objid.zip.gpg","copies the encrypted zip to backup storage");
-    ok(-e "$tmpdirs->{backup_obj_dir}/$obj_path/$timestamp/$pt_objid.mets.xml","copies the mets backup storage");
+    ok(-e "$tmpdirs->{backup_obj_dir}/$obj_path/$pt_objid.$timestamp.zip.gpg","copies the encrypted zip to backup storage");
+    ok(-e "$tmpdirs->{backup_obj_dir}/$obj_path/$pt_objid.$timestamp.mets.xml","copies the mets backup storage");
 
     my $s3_timestamp = $s3_backup->[0][0];
     ok($s3->s3_has("$namespace.$pt_objid.$s3_timestamp.zip.gpg"),"copies the zip to s3");
@@ -106,17 +107,19 @@ describe "HTFeed::Stage::StorageMigrate" => sub {
   it "copies from the repository to all configured storages" => sub {
     my $namespace = 'test';
     my $objid = 'test';
+    my $obj_prefix = 'tes';
 
     copy_to_repo($namespace,$objid,$tmpdirs);
-    test_storage_migrate($namespace,$objid,$tmpdirs);
+    test_storage_migrate($namespace,$objid,$obj_prefix,$tmpdirs);
   };
 
   it "copies items that don't meet current specs" => sub {
     my $namespace = 'test';
     my $objid = "extra_files_in_zip";
+    my $obj_prefix = "extra_files_in";
 
     copy_to_repo($namespace,$objid,$tmpdirs);
-    test_storage_migrate($namespace,$objid,$tmpdirs);
+    test_storage_migrate($namespace,$objid,$obj_prefix,$tmpdirs);
 
   };
 
