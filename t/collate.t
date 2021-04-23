@@ -187,7 +187,7 @@ describe "HTFeed::Collate" => sub {
             link_dir => $tmpdirs->{link_dir}
           },
           {
-            class => 'HTFeed::Storage::VersionedPairtree',
+            class => 'HTFeed::Storage::PrefixedVersions',
             obj_dir => $tmpdirs->{backup_obj_dir},
             encryption_key => $tmpdirs->test_home . "/fixtures/encryption_key"
           },
@@ -223,8 +223,8 @@ describe "HTFeed::Collate" => sub {
         ok(-e "$tmpdirs->{obj_dir}/test/pairtree_root/te/st/test/test.mets.xml",'copies mets to local storage');
         ok(-e "$tmpdirs->{obj_dir}/test/pairtree_root/te/st/test/test.zip",'copies zip to local storage');
 
-        ok(-e "$tmpdirs->{backup_obj_dir}/test/pairtree_root/te/st/test/$timestamp/test.zip.gpg","copies the encrypted zip to backup storage");
-        ok(-e "$tmpdirs->{backup_obj_dir}/test/pairtree_root/te/st/test/$timestamp/test.mets.xml","copies the mets backup storage");
+        ok(-e "$tmpdirs->{backup_obj_dir}/test/tes/test.$timestamp.zip.gpg","copies the encrypted zip to backup storage");
+        ok(-e "$tmpdirs->{backup_obj_dir}/test/tes/test.$timestamp.mets.xml","copies the mets backup storage");
 
         my $s3_timestamp = $s3_backup->[0][0];
 

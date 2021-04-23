@@ -3,7 +3,9 @@
 # No need to link (although we could do this by setting obj_dir and link_dir to
 # be the same)
 #
-# object_path should include a date stamp
+# Path is computed using a prefix of the barcode rather than the complete barcode
+#
+# Filenames include the date stamp
 #
 # update_feed_audit should have different behavior (move from Volume?) - record
 # to backups table
@@ -12,7 +14,7 @@
 # itself that collate can check)
 #
 #
-package HTFeed::Storage::VersionedPairtree;
+package HTFeed::Storage::PrefixedVersions;
 
 use HTFeed::Storage;
 
@@ -25,10 +27,20 @@ use Log::Log4perl qw(get_logger);
 sub object_path {
   my $self = shift;
 
-  $self->{timestamp} ||= strftime("%Y%m%d%H%M%S",gmtime);
+  return sprintf('%s/%s/%s%s',
+    $self->{config}->{'obj_dir'},
+    $self->{namespace},
+    $self->object_prefix);
+}
 
-  $self->SUPER::object_path('obj_dir') .
-    "/" . $self->{timestamp};
+sub object_prefix {
+  my $self = shift;
+  my $pt_objid = $self->{volume}->get_pt_objid();
+
+  my $prefix_len = length($pt_objid) - 4;
+  $prefix_len = 3 if $prefix_len < 3;
+
+  substr($pt_objid,0,$prefix_len);
 }
 
 sub stage_path {
@@ -78,14 +90,10 @@ sub record_backup {
 sub postvalidate {
   my $self = shift;
   my $volume = $self->{volume};
-  my $path = $self->object_path;
-
-  my $mets_path = $volume->get_mets_path($path);
-  my $zip_path = $volume->get_zip_path($path) . $self->{zip_suffix};
 
   get_logger->debug("  starting postvalidate");
 
-  foreach my $file ($mets_path, $zip_path) {
+  foreach my $file ($self->mets_obj_path, $self->zip_obj_path) {
     unless(-f $file) {
       $self->set_error(
         "OperationFailed",
@@ -100,6 +108,24 @@ sub postvalidate {
 
   return 1;
 
+}
+
+sub timestamp {
+  my $self = shift;
+
+  $self->{timestamp} ||= strftime("%Y%m%d%H%M%S",gmtime);
+}
+
+sub mets_filename {
+  my $self = shift;
+
+  $self->{volume}->get_pt_objid() . '.' . $self->timestamp . '.mets.xml';
+}
+
+sub zip_filename {
+  my $self = shift;
+
+  $self->{volume}->get_pt_objid() . '.' . $self->timestamp . $self->zip_suffix;
 }
 
 1;
