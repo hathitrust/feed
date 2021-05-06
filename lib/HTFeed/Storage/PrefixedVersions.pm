@@ -27,7 +27,7 @@ use Log::Log4perl qw(get_logger);
 sub object_path {
   my $self = shift;
 
-  return sprintf('%s/%s/%s%s',
+  return sprintf('%s/%s/%s',
     $self->{config}->{'obj_dir'},
     $self->{namespace},
     $self->object_prefix);

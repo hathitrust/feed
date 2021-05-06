@@ -15,6 +15,19 @@ database:
   # The password used to connect to the database.
   password: feed
 
+rights:
+# Database with the rights_current table
+  database: dbi:mysql:ht:mariadb
+  # The username used to connect to the database.
+  username: feed
+  # The password used to connect to the database.
+  password: feed
+
+# Location of rights files
+  rights_dir: $feed_var/rights
+# Where to archive rights files after they are loaded
+  archive: $rights_dir/archive
+
 realdb: ht
 
 xerces: /usr/local/feed/blib/bin/validateCache
