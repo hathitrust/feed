@@ -167,15 +167,15 @@ sub record_backup {
   my $hex_checksum = unpack("H*",decode_base64($b64_checksum));
 
   my $stmt =
-  "insert into feed_backups (namespace, id, path, version, zip_size, \
-    mets_size, saved_md5sum, lastchecked, lastmd5check, md5check_ok) \
-    values(?,?,?,?,?,?,?,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,1)";
+  "insert into feed_backups (namespace, id, path, version, storage_name,
+    zip_size, mets_size, saved_md5sum, lastchecked, lastmd5check, md5check_ok) \
+    values(?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,1)";
 
   my $sth  = $dbh->prepare($stmt);
   my $rval = $sth->execute(
       $self->{namespace}, $self->{objid},
       "s3://$self->{s3}{bucket}/" . $self->object_path,
-      $self->{timestamp}, $self->{filesize}{$self->zip_key},
+      $self->{timestamp}, $self->{name}, $self->{filesize}{$self->zip_key},
       $self->{filesize}{$self->object_path . '.mets.xml'}, $hex_checksum);
 
   get_logger->trace("  finished record_backup");

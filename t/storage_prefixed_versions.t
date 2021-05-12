@@ -11,6 +11,7 @@ describe "HTFeed::Storage::PrefixedVersions" => sub {
     my $volume = shift;
 
     my $storage = HTFeed::Storage::PrefixedVersions->new(
+      name => 'prefixedversions-test',
       volume => $volume,
       config => {
         obj_dir => $tmpdirs->{obj_dir},
@@ -140,6 +141,18 @@ describe "HTFeed::Storage::PrefixedVersions" => sub {
 
       is($r->[0][0],$storage->object_path);
     };
+
+    it "records the storage name" => sub {
+      my $storage = staged_volume_storage('test','test');
+      $storage->stage;
+      $storage->make_object_path;
+      $storage->move;
+      $storage->record_backup;
+
+      my $r = get_dbh()->selectall_arrayref("SELECT storage_name from feed_backups WHERE namespace = 'test' and id = 'test'");
+
+      is($r->[0][0],$storage->{name});
+    };
   };
 
   context "with encryption enabled" => sub {
@@ -147,6 +160,7 @@ describe "HTFeed::Storage::PrefixedVersions" => sub {
       my $volume = stage_volume($tmpdirs,@_);
 
       my $storage = HTFeed::Storage::PrefixedVersions->new(
+        name => 'prefixedversions-test',
         volume => $volume,
         config => {
           obj_dir => $tmpdirs->{obj_dir},

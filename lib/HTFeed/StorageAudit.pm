@@ -16,7 +16,11 @@ sub new {
       croak "use __PACKAGE__ constructor to create $class object";
   }
   # check parameters
-  croak "invalid args" unless ($object->{bucket} and $object->{awscli});
+  die("Missing required argument 'bucket'")
+    unless $object->{bucket};
+  die("Missing required argument 'awscli'")
+    unless $object->{awscli};
+
   bless( $object, $class );
   return $object;
 }

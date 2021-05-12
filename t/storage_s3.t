@@ -1,5 +1,6 @@
 use Test::Spec;
 use Test::Exception;
+use HTFeed::Log {root_logger => 'INFO, screen'};
 use HTFeed::Storage::ObjectStore;
 
 use strict;

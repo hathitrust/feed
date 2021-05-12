@@ -73,16 +73,15 @@ sub record_backup {
   my $saved_checksum = HTFeed::VolumeValidator::md5sum($self->zip_obj_path());
 
   my $stmt =
-  "insert into feed_backups (namespace, id, path, version, zip_size, \
-    mets_size, saved_md5sum, lastchecked, lastmd5check, md5check_ok) \
-    values(?,?,?,?,?,?,?,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,1)";
+  "insert into feed_backups (namespace, id, path, version, storage_name,
+    zip_size, mets_size, saved_md5sum, lastchecked, lastmd5check, md5check_ok) \
+    values(?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,1)";
 
   my $sth  = $dbh->prepare($stmt);
   $sth->execute(
       $self->{namespace}, $self->{objid},
-      $self->object_path,
-      $self->{timestamp}, $self->zip_size,
-      $self->mets_size, $saved_checksum);
+      $self->object_path, $self->{timestamp}, $self->{name},
+      $self->zip_size, $self->mets_size, $saved_checksum);
 
 }
 
