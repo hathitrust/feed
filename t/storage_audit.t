@@ -32,6 +32,7 @@ describe "HTFeed::StorageAudit" => sub {
     my $volume = stage_test_volume($tmpdirs,@_);
 
     my $storage = HTFeed::Storage::ObjectStore->new(
+      name => 'objectstore-test',
       volume => $volume,
       config => {
         bucket => $s3->{bucket},
@@ -59,9 +60,9 @@ describe "HTFeed::StorageAudit" => sub {
     my $version = strftime("%Y%m%d%H%M%S", gmtime);
     foreach my $n (2 .. 3) {
       my $stmt =
-      "INSERT INTO feed_backups (namespace, id, path, version, zip_size, \
-        mets_size, saved_md5sum, lastchecked, lastmd5check, md5check_ok) \
-        VALUES (?,?,?,?,0,0,'00000000', \
+      "INSERT INTO feed_backups (namespace, id, path, version, storage_name, \
+        zip_size, mets_size, saved_md5sum, lastchecked, lastmd5check, md5check_ok) \
+        VALUES (?,?,?,?,'objectstore-test',0,0,'00000000', \
         SUBTIME(CURRENT_TIMESTAMP,'01:00'),SUBTIME(CURRENT_TIMESTAMP,'01:00'),3)";
       my $sth  = $dbh->prepare($stmt);
       $sth->execute('test', 'test' . $n, "s3://" . $s3->{bucket} . "/" . $n, $version);

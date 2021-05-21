@@ -14,9 +14,16 @@ sub for_volume {
   my $config_key = shift || 'storage_classes';
 
   my @storages;
-  foreach my $storage_config (@{get_config($config_key)}) {
+  my $config = get_config($config_key);
+  unless (ref($config) eq 'HASH') {
+    die 'Config is not a HASH ref';
+  }
+
+  foreach my $storage_name (keys %$config) {
+    my $storage_config = $config->{$storage_name};
     push(@storages, $storage_config->{class}->new(volume => $volume,
-                                                 config => $storage_config));
+                                                  config => $storage_config,
+                                                  name   => $storage_name));
   }
 
   return @storages;
@@ -33,9 +40,12 @@ sub new {
   die("Missing required argument 'config'")
     unless $args{config};
 
+  die("Missing required argument 'name'")
+    unless $args{name};
 
   my $volume = $args{volume};
   my $config = $args{config};
+  my $name = $args{name};
 
   my $self = {
     volume => $volume,
@@ -46,6 +56,7 @@ sub new {
     zip_source => $volume->get_zip_path(),
     config => $config,
     did_encryption => 0,
+    name => $name
   };
 
   bless($self, $class);

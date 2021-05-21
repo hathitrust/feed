@@ -11,6 +11,7 @@ describe "HTFeed::Storage::LocalPairtree" => sub {
     my $volume = stage_volume($tmpdirs,@_);
 
     my $storage = HTFeed::Storage::LocalPairtree->new(
+      name => 'localpairtree-test',
       volume => $volume,
       config => {
         obj_dir => $tmpdirs->{obj_dir},
