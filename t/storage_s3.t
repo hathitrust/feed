@@ -1,7 +1,9 @@
 use Test::Spec;
 use Test::Exception;
-use HTFeed::Log {root_logger => 'INFO, screen'};
+use FindBin;
+use lib "$FindBin::Bin/lib";
 use HTFeed::Storage::ObjectStore;
+use HTFeed::Test::SpecSupport;
 
 use strict;
 
