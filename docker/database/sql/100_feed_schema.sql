@@ -114,6 +114,7 @@ CREATE TABLE IF NOT EXISTS `feed_backups` (
   `id` varchar(32) NOT NULL,
   `path` text,
   `version` varchar(16) NOT NULL,
+  `storage_name` varchar(32) NOT NULL,
   `zip_size` bigint(20) DEFAULT NULL,
   `mets_size` bigint(20) DEFAULT NULL,
   `saved_md5sum` char(32) DEFAULT NULL,

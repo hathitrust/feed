@@ -11,6 +11,7 @@ describe "HTFeed::Storage::LinkedPairtree" => sub {
     my $volume = stage_volume($tmpdirs,@_);
 
     my $storage = HTFeed::Storage::LinkedPairtree->new(
+      name => 'linkedpairtree-test',
       volume => $volume,
       config => {
         obj_dir => $tmpdirs->{other_obj_dir},
@@ -25,6 +26,7 @@ describe "HTFeed::Storage::LinkedPairtree" => sub {
     my $volume = stage_volume($tmpdirs,@_);
 
     my $storage = HTFeed::Storage::LinkedPairtree->new(
+      name => 'linkedpairtree-test',
       volume => $volume,
       config => {
         obj_dir => $tmpdirs->{obj_dir},

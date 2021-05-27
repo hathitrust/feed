@@ -180,24 +180,27 @@ describe "HTFeed::Collate" => sub {
 
       before each => sub {
         $old_storage_classes = get_config('storage_classes');
-        my $new_storage_classes = [
+        my $new_storage_classes = {
+          'linkedpairtree-test' =>
           {
             class => 'HTFeed::Storage::LinkedPairtree',
             obj_dir => $tmpdirs->{obj_dir},
             link_dir => $tmpdirs->{link_dir}
           },
+          'prefixedversions-test' =>
           {
             class => 'HTFeed::Storage::PrefixedVersions',
             obj_dir => $tmpdirs->{backup_obj_dir},
             encryption_key => $tmpdirs->test_home . "/fixtures/encryption_key"
           },
+          'objectstore-test' =>
           {
             class => 'HTFeed::Storage::ObjectStore',
             bucket => $s3->{bucket},
             awscli => $s3->{awscli},
             encryption_key => $tmpdirs->test_home . "/fixtures/encryption_key"
           }
-        ];
+        };
         set_config($new_storage_classes,'storage_classes');
       };
 

@@ -105,18 +105,18 @@ sub new {
     my $self = {
         contexts => {
             repInfo => {
-                desc   => '',
+                desc   => 'JHOVE',
                 query  => "/jhove:jhove/jhove:repInfo",
                 parent => "root"
             },
             waveMeta => {
-                desc => '',
+                desc => 'JHOVE WAVE Metadata',
                 query =>
 "jhove:properties/jhove:property[jhove:name='WAVEMetadata']/jhove:values",
                 parent => "repInfo"
             },
             aes => {
-                desc  => '',
+                desc  => 'aes:audioObject',
                 query => 
 "jhove:property[jhove:name='AESAudioMetadata']/jhove:values/jhove:value/aes:audioObject",
                 parent => "waveMeta"
@@ -128,23 +128,23 @@ sub new {
             # top level
             repInfo => {
                 format =>
-                  { desc => '', remediable => 0, query => "jhove:format" },
+                  { desc => 'Format', remediable => 0, query => "jhove:format" },
                 status =>
-                  { desc => '', remediable => 0, query => "jhove:status" },
+                  { desc => 'Status', remediable => 0, query => "jhove:status" },
                 module => {
-                    desc       => '',
+                    desc       => 'ReportingModule',
                     remediable => 0,
                     query      => "jhove:sigMatch/jhove:module"
                 },
                 mimeType =>
-                  { desc => '', remediable => 0, query => "jhove:mimeType" },
+                  { desc => 'MIME type', remediable => 0, query => "jhove:mimeType" },
                 profile1 => {
-                    desc       => '',
+                    desc       => 'JHOVE profile',
                     remediable => 0,
                     query      => "jhove:profiles/jhove:profile[1]"
                 },
                 profile2 => {
-                    desc       => '',
+                    desc       => 'JHOVE profile',
                     remediable => 0,
                     query      => "jhove:profiles/jhove:profile[2]"
                 },
@@ -153,25 +153,25 @@ sub new {
             # waveMeta children
             waveMeta => {
                 description => {
-                    desc       => '',
+                    desc       => 'Description',
                     remediable => 0,
                     query =>
 "jhove:property/jhove:values/jhove:property[jhove:name='Description']"
                 },
                 originator => {
-                    desc       => '',
+                    desc       => 'Originator',
                     remediable => 0,
                     query =>
 "jhove:property/jhove:values/jhove:property[jhove:name='Originator']/jhove:values/jhove:value"
                 },
                 originationDate => {
-                    desc       => '',
+                    desc       => 'OriginationDate',
                     remediable => 0,
                     query =>
 "jhove:property/jhove:values/jhove:property[jhove:name='OriginationDate']/jhove:values/jhove:value"
                 },
                 codingHistory => {
-                    desc       => '',
+                    desc       => 'CodingHistory',
                     remediable => 0,
                     query =>
 "jhove:property/jhove:values/jhove:property[jhove:name='CodingHistory']"
@@ -182,41 +182,41 @@ sub new {
             # aes children
             aes => {
                 analogDigitalFlag => {
-                    desc       => '',
+                    desc       => 'analogDigitalFlag',
                     remediable => 0,
                     query      => "\@analogDigitalFlag"
                 },
                 format =>
                   { desc => '', remediable => 0, query => "aes:format" },
                 audioDataEncoding => {
-                    desc       => '',
+                    desc       => 'aes:audioDataEncoding',
                     remediable => 0,
                     query      => "aes:audioDataEncoding"
                 },
                 useType =>
                   { desc => '', remediable => 0, query => "aes:use/\@useType" },
                 primaryID => {
-                    desc       => '',
+                    desc       => 'aes:primaryIdentifier',
                     remediable => 0,
                     query      => "aes:primaryIdentifier"
                 },
                 numChannels => {
-                    desc       => '',
+                    desc       => 'aes:numChannels',
                     remediable => 0,
                     query      => "aes:face/aes:region/aes:numChannels"
                 },
                 bitDepth => {
-                    desc       => '',
+                    desc       => 'aes:bitDepth',
                     remediable => 0,
                     query      => "aes:formatList/aes:formatRegion/aes:bitDepth"
                 },
                 sampleRate => {
-                    desc       => '',
+                    desc       => 'aes:sampleRate',
                     remediable => 0,
                     query => "aes:formatList/aes:formatRegion/aes:sampleRate"
                 },
                 byteOrder =>
-                  { desc => '', remediable => 0, query => "aes:byteOrder" },
+                  { desc => 'aes:byteOrder', remediable => 0, query => "aes:byteOrder" },
               }
 
         },

@@ -13,6 +13,7 @@ describe "HTFeed::Storage::ObjectStore" => sub {
     my $volume = stage_volume($tmpdirs,@_);
 
     my $storage = HTFeed::Storage::ObjectStore->new(
+      name => 'objectstore-test',
       volume => $volume,
       config => {
         bucket => $s3->{bucket},
@@ -184,13 +185,14 @@ describe "HTFeed::Storage::ObjectStore" => sub {
       $storage->record_backup;
 
       my $r = get_dbh()->selectall_arrayref("SELECT version, path,
-        saved_md5sum from feed_backups WHERE namespace = 'test' and id =
-        'test'");
+        saved_md5sum, storage_name from feed_backups WHERE namespace = 'test'
+        and id = 'test'");
 
       is($r->[0][0],$storage->{timestamp});
       is($r->[0][1],"s3://$s3->{bucket}/test.test.$storage->{timestamp}");
       # md5sum test.zip - hex rather than base64 checksum here
       is($r->[0][2],"2d40d65c1aecd857b3f780e85bc9bd92");
+      is($r->[0][3],$storage->{name});
     };
 
     it "does not record anything if the volume wasn't copied";
@@ -202,6 +204,7 @@ describe "HTFeed::Storage::ObjectStore" => sub {
       my $volume = stage_volume($tmpdirs,@_);
 
       my $storage = HTFeed::Storage::ObjectStore->new(
+        name => 'objectstore-test',
         volume => $volume,
         config => {
           bucket => $s3->{bucket},
@@ -231,7 +234,7 @@ describe "HTFeed::Storage::ObjectStore" => sub {
       $storage->move;
       $storage->record_backup;
 
-      my $r = get_dbh()->selectall_arrayref("SELECT saved_md5sum from feed_backups WHERE namespace = 'test' and id = 'test'");
+      my $r = get_dbh()->selectall_arrayref("SELECT saved_md5sum from feed_backups WHERE namespace = 'test' and id = 'test' and storage_name = 'objectstore-test'");
       my $crypted = $storage->zip_source();
       ok($crypted =~ /\.gpg$/);
       my $checksum = `md5sum $crypted | cut -f 1 -d ' '`;

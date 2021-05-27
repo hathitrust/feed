@@ -1,6 +1,9 @@
 use Test::Spec;
 use Test::Exception;
+use FindBin;
+use lib "$FindBin::Bin/lib";
 use HTFeed::Storage::ObjectStore;
+use HTFeed::Test::SpecSupport;
 
 use strict;
 
