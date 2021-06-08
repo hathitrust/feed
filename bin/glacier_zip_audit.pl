@@ -17,13 +17,15 @@ my $volume = HTFeed::GlacierZipAudit::choose();
 my $audit = HTFeed::GlacierZipAudit->new(namespace => $volume->{namespace},
                                          objid => $volume->{objid},
                                          path => $volume->{path},
-                                         version => $volume->{version});
+                                         version => $volume->{version},
+                                         storage_name => $volume->{storage_name});
 $audit->run();
 my $volumes = HTFeed::GlacierZipAudit->pending_objects();
 foreach my $volume (@$volumes) {
   my $audit = HTFeed::GlacierZipAudit->new(namespace => $volume->{namespace},
                                            objid => $volume->{objid},
                                            path => $volume->{path},
-                                           version => $volume->{version});
+                                           version => $volume->{version},
+                                           storage_name => $volume->{storage_name});
   my $result = $audit->run();
 }

@@ -3,6 +3,7 @@ package HTFeed::GlacierZipAudit;
 
 use strict;
 use warnings;
+use HTFeed::Config qw(get_config);
 use HTFeed::DBTools qw(get_dbh);
 use HTFeed::Volume;
 use Carp;
@@ -32,21 +33,22 @@ sub choose {
   my $path_prefix = shift || 's3://ht-deep-archive-backup/';
 
   my $dbh = HTFeed::DBTools->get_dbh();
-  my ($namespace, $objid, $path, $version);
-  my $sql = 'SELECT namespace,id,path,version FROM feed_backups' .
+  my ($namespace, $objid, $path, $version, $storage_name);
+  my $sql = 'SELECT namespace,id,path,version,storage_name FROM feed_backups' .
             " WHERE path LIKE '$path_prefix%'" .
             ' AND deleted IS NULL' .
             ' AND saved_md5sum IS NOT NULL' .
             ' AND restore_request IS NULL' .
             ' ORDER BY RAND() LIMIT 1';
   eval {
-    ($namespace, $objid, $path, $version) = $dbh->selectrow_array($sql);
+    ($namespace, $objid, $path, $version, $storage_name) = $dbh->selectrow_array($sql);
   };
   if ($@) {
     die "Database query failed: $@";
   }
   return { namespace => $namespace, objid => $objid,
-           path => $path, version => $version };
+           path => $path, version => $version,
+           storage_name => $storage_name };
 }
 
 # Get the objects for which we have issued restore requests
@@ -54,17 +56,16 @@ sub pending_objects {
   my $path_prefix = shift || 's3://ht-deep-archive-backup/';
 
   my $dbh = HTFeed::DBTools->get_dbh();
-  my ($namespace, $objid, $path, $version);
-  my $sql = 'SELECT namespace,id,path,version FROM feed_backups' .
+  my $sql = 'SELECT namespace,id,path,version,storage_name FROM feed_backups' .
             " WHERE path LIKE '$path_prefix%'" .
             ' AND restore_request IS NOT NULL';
   my $pending = [];
   eval {
     my $ref = $dbh->selectall_arrayref($sql);
     foreach my $row (@$ref) {
-      ($namespace, $objid, $path, $version) = @$row;
+      my ($namespace, $objid, $path, $version, $storage_name) = @$row;
       push @$pending, { namespace => $namespace, objid => $objid,
-           path => $path, version => $version };
+           path => $path, version => $version, storage_name => $storage_name };
     }
   };
   if ($@) {
@@ -84,8 +85,8 @@ sub new {
   }
   # check parameters
   unless ($self->{namespace} && $self->{objid} && $self->{version} && 
-          $self->{s3} && $self->{bucket}) {
-    croak "invalid args: namespace, objid, version, s3, bucket required";
+          $self->{storage_name}) {
+    croak "invalid args: namespace, objid, version, storage_name required";
   }
 
   my $volume = HTFeed::Volume->new(
@@ -94,9 +95,12 @@ sub new {
     objid       => $self->{objid}
   );
   $self->{volume} = $volume;
-  # EVIL HACK that may break in production.
-  $self->{storage} ||= (HTFeed::Storage::for_volume($volume))[0];
-  
+
+  my $config = get_config('storage_classes');
+  my $storage_config = $config->{$self->{storage_name}};
+  $self->{storage} = $storage_config->{class}->new(volume => $volume,
+                                                   config => $storage_config,
+                                                   name   => $self->{storage_name});
   $self->{tmpdir} = File::Temp::tempdir();
   $self->{zip_file} = join '.', ($self->{namespace}, $self->{objid}, $self->{version}, 'zip', 'gpg');
   $self->{mets_file} = join '.', ($self->{namespace}, $self->{objid}, $self->{version}, 'mets', 'xml');
@@ -120,8 +124,8 @@ sub submit_restore_object {
   my $self = shift;
 
   my $req_json = '{"Days":10,"GlacierJobParameters":{"Tier":"Bulk"}}';
-  $self->{s3}->restore_object($self->{zip_file}, '--restore-request', $req_json);
-  $self->{s3}->restore_object($self->{mets_file}, '--restore-request', $req_json);
+  $self->{storage}->{s3}->restore_object($self->{zip_file}, '--restore-request', $req_json);
+  $self->{storage}->{s3}->restore_object($self->{mets_file}, '--restore-request', $req_json);
   my $sql = 'UPDATE feed_backups SET restore_request=CURRENT_TIMESTAMP' .
             ' WHERE namespace = ? AND id = ? AND version = ?';
   eval {
@@ -137,8 +141,10 @@ sub get_files {
   my $self = shift;
 
   return if $self->{get_files_complete};
-  $self->{s3}->get_object($self->{'bucket'}, $self->{zip_file}, $self->{zip_path});
-  $self->{s3}->get_object($self->{'bucket'}, $self->{mets_file}, $self->{mets_path});
+  $self->{storage}->{s3}->get_object($self->{storage}->{s3}->{'bucket'},
+                                     $self->{zip_file}, $self->{zip_path});
+  $self->{storage}->{s3}->get_object($self->{storage}->{s3}->{'bucket'},
+                                     $self->{mets_file}, $self->{mets_path});
   $self->{get_files_complete} = 1;
 }
 
@@ -148,9 +154,9 @@ sub check_files {
 
   $self->{check_files_complete} = 1;
 
-  my $result = $self->{s3}->head_object($self->{zip_file});
+  my $result = $self->{storage}->{s3}->head_object($self->{zip_file});
   if ($result->{Restore} && $result->{Restore} =~ m/ongoing-request\s*=\s*"false"/) {
-    $result = $self->{s3}->head_object($self->{mets_file});
+    $result = $self->{storage}->{s3}->head_object($self->{mets_file});
     if ($result->{Restore} && $result->{Restore} =~ m/ongoing-request\s*=\s*"false"/) {
       return 1;
     }

@@ -1,4 +1,5 @@
 use Test::Spec;
+use HTFeed::Config qw(set_config get_config);
 use HTFeed::DBTools;
 use HTFeed::Storage::ObjectStore;
 use HTFeed::GlacierZipAudit;
@@ -10,6 +11,25 @@ describe "HTFeed::GlacierZipAudit" => sub {
   spec_helper 's3_helper.pl';
   local our ($tmpdirs, $testlog);
   local our ($s3, $bucket);
+  my $old_storage_classes;
+
+  before each => sub {
+    $old_storage_classes = get_config('storage_classes');
+    my $new_storage_classes = {
+      'objectstore-test' =>
+      {
+        class => 'HTFeed::Storage::ObjectStore',
+        bucket => $s3->{bucket},
+        awscli => $s3->{awscli},
+        encryption_key => $tmpdirs->test_home . "/fixtures/encryption_key"
+      }
+    };
+    set_config($new_storage_classes,'storage_classes');
+  };
+
+  after each => sub {
+    set_config($old_storage_classes,'storage_classes');
+  };
 
   sub HTFeed::Storage::S3::restore_object {
     return 1;
@@ -31,6 +51,7 @@ describe "HTFeed::GlacierZipAudit" => sub {
     my $volume = stage_volume($tmpdirs,@_);
     
     my $storage = HTFeed::Storage::ObjectStore->new(
+      name => 'objectstore-test',
       volume => $volume,
       config => {
         bucket => $s3->{bucket},
@@ -44,6 +65,14 @@ describe "HTFeed::GlacierZipAudit" => sub {
     return $storage;
   }
 
+  sub audit_for_storage {
+    my $storage = shift;
+
+    return HTFeed::GlacierZipAudit->new(namespace => 'test', objid => 'test',
+                                        version => $storage->{timestamp},
+                                        storage_name => $storage->{name});
+  }
+
   describe "choose" => sub {
     it "succeeds" => sub {
       my $storage = object_storage('test', 'test');
@@ -53,12 +82,13 @@ describe "HTFeed::GlacierZipAudit" => sub {
       is($vol->{version}, $storage->{timestamp}, 'choose returns timestamp');
       is($vol->{path}, "s3://$bucket/" . $storage->object_path(),
          'choose returns object path');
+      is($vol->{storage_name}, 'objectstore-test',
+         'choose returns correct storage name');
     };
   };
 
   describe "pending_objects" => sub {
     it "succeeds" => sub {
-      #my $storage = object_storage('test', 'test');
       my $auditable = HTFeed::GlacierZipAudit::pending_objects('s3://bucket');
       is(scalar @$auditable, 0, 'pending_objects returns zero result');
     };
@@ -67,10 +97,7 @@ describe "HTFeed::GlacierZipAudit" => sub {
   describe "#new" => sub {
     it "succeeds" => sub {
       my $storage = object_storage('test', 'test');
-      my $audit = HTFeed::GlacierZipAudit->new(namespace => 'test', objid => 'test',
-                                               version => $storage->{timestamp},
-                                               s3 => $s3, bucket => $bucket,
-                                               storage => $storage);
+      my $audit = audit_for_storage($storage);
       ok($audit, 'new returns a value');
     };
   };
@@ -78,10 +105,7 @@ describe "HTFeed::GlacierZipAudit" => sub {
   describe "#submit_restore_object" => sub {
     it "records restore_request for zip and METS" => sub {
       my $storage = object_storage('test', 'test');
-      my $audit = HTFeed::GlacierZipAudit->new(namespace => 'test', objid => 'test',
-                                               version => $storage->{timestamp},
-                                               s3 => $s3, bucket => $bucket,
-                                               storage => $storage);
+      my $audit = audit_for_storage($storage);
       $audit->submit_restore_object();
       my $sql = 'SELECT COUNT(*) FROM feed_backups' . 
                 ' WHERE namespace = ? AND id = ? AND version = ?' .
@@ -99,22 +123,16 @@ describe "HTFeed::GlacierZipAudit" => sub {
     it "succeeds" => sub {
       my $storage = object_storage('test', 'test');
       $ENV{S3_HEAD_OBJECT_RESTORE_DONE} = 1;
-      my $audit = HTFeed::GlacierZipAudit->new(namespace => 'test', objid => 'test',
-                                               version => $storage->{timestamp},
-                                               s3 => $s3, bucket => $bucket,
-                                               storage => $storage);
+      my $audit = audit_for_storage($storage);
       my $result = $audit->run();
-      is($result, 1, 'succeeds');
+      is($result, 1, 'run succeeds');
       delete $ENV{S3_HEAD_OBJECT_RESTORE_DONE};
     };
 
     it "removes restore_request when finished" => sub {
       my $storage = object_storage('test', 'test');
       $ENV{S3_HEAD_OBJECT_RESTORE_DONE} = 1;
-      my $audit = HTFeed::GlacierZipAudit->new(namespace => 'test', objid => 'test',
-                                               version => $storage->{timestamp},
-                                               s3 => $s3, bucket => $bucket,
-                                               storage => $storage);
+      my $audit = audit_for_storage($storage);
       my $result = $audit->run();
       my $sql = 'SELECT COUNT(*) FROM feed_backups' . 
                 ' WHERE namespace = ? AND id = ? AND version = ?' .
@@ -128,15 +146,12 @@ describe "HTFeed::GlacierZipAudit" => sub {
 
     it "fails when METS checksum is altered" => sub {
       my $storage = object_storage('test', 'test');
-      my $audit = HTFeed::GlacierZipAudit->new(namespace => 'test', objid => 'test',
-                                               version => $storage->{timestamp},
-                                               s3 => $s3, bucket => $bucket,
-                                               storage => $storage);
+      my $audit = audit_for_storage($storage);
       $audit->get_files();
       `sed -i s/2d40d65c1aecd857b3f780e85bc9bd92/2d40d65c1aecd857b3f780e85bc9bd91/g $audit->{mets_path}`;
       $ENV{S3_HEAD_OBJECT_RESTORE_DONE} = 1;
       my $result = $audit->run();
-      is($result, 0, 'returns 0');
+      is($result, 0, 'run returns 0');
       my $sql = 'SELECT COUNT(*) FROM feed_audit_detail' . 
                 ' WHERE namespace = ? AND id = ? AND status = "BadChecksum"';
       my @res = HTFeed::DBTools::get_dbh->selectrow_array($sql, undef, 'test', 'test');
@@ -151,10 +166,7 @@ describe "HTFeed::GlacierZipAudit" => sub {
       HTFeed::DBTools::get_dbh->prepare($sql)->execute('deadbeef' x 4,
                                                        'test', 'test',
                                                        $storage->{timestamp});
-      my $audit = HTFeed::GlacierZipAudit->new(namespace => 'test', objid => 'test',
-                                               version => $storage->{timestamp},
-                                               s3 => $s3, bucket => $bucket,
-                                               storage => $storage);
+      my $audit = audit_for_storage($storage);
       $ENV{S3_HEAD_OBJECT_RESTORE_DONE} = 1;
       my $result = $audit->run();
       is($result, 0, 'run returns 0');
