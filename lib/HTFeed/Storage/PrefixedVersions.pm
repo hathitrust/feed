@@ -24,6 +24,25 @@ use POSIX qw(strftime);
 use HTFeed::DBTools qw(get_dbh);
 use Log::Log4perl qw(get_logger);
 
+sub delete_objects {
+  my $self = shift;
+
+  my $mets = $self->mets_obj_path();
+  my $zip = $self->zip_obj_path();
+  get_logger->trace("deleting $mets and $zip");
+  eval {
+    unlink $mets;
+    unlink $zip;
+  };
+  if ($@) {
+    get_logger->trace("OPERATION FAILED");
+    $self->set_error('OperationFailed',
+                     detail => "delete_objects failed: $@");
+    return;
+  }
+  return 1;
+}
+
 sub object_path {
   my $self = shift;
 

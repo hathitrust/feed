@@ -28,6 +28,24 @@ sub new {
   return $self;
 }
 
+sub delete_objects {
+  my $self = shift;
+
+  my $mets = $self->mets_key;
+  my $zip = $self->zip_key;
+  get_logger->trace("deleting $mets and $zip");
+  eval {
+    $self->{s3}->rm($mets);
+    $self->{s3}->rm($zip);
+  };
+  if ($@) {
+    $self->set_error('OperationFailed',
+                     detail => "delete_objects failed: $@");
+    return;
+  }
+  return 1;
+}
+
 sub object_path {
   my $self = shift;
 
