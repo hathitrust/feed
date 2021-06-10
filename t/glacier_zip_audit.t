@@ -76,7 +76,7 @@ describe "HTFeed::GlacierZipAudit" => sub {
   describe "choose" => sub {
     it "succeeds" => sub {
       my $storage = object_storage('test', 'test');
-      my $vol = HTFeed::GlacierZipAudit::choose('s3://bucket');
+      my $vol = HTFeed::GlacierZipAudit::choose('objectstore-test');
       is($vol->{namespace}, 'test', 'choose returns namespace "test"');
       is($vol->{objid}, 'test', 'choose returns objid "test"');
       is($vol->{version}, $storage->{timestamp}, 'choose returns timestamp');
@@ -89,7 +89,7 @@ describe "HTFeed::GlacierZipAudit" => sub {
 
   describe "pending_objects" => sub {
     it "succeeds" => sub {
-      my $auditable = HTFeed::GlacierZipAudit::pending_objects('s3://bucket');
+      my $auditable = HTFeed::GlacierZipAudit::pending_objects('objectstore-test');
       is(scalar @$auditable, 0, 'pending_objects returns zero result');
     };
   };
@@ -114,7 +114,7 @@ describe "HTFeed::GlacierZipAudit" => sub {
                                                           'test', 'test',
                                                           $storage->{timestamp});
       is($res[0], 1, 'restore_request count = 1');
-      my $auditable = HTFeed::GlacierZipAudit::pending_objects('s3://bucket');
+      my $auditable = HTFeed::GlacierZipAudit::pending_objects('objectstore-test');
       is(scalar @$auditable, 1, 'pending_objects returns positive result');
     };
   };

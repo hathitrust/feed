@@ -12,7 +12,7 @@ use File::Temp;
 
 # Procedural function for randomly choosing a volume to check.
 #
-# my $vol = HTFeed::GlacierZipAudit->choose();
+# my $vol = HTFeed::GlacierZipAudit->choose('some-storage-name');
 # my $audit = HTFeed::GlacierZipAudit->new(namespace => $vol->{namespace},
 #                                          objid => $vol->{objid},
 #                                          path => $vol->{path},
@@ -21,7 +21,7 @@ use File::Temp;
 #
 # later ...
 # 
-# my $volumes = HTFeed::GlacierZipAudit->pending_objects();
+# my $volumes = HTFeed::GlacierZipAudit->pending_objects('some-storage-name');
 # foreach my $vol (@$volumes) {
 #   my $audit = HTFeed::GlacierZipAudit->new(namespace => $vol->{namespace},
 #                                            objid => $vol->{objid},
@@ -29,41 +29,43 @@ use File::Temp;
 #                                            version => $vol->{version});
 #  my $result = $audit->run();
 # }
-sub choose {
-  my $path_prefix = shift || 's3://ht-deep-archive-backup/';
 
+sub choose {
+  my $storage_name = shift;
+
+  die "Storage name is required" unless $storage_name;
   my $dbh = HTFeed::DBTools->get_dbh();
-  my ($namespace, $objid, $path, $version, $storage_name);
-  my $sql = 'SELECT namespace,id,path,version,storage_name FROM feed_backups' .
-            " WHERE path LIKE '$path_prefix%'" .
+  my ($namespace, $objid, $path, $version);
+  my $sql = 'SELECT namespace,id,path,version FROM feed_backups' .
+            ' WHERE storage_name=?' .
             ' AND deleted IS NULL' .
             ' AND saved_md5sum IS NOT NULL' .
             ' AND restore_request IS NULL' .
             ' ORDER BY RAND() LIMIT 1';
   eval {
-    ($namespace, $objid, $path, $version, $storage_name) = $dbh->selectrow_array($sql);
+    ($namespace, $objid, $path, $version) = $dbh->selectrow_array($sql, undef, $storage_name);
   };
   if ($@) {
     die "Database query failed: $@";
   }
   return { namespace => $namespace, objid => $objid,
-           path => $path, version => $version,
-           storage_name => $storage_name };
+           path => $path, version => $version, storage_name => $storage_name };
 }
 
 # Get the objects for which we have issued restore requests
 sub pending_objects {
-  my $path_prefix = shift || 's3://ht-deep-archive-backup/';
+  my $storage_name = shift;
 
+  die "Storage name is required" unless $storage_name;
   my $dbh = HTFeed::DBTools->get_dbh();
-  my $sql = 'SELECT namespace,id,path,version,storage_name FROM feed_backups' .
-            " WHERE path LIKE '$path_prefix%'" .
+  my $sql = 'SELECT namespace,id,path,version FROM feed_backups' .
+            ' WHERE storage_name=?' .
             ' AND restore_request IS NOT NULL';
   my $pending = [];
   eval {
-    my $ref = $dbh->selectall_arrayref($sql);
+    my $ref = $dbh->selectall_arrayref($sql, undef, $storage_name);
     foreach my $row (@$ref) {
-      my ($namespace, $objid, $path, $version, $storage_name) = @$row;
+      my ($namespace, $objid, $path, $version) = @$row;
       push @$pending, { namespace => $namespace, objid => $objid,
            path => $path, version => $version, storage_name => $storage_name };
     }
@@ -80,6 +82,7 @@ sub new {
   my $self = {
       @_,
   };
+
   if ( $class ne __PACKAGE__ ) {
       croak "use __PACKAGE__ constructor to create $class object";
   }

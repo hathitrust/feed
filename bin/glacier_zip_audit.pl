@@ -13,19 +13,17 @@ use lib "$FindBin::Bin/../lib";
 use HTFeed::GlacierZipAudit;
 use HTFeed::Log {root_logger => 'INFO, screen'};
 
-my $volume = HTFeed::GlacierZipAudit::choose();
-my $audit = HTFeed::GlacierZipAudit->new(namespace => $volume->{namespace},
-                                         objid => $volume->{objid},
-                                         path => $volume->{path},
-                                         version => $volume->{version},
-                                         storage_name => $volume->{storage_name});
-$audit->run();
-my $volumes = HTFeed::GlacierZipAudit->pending_objects();
+die "Specify a feed_backups.storage_name value" unless 1 == scalar @ARGV;
+my $storage_name = $ARGV[0];
+
+my $volume = HTFeed::GlacierZipAudit::choose($storage_name);
+if (defined $volume->{namespace} && defined $volume->{objid} &&
+    defined $volume->{path} && defined $volume->{version}) {
+  my $audit = HTFeed::GlacierZipAudit->new(%$volume);
+  $audit->run();
+}
+my $volumes = HTFeed::GlacierZipAudit->pending_objects($storage_name);
 foreach my $volume (@$volumes) {
-  my $audit = HTFeed::GlacierZipAudit->new(namespace => $volume->{namespace},
-                                           objid => $volume->{objid},
-                                           path => $volume->{path},
-                                           version => $volume->{version},
-                                           storage_name => $volume->{storage_name});
+  my $audit = HTFeed::GlacierZipAudit->new(%$volume);
   my $result = $audit->run();
 }
