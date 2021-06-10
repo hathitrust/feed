@@ -35,8 +35,8 @@ sub delete_objects {
   my $zip = $self->zip_key;
   get_logger->trace("deleting $mets and $zip");
   eval {
-    $self->{s3}->rm($mets);
-    $self->{s3}->rm($zip);
+    $self->{s3}->rm('/' . $mets);
+    $self->{s3}->rm('/' . $zip);
   };
   if ($@) {
     $self->set_error('OperationFailed',
