@@ -3,6 +3,7 @@ package HTFeed::DataDenZipAudit;
 
 use strict;
 use warnings;
+use HTFeed::Config qw(get_config);
 use HTFeed::DBTools qw(get_dbh);
 use HTFeed::Volume;
 use Carp;
@@ -17,23 +18,24 @@ use Log::Log4perl;
 #                                          version => $vol->{version});
 # my $result = $audit->run();
 sub choose {
-  my $path_prefix = shift || '/htdataden';
+  my $storage_name = shift;
 
+  die "Storage name is required" unless $storage_name;
   my $dbh = HTFeed::DBTools->get_dbh();
   my ($namespace, $objid, $path, $version);
   my $sql = 'SELECT namespace,id,path,version FROM feed_backups' .
-            " WHERE path LIKE '$path_prefix%'" .
+            ' WHERE storage_name=?' .
             ' AND deleted IS NULL' .
             ' AND saved_md5sum IS NOT NULL' .
             ' ORDER BY RAND() LIMIT 1';
   eval {
-    ($namespace, $objid, $path, $version) = $dbh->selectrow_array($sql);
+    ($namespace, $objid, $path, $version) = $dbh->selectrow_array($sql, undef, $storage_name);
   };
   if ($@) {
     die "Database query failed: $@";
   }
-  return { namespace => $namespace, objid => $objid,
-           path => $path, version => $version };
+  return { namespace => $namespace, objid => $objid, path => $path,
+           version => $version, storage_name => $storage_name };
 }
 
 sub new {
@@ -47,20 +49,29 @@ sub new {
   }
   # check parameters
   unless ($self->{namespace} && $self->{objid} &&
-          $self->{version} && $self->{path}) {
-    croak "invalid args: namespace, objid, version, path required";
+          $self->{version} && $self->{path} && $self->{storage_name}) {
+    croak "invalid args: namespace, objid, version, path, storage_name required";
   }
-  $self->{mets_path} = $self->{path} . '/' . $self->{objid} . '.mets.xml';
-  $self->{zip_path} = $self->{path} . '/' . $self->{objid} . '.zip.gpg';
-  
+
   my $volume = HTFeed::Volume->new(
     packagetype => 'pkgtype',
     namespace   => $self->{namespace},
     objid       => $self->{objid}
   );
   $self->{volume} = $volume;
-  # EVIL HACK that may break in production.
-  $self->{storage} ||= (HTFeed::Storage::for_volume($volume))[0];
+
+  my $config = get_config('storage_classes');
+  my $storage_config = $config->{$self->{storage_name}};
+  die "Can't get config for storage '$self->{storage_name}'" unless $storage_config;
+
+  $self->{storage} = $storage_config->{class}->new(volume => $volume,
+                                                   config => $storage_config,
+                                                   name   => $self->{storage_name});
+  $self->{storage}->{timestamp} = $self->{version};
+  $self->{storage}->{zip_suffix} = '.gpg';
+  $self->{mets_path} = $self->{path} . '/' . $self->{storage}->mets_filename;
+  $self->{zip_path} = $self->{path} . '/' . $self->{storage}->zip_filename;
+
   bless( $self, $class );
   return $self;
 }
@@ -140,13 +151,11 @@ sub check_encrypted_zip_against_database {
 sub check_decrypted_zip_against_mets {
   my $self = shift;
 
-  my $mets_path = $self->{path} . '/' . $self->{objid} . '.mets.xml';
-  my $zip_path = $self->{path} . '/' . $self->{objid} . '.zip.gpg';
-  my $mets = $self->{volume}->_parse_xpc($mets_path);
+  my $mets = $self->{volume}->_parse_xpc($self->{mets_path});
   my $storage = $self->{storage};
   my $realsum = $storage->crypted_md5sum($self->{zip_path},
                                          $storage->{config}{encryption_key});
-  my $ok = $storage->validate_zip_checksum($mets_path,
+  my $ok = $storage->validate_zip_checksum($self->{mets_path},
                                            "gpg --decrypt '$self->{zip_path}'",
                                            $realsum);
   unless ($ok) {
