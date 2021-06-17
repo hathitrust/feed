@@ -32,23 +32,21 @@ sub run {
   my $config = get_config('storage_classes');
   my $storage_config = $config->{$self->{storage_name}};
   # Get a list of all volumes with this storage name that have one or more old
-  # versions and one or more new versions. This query is about finding sets of
-  # volumes, nothing more granular.
+  # versions. This query is about finding sets of volumes, nothing more granular.
   my $sth = get_dbh()->prepare(<<'SQL');
-    SELECT namespace,id,MIN(version) AS min_version,MAX(version) AS max_version
+    SELECT namespace,id,MAX(version) AS max_version
     FROM feed_backups
     WHERE deleted IS NULL
       AND storage_name=?
     GROUP BY namespace,id
     HAVING COUNT(*) > 1
-      AND min_version < DATE_FORMAT(DATE_SUB(NOW(), INTERVAL 180 DAY),"%Y%m%d%H%i%S")
-      AND max_version > DATE_FORMAT(DATE_SUB(NOW(), INTERVAL 180 DAY),"%Y%m%d%H%i%S")
+      AND MIN(version) < DATE_FORMAT(DATE_SUB(NOW(), INTERVAL 180 DAY),"%Y%m%d%H%i%S")
 SQL
 
   $sth->execute($self->{storage_name});
   while (my $row = $sth->fetchrow_hashref) {
-    # Get the versions in this group that can be deleted.
-    # The previous query has verified that there is >= 1 unexpired version.
+    # Get the versions in this group that can be deleted:
+    # Everything except the newest (regardless of its age), and except new versions.
     my $versions_sth = get_dbh()->prepare(<<'SQL');
       SELECT version
       FROM feed_backups
@@ -57,8 +55,10 @@ SQL
         AND namespace=?
         AND id=?
         AND version < DATE_FORMAT(DATE_SUB(NOW(), INTERVAL 180 DAY),"%Y%m%d%H%i%S")
+        AND version!=?
 SQL
-    $versions_sth->execute($self->{storage_name}, $row->{namespace}, $row->{id});
+    $versions_sth->execute($self->{storage_name}, $row->{namespace},
+                           $row->{id}, $row->{max_version});
     foreach my $version (map { $_->[0]; } @{$versions_sth->fetchall_arrayref}) {
       my $volume = new HTFeed::Volume(namespace => $row->{namespace},
                                       objid => $row->{id},
@@ -70,6 +70,7 @@ SQL
         die "Unable to get storage for $volume->{namespace}.$volume->{objid}";
       }
       $storage->{timestamp} = $version;
+      $storage->{zip_suffix} = '.gpg';
       my $update_sth = get_dbh()->prepare(<<'SQL');
         UPDATE feed_backups SET deleted=1
         WHERE namespace=?
