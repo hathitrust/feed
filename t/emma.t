@@ -351,6 +351,14 @@ context "with volume & temporary ingest/preingest/zipfile dirs" => sub {
         my $after = scalar @{$s3->list_objects()};
         is($before - $after, 2);
       };
+
+      it "removes all files for this object id" => sub {
+        put_s3_files("$objid.pdf");
+        my $before = scalar @{$s3->list_objects()};
+        $volume->clean_sip_success();
+        my $after = scalar @{$s3->list_objects()};
+        is($before - $after, 3);
+      };
     };
 
     describe "#clean_sip_failure" => sub {
