@@ -89,6 +89,18 @@ sub mets_key {
   return $self->object_path . ".mets.xml";
 }
 
+sub zip_filename {
+  my $self = shift;
+
+  return $self->zip_key();
+}
+
+sub mets_filename {
+  my $self = shift;
+
+  return $self->mets_key();
+}
+
 sub postvalidate {
   my $self = shift;
 
@@ -191,8 +203,7 @@ sub record_backup {
 
   my $sth  = $dbh->prepare($stmt);
   my $rval = $sth->execute(
-      $self->{namespace}, $self->{objid},
-      "s3://$self->{s3}{bucket}/" . $self->object_path,
+      $self->{namespace}, $self->{objid}, $self->audit_path,
       $self->{timestamp}, $self->{name}, $self->{filesize}{$self->zip_key},
       $self->{filesize}{$self->object_path . '.mets.xml'}, $hex_checksum);
 
@@ -201,5 +212,10 @@ sub record_backup {
   return $rval;
 }
 
+sub audit_path {
+  my $self = shift;
+
+  return "s3://$self->{s3}{bucket}/" . $self->object_path;
+}
 
 1;

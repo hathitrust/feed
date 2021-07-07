@@ -105,7 +105,6 @@ sub get_object {
 
 sub restore_object {
   my $self = shift;
-  my $bucket = shift;
   my $key = shift;
 
   return $self->s3api('restore-object','--key',$key,@_);
