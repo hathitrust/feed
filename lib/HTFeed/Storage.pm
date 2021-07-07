@@ -63,6 +63,10 @@ sub new {
   return $self;
 }
 
+sub delete_objects {
+  die('delete_objects is unimplemented for this storage class');
+}
+
 sub zip_source {
   my $self = shift;
 

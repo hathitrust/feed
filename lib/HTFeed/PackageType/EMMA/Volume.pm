@@ -31,11 +31,8 @@ sub clean_sip_success {
     bucket => get_config('emma','bucket'),
     awscli => get_config('emma','awscli')
   );
-  my $zip = $self->get_zip_filename;
-  my $xml = $zip;
-  $xml =~ s/\.zip$/.xml/;
-  $s3->rm('/' . $zip);
-  $s3->rm('/' . $xml);
+  my $objid = $self->get_pt_objid();
+  $s3->rm('/', '--recursive', '--exclude', '*', '--include', "$objid.*");
 }
 
 1;
