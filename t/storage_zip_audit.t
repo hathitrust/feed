@@ -50,13 +50,8 @@ describe "HTFeed::StorageZipAudit" => sub {
     $storage->make_object_path;
     $storage->move;
     $storage->record_backup;
+    $storage->cleanup;
     return $storage;
-  }
-  
-  sub audit_for_storage {
-    my $storage = shift;
-
-    return HTFeed::StorageZipAudit->new($storage->{name});
   }
 
   sub HTFeed::Storage::S3::restore_object {
@@ -75,158 +70,111 @@ describe "HTFeed::StorageZipAudit" => sub {
     return $self->s3api('head-object','--key',$key,@_);
   }
 
-  describe "HTFeed::StorageZipAudit::PrefixedVersions" => sub {
-    describe "#new" => sub {
-      it "succeeds" => sub {
-        my $storage = prepare_storage('prefixedversions-test');
-        my $audit = audit_for_storage($storage);
-        ok($audit, 'new returns a value');
-        is($audit->{storage_name}, 'prefixedversions-test', 'new returns correct storage name');
-        ok(ref $audit eq 'HTFeed::StorageZipAudit::PrefixedVersions', 'new returns correct class');
-      };
-    };
-  
-    describe "random_object" => sub {
-      it "succeeds" => sub {
-        my $storage = prepare_storage('prefixedversions-test');
-        my $audit = audit_for_storage($storage);
-        my $obj = $audit->random_object();
-        is($obj->{namespace}, 'test', 'random_object returns namespace "test"');
-        is($obj->{objid}, 'test', 'random_object returns objid "test"');
-        is($obj->{version}, $storage->{timestamp}, 'random_object returns timestamp');
-        is($obj->{path}, $storage->audit_path(), 'random_object returns audit path');
-      };
+  share my %vars;
+  shared_examples_for "all storages" => sub {
+    around {
+      $ENV{S3_HEAD_OBJECT_RESTORE_DONE} = 1;
+      yield;
+      delete $ENV{S3_HEAD_OBJECT_RESTORE_DONE};
     };
 
-    describe "#run" => sub {
-      it "succeeds" => sub {
-        my $storage = prepare_storage('prefixedversions-test');
-        my $audit = audit_for_storage($storage);
-        my $errs = $audit->run();
-        is($errs, 0, 'run() returns 0 errors');
-      };
+    it "should create auditor" => sub {
+      my $audit = $vars{storage}->zip_auditor();
+      ok($audit, 'zip_auditor returns a value');
+      is($audit->{storage_name}, $vars{storage}->{name}, 'zip_auditor has correct storage name');
+      is(ref $audit, $vars{audit_class}, 'zip_auditor is correct class');
+    };
 
-      it "fails when METS checksum is altered" => sub {
-        my $storage = prepare_storage('prefixedversions-test');
-        my $mets_file = $storage->object_path() . '/' . $storage->mets_filename();
-        `sed -i s/2d40d65c1aecd857b3f780e85bc9bd92/2d40d65c1aecd857b3f780e85bc9bd91/g $mets_file`;
-        my $audit = audit_for_storage($storage);
-        my $errs = $audit->run();
-        is($errs, 1, 'run() returns 1 error');
-        my $sql = 'SELECT COUNT(*) FROM feed_audit_detail' . 
-                  ' WHERE namespace = ? AND id = ? AND status = "BadChecksum"';
-        my @res = get_dbh->selectrow_array($sql, undef, 'test', 'test');
-        is($res[0], 1, 'BadChecksum error recorded');
-      };
+    it "can pick random object" => sub {
+      my $audit = $vars{storage}->zip_auditor();
+      ok($audit, 'zip_auditor returns a value');
+      my $obj = $audit->random_object();
+      is($obj->{namespace}, 'test', 'random_object returns namespace "test"');
+      is($obj->{objid}, 'test', 'random_object returns objid "test"');
+      is($obj->{version}, $vars{storage}->{timestamp}, 'random_object returns timestamp');
+      is($obj->{path}, $vars{storage}->audit_path(), 'random_object returns audit path');
+    };
 
-      it "fails when database checksum is altered" => sub {
-        my $storage = prepare_storage('prefixedversions-test');
-        my $sql = 'UPDATE feed_backups SET saved_md5sum=?' .
-                  ' WHERE namespace=? AND id=? AND version=?';
-        get_dbh->prepare($sql)->execute('deadbeef' x 4, 'test', 'test', $storage->{timestamp});
-        my $audit = audit_for_storage($storage);
-        my $errs = $audit->run();
-        is($errs, 1, 'run() returns 1 error');
-        $sql = 'SELECT COUNT(*) FROM feed_audit_detail' . 
-               ' WHERE namespace = ? AND id = ? AND status = "BadChecksum"';
-        my @res = get_dbh->selectrow_array($sql, undef, 'test', 'test');
-        is($res[0], 1, 'BadChecksum error recorded');
-      };
+    it "runs successfully by default" => sub {
+      my $audit = $vars{storage}->zip_auditor();
+      my $errs = $audit->run();
+      is($errs, 0, 'run() returns 0 errors');
+    };
+
+    it "fails when METS checksum is altered" => sub {
+      my $audit = $vars{storage}->zip_auditor();
+      my $obj = $audit->all_objects()->[0];
+      `sed -i s/2d40d65c1aecd857b3f780e85bc9bd92/2d40d65c1aecd857b3f780e85bc9bd91/g $obj->{mets_path}`;
+      my $errs = $audit->run($obj);
+      is($errs, 1, 'run() returns 1 error');
+      my $sql = 'SELECT COUNT(*) FROM feed_audit_detail' .
+                ' WHERE namespace = ? AND id = ? AND status = "BadChecksum"';
+      my @res = get_dbh->selectrow_array($sql, undef, 'test', 'test');
+      is($res[0], 1, '1 BadChecksum error recorded');
+    };
+
+    it "fails when database checksum is altered" => sub {
+      my $sql = 'UPDATE feed_backups SET saved_md5sum=?' .
+                ' WHERE namespace=? AND id=? AND version=?';
+      get_dbh->prepare($sql)->execute('deadbeef' x 4, 'test', 'test', $vars{storage}->{timestamp});
+      my $audit = $vars{storage}->zip_auditor();
+      my $errs = $audit->run();
+      is($errs, 1, 'run() returns 1 error');
+      $sql = 'SELECT COUNT(*) FROM feed_audit_detail' .
+             ' WHERE namespace = ? AND id = ? AND status = "BadChecksum"';
+      my @res = get_dbh->selectrow_array($sql, undef, 'test', 'test');
+      is($res[0], 1, '1 BadChecksum error recorded');
     };
   };
 
-  describe "HTFeed::StorageZipAudit::ObjectStore" => sub {
-    describe "#new" => sub {
-      it "succeeds" => sub {
-        my $storage = prepare_storage('objectstore-test');
-        my $audit = audit_for_storage($storage);
-        ok($audit, 'new returns a value');
-        is($audit->{storage_name}, 'objectstore-test', 'new returns correct storage name');
-        is(ref $audit, 'HTFeed::StorageZipAudit::ObjectStore', 'new returns correct class');
-      };
+  describe "HTFeed::StorageZipAudit with PrefixedVersions" => sub {
+    before each => sub {
+      $vars{storage} = prepare_storage('prefixedversions-test');
+      $vars{audit_class} = 'HTFeed::StorageZipAudit';
     };
 
-    describe "#random_object" => sub {
-      it "succeeds" => sub {
-        my $storage = prepare_storage('objectstore-test');
-        my $audit = audit_for_storage($storage);
-        my $obj = $audit->random_object();
-        is($obj->{namespace}, 'test', 'random_object returns namespace "test"');
-        is($obj->{objid}, 'test', 'random_object returns objid "test"');
-        is($obj->{version}, $storage->{timestamp}, 'random_object returns timestamp');
-        is($obj->{path}, $storage->audit_path(), 'random_object returns audit path');
+    it_should_behave_like "all storages";
+  };
+
+  describe "HTFeed::StorageZipAudit::ObjectStore" => sub {
+    before each => sub {
+      $vars{storage} = prepare_storage('objectstore-test');
+      $vars{audit_class} = 'HTFeed::StorageZipAudit::ObjectStore';
+    };
+
+    it_should_behave_like "all storages";
+
+    describe "#run" => sub {
+      it "removes restore_request when finished" => sub {
+        $ENV{S3_HEAD_OBJECT_RESTORE_DONE} = 1;
+        my $errs = $vars{storage}->zip_auditor()->run();
+        my $sql = 'SELECT COUNT(*) FROM feed_backups' .
+                  ' WHERE namespace = ? AND id = ? AND version = ?' .
+                  ' AND restore_request IS NOT NULL';
+        my @res = get_dbh->selectrow_array($sql, undef, 'test', 'test', $vars{storage}->{timestamp});
+        is($res[0], 0, 'restore_request count = 0');
+        delete $ENV{S3_HEAD_OBJECT_RESTORE_DONE};
       };
     };
 
     describe "#all_objects" => sub {
       it "records restore_request for zip and METS" => sub {
-        my $storage = prepare_storage('objectstore-test');
-        my $audit = audit_for_storage($storage);
-        my $objects = $audit->all_objects();
-        my $sql = 'SELECT COUNT(*) FROM feed_backups' . 
+        my $objects = $vars{storage}->zip_auditor()->all_objects();
+        my $sql = 'SELECT COUNT(*) FROM feed_backups' .
                   ' WHERE namespace = ? AND id = ? AND version = ?' .
                   ' AND restore_request IS NOT NULL';
-        my @res = get_dbh->selectrow_array($sql, undef, 'test', 'test', $storage->{timestamp});
+        my @res = get_dbh->selectrow_array($sql, undef, 'test', 'test', $vars{storage}->{timestamp});
         is($res[0], 1, 'restore_request count = 1');
       };
-    };
 
-    describe "#run" => sub {
-      it "succeeds" => sub {
-        my $storage = prepare_storage('objectstore-test');
-        $ENV{S3_HEAD_OBJECT_RESTORE_DONE} = 1;
-        my $audit = audit_for_storage($storage);
-        my $errs = $audit->run();
-        is($errs, 0, 'run() returns 0 errors');
-        delete $ENV{S3_HEAD_OBJECT_RESTORE_DONE};
-      };
-
-      it "removes restore_request when finished" => sub {
-        my $storage = prepare_storage('objectstore-test');
-        $ENV{S3_HEAD_OBJECT_RESTORE_DONE} = 1;
-        my $audit = audit_for_storage($storage);
-        my $errs = $audit->run();
-        my $sql = 'SELECT COUNT(*) FROM feed_backups' . 
-                  ' WHERE namespace = ? AND id = ? AND version = ?' .
-                  ' AND restore_request IS NOT NULL';
-        my @res = get_dbh->selectrow_array($sql, undef, 'test', 'test', $storage->{timestamp});
-        is($res[0], 0, 'restore_request count = 0');
-        delete $ENV{S3_HEAD_OBJECT_RESTORE_DONE};
-      };
-
-      it "fails when METS checksum is altered" => sub {
-        my $storage = prepare_storage('objectstore-test');
-        my $audit = audit_for_storage($storage);
-        $ENV{S3_HEAD_OBJECT_RESTORE_DONE} = 1;
-        my $obj = $audit->all_objects()->[0];
-        `sed -i s/2d40d65c1aecd857b3f780e85bc9bd92/2d40d65c1aecd857b3f780e85bc9bd91/g $obj->{mets_path}`;
-        my $errs = $audit->run($obj);
-        is($errs, 1, 'run() returns 1 error');
-        my $sql = 'SELECT COUNT(*) FROM feed_audit_detail' . 
-                  ' WHERE namespace = ? AND id = ? AND status = "BadChecksum"';
-        my @res = get_dbh->selectrow_array($sql, undef, 'test', 'test');
-        is($res[0], 1, 'BadChecksum error recorded');
-        delete $ENV{S3_HEAD_OBJECT_RESTORE_DONE};
-      };
-
-      it "fails when database checksum is altered" => sub {
-        my $storage = prepare_storage('objectstore-test');
-        my $sql = 'UPDATE feed_backups SET saved_md5sum=?' .
-                  ' WHERE namespace=? AND id=? AND version=?';
-        get_dbh->prepare($sql)->execute('deadbeef' x 4, 'test', 'test', $storage->{timestamp});
-        my $audit = audit_for_storage($storage);
-        $ENV{S3_HEAD_OBJECT_RESTORE_DONE} = 1;
-        my $errs = $audit->run();
-        is($errs, 1, 'run() returns 1 error');
-        $sql = 'SELECT COUNT(*) FROM feed_audit_detail' . 
-               ' WHERE namespace = ? AND id = ? AND status = "BadChecksum"';
-        my @res = get_dbh->selectrow_array($sql, undef, 'test', 'test');
-        is($res[0], 1, 'BadChecksum error recorded');
-        delete $ENV{S3_HEAD_OBJECT_RESTORE_DONE};
+      it "holds on to objects that are still pending" => sub {
+        $ENV{S3_HEAD_OBJECT_RESTORE_PENDING} = 1;
+        my $objects = $vars{storage}->zip_auditor()->all_objects();
+        is(scalar @$objects, 0, 'no objects available from Glacier');
+        delete $ENV{S3_HEAD_OBJECT_RESTORE_PENDING};
       };
     };
   };
 };
 
 runtests unless caller;
-

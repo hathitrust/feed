@@ -27,7 +27,7 @@ sub all_objects {
   my $self = shift;
 
   $self->_request_object($self->random_object());
-  my $sql = 'SELECT namespace,id,path,version FROM feed_backups' .
+  my $sql = 'SELECT namespace,id,path,version,saved_md5sum FROM feed_backups' .
             ' WHERE storage_name=?' .
             ' AND restore_request IS NOT NULL';
   $self->{pending_objects} = [];
@@ -54,9 +54,7 @@ sub _request_object {
   my $obj  = shift;
 
   return if $self->{restore_request_issued};
-  my $req_json = '{"Days":10,"GlacierJobParameters":{"Tier":"Bulk"}}';
-  $obj->{storage}->{s3}->restore_object($obj->{zip_file}, '--restore-request', $req_json);
-  $obj->{storage}->{s3}->restore_object($obj->{mets_file}, '--restore-request', $req_json);
+  $obj->{storage}->request_glacier_object();
   my $sql = 'UPDATE feed_backups SET restore_request=CURRENT_TIMESTAMP' .
             ' WHERE namespace=? AND id=? AND version=? AND storage_name=?';
   eval {
@@ -75,13 +73,7 @@ sub _restore_object {
   my $obj  = shift;
 
   return 1 if $obj->{restore_complete};
-  return 0 unless $self->_check_object($obj);
-  get_logger->trace("_restore_object: restoring $obj->{zip_file} to $obj->{zip_path}");
-  $obj->{storage}->{s3}->get_object($obj->{storage}->{s3}->{'bucket'},
-                                     $obj->{zip_file}, $obj->{zip_path});
-  get_logger->trace("_restore_object: restoring $obj->{mets_file} to $obj->{mets_path}");
-  $obj->{storage}->{s3}->get_object($obj->{storage}->{s3}->{'bucket'},
-                                     $obj->{mets_file}, $obj->{mets_path});
+  return 0 unless $obj->{storage}->restore_glacier_object($self->storage_object_path($obj));
   $obj->{restore_complete} = 1;
   my $sql = 'UPDATE feed_backups SET restore_request=NULL' .
             ' WHERE namespace=? AND id=? AND version=? AND storage_name=?';
@@ -93,21 +85,6 @@ sub _restore_object {
     die "Database operation failed: $@";
   }
   return 1;
-}
-
-# Returns 1 only if both zip and METS are ready for download.
-sub _check_object {
-  my $self = shift;
-  my $obj  = shift;
-
-  my $result = $obj->{storage}->{s3}->head_object($obj->{zip_file});
-  if ($result->{Restore} && $result->{Restore} =~ m/ongoing-request\s*=\s*"false"/) {
-    $result = $obj->{storage}->{s3}->head_object($obj->{mets_file});
-    if ($result->{Restore} && $result->{Restore} =~ m/ongoing-request\s*=\s*"false"/) {
-      return 1;
-    }
-  }
-  return 0;
 }
 
 1;

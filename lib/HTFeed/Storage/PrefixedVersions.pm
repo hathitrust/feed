@@ -43,6 +43,12 @@ sub delete_objects {
   return 1;
 }
 
+sub encrypted_by_default {
+  my $self = shift;
+
+  return 1;
+}
+
 sub object_path {
   my $self = shift;
 

@@ -6,6 +6,7 @@ use Log::Log4perl qw(get_logger);
 use File::Path qw(make_path remove_tree);
 use File::Pairtree qw(id2ppath s2ppchars);
 use HTFeed::VolumeValidator;
+use HTFeed::StorageZipAudit;
 use URI::Escape;
 use List::MoreUtils qw(uniq);
 
@@ -46,6 +47,7 @@ sub new {
   my $volume = $args{volume};
   my $config = $args{config};
   my $name = $args{name};
+  my $timestamp = $args{timestamp};
 
   my $self = {
     volume => $volume,
@@ -56,7 +58,8 @@ sub new {
     zip_source => $volume->get_zip_path(),
     config => $config,
     did_encryption => 0,
-    name => $name
+    name => $name,
+    timestamp => $timestamp
   };
 
   bless($self, $class);
@@ -105,6 +108,30 @@ sub encrypt {
 
   return $success;
 
+}
+
+sub encrypted_by_default {
+  my $self = shift;
+
+  return 0;
+}
+
+# For interacting with objects already in storage,
+# this sets the correct zip suffix and any other needed housekeeping.
+sub set_encrypted {
+  my $self = shift;
+  my $flag = shift;
+
+  if ($flag) {
+    unless ($self->{config}{encryption_key}) {
+      die 'cannot set encrypted without encryption_key';
+    }
+    $self->{did_encryption} = 1;
+    $self->{zip_suffix} = '.gpg';
+  } else {
+    $self->{did_encryption} = 0;
+    $self->{zip_suffix} = '';
+  }
 }
 
 sub verify_crypt {
@@ -512,6 +539,12 @@ sub mets_size {
   die("Can't get mets size: $!") unless defined $size;
 
   return $size;
+}
+
+sub zip_auditor {
+  my $self = shift;
+
+  return HTFeed::StorageZipAudit->new(storage_name => $self->{name});
 }
 
 sub validate_zip_checksums {
