@@ -48,8 +48,8 @@ describe "HTFeed::StorageAudit" => sub {
     $s3->rm('/',"--recursive");
     foreach my $n (0 .. 1) {
       my $storage = object_storage('test','test' . $n);
-      $storage->put_object($storage->mets_key,$storage->{volume}->get_mets_path());
-      $storage->put_object($storage->zip_key,$storage->zip_source);
+      $storage->cp_to($storage->{volume}->get_mets_path(), $storage->mets_key);
+      $storage->cp_to($storage->zip_source, $storage->zip_key);
       $storage->record_backup;
     }
   }
