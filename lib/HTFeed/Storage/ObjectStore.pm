@@ -136,23 +136,21 @@ sub postvalidate {
 
 sub move {
   my $self = shift;
-  $self->put_object($self->mets_key,$self->{mets_source});
-  $self->put_object($self->zip_key,$self->{zip_source});
+  $self->cp_to($self->{mets_source},$self->mets_key);
+  $self->cp_to($self->{zip_source},$self->zip_key);
 }
 
-sub put_object {
+sub cp_to {
   my $self = shift;
-  my $key = shift;
   my $source = shift;
+  my $key = shift;
 
   my $md5_base64 = $self->md5_base64($source);
 
   $self->{checksums}{$key} = $md5_base64;
   $self->{filesize}{$key} = -s $source;
 
-  $self->{s3}->put_object($key,
-    "--body",$source,
-    "--content-md5" => $md5_base64,
+  $self->{s3}->cp_to($source,$key,
     "--metadata" => "content-md5=" . $md5_base64);
 }
 

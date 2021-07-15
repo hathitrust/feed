@@ -23,9 +23,9 @@ sub put_s3_files {
   print $tmpfh "test";
 
   foreach my $file (@_) {
-    $s3->s3api('put-object',
-      '--key',$file,
-      '--body',$tmpfh->filename);
+    $s3->s3('cp',
+      $tmpfh->filename,
+      "s3://$bucket/$file");
   }
 
   $tmpfh->close;

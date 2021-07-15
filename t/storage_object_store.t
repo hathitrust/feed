@@ -75,35 +75,6 @@ describe "HTFeed::Storage::ObjectStore" => sub {
       is($result->{Metadata}{'content-md5'}, 'LUDWXBrs2Fez94DoW8m9kg==', 'metadata for md5 checksum');
     };
 
-    # basically we want to test that we're properly using the checksum verification
-    it "passes --content-md5 argument" => sub {
-      my $storage = object_storage('test','test');
-      my $mock_s3 = HTFeed::Test::MockS3->new();
-      $storage->{s3} = $mock_s3;
-
-      $storage->move;
-
-      # openssl md5 -binary test.mets.xml | base64
-      like($mock_s3->{calls}[0],qr(.*test.mets.xml.*--content-md5 YqtkiMjGHD6t4tiKsERIFA==));
-      # openssl md5 -binary test.zip | base64
-      like($mock_s3->{calls}[1],qr(.*test.zip.*--content-md5 LUDWXBrs2Fez94DoW8m9kg==));
-
-    };
-
-    it "S3 storage call fails if provided md5 is wrong" => sub {
-      my $storage = object_storage('test','test');
-
-      my $s3 = $storage->{s3};
-
-      dies_ok( sub {
-        $s3->s3api("put-object",
-          "--key","test-wrong-md5",
-          "--body",$storage->zip_source,
-          # echo 'mashed potatoes' | openssl md5 --binary | base64
-          "--content-md5",'8wSepo2ze/YjjW1rawM6Lg==');
-      });
-    };
-
   };
 
   describe "#make_object_path" => sub {
@@ -125,32 +96,30 @@ describe "HTFeed::Storage::ObjectStore" => sub {
 
     it "returns false if zip is not in s3" => sub {
       my $storage = object_storage('test','test');
-      $storage->put_object($storage->mets_key,$storage->{volume}->get_mets_path());
+      $storage->cp_to($storage->{volume}->get_mets_path());
       ok( ! $storage->postvalidate);
     };
 
     it "returns false if mets is not in s3" => sub {
       my $storage = object_storage('test','test');
-      $storage->put_object($storage->zip_key,$storage->zip_source);
+      $storage->cp_to($storage->zip_source, $storage->zip_key);
       ok( ! $storage->postvalidate);
     };
 
     it "returns false if zip is missing checksum metadata" => sub {
       my $storage = object_storage('test','test');
-      $storage->put_object($storage->mets_key,$storage->{volume}->get_mets_path());
+      $storage->cp_to($storage->{volume}->get_mets_path(), $storage->mets_key);
 
-      $s3->put_object($storage->object_path . $storage->zip_suffix,
-        "--body",$storage->zip_source);
+      $s3->cp_to($storage->zip_source,$storage->object_path . $storage->zip_suffix);
 
       ok ( !$storage->postvalidate);
     };
 
     it "returns false if zip does not have correct checksum metadata" => sub {
       my $storage = object_storage('test','test');
-      $storage->put_object($storage->mets_key,$storage->{volume}->get_mets_path());
+      $storage->cp_to($storage->{volume}->get_mets_path,$storage->mets_key);
 
-      $s3->put_object($storage->object_path . $storage->zip_suffix,
-        "--body",$storage->zip_source,
+      $s3->cp_to($storage->zip_source,$storage->object_path . $storage->zip_suffix,
         "--metadata" => "content-md5=invalid");
 
       ok ( !$storage->postvalidate);
@@ -158,10 +127,10 @@ describe "HTFeed::Storage::ObjectStore" => sub {
 
     it "returns false if mets does not have correct checksum metadata" => sub {
       my $storage = object_storage('test','test');
-      $storage->put_object($storage->zip_key,$storage->zip_source);
+      $storage->cp_to($storage->zip_source,$storage->zip_key);
 
-      $s3->put_object($storage->object_path . ".mets.xml",
-        "--body",$storage->{volume}->get_mets_path(),
+      $s3->cp_to($storage->{volume}->get_mets_path,
+        $storage->object_path . ".mets.xml",
         "--metadata" => "content-md5=invalid");
 
       ok ( !$storage->postvalidate);
@@ -245,25 +214,3 @@ describe "HTFeed::Storage::ObjectStore" => sub {
 };
 
 runtests unless caller;
-
-package HTFeed::Test::MockS3;
-
-sub new {
-  my $class = shift;
-
-  my $self = {
-    calls => []
-  };
-
-  return bless($self,$class);
-}
-
-sub s3api {
-  my $self = shift;
-  push(@{$self->{calls}},join(' ','s3api',@_));
-}
-
-sub put_object {
-  my $self = shift;
-  push(@{$self->{calls}},join(' ','put_object',@_));
-}
