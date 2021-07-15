@@ -54,6 +54,12 @@ describe "HTFeed::StorageZipAudit" => sub {
     return $storage;
   }
 
+  sub HTFeed::Storage::zip_auditor {
+    my $self = shift;
+
+    return HTFeed::StorageZipAudit->for_storage_name($self->{name});
+  }
+
   sub HTFeed::Storage::S3::restore_object {
     return 1;
   }

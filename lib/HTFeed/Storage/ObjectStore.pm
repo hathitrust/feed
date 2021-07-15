@@ -29,6 +29,13 @@ sub new {
   return $self;
 }
 
+# Class method
+sub zip_audit_class {
+  my $class = shift;
+
+  return 'HTFeed::StorageZipAudit::ObjectStore';
+}
+
 sub delete_objects {
   my $self = shift;
 
@@ -106,12 +113,6 @@ sub mets_filename {
   my $self = shift;
 
   return $self->mets_key();
-}
-
-sub zip_auditor {
-  my $self = shift;
-
-  return HTFeed::StorageZipAudit::ObjectStore->new(storage_name => $self->{name});
 }
 
 sub postvalidate {

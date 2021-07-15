@@ -66,6 +66,13 @@ sub new {
   return $self;
 }
 
+# Class method
+sub zip_audit_class {
+  my $class = shift;
+
+  return 'HTFeed::StorageZipAudit';
+}
+
 sub delete_objects {
   die('delete_objects is unimplemented for this storage class');
 }
@@ -539,12 +546,6 @@ sub mets_size {
   die("Can't get mets size: $!") unless defined $size;
 
   return $size;
-}
-
-sub zip_auditor {
-  my $self = shift;
-
-  return HTFeed::StorageZipAudit->new(storage_name => $self->{name});
 }
 
 sub validate_zip_checksums {

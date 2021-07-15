@@ -12,5 +12,5 @@ use HTFeed::Log {root_logger => 'INFO, screen'};
 die "Specify a feed_backups.storage_name value" unless 1 == scalar @ARGV;
 my $storage_name = $ARGV[0];
 
-my $audit = HTFeed::StorageZipAudit->new($storage_name);
+my $audit = HTFeed::StorageZipAudit->for_storage_name($storage_name);
 $audit->run();

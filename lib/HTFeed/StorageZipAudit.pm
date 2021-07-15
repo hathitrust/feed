@@ -26,6 +26,17 @@ sub new {
   return $self;
 }
 
+# Class method
+sub for_storage_name {
+  my $class        = shift;
+  my $storage_name = shift;
+
+  my $storage_config = get_config('storage_classes')->{$storage_name};
+  die "No configuration found for storage '$storage_name'" unless defined $storage_config;
+
+  return $storage_config->{class}->zip_audit_class->new(storage_name => $storage_name);
+}
+
 # Choose and if necessary request a random object for this storage class.
 sub random_object {
   my $self = shift;
