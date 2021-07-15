@@ -24,6 +24,14 @@ sub cmd {
   return @{$self->{awscli}};
 }
 
+sub cp_to {
+  my $self = shift;
+  my $src = shift;
+  my $path = shift;
+
+  return $self->s3('cp',$src,"s3://$self->{bucket}/$path",@_);
+}
+
 sub mb {
   my $self = shift;
 
@@ -52,6 +60,8 @@ sub s3 {
   system(@fullcmd);
 
   die("awscli failed with status $?") if $?;
+
+  return 1;
 }
 
 sub s3api {
@@ -85,13 +95,6 @@ sub head_object {
   my $key = shift;
 
   return $self->s3api('head-object','--key',$key,@_);
-}
-
-sub put_object {
-  my $self = shift;
-  my $key = shift;
-
-  return $self->s3api('put-object','--key',$key,@_);
 }
 
 sub get_object {
