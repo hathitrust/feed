@@ -43,6 +43,12 @@ sub delete_objects {
   return 1;
 }
 
+sub encrypted_by_default {
+  my $self = shift;
+
+  return 1;
+}
+
 sub object_path {
   my $self = shift;
 
@@ -99,9 +105,15 @@ sub record_backup {
   my $sth  = $dbh->prepare($stmt);
   $sth->execute(
       $self->{namespace}, $self->{objid},
-      $self->object_path, $self->{timestamp}, $self->{name},
+      $self->audit_path, $self->{timestamp}, $self->{name},
       $self->zip_size, $self->mets_size, $saved_checksum);
 
+}
+
+sub audit_path {
+  my $self = shift;
+
+  return $self->object_path;
 }
 
 # Trust that if move succeeds, the object is the same

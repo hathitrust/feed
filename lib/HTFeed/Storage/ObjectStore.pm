@@ -7,6 +7,7 @@ use File::Pairtree qw(id2ppath s2ppchars);
 use POSIX qw(strftime);
 use HTFeed::Storage::S3;
 use MIME::Base64 qw(decode_base64);
+use HTFeed::StorageZipAudit::ObjectStore;
 
 use base qw(HTFeed::Storage);
 use strict;
@@ -28,6 +29,13 @@ sub new {
   return $self;
 }
 
+# Class method
+sub zip_audit_class {
+  my $class = shift;
+
+  return 'HTFeed::StorageZipAudit::ObjectStore';
+}
+
 sub delete_objects {
   my $self = shift;
 
@@ -43,6 +51,12 @@ sub delete_objects {
                      detail => "delete_objects failed: $@");
     return;
   }
+  return 1;
+}
+
+sub encrypted_by_default {
+  my $self = shift;
+
   return 1;
 }
 
@@ -87,6 +101,18 @@ sub mets_key {
   my $self = shift;
 
   return $self->object_path . ".mets.xml";
+}
+
+sub zip_filename {
+  my $self = shift;
+
+  return $self->zip_key();
+}
+
+sub mets_filename {
+  my $self = shift;
+
+  return $self->mets_key();
 }
 
 sub postvalidate {
@@ -189,8 +215,7 @@ sub record_backup {
 
   my $sth  = $dbh->prepare($stmt);
   my $rval = $sth->execute(
-      $self->{namespace}, $self->{objid},
-      "s3://$self->{s3}{bucket}/" . $self->object_path,
+      $self->{namespace}, $self->{objid}, $self->audit_path,
       $self->{timestamp}, $self->{name}, $self->{filesize}{$self->zip_key},
       $self->{filesize}{$self->object_path . '.mets.xml'}, $hex_checksum);
 
@@ -199,5 +224,49 @@ sub record_backup {
   return $rval;
 }
 
+sub audit_path {
+  my $self = shift;
+
+  return "s3://$self->{s3}{bucket}/" . $self->object_path;
+}
+
+sub request_glacier_object {
+  my $self = shift;
+
+  my $req_json = '{"Days":10,"GlacierJobParameters":{"Tier":"Bulk"}}';
+  get_logger->trace("request_glacier_object: requesting $self->zip_filename");
+  $self->{s3}->restore_object($self->zip_filename, '--restore-request', $req_json);
+  get_logger->trace("request_glacier_object: requesting $self->mets_filename");
+  $self->{s3}->restore_object($self->mets_filename, '--restore-request', $req_json);
+}
+
+# Returns 1 if both the zip and METS could be restored on the local filesystem.
+sub restore_glacier_object {
+  my $self = shift;
+  my $dest = shift;
+
+  return 0 unless $self->check_glacier_object;
+  get_logger->trace("restore_glacier_object: restoring $self->zip_filename to $dest");
+  $self->{s3}->get_object($self->{s3}->{'bucket'}, $self->zip_filename,
+                          $dest . '/' . $self->zip_filename);
+  get_logger->trace("restore_glacier_object: restoring $self->mets_filename to $dest");
+  $self->{s3}->get_object($self->{s3}->{'bucket'}, $self->mets_filename,
+                          $dest . '/' . $self->mets_filename);
+  return 1;
+}
+
+# Returns 1 only if both zip and METS are ready for download.
+sub check_glacier_object {
+  my $self = shift;
+
+  my $result = $self->{s3}->head_object($self->zip_filename);
+  if ($result->{Restore} && $result->{Restore} =~ m/ongoing-request\s*=\s*"false"/) {
+    $result = $self->{s3}->head_object($self->mets_filename);
+    if ($result->{Restore} && $result->{Restore} =~ m/ongoing-request\s*=\s*"false"/) {
+      return 1;
+    }
+  }
+  return 0;
+}
 
 1;
