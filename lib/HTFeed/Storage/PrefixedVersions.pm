@@ -17,12 +17,20 @@
 package HTFeed::Storage::PrefixedVersions;
 
 use HTFeed::Storage;
+use HTFeed::StorageAudit::PrefixedVersions;
 
 use base qw(HTFeed::Storage);
 use strict;
 use POSIX qw(strftime);
 use HTFeed::DBTools qw(get_dbh);
 use Log::Log4perl qw(get_logger);
+
+# Class method
+sub zip_audit_class {
+  my $class = shift;
+
+  return 'HTFeed::StorageAudit::PrefixedVersions';
+}
 
 sub delete_objects {
   my $self = shift;

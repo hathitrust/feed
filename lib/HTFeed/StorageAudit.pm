@@ -1,169 +1,368 @@
+#!/usr/bin/perl
 package HTFeed::StorageAudit;
 
-use warnings;
 use strict;
+use warnings;
 use Carp;
-use HTFeed::DBTools qw(get_dbh);
+use File::Temp;
+use FindBin;
 use Log::Log4perl qw(get_logger);
+
+use HTFeed::Config qw(get_config);
+use HTFeed::DBTools qw(get_dbh);
+use HTFeed::Volume;
 
 sub new {
   my $class = shift;
 
-  my $object = {
-      @_,
+  my $self = {
+    @_
   };
-  if ( $class ne __PACKAGE__ ) {
-      croak "use __PACKAGE__ constructor to create $class object";
-  }
-  # check parameters
-  die("Missing required argument 'bucket'")
-    unless $object->{bucket};
-  die("Missing required argument 'awscli'")
-    unless $object->{awscli};
 
-  bless( $object, $class );
-  return $object;
+  die("Missing required argument 'storage_name'")
+    unless $self->{storage_name};
+
+  my $storage_config = get_config('storage_classes')->{$self->{storage_name}};
+  die "No configuration found for storage '$self->{storage_name}'" unless defined $storage_config;
+  $self->{storage_config} = $storage_config;
+  bless($self, $class);
+  return $self;
 }
 
-# Queries for items in AWS but not the DB.
-# Then queries for items in the DB but not AWS.
-# These can be run independently, but by running run_not_in_aws_check second,
-# the feed_backups.lastchecked timestamp produces fewer AWS s3_has queries
-# and should speed up the operation.
-sub run
-{
+# Class method
+sub for_storage_name {
+  my $class        = shift;
+  my $storage_name = shift;
+
+  my $storage_config = get_config('storage_classes')->{$storage_name};
+  die "No configuration found for storage '$storage_name'" unless defined $storage_config;
+
+  return $storage_config->{class}->zip_audit_class->new(storage_name => $storage_name);
+}
+
+sub object_iterator {
   my $self = shift;
 
-  my $err_count = $self->run_not_in_db_check();
-  $err_count += $self->run_not_in_aws_check();
-  return $err_count;
+  my $base =  $self->{storage_config}->{'obj_dir'};
+  my $cmd = "find $base -follow -type f";
+  get_logger->trace("object_iterator running '$cmd'");
+  open my $find_fh, '-|', $cmd or die("Can't open pipe to find: $!");
+  my $prev = undef;
+  return sub {
+    my $obj = undef;
+    while (!defined $obj) {
+      my $path = <$find_fh>;
+      last unless defined $path;
+      chomp($path);
+      # ignore temporary location
+      next if $path =~ qr(obj/\.tmp);
+      my $parsed = $self->parse_object_path($path);
+      my $id = $parsed->{namespace} . '.' . $parsed->{objid};
+      $id .= '.' . $parsed->{version} if defined $parsed->{version};
+      # Don't process the same namespace/id/version twice
+      next if (defined $prev and $id eq $prev);
+      $obj = $self->storage_object($parsed->{namespace}, $parsed->{objid},
+                                   $parsed->{version}, $path);
+      $prev = $id;
+    }
+    return $obj;
+  };
+}
+
+# Implemented by subclasses, currently no default implementation
+sub parse_object_path {
+  my $self = shift;
+  my $path = shift;
+
+  die 'unimplemented for storage classes other than ObjectStore and PrefixedVersions';
+}
+
+# Choose and if necessary request a random object for this storage class.
+sub random_object {
+  my $self = shift;
+
+  my $obj;
+  my $sql = 'SELECT namespace,id,version,path FROM feed_backups' .
+            ' WHERE storage_name=?' .
+            ' AND deleted IS NULL' .
+            ' AND saved_md5sum IS NOT NULL' .
+            ' AND restore_request IS NULL' .
+            ' ORDER BY RAND() LIMIT 1';
+  eval {
+    my $ref = get_dbh->selectall_arrayref($sql, undef, $self->{storage_name});
+    if (scalar @$ref) {
+      $obj = $self->storage_object(@{$ref->[0]});
+    }
+  };
+  if ($@) {
+    die "Database query failed: $@";
+  }
+  return $obj;
 }
 
 
-# Iterates through feed_backups produces an error for each zip/xml not in AWS.
-# If limit is defined, checks that number of volumes.
-# Returns number of errors.
-sub run_not_in_aws_check {
-  my $self  = shift;
+# Get the object(s) selected for audit by choose_random_object() or some other criteria.
+# In the case of AWS Glacier, it is one or more objects selected in a previous run
+# that have been restored in the intervening time.
+# These are the objects on the filesystem ready for checksumming.
+sub all_objects {
+  my $self = shift;
 
-  my $err_count = 0;
-  my $s3 = HTFeed::Storage::S3->new(bucket => $self->{bucket},
-                                    awscli => $self->{awscli});
-
-                                  
-  my $sql = 'SELECT namespace,id,version FROM feed_backups'.
-            ' WHERE path LIKE ?'.
-            ' AND deleted IS NULL';
-  my @bindvals = ("s3://$self->{bucket}%");
-  if ($self->{lastchecked}) {
-    $sql .= " AND lastchecked < ?";
-    push(@bindvals,$self->{lastchecked});
-  }
-
-  my $sth = get_dbh()->prepare($sql);
-  $sth->execute(@bindvals);
-
-  while (my $row = $sth->fetchrow_arrayref()) {
-    my ($namespace, $id, $version) = @$row;
-    unless ($s3->s3_has("$namespace.$id.$version.zip")) {
-      $self->log_error($namespace, $id, 'MissingFile', "$namespace.$id.$version.zip not found in AWS");
-      $err_count++;
-    }
-    unless ($s3->s3_has("$namespace.$id.$version.mets.xml")) {
-      $self->log_error($namespace, $id, 'MissingFile', "$namespace.$id.$version.mets.xml not found in AWS");
-      $err_count++;
-    }
-    $self->update_lastchecked($namespace, $id, $version);
-  }
-  return $err_count;
+  return [$self->random_object()];
 }
 
-# Iterates through S3 bucket and produces an error for each item not in feed_backups.
-# If limit is defined, checks that number of objects.
+sub storage_object {
+  my $self      = shift;
+  my $namespace = shift;
+  my $objid     = shift;
+  my $version   = shift;
+  my $path      = shift;
+
+  unless ($namespace && $objid && $version) {
+    croak "invalid storage_object() args: namespace, objid, version required";
+  }
+  my $obj = {namespace => $namespace, objid => $objid, version => $version,
+             path => $path, storage_name => $self->{storage_name}};
+  $obj->{volume} = HTFeed::Volume->new(packagetype => 'pkgtype',
+                                       namespace   => $namespace,
+                                       objid       => $objid);
+  $obj->{storage} = $self->{storage_config}->{class}->new(volume    => $obj->{volume},
+                                                          config    => $self->{storage_config},
+                                                          name      => $self->{storage_name},
+                                                          timestamp => $version);
+  if ($obj->{storage}->encrypted_by_default) {
+    $obj->{storage}->set_encrypted(1);
+  }
+  $obj->{path} = $obj->{storage}->audit_path unless $obj->{path};
+  $obj->{zip_path} = $self->storage_object_path($obj) . '/' . $obj->{storage}->zip_filename;
+  $obj->{mets_path} = $self->storage_object_path($obj) . '/' . $obj->{storage}->mets_filename;
+  return $obj;
+}
+
+sub storage_object_path {
+  my $self = shift;
+  my $obj  = shift;
+
+  return $obj->{path};
+}
+
+sub run_fixity_check {
+  my $self = shift;
+  my $obj  = shift;
+
+  my $error_count = 0;
+  my $objects = (defined $obj) ? [$obj] : $self->all_objects();
+  unless (0 < scalar @$objects) {
+    get_logger->trace("no auditable files: returning");
+    return $error_count;
+  }
+  foreach my $obj (@$objects) {
+    get_logger->info("start zip audit of $obj->{namespace}.$obj->{objid}.$obj->{version}");
+    eval {
+      die "encrypted zip $obj->{zip_path} does not exist" unless -f $obj->{zip_path};
+      my $db_ok = $self->check_zip_against_database($obj);
+      $error_count++ unless $db_ok;
+      my $mets_ok = $self->check_zip_against_mets($obj);
+      $error_count++ unless $mets_ok;
+      my $sql = 'UPDATE feed_backups SET md5check_ok=?,lastmd5check=CURRENT_TIMESTAMP,restore_request=NULL'.
+                ' WHERE namespace=? AND id=? AND version=? AND storage_name=?';
+      execute_stmt($sql, ($db_ok && $mets_ok)? '1' : '0', $obj->{namespace},
+                   $obj->{objid}, $obj->{version}, $self->{storage_nanme});
+    };
+    if ($@) {
+      $self->set_error($obj, 'CANT_ZIPCHECK', "$obj->{version} $self->{storage_name}: $@");
+    }
+  }
+  return $error_count;
+}
+
+sub set_error {
+  my $self  = shift;
+  my $obj   = shift;
+  my $error = shift;
+
+  my $logger = get_logger(ref($self));
+  $logger->error(
+      $error,
+      namespace => $obj->{namespace},
+      objid     => $obj->{objid},
+      @_
+  );
+  $self->record_error($obj, [$error, @_]);
+}
+
+sub execute_stmt {
+  my $stmt = shift;
+
+  my $sth = get_dbh()->prepare($stmt);
+  $sth->execute(@_);
+  return $sth;
+}
+
+# Returns 1 if the encrypted zip file matches value in DB
+sub check_zip_against_database {
+  my $self = shift;
+  my $obj  = shift;
+
+  get_logger->trace("check_zip_against_database: $obj->{zip_path}");
+  my $sql = 'SELECT saved_md5sum FROM feed_backups' .
+            ' WHERE namespace=? AND id=? AND version=? AND storage_name=?';
+  my ($dbsum) = get_dbh()->selectrow_array($sql, undef, $obj->{namespace},
+                                           $obj->{objid}, $obj->{version},
+                                           $obj->{storage_name});
+  if (!defined $dbsum) {
+    die "No checksum in DB for $self->{namespace} $self->{objid} $self->{version}";
+  }
+  my $realsum = HTFeed::VolumeValidator::md5sum($obj->{zip_path});
+  return 1 if $dbsum eq $realsum;
+
+  $self->set_error($obj, 'BadChecksum', version => $obj->{version},
+                   expected => $dbsum, actual => $realsum);
+  return 0;
+}
+
+sub check_zip_against_mets {
+  my $self = shift;
+  my $obj  = shift;
+
+  get_logger->trace("check_zip_against_mets: $obj->{zip_path} and $obj->{mets_path}");
+  my $ok = $obj->{storage}->validate_zip($self->storage_object_path($obj));
+  return 1 if $ok;
+
+  $self->record_error($obj, $obj->{storage}->{errors}->[-1]);
+  return 0;
+}
+
+# Checks completeness of database against storage.
+# Iterates through storage and produces an error for each item not in feed_backups.
 # Returns number of errors.
-# This subroutine double-reports since it checks both the METS and ZIP.
-sub run_not_in_db_check {
+# If running run_storage_completeness_check as well as this routine,
+# it is recommended to call this one first to populate lastchecked
+# and reduce duplication in run_storage_completeness_check.
+sub run_database_completeness_check {
   my $self  = shift;
 
-  my $count = 0;
-  my $batch_size = 1000;
-  my $err_count = 0;
-  my $s3 = HTFeed::Storage::S3->new(bucket => $self->{bucket},
-                                    awscli => $self->{awscli});
-  my @next_token_params = ();
   my $now_sth = get_dbh()->prepare('SELECT NOW()');
   $now_sth->execute();
   my ($lastchecked) = $now_sth->fetchrow_array();
   $self->{lastchecked} = $lastchecked;
-
-  while(1) {
-    my $result = $s3->s3api('list-objects-v2', '--max-items' ,$batch_size, @next_token_params);
-    last unless $result;
-
-    foreach my $object (@{$result->{Contents}}) {
-      my ($namespace, $pt_objid, $version, $_rest) = split m/\./, $object->{Key};
-      my $id = ppchars2s($pt_objid);
-     my $rows = $self->update_lastchecked($namespace, $id, $version);
-      if (!$rows) {
-        $self->log_error($namespace, $id, 'MissingField', "AWS object $object->{Key} not found in feed_backups");
-        $err_count++;
-      }
+  my $count = 0;
+  my $err_count = 0;
+  my $iterator = $self->object_iterator;
+  get_logger->info('start database completeness check');
+  while (my $obj = $iterator->()) {
+    my $rows = $self->update_lastchecked($obj);
+    if (!$rows) {
+      $self->set_error($obj, 'MissingField', description => 'no feed_backups entry',
+                       version => $obj->{version}, key => $obj->{path});
+      $err_count++;
     }
-    print STDERR ".";
-    $count += $batch_size;
-    print STDERR "$count\n" if ($count % 100000 == 0);
-
-    last unless $result->{NextToken};
-
-    @next_token_params = ('--starting-token', $result->{NextToken});
+    $count++;
+    if ($count % 100000 == 0) {
+      get_logger->info("database completeness check: $count ($err_count errors)");
+    }
   }
+  get_logger->info("finish database completeness check ($count items, $err_count errors)");
   return $err_count;
 }
 
-# Updates feed.backups.lastchecked and returns the number of rows affected.
+# Checks completeness of storage against database.
+# Iterates through feed_backups and produces an error for each zip/xml not in storage.
+# Returns number of errors.
+sub run_storage_completeness_check {
+  my $self  = shift;
+
+  my $count = 0;
+  my $err_count = 0;
+  get_logger->info('start storage completeness check');
+  my $sql = 'SELECT namespace,id,version,path FROM feed_backups'.
+            ' WHERE storage_name=? AND deleted IS NULL';
+  my @bindvals = ($self->{storage_name});
+  if ($self->{lastchecked}) {
+    $sql .= " AND lastchecked < ?";
+    push(@bindvals, $self->{lastchecked});
+  }
+  my $sth = get_dbh()->prepare($sql);
+  $sth->execute(@bindvals);
+  while (my $row = $sth->fetchrow_arrayref()) {
+    my $obj = $self->storage_object(@$row);
+    unless ($self->is_object_zip_in_storage($obj)) {
+      $self->set_error($obj, 'MissingFile',
+                       version => $obj->{version},
+                       file => $obj->{storage}->zip_filename);
+      $err_count++;
+    }
+    unless ($self->is_object_mets_in_storage($obj)) {
+      $self->set_error($obj, 'MissingFile',
+                       version => $obj->{version},
+                       file => $obj->{storage}->mets_filename);
+      $err_count++;
+    }
+    $self->update_lastchecked($obj);
+    $count++;
+    if ($count % 100000 == 0) {
+      get_logger->info("storage completeness check: $count ($err_count errors)");
+    }
+  }
+  get_logger->info("finish storage completeness check ($count items, $err_count errors)");
+  return $err_count;
+}
+
+
+sub is_object_zip_in_storage {
+  my $self = shift;
+  my $obj  = shift;
+
+  return (-f $obj->{zip_path});
+}
+
+sub is_object_mets_in_storage {
+  my $self = shift;
+  my $obj  = shift;
+
+  return (-f $obj->{mets_path});
+}
+
+# Updates feed_backups.lastchecked to current timestamp.
+# Returns number of roes affected.
 sub update_lastchecked {
-  my $self      = shift;
-  my $namespace = shift;
-  my $id        = shift;
-  my $version   = shift;
+  my $self = shift;
+  my $obj  = shift;
 
   my $sql = 'UPDATE feed_backups SET lastchecked = NOW()'.
-            ' WHERE namespace = ? AND id = ? AND version = ?';
+            ' WHERE namespace=? AND id=? AND version=? AND storage_name=?';
   my $update_sth = get_dbh()->prepare($sql);
-  $update_sth->execute($namespace, $id, $version);
-  # https://stackoverflow.com/a/25685421
+  $update_sth->execute($obj->{namespace}, $obj->{objid}, $obj->{version},
+                       $obj->{storage}->{name});
   return $update_sth->rows();
 }
 
-sub log_error {
-  my $self      = shift;
-  my $namespace = shift;
-  my $id        = shift;
-  my $errcode   = shift;
-  my $detail    = shift;
+# Record an error structure in the feed_audit_detail table.
+sub record_error {
+  my $self = shift;
+  my $obj  = shift;
+  my $err  = shift;
 
-  my $logger = get_logger( ref($self) );
-  $logger->error($errcode, detail => $detail);
-  my $sql = 'INSERT INTO feed_audit_detail (namespace, id, status, detail)'.
-            ' values (?,?,?,?)';
-  get_dbh()->prepare($sql)->execute($namespace, $id, $errcode, $detail);
+  my $status = shift @$err;
+  my %details = @$err;
+  my $detail = join "\t", map { "$_: $details{$_}"; } keys %details;
+  my $sql = 'INSERT INTO feed_audit_detail (namespace, id, path, status, detail)'.
+            ' VALUES (?,?,?,?,?)';
+  execute_stmt($sql, $obj->{namespace}, $obj->{objid}, $obj->{path}, $status, $detail);
 }
 
+# ==== UTILITY CLASS METHOD ====
+# adapted from File::Pairtree::ppath2id
 sub ppchars2s {
-  # adapted from File::Pairtree::ppath2id
-
   my $id = shift;
 
   # Reverse the single-char to single-char mapping.
   # This might add formerly hex-encoded chars back in.
-  #
   $id =~ tr /=+,/\/:./;   # per spec, =+, become /:.
-
   # Reject if there are any ^'s not followed by two hex digits.
   #
   die "error: impossible hex-encoding in $id" if
     $id =~ /\^($|.$|[^0-9a-fA-F].|.[^0-9a-fA-F])/;
-
   # Now reverse the hex conversion.
   #
   $id =~ s{
@@ -171,9 +370,9 @@ sub ppchars2s {
   }{
     chr(hex("0x"."$1"))
   }xeg;
-
   return $id;
-
 }
 
 1;
+
+__END__

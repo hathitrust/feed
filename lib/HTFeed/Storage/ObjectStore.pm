@@ -7,7 +7,7 @@ use File::Pairtree qw(id2ppath s2ppchars);
 use POSIX qw(strftime);
 use HTFeed::Storage::S3;
 use MIME::Base64 qw(decode_base64);
-use HTFeed::StorageZipAudit::ObjectStore;
+use HTFeed::StorageAudit::ObjectStore;
 
 use base qw(HTFeed::Storage);
 use strict;
@@ -33,7 +33,7 @@ sub new {
 sub zip_audit_class {
   my $class = shift;
 
-  return 'HTFeed::StorageZipAudit::ObjectStore';
+  return 'HTFeed::StorageAudit::ObjectStore';
 }
 
 sub delete_objects {

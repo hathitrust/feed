@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-package HTFeed::StorageZipAudit::ObjectStore;
+package HTFeed::StorageAudit::ObjectStore;
 
 use strict;
 use warnings;
@@ -11,7 +11,38 @@ use HTFeed::Config qw(get_config);
 use HTFeed::DBTools qw(get_dbh);
 use HTFeed::Volume;
 
-use base qw(HTFeed::StorageZipAudit);
+use base qw(HTFeed::StorageAudit);
+
+# Layer on top of S3 iterator that de-dupes and translates from AWS keys to storage objects.
+sub object_iterator {
+  my $self = shift;
+
+  my $s3 = HTFeed::Storage::S3->new(bucket => $self->{storage_config}->{bucket},
+                                    awscli => $self->{storage_config}->{awscli});
+  my $iterator = $s3->object_iterator;
+  my $last_namespace = undef;
+  my $last_objid = undef;
+  my $last_version = undef;
+  return sub {
+    my $obj = undef;
+    while (!defined $obj) {
+      my $object = $iterator->();
+      last unless defined $object;
+
+      my ($namespace, $pt_objid, $version, $_rest) = split m/\./, $object->{Key};
+      my $objid = HTFeed::StorageAudit::ppchars2s($pt_objid);
+      if (!defined $last_namespace || $last_namespace ne $namespace ||
+          !defined $last_objid || $last_objid ne $objid ||
+          !defined $last_version || $last_version ne $version) {
+        $obj = $self->storage_object($namespace, $objid, $version, $object->{Key});
+        $last_namespace = $namespace;
+        $last_objid = $objid;
+        $last_version = $version;
+      }
+    }
+    return $obj;
+  }
+}
 
 sub storage_object_path {
   my $self = shift;
@@ -27,7 +58,7 @@ sub all_objects {
   my $self = shift;
 
   $self->_request_object($self->random_object());
-  my $sql = 'SELECT namespace,id,path,version,saved_md5sum FROM feed_backups' .
+  my $sql = 'SELECT namespace,id,version,path FROM feed_backups' .
             ' WHERE storage_name=?' .
             ' AND restore_request IS NOT NULL';
   $self->{pending_objects} = [];
@@ -44,6 +75,20 @@ sub all_objects {
     die "Database query failed: $@";
   }
   return $self->{pending_objects};
+}
+
+sub is_object_zip_in_storage {
+  my $self = shift;
+  my $obj  = shift;
+
+  return $obj->{storage}->{s3}->s3_has($obj->{storage}->zip_key);
+}
+
+sub is_object_mets_in_storage {
+  my $self = shift;
+  my $obj  = shift;
+
+  return $obj->{storage}->{s3}->s3_has($obj->{storage}->mets_key);
 }
 
 # Request a single object from Glacier. To keep storage costs down,
