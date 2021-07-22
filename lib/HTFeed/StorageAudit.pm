@@ -60,10 +60,7 @@ sub object_iterator {
       my $id = $parsed->{namespace} . '.' . $parsed->{objid};
       $id .= '.' . $parsed->{version} if defined $parsed->{version};
       # Don't process the same namespace/id/version twice
-      if (defined $prev and $id eq $prev) {
-        get_logger->trace("object_iterator skipping $id");
-        next;
-      }
+      next if (defined $prev and $id eq $prev);
       get_logger->trace("object_iterator returning $id");
       $obj = $self->storage_object($parsed->{namespace}, $parsed->{objid},
                                    $parsed->{version}, $path);
