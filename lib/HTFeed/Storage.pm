@@ -6,7 +6,7 @@ use Log::Log4perl qw(get_logger);
 use File::Path qw(make_path remove_tree);
 use File::Pairtree qw(id2ppath s2ppchars);
 use HTFeed::VolumeValidator;
-use HTFeed::StorageZipAudit;
+use HTFeed::StorageAudit;
 use URI::Escape;
 use List::MoreUtils qw(uniq);
 
@@ -70,7 +70,7 @@ sub new {
 sub zip_audit_class {
   my $class = shift;
 
-  return 'HTFeed::StorageZipAudit';
+  return 'HTFeed::StorageAudit';
 }
 
 sub delete_objects {
@@ -266,6 +266,13 @@ sub object_path {
     $self->{namespace},
     id2ppath($self->{objid}),
     s2ppchars($self->{objid}));
+}
+
+sub audit_path {
+  my $self = shift;
+  my $config_key = shift;
+
+  return $self->object_path($config_key);
 }
 
 sub stage_path_from_base {

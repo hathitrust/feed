@@ -29,6 +29,38 @@ describe "HTFeed::Storage::S3" => sub {
     };
   };
 
+  describe "#object_iterator" => sub {
+    before each => sub {
+      $s3->rm('/',"--recursive");
+    };
+
+    it "lists all objects"  => sub {
+      my @files = qw(a b c);
+      put_s3_files(@files);
+      my $iterator = $s3->object_iterator;
+      foreach my $file (@files) {
+        ok(defined $iterator->());
+      }
+      ok(!defined $iterator->());
+    };
+
+    it "lists all objects across page boundaries"  => sub {
+      $ENV{S3_ITERATOR_BATCH_SIZE} = 3;
+      my @files = qw(a b c d e f);
+      put_s3_files(@files);
+      my $iterator = $s3->object_iterator;
+      foreach my $file (@files) {
+        ok(defined $iterator->());
+      }
+      ok(!defined $iterator->());
+      delete $ENV{S3_ITERATOR_BATCH_SIZE};
+    };
+
+    it "handles empty bucket" => sub {
+      my $iterator = $s3->object_iterator;
+      ok(!defined $iterator->());
+    };
+  };
 };
 
 runtests unless caller;
