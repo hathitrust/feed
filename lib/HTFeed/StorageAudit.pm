@@ -12,6 +12,8 @@ use HTFeed::Config qw(get_config);
 use HTFeed::DBTools qw(get_dbh);
 use HTFeed::Volume;
 
+use Data::Dumper;
+
 sub new {
   my $class = shift;
 
@@ -40,42 +42,60 @@ sub for_storage_name {
   return $storage_config->{class}->zip_audit_class->new(storage_name => $storage_name);
 }
 
+# Default filesystem iterator. Returns storage objects with additional fields,
+# namely 'files' which points to a hash with zip and mets xml filenames (not paths).
+# fs_crawl.pl makes sure all files in a directory are listed with no interleaving,
+# so we can deduplicate the return values down to one per object.
+# For Data Den we need to use something like fs_crawl but for the regular repo
+# we should not because we won't have multiple versions potentially jammed into
+# a single directory. May want to introduce a #crawl_command method. find is certain
+# to be faster than fs_crawl.pl, may as well use it when we can.
 sub object_iterator {
   my $self = shift;
 
   my $base =  $self->{storage_config}->{'obj_dir'};
-  my $cmd = "find $base -follow -type f";
+  my $cmd = "$ENV{FEED_HOME}/bin/fs_crawl.pl $base";
   get_logger->trace("object_iterator running '$cmd'");
   open my $find_fh, '-|', $cmd or die("Can't open pipe to find: $!");
-  my $prev = undef;
+  my $last_obj = undef;
   return sub {
     my $obj = undef;
     while (!defined $obj) {
       my $path = <$find_fh>;
-      last unless defined $path;
+      unless (defined $path) {
+        $obj = $last_obj;
+        $last_obj = undef;
+        last;
+      }
       chomp($path);
       # ignore temporary location
       next if $path =~ qr(obj/\.tmp);
       my $parsed = $self->parse_object_path($path);
-      my $id = $parsed->{namespace} . '.' . $parsed->{objid};
-      $id .= '.' . $parsed->{version} if defined $parsed->{version};
       # Don't process the same namespace/id/version twice
-      next if (defined $prev and $id eq $prev);
-      get_logger->trace("object_iterator returning $id");
-      $obj = $self->storage_object($parsed->{namespace}, $parsed->{objid},
-                                   $parsed->{version}, $path);
-      $prev = $id;
+      if (!defined $last_obj || $last_obj->{id} ne $parsed->{id}) {
+        $obj = $last_obj if defined $last_obj;
+        $last_obj = $self->storage_object($parsed->{namespace}, $parsed->{objid},
+                                          $parsed->{version}, $path);
+        $last_obj->{id} = $parsed->{id}; # Temporary for deduplication
+      }
+      $last_obj->{files}->{$parsed->{file}} = 1;
     }
+    delete $obj->{id} if defined $obj;
     return $obj;
   };
 }
 
-# Implemented by subclasses, currently no default implementation
+# Implemented by subclasses that run fs_crawl.pl to translate paths into
+# an intermediate structure that can, when necessary, be used to create a storage_object.
+# Currently no default implementation.
+# See PrefixedVersions.pm for an example of the data structure expected of subclasses.
+# It is a lighter weight struct compared to storage_object so it makes sense to defer
+# creation of the latter.
 sub parse_object_path {
   my $self = shift;
   my $path = shift;
 
-  die 'unimplemented for storage classes other than ObjectStore and PrefixedVersions';
+  die 'unimplemented for storage classes other than PrefixedVersions';
 }
 
 # Choose and if necessary request a random object for this storage class.
@@ -252,10 +272,11 @@ sub run_database_completeness_check {
   my $iterator = $self->object_iterator;
   get_logger->info('start database completeness check');
   while (my $obj = $iterator->()) {
+    $err_count += $self->check_files($obj);
     my $rows = $self->update_lastchecked($obj);
     if (!$rows) {
       $self->set_error($obj, 'MissingField', description => 'no feed_backups entry',
-                       version => $obj->{version}, key => $obj->{path});
+                       version => $obj->{version}, path => $obj->{path});
       $err_count++;
     }
     $count++;
@@ -265,6 +286,33 @@ sub run_database_completeness_check {
   }
   get_logger->info("finish database completeness check ($count items, $err_count errors)");
   return $err_count;
+}
+
+# Returns number of errors encountered checking zip and mets presence in storage.
+sub check_files {
+  my $self = shift;
+  my $obj  = shift;
+
+  my $files = $obj->{files};
+  unless ($files) {
+    $self->set_error($obj, 'MissingField', description => 'unable to determine component files',
+                     version => $obj->{version}, path => $obj->{path});
+    return 1;
+  }
+  my $error_count = 0;
+  unless ($files->{$obj->{storage}->zip_filename}) {
+    $self->set_error($obj, 'MissingFile',
+                     version => $obj->{version},
+                     file => $obj->{storage}->zip_filename);
+    $error_count++;
+  }
+  unless ($files->{$obj->{storage}->mets_filename}) {
+    $self->set_error($obj, 'MissingFile',
+                     version => $obj->{version},
+                     file => $obj->{storage}->mets_filename);
+    $error_count++;
+  }
+  return $error_count;
 }
 
 # Checks completeness of storage against database.

@@ -75,6 +75,26 @@ describe "HTFeed::StorageAudit" => sub {
     return join('', map { int rand 10 } (1 .. 14));
   }
 
+  sub delete_zip {
+    my $storage = shift;
+
+    if ($storage->{name} eq 'objectstore-test') {
+      $storage->{s3}->rm('/' . $storage->zip_key);
+    } else {
+      unlink $storage->object_path . '/' . $storage->zip_filename;
+    }
+  }
+
+  sub delete_mets {
+    my $storage = shift;
+
+    if ($storage->{name} eq 'objectstore-test') {
+      $storage->{s3}->rm('/' . $storage->mets_key);
+    } else {
+      unlink $storage->object_path . '/' . $storage->mets_filename;
+    }
+  }
+
   sub HTFeed::Storage::S3::restore_object {
     return 1;
   }
@@ -91,7 +111,7 @@ describe "HTFeed::StorageAudit" => sub {
     return $self->s3api('head-object','--key',$key,@_);
   }
 
-  sub HTFeed::Storage::zip_auditor {
+  sub HTFeed::Storage::auditor {
     my $self = shift;
 
     return HTFeed::StorageAudit->for_storage_name($self->{name});
@@ -106,15 +126,15 @@ describe "HTFeed::StorageAudit" => sub {
     };
 
     it "should create auditor" => sub {
-      my $audit = $vars{storage}->zip_auditor();
-      ok($audit, 'zip_auditor returns a value');
-      is($audit->{storage_name}, $vars{storage}->{name}, 'zip_auditor has correct storage name');
-      is(ref $audit, $vars{audit_class}, 'zip_auditor is correct class');
+      my $audit = $vars{storage}->auditor();
+      ok($audit, 'auditor returns a value');
+      is($audit->{storage_name}, $vars{storage}->{name}, 'auditor has correct storage name');
+      is(ref $audit, $vars{audit_class}, 'auditor is correct class');
     };
 
     it "can pick random object" => sub {
-      my $audit = $vars{storage}->zip_auditor();
-      ok($audit, 'zip_auditor returns a value');
+      my $audit = $vars{storage}->auditor();
+      ok($audit, 'auditor returns a value');
       my $obj = $audit->random_object();
       is($obj->{namespace}, 'test', 'random_object returns namespace "test"');
       is($obj->{objid}, 'test', 'random_object returns objid "test"');
@@ -123,13 +143,13 @@ describe "HTFeed::StorageAudit" => sub {
     };
 
     it "runs fixity check successfully" => sub {
-      my $audit = $vars{storage}->zip_auditor();
+      my $audit = $vars{storage}->auditor();
       my $errs = $audit->run_fixity_check();
       is($errs, 0, 'run_fixity_check returns 0 errors');
     };
 
     it "fails fixity check when METS checksum is altered" => sub {
-      my $audit = $vars{storage}->zip_auditor();
+      my $audit = $vars{storage}->auditor();
       my $obj = $audit->all_objects()->[0];
       `sed -i s/2d40d65c1aecd857b3f780e85bc9bd92/2d40d65c1aecd857b3f780e85bc9bd91/g $obj->{mets_path}`;
       my $errs = $audit->run_fixity_check($obj);
@@ -144,7 +164,7 @@ describe "HTFeed::StorageAudit" => sub {
       my $sql = 'UPDATE feed_backups SET saved_md5sum=?' .
                 ' WHERE namespace=? AND id=? AND version=?';
       get_dbh->prepare($sql)->execute('deadbeef' x 4, 'test', 'test', $vars{storage}->{timestamp});
-      my $audit = $vars{storage}->zip_auditor();
+      my $audit = $vars{storage}->auditor();
       my $errs = $audit->run_fixity_check();
       is($errs, 1, 'run_fixity_check returns 1 error');
       $sql = 'SELECT COUNT(*) FROM feed_audit_detail' .
@@ -153,42 +173,56 @@ describe "HTFeed::StorageAudit" => sub {
       is($res[0], 1, '1 BadChecksum error recorded');
     };
 
-    it "iterates storage objects" => sub {
+    it "iterates storage objects without duplication" => sub {
       prepare_storage($vars{storage}->{name}, 0, random_version());
-      my $audit = $vars{storage}->zip_auditor();
+      prepare_storage($vars{storage}->{name}, 0, random_version());
+      prepare_storage($vars{storage}->{name}, 0, random_version());
+      prepare_storage($vars{storage}->{name}, 0, random_version());
+      my $audit = $vars{storage}->auditor();
       my $iterator = $audit->object_iterator;
       my $count = 0;
       while (my $obj = $iterator->()) {
         $count++;
       }
-      # FIXME: should be possible to insist on deduplication once `find`
-      # has been replaced with a sorting directory crawl.
-      # See line 180 also.
-      ok($count >= 2, 'iterator returns >= 2 objects');
+      is($count, 5, 'iterator returns 5 objects');
     };
 
     it "runs database completeness check successfully" => sub {
-      my $audit = $vars{storage}->zip_auditor();
+      my $audit = $vars{storage}->auditor();
       my $errs = $audit->run_database_completeness_check();
       is($errs, 0, 'no errors reported');
     };
 
     it "fails database completeness check for object not recorded" => sub {
       prepare_storage($vars{storage}->{name}, 1, random_version());
-      my $audit = $vars{storage}->zip_auditor();
+      my $audit = $vars{storage}->auditor();
       my $errs = $audit->run_database_completeness_check();
-      ok($errs >= 1, '>= 1 error reported');
+      is($errs, 1, '1 error reported');
     };
 
+      it "fails database completeness check on missing zip" => sub {
+        delete_zip($vars{storage});
+        my $audit = $vars{storage}->auditor();
+        my $errs = $audit->run_database_completeness_check();
+        is($errs, 1, '1 error reported');
+      };
+
+      it "fails database completeness check on missing mets" => sub {
+        delete_mets($vars{storage});
+        my $audit = $vars{storage}->auditor();
+        my $errs = $audit->run_database_completeness_check();
+        is($errs, 1, '1 error reported');
+      };
+
     it "runs storage completeness check successfully" => sub {
-      my $audit = $vars{storage}->zip_auditor();
+      my $audit = $vars{storage}->auditor();
       my $errs = $audit->run_storage_completeness_check();
       is($errs, 0, 'no errors reported');
     };
 
     it "fails storage completeness check on bogus feed_backups entry" => sub {
       my $version = add_bogus_feed_backups_entry($vars{storage}->{name});
-      my $audit = $vars{storage}->zip_auditor();
+      my $audit = $vars{storage}->auditor();
       my $errs = $audit->run_storage_completeness_check();
       is($errs, 2, '2 errors reported');
       ok($testlog->matches(qr(ERROR.+?$version)s), 'errors reported for incomplete storage entries');
@@ -216,7 +250,7 @@ describe "HTFeed::StorageAudit" => sub {
     describe "#run_fixity_check" => sub {
       it "removes restore_request when finished" => sub {
         $ENV{S3_HEAD_OBJECT_RESTORE_DONE} = 1;
-        my $errs = $vars{storage}->zip_auditor()->run_fixity_check();
+        my $errs = $vars{storage}->auditor()->run_fixity_check();
         my $sql = 'SELECT COUNT(*) FROM feed_backups' .
                   ' WHERE namespace = ? AND id = ? AND version = ?' .
                   ' AND restore_request IS NOT NULL';
@@ -228,7 +262,7 @@ describe "HTFeed::StorageAudit" => sub {
 
     describe "#all_objects" => sub {
       it "records restore_request for zip and METS" => sub {
-        my $objects = $vars{storage}->zip_auditor()->all_objects();
+        my $objects = $vars{storage}->auditor()->all_objects();
         my $sql = 'SELECT COUNT(*) FROM feed_backups' .
                   ' WHERE namespace = ? AND id = ? AND version = ?' .
                   ' AND restore_request IS NOT NULL';
@@ -238,7 +272,7 @@ describe "HTFeed::StorageAudit" => sub {
 
       it "holds on to objects that are still pending" => sub {
         $ENV{S3_HEAD_OBJECT_RESTORE_PENDING} = 1;
-        my $objects = $vars{storage}->zip_auditor()->all_objects();
+        my $objects = $vars{storage}->auditor()->all_objects();
         is(scalar @$objects, 0, 'no objects available from Glacier');
         delete $ENV{S3_HEAD_OBJECT_RESTORE_PENDING};
       };

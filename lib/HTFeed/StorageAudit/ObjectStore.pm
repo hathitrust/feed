@@ -20,25 +20,24 @@ sub object_iterator {
   my $s3 = HTFeed::Storage::S3->new(bucket => $self->{storage_config}->{bucket},
                                     awscli => $self->{storage_config}->{awscli});
   my $iterator = $s3->object_iterator;
-  my $last_namespace = undef;
-  my $last_objid = undef;
-  my $last_version = undef;
+  my $last_obj = undef;
   return sub {
     my $obj = undef;
     while (!defined $obj) {
       my $object = $iterator->();
-      last unless defined $object;
-
-      my ($namespace, $pt_objid, $version, $_rest) = split m/\./, $object->{Key};
-      my $objid = HTFeed::StorageAudit::ppchars2s($pt_objid);
-      if (!defined $last_namespace || $last_namespace ne $namespace ||
-          !defined $last_objid || $last_objid ne $objid ||
-          !defined $last_version || $last_version ne $version) {
-        $obj = $self->storage_object($namespace, $objid, $version, $object->{Key});
-        $last_namespace = $namespace;
-        $last_objid = $objid;
-        $last_version = $version;
+      unless (defined $object) {
+        $obj = $last_obj;
+        $last_obj = undef;
+        last;
       }
+      my ($namespace, $pt_objid, $version, $ext) = split m/\./, $object->{Key}, 4;
+      my $objid = HTFeed::StorageAudit::ppchars2s($pt_objid);
+      if (!defined $last_obj || $last_obj->{namespace} ne $namespace ||
+          $last_obj->{objid} ne $objid || $last_obj->{version} ne $version) {
+        $obj = $last_obj if defined $last_obj;
+        $last_obj = $self->storage_object($namespace, $objid, $version, $object->{Key});
+      }
+      $last_obj->{files}->{$object->{Key}} = 1;
     }
     return $obj;
   }

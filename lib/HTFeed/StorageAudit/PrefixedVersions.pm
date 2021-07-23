@@ -21,12 +21,14 @@ sub parse_object_path {
 
   my @pathcomp = split(m/\//, $path);
   die "Unable to extract object fields from $path" unless scalar @pathcomp > 3;
-  my @filecomp = split(m/\./, pop @pathcomp);
+  my $file = pop @pathcomp;
+  my ($id, $version, $ext) = split(m/\./, $file, 3);
   my $obj = { obj_dir   => join('/', @pathcomp),
-              version   => $filecomp[1],
+              version   => $version,
               namespace => $pathcomp[-2],
-              objid     => HTFeed::StorageAudit::ppchars2s($filecomp[0])
-            };
+              objid     => HTFeed::StorageAudit::ppchars2s($id),
+              file      => $file};
+  $obj->{id} = join '.', $obj->{namespace}, $obj->{objid}, $obj->{version};
   return $obj;
 }
 
