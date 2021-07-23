@@ -4,13 +4,11 @@ services:
 
   sut:
     build: .
-    volumes:
-      - .:/usr/local/feed
     environment:
       - HTFEED_CONFIG=/usr/local/feed/etc/config_test.yml
       - FEED_HOME=/usr/local/feed
       - TEST=1
-    command: bash -c "bin/setup_dev.sh && bin/wait-for --timeout=300 mariadb:3306 minio:9000 -- make test TEST_VERBOSE=1"
+    command: bash -c "perl Makefile.PL && bin/wait-for --timeout=300 mariadb:3306 minio:9000 -- make test TEST_VERBOSE=1"
     depends_on:
       - mariadb
       - minio
