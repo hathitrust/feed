@@ -1,9 +1,6 @@
 [submodule "metslib"]
 	path = metslib
 	url = https://github.com/hathitrust/metslib
-[submodule "etc/config"]
-	path = etc/config
-	url = git@github.com:hathitrust/feed_config
 [submodule "bin/jobs"]
 	path = bin/jobs
 	url = git@github.com:hathitrust/feed_jobs

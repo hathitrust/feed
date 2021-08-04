@@ -1,0 +1,110 @@
+---
+
+#########################################
+# GENERAL CONFIGURATION
+#########################################
+
+# Where feedd is installed
+feed_home: /usr/local/feed
+
+# Where feedd works on material to ingest
+staging_root: /tmp/stage
+
+# Set to the base directory for fetching volumes that feed will work on. Each package
+# type should have a subdirectory in this directory. For example, if you have a directory with
+# files to work on called:
+#   /htprep/mypackagetype/31234012345678
+# then you should set sip_root to /htprep.
+sip_root: /tmp/prep
+
+# How many volumes to prefetch from the queue
+volumes_in_process_limit: 32
+# How many times to retry retryable errors before giving up
+failure_limit: 5
+# true to immediately stop a module when an error is encountered
+stop_on_error: 1
+# true to spawn subprocesses to handle each stage
+fork: 0
+# limit space usage on staging disk
+# entered in integer percent (i.e. 95 == 95%)
+# enter a number greater than 100 to disable
+staging_root_usage_limit: 95
+# true to clean up after ourselves
+clean: 1
+
+#########################################
+# MISCELLANEOUS CONFIGURATION
+#########################################
+
+# Lists the value to use for the metsHdr agent name element.
+# Set to the name of your organization or organizational unit
+mets_header_agent_name: HathiTrust
+# value to use for the METS PROFILE attribute
+mets_profile: http://www.hathitrust.org/documents/hathitrust-mets-profile2.1.xml
+
+# Default logging configuration -- override from command line
+
+l4p:
+  root_logger: 'INFO, file'
+  config: /usr/local/feed/etc/config.l4p
+
+# List of states where feed/litefeed/RunLite should stop - leave as is.
+release_states:
+  - available
+  - in_process
+  - punted
+  - done
+  - collated
+  - rights
+  - held
+  - uplift_done
+  - migrated
+
+# FIXME: Should this be on a shared volume? How to handle graceful exit?
+stop_file: /usr/local/feed/etc/STOPFEED
+
+# Directories for downloading and moving material
+staging:
+  # each package type will have a separate fetch directory
+  fetch: $sip_root
+  ingest: $staging_root/ingest
+  zip: $staging_root/zip
+  zipfile: $staging_root/zipfile
+  preingest: $staging_root/preingest
+
+staging:
+  # where to look for material to ingest
+  fetch: $sip_root/toingest
+  # where to move SIPs after they have been ingested/validated
+  ingested: $sip_root/ingested
+  # where to move SIPs if they fail ingested/validation
+  punted: $sip_root/failed
+  # where to download SIPs
+  download: $staging_root/download
+  # temporary working directories
+  ingest: $staging_root/ingest
+  zip: $staging_root/zip
+  zipfile: $staging_root/zipfile
+  preingest: $staging_root/preingest
+  grin: $staging_root/grin
+
+# path to gpg passphrases
+gpg_path: /usr/local/feed/etc/gpg
+
+#########################################
+# PATHS TO EXTERNAL PROGRAMS
+#########################################
+
+# These should all be installed by the Dockerfile so should not need to be adjusted.
+
+imagemagick: /usr/bin/convert
+jhove: /usr/bin/jhove
+jhoveconf: /etc/jhove/jhove.conf
+xerces: /usr/local/feed/blib/bin/validateCache
+xerces_cache: /usr/local/feed/etc/schema.cache
+kdu_compress: /usr/local/bin/kdu_compress
+epubcheck: /usr/bin/java -jar /usr/bin/epubcheck
+mp3val: /usr/bin/mp3val
+# FIXME add to image
+kdu_munge: TODO ADD TO IMAGE
+

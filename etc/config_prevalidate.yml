@@ -1,25 +1,4 @@
-feed_home: /usr/local/feed
-# shouldn't actually be used
-repository:
-  # The directory in which symbolic links will be created to each volume
-  link_dir: /tmp/obj
-  # The directory into which volumes will be loaded
-  obj_dir: /tmp/obj
-
 staging_root: /tmp/prevalidate
 sip_root: /tmp/stage
 
-kdu_compress: /usr/local/bin/kdu_compress
-
 stop_on_error: 0
-
-database:
-  # The Perl DBI DSN to use when connecting with mysql. See perldoc DBD::mysql.
-  datasource: dbi:mysql:ht:mariadb
-  # The username used to connect to the database.
-  username: ht_repository
-  # The password used to connect to the database.
-  password: ht_repository
-
-xerces: /usr/local/feed/blib/bin/validateCache
-epubcheck: /usr/bin/java -jar /usr/bin/epubcheck

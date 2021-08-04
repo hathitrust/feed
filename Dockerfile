@@ -21,5 +21,4 @@ COPY ./docker/aws /root/.aws
 WORKDIR /usr/local/feed
 
 COPY . /usr/local/feed
-RUN cp etc/sample_config/* etc/config
 RUN cp etc/sample_namespace/TEST.pm etc/namespaces

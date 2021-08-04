@@ -112,7 +112,7 @@ our $config = {
             executor => 'umich',
             executor_type => 'HathiTrust Institution ID',
             optional => 1,
-            tools => ['GROOVE']
+            tools => ['FEEDD']
           },
     },
 

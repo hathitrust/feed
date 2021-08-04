@@ -1,0 +1,10 @@
+# To configure in production
+
+handle:
+  repo_url_base: https://babel.hathitrust.org/cgi/pt?id=
+  root_admin: 0.NA/2027
+  local_admin: 2027/mdp
+  database:
+    datasource: dbi:mysql:handle:my_handle_server.default.invalid
+    username: handle
+    password: $handle_database_password

@@ -1,0 +1,9 @@
+# For development use only -- override for production
+
+database:
+  # The Perl DBI DSN to use when connecting with mysql. See perldoc DBD::mysql.
+  datasource: dbi:mysql:ht:mariadb
+  # The username used to connect to the database.
+  username: feed
+  # The password used to connect to the database.
+  password: feed

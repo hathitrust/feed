@@ -124,7 +124,7 @@ our $config = {
             detail => 'Replace boilerplate images with blank images' ,
             executor => 'umich',
             executor_type => 'HathiTrust Institution ID',
-            tools => ['GROOVE']
+            tools => ['FEEDD']
           },
     },
 
