@@ -24,14 +24,12 @@ get_deletion_confirmation() or die();
 
 
 
-# get blacklist reason
 while($user eq '') {
     print "Enter the uniqname of the responsible party.\n";
     print "> ";
     $user = <>;
     chomp($user);
 }
-# get blacklist reason
 while($note eq '') {
     print "Enter a brief note describing why these volumes are being deleted.\n";
     print "> ";
@@ -65,8 +63,8 @@ while(1) {
 
     my $volume = new HTFeed::Volume(namespace => $namespace, objid => $objid, package_type => 'ht');
 
-    # add to blacklist
-    add_to_blacklist($volume,$note);
+    # add to disallow list
+    add_to_disallow_list($volume,$note);
 
     # remove from queue (if present)
     remove_from_queue($volume);
@@ -87,11 +85,11 @@ print "Remember to set the rights for these volumes to nobody/del. A file
 called delete_$today.rights has been created that you can rename and load.\n";
 
 
-sub add_to_blacklist {
+sub add_to_disallow_list {
     my $volume = shift;
     my $note = shift;
-    die("Must have a reason for blacklisting") if not defined $note or $note eq '';
-    my $sth = get_dbh()->prepare("INSERT IGNORE INTO feed_blacklist (namespace, id, note) VALUES (?,?,?)");
+    die("Must have a reason for disallowing") if not defined $note or $note eq '';
+    my $sth = get_dbh()->prepare("INSERT IGNORE INTO feed_queue_disallow (namespace, id, note) VALUES (?,?,?)");
     $sth->execute($volume->get_namespace(),$volume->get_objid(),$note);
 }
 

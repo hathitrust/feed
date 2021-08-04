@@ -24,7 +24,7 @@ my $quiet = 0; # -q
 my $state = undef; # -s
 my $priority = undef; # -y
 my $help = 0; # -help,-?
-my $use_blacklist = 1;
+my $use_disallow_list = 1;
 
 my $dot_packagetype = undef; # -d
 my $default_packagetype = undef; # -p
@@ -45,7 +45,7 @@ GetOptions(
     'dot-packagetype|d=s' => \$dot_packagetype,    
     'pkgtype|p=s' => \$default_packagetype,
     'namespace|n=s' => \$default_namespace,
-    'use-blacklist|b!' => \$use_blacklist,
+    'use-disallow-list|b!' => \$use_disallow_list,
 )  or pod2usage(2);
 
 # highest level wins
@@ -121,10 +121,10 @@ my $results;
 
 if(!($reset_level) or $insert) {
     if(defined $priority){
-        print_results('queued',enqueue_volumes(volumes=>\@volumes,status=>$state,ignore=>$insert,priority=>$priority,use_blacklist=>$use_blacklist));        
+        print_results('queued',enqueue_volumes(volumes=>\@volumes,status=>$state,ignore=>$insert,priority=>$priority,use_disallow_list=>$use_disallow_list));        
     }
     else{
-        print_results('queued',enqueue_volumes(volumes=>\@volumes,status=>$state,ignore=>$insert,use_blacklist=>$use_blacklist));
+        print_results('queued',enqueue_volumes(volumes=>\@volumes,status=>$state,ignore=>$insert,use_disallow_list=>$use_disallow_list));
     }
 }
 
@@ -199,7 +199,7 @@ enqueue.pl [-v|-q] [-r|-R|-i] [-y priority] -1 packagetype namespace objid
     
     -y priority - set initial priority, valid choices are: first, last, group_first, group_last
 
-    --no-use-blacklist - ignore the blacklist and force enqueueing of the given volumes
+    --no-use-disallow-list - ignore the disallow list and force enqueueing of the given volumes
 
     INFILE - input read fron last arg on command line or stdin
     
