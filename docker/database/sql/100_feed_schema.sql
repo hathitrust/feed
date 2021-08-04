@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS `feed_audit` (
   KEY `feed_audit_zip_date_idx` (`zip_date`)
 );
 
-CREATE TABLE IF NOT EXISTS `feed_blacklist` (
+CREATE TABLE IF NOT EXISTS `feed_queue_disallow` (
   `namespace` varchar(8) NOT NULL DEFAULT '',
   `id` varchar(32) NOT NULL DEFAULT '',
   `note` text,

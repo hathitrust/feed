@@ -24,7 +24,7 @@ enqueue_volumes(
         (volume => $volume | volumes => ($volume,...),),
         status        => $status_string,
         ignore        => 1,
-        use_blacklist => 0,
+        use_disallow_list => 0,
         priority      => $priority_modifier, # see Priority.pm for valid priority modifiers
 )
 =cut
@@ -47,7 +47,7 @@ sub enqueue_volumes{
         status        => undef,
         ignore        => undef,
         no_bibdata_ok    => undef,
-        use_blacklist => 1,
+        use_disallow_list => 1,
         priority      => undef,
         @_
     );
@@ -61,12 +61,12 @@ sub enqueue_volumes{
     my $arg_status          = $args{status};
     my $ignore              = $args{ignore};
     my $no_bibdata_ok       = $args{no_bibdata_ok};
-    my $use_blacklist       = $args{use_blacklist};
+    my $use_disallow_list       = $args{use_disallow_list};
     my $priority_modifier   = $args{priority};
     
     my $dbh = HTFeed::DBTools::get_dbh();
     my $sth;
-    my $blacklist_sth = $dbh->prepare("SELECT namespace, id FROM feed_blacklist WHERE namespace = ? and id = ?");
+    my $disallow_sth = $dbh->prepare("SELECT namespace, id FROM feed_queue_disallow WHERE namespace = ? and id = ?");
     my $has_bibdata_sth = $dbh->prepare("SELECT namespace, id FROM feed_zephir_items WHERE namespace = ? and id = ?");
     my $return_sth = $dbh->prepare("UPDATE feed_zephir_items SET returned = '1' WHERE namespace = ? and id = ?");
     if($ignore){
@@ -79,7 +79,7 @@ sub enqueue_volumes{
     foreach my $volume (@{$volumes}){
         eval{
             # First make sure volume has bib data
-            # Then make sure volume is not on the blacklist.
+            # Then make sure volume is not on the disallow list.
 
             my $namespace = $volume->get_namespace();
             my $objid = $volume->get_objid();
@@ -101,17 +101,17 @@ sub enqueue_volumes{
               }
             }
 
-            my $blacklisted = 0;
-            if($use_blacklist) {
-                $blacklist_sth->execute($namespace,$objid);
-                if($blacklist_sth->fetchrow_array()) {
-                    get_logger()->warn("Blacklisted",namespace=>$namespace,objid=>$objid);
+            my $disallowed = 0;
+            if($use_disallow_list) {
+                $disallow_sth->execute($namespace,$objid);
+                if($disallow_sth->fetchrow_array()) {
+                    get_logger()->warn("Disallowed",namespace=>$namespace,objid=>$objid);
                     push(@results,0);
-                    $blacklisted = 1;
+                    $disallowed = 1;
                 }
             }
 
-            if(($no_bibdata_ok or $has_bib_data) and !$blacklisted) {
+            if(($no_bibdata_ok or $has_bib_data) and !$disallowed) {
                 my $res = $sth->execute($pkg_type, $namespace, $objid, initial_priority($volume,$priority_modifier), $status);
                 push @results, $res;
                 if($res and $has_bib_data) {

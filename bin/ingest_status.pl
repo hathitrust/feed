@@ -18,7 +18,6 @@ my $quiet = 0; # -q
 my $state = undef; # -s
 my $priority = undef; # -y
 my $help = 0; # -help,-?
-my $use_blacklist = 1;
 my $dot = 0;
 
 my $default_namespace = undef; # -n
