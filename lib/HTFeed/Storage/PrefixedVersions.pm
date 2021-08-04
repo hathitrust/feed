@@ -17,12 +17,20 @@
 package HTFeed::Storage::PrefixedVersions;
 
 use HTFeed::Storage;
+use HTFeed::StorageAudit::PrefixedVersions;
 
 use base qw(HTFeed::Storage);
 use strict;
 use POSIX qw(strftime);
 use HTFeed::DBTools qw(get_dbh);
 use Log::Log4perl qw(get_logger);
+
+# Class method
+sub zip_audit_class {
+  my $class = shift;
+
+  return 'HTFeed::StorageAudit::PrefixedVersions';
+}
 
 sub delete_objects {
   my $self = shift;
@@ -40,6 +48,12 @@ sub delete_objects {
                      detail => "delete_objects failed: $@");
     return;
   }
+  return 1;
+}
+
+sub encrypted_by_default {
+  my $self = shift;
+
   return 1;
 }
 
@@ -99,9 +113,15 @@ sub record_backup {
   my $sth  = $dbh->prepare($stmt);
   $sth->execute(
       $self->{namespace}, $self->{objid},
-      $self->object_path, $self->{timestamp}, $self->{name},
+      $self->audit_path, $self->{timestamp}, $self->{name},
       $self->zip_size, $self->mets_size, $saved_checksum);
 
+}
+
+sub audit_path {
+  my $self = shift;
+
+  return $self->object_path;
 }
 
 # Trust that if move succeeds, the object is the same

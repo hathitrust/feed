@@ -108,7 +108,6 @@ sub get_object {
 
 sub restore_object {
   my $self = shift;
-  my $bucket = shift;
   my $key = shift;
 
   return $self->s3api('restore-object','--key',$key,@_);
@@ -131,6 +130,33 @@ sub list_objects {
     @next_token_params = ('--starting-token',$result->{NextToken});
   }
   return $objects;
+}
+
+sub object_iterator {
+  my $self = shift;
+
+  my $last_index = undef;
+  my $batch_size = $ENV{S3_ITERATOR_BATCH_SIZE} || 1000;
+  my @next_token_params = ();
+  my $result = undef;
+  return sub {
+    my $i = (defined $last_index)? $last_index + 1 : 0;
+    if ($i >= $batch_size) {
+      return unless $result->{NextToken};
+
+      $result = undef;
+      $i = 0;
+    }
+    $last_index = $i;
+    unless (defined $result) {
+      $result = $self->s3api('list-objects-v2', '--max-items', $batch_size, @next_token_params);
+      @next_token_params = ('--starting-token', $result->{NextToken});
+    }
+    return unless $result && $result->{Contents};
+    return if $i > scalar @{$result->{Contents}};
+
+    return $result->{Contents}->[$i];
+  };
 }
 
 1;

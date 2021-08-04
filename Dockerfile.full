@@ -1,0 +1,7 @@
+# For local development & testing
+FROM ghcr.io/hathitrust/feed-unstable:latest
+LABEL org.opencontainers.image.source https://github.com/hathitrust/feed
+
+COPY ./bin/jobs  /usr/local/feed/bin/jobs
+COPY ./google    /usr/local/feed/google
+COPY ./lib/HTFeed/Namespace /usr/local/feed/lib/HTFeed/Namespace
