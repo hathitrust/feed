@@ -15,7 +15,7 @@ use Pod::Usage;
 my $one_line = 0; # -1
 my $verbose = 0; # -v
 my $quiet = 0; # -q
-my $state = undef; # -s
+my $status = undef; # -s
 my $priority = undef; # -y
 my $help = 0; # -help,-?
 my $dot = 0;
@@ -26,8 +26,9 @@ my $default_namespace = undef; # -n
 GetOptions(
     '1' => \$one_line,
     'verbose|v' => \$verbose,
+    'status|s=s' => \$status,
     'quiet|q' => \$quiet,
-    'dot|d' => \$dot,    
+    'dot|d' => \$dot,
     'help|?' => \$help,
     'namespace|n=s' => \$default_namespace,
 )  or pod2usage(2);
@@ -112,6 +113,8 @@ foreach my $volume (@volumes) {
       }
     }
 
+    next unless !$status or $status eq $queue_info->{status};
+
     print "$namespace.$objid: $queue_info->{pkg_type}; $queue_info->{status}";
 
     if(!$quiet) {
@@ -141,7 +144,7 @@ foreach my $volume (@volumes) {
                 print "$row->{detail}; " if defined $row->{detail} and $row->{detail};
                 delete $row->{detail};
                 foreach my $key (sort(keys(%$row))) {
-                    
+
                     next if not defined $row->{$key} or $row->{$key} eq '';
                     print "$key: $row->{$key}; ";
                 }
@@ -173,7 +176,7 @@ __END__
 
 =head1 SYNOPSIS
 
-ingest_status.pl [-v|-q] [-n namespace]] [infile]
+ingest_status.pl [-v|-q] [-n namespace] [infile]
 
 ingest_status.pl [-v|-q] -d [infile]
 
@@ -187,17 +190,19 @@ ingest_status.pl [-v|-q] -1 namespace objid
 
     -n - specify namespace
         incompatible with -d, -1
-    
+
     GENERAL OPTIONS
+    -s status - limit to volumes in a particular status, e.g. punted
+
     -v verbose - show full log for each volume
 
     -q quiet - show status for each volume only
-    
+
     INFILE - input read fron last arg on command line or stdin
-    
+
     standard infile contains rows like this:
         [namespace] objid
-    
+
     dot-style (-d) infile rows:
         namespace.objid
 =cut
