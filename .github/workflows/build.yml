@@ -30,7 +30,7 @@ jobs:
       - name: Check out public submodules
         run: git submodule update --init metslib
 
-      - name: Build image and push to DockerHub
+      - name: Build image and push to GHCR
         uses: docker/build-push-action@v2
         with:
           context: .
@@ -46,7 +46,7 @@ jobs:
           token: ${{ secrets.ACCESS_TOKEN }}
           submodules: true
 
-      - name: Build full image and push to DockerHub
+      - name: Build full image and push to GHCR
         uses: docker/build-push-action@v2
         with:
           context: .
