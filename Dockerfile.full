@@ -1,5 +1,5 @@
-# For local development & testing
-FROM ghcr.io/hathitrust/feed-unstable:latest
+ARG image_tag=ghcr.io/hathitrust/feed-unstable:latest
+FROM ${image_tag}
 LABEL org.opencontainers.image.source https://github.com/hathitrust/feed
 
 RUN bash -c 'for i in $(seq 1 24); do ln -s /sdr/$i /sdr$i; done'

@@ -1,5 +1,3 @@
-# For local development & testing
-
 FROM hathitrust/feed_base:buster
 LABEL org.opencontainers.image.source https://github.com/hathitrust/feed
 
