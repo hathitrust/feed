@@ -28,7 +28,7 @@ my $mets = new HTFeed::METS(
 
 #TODO check this test method
 like( get_tool_version("FEEDD"),
-    qr/$FindBin::Script .*\d+.*/, "toolver_feedd" );
+    qr/$FindBin::Script feed-(testing|development)/, "toolver_feedd" );
 
 like( get_tool_version("EXIFTOOL"),
     qr/Image::ExifTool \d+\.\d+/, "toolver_exiftool" );

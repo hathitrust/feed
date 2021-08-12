@@ -100,7 +100,7 @@ gpg_path: /usr/local/feed/etc/gpg
 imagemagick: /usr/bin/convert
 jhove: /usr/bin/jhove
 jhoveconf: /etc/jhove/jhove.conf
-xerces: /usr/local/feed/blib/bin/validateCache
+xerces: /usr/local/feed/bin/validateCache
 xerces_cache: /usr/local/feed/etc/schema.cache
 kdu_compress: /usr/local/bin/kdu_compress
 epubcheck: /usr/bin/java -jar /usr/bin/epubcheck

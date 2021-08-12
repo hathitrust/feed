@@ -4,7 +4,7 @@ use warnings;
 use strict;
 no strict 'refs';
 
-use version 0.77; use HTFeed::Version qw(:no_getopt); our $VERSION = version->declare(HTFeed::Version::get_vstring());
+use HTFeed::Version qw(:no_getopt);
 
 my $loaded_namespaces = 0;
 my $loaded_pkgtypes = 0;

@@ -18,5 +18,12 @@ RUN mkdir -p /tmp/prep/toingest /tmp/prep/failed /tmp/prep/ingested /tmp/prep/lo
 COPY ./docker/aws /root/.aws
 WORKDIR /usr/local/feed
 
+RUN mkdir /usr/local/feed/bin /usr/local/feed/src
+COPY ./src/validateCache.cpp /usr/local/feed/src/validateCache.cpp
+RUN /usr/bin/g++ -o bin/validateCache src/validateCache.cpp -lxerces-c
+
 COPY . /usr/local/feed
 RUN cp etc/sample_namespace/TEST.pm etc/namespaces
+
+ARG version=feed-development
+ENV VERSION=$version

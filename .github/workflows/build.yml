@@ -37,6 +37,7 @@ jobs:
           push: true
           tags: 'ghcr.io/hathitrust/feed-unstable:${{ github.sha }}, ghcr.io/hathitrust/feed-unstable:latest'
           file: Dockerfile
+          build-args: 'version="commit ${{ github.sha }}"'
 
       - name: Check out including private submodules
         uses: actions/checkout@v2
@@ -53,5 +54,4 @@ jobs:
           push: true
           tags: 'ghcr.io/hathitrust/feed-full-unstable:${{ github.sha }}, ghcr.io/hathitrust/feed-full-unstable:latest'
           file: Dockerfile.full
-          build-args: |
-            image_tag=ghcr.io/hathitrust/feed-unstable:${{ github.sha }}
+          build-args: image_tag=ghcr.io/hathitrust/feed-unstable:${{ github.sha }}
