@@ -2,6 +2,9 @@
 FROM ghcr.io/hathitrust/feed-unstable:latest
 LABEL org.opencontainers.image.source https://github.com/hathitrust/feed
 
+RUN bash -c 'for i in $(seq 1 24); do ln -s /sdr/$i /sdr$i; done'
 COPY ./bin/jobs  /usr/local/feed/bin/jobs
 COPY ./google    /usr/local/feed/google
 COPY ./lib/HTFeed/Namespace /usr/local/feed/lib/HTFeed/Namespace
+
+CMD /usr/bin/perl -w /usr/local/feed/bin/feed_single_thread.pl -level INFO -screen -dbi
