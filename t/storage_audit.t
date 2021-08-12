@@ -61,11 +61,15 @@ describe "HTFeed::StorageAudit" => sub {
   sub add_bogus_feed_backups_entry {
     my $storage_name = shift;
 
+    my @chars = ("a".."z");
+    my $fake_objid;
+    $fake_objid .= $chars[rand @chars] for 1..8;
+
     my $version = strftime("%Y%m%d%H%M%S", gmtime);
     my $sql = 'INSERT INTO feed_backups (namespace, id, path, version, storage_name)' .
               'VALUES (?,?,?,?,?)';
     my $sth  = get_dbh->prepare($sql);
-    $sth->execute('test', 'test', "s3://" . $s3->{bucket} . "/" . $version,
+    $sth->execute('test', $fake_objid, "s3://" . $s3->{bucket} . "/" . $version,
                   $version, $storage_name);
     return $version;
   }
