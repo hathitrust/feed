@@ -1,9 +1,3 @@
-package HTFeed::PackageType::MDLContone_Composite;
-
-use warnings;
-use strict;
-use base qw(HTFeed::PackageType::MDLContone);
-
 our $identifier = 'mdlcontone_composite';
 
 our $config = {
@@ -101,11 +95,5 @@ my $pkgtype = new HTFeed::PackageType('mdlcontone_composite');
 =head1 AUTHOR
 
 Aaron Elkiss, University of Michigan, aelkiss@umich.edu
-
-=head1 COPYRIGHT
-
-Copyright (c) 2010 University of Michigan. All rights reserved.  This program
-is free software; you can redistribute it and/or modify it under the same terms
-as Perl itself.
 
 =cut

@@ -163,10 +163,4 @@ my $pkgtype = new HTFeed::PackageType('audio');
 
 Aaron Elkiss, University of Michigan, aelkiss@umich.edu
 
-=head1 COPYRIGHT
-
-Copyright (c) 2010 University of Michigan. All rights reserved.  This program
-is free software; you can redistribute it and/or modify it under the same terms
-as Perl itself.
-
 =cut
