@@ -54,4 +54,7 @@ jobs:
           push: true
           tags: 'ghcr.io/hathitrust/feed-full-unstable:${{ github.sha }}, ghcr.io/hathitrust/feed-full-unstable:latest'
           file: Dockerfile.full
-          build-args: image_tag=ghcr.io/hathitrust/feed-unstable:${{ github.sha }}
+          build-args: |
+            image_tag=ghcr.io/hathitrust/feed-unstable:${{ github.sha }}
+            UID=${{ secrets.CONTAINER_UID }}
+            GID=${{ secrets.CONTAINER_GID }}
