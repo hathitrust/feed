@@ -1,4 +1,4 @@
-FROM hathitrust/feed_base:buster
+FROM ghcr.io/hathitrust/perl_base:bullseye
 LABEL org.opencontainers.image.source https://github.com/hathitrust/feed
 
 RUN apt-get update && apt-get install -y \
@@ -24,7 +24,6 @@ USER $UID:$GID
 RUN mkdir -p /tmp/stage/grin
 RUN mkdir -p /tmp/prep/toingest /tmp/prep/failed /tmp/prep/ingested /tmp/prep/logs /tmp/prep/toingest/emma
 
-COPY ./docker/aws /usr/local/feed/.aws
 WORKDIR /usr/local/feed
 
 RUN mkdir /usr/local/feed/bin /usr/local/feed/src
