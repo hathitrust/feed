@@ -536,7 +536,7 @@ sub _remediate_jpeg2000 {
         $self->set_new_if_undefined( $field, $val );
     }
 
-    # first copy old values, since kdu_munge will eat the XMP if it is
+    # first copy old values, since kdu_munge will strip the XMP if it is
     # present
     my $exifTool = new Image::ExifTool;
     $exifTool->Options('ScanForXMP' => 1);
@@ -557,6 +557,13 @@ sub _remediate_jpeg2000 {
         }
     }
 
+    # Use kdu_munge to strip out the existing XMP. This may help in situations
+    # where exiftool cannot update existing XMP because it is in a "huge
+    # JPEG2000 box". Note that as of exiftool 10.03, exiftool should be able to
+    # handle "extended-size JPEG2000 boxes" so long as they are <4GB.
+    #
+    # kdu_munge is a modification to kdu_transcode; see
+    # http://websites.umich.edu/~roger/kdu_transcode.html
     my $kdu_munge = get_config('kdu_munge');
     if (    $self->{volume}->get_nspkg()->get('use_kdu_munge')
         and defined $kdu_munge
