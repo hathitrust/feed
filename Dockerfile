@@ -26,7 +26,9 @@ RUN mkdir -p /tmp/prep/toingest /tmp/prep/failed /tmp/prep/ingested /tmp/prep/lo
 
 WORKDIR /usr/local/feed
 
-RUN mkdir /usr/local/feed/bin /usr/local/feed/src
+RUN mkdir /usr/local/feed/bin /usr/local/feed/src /usr/local/feed/.gnupg
+RUN chown $UID:$GID /usr/local/feed/.gnupg
+RUN chmod 700 /usr/local/feed/.gnupg
 COPY ./src/validateCache.cpp /usr/local/feed/src/validateCache.cpp
 RUN /usr/bin/g++ -o bin/validateCache src/validateCache.cpp -lxerces-c
 
