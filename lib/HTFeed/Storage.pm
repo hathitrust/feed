@@ -56,6 +56,7 @@ sub new {
     errors => [],
     mets_source => $volume->get_mets_path(),
     zip_source => $volume->get_zip_path(),
+    zip_suffix => '',
     config => $config,
     did_encryption => 0,
     name => $name,
