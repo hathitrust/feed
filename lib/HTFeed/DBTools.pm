@@ -118,15 +118,14 @@ sub lock_volumes{
 
 =cut
 
-## TODO: better behavior here, possibly reset to downloaded in some cases, possibly keep lock but reset status
 sub reset_in_flight_locks{
     my $dbh = get_dbh();
-    $dbh->rollback(); # abort any interrupted transactions
+    $dbh->rollback() if $dbh->{BegunWork}; # abort any interrupted transactions
     my $rows = eval {
       $dbh->begin_work();
       my $release_status = join(',', map {$dbh->quote($_)} @{get_config('release_states')});
       my $sth = $dbh->prepare(qq(UPDATE feed_queue SET node = NULL, status = reset_status, reset_status = NULL WHERE node = ? AND status not in ($release_status);));
-      return $sth->execute(hostname);
+      $sth->execute(hostname);
       $dbh->commit();
 
       return $sth->rows;
@@ -171,23 +170,6 @@ sub update_queue {
 
     get_dbh()->do($syntax);
 
-    if($new_status eq 'punted') {
-      set_watched_ready($ns,$objid);
-    }
-}
-
-=item set_watched_ready($namespace,$objid)
- 
- marks an item as 'ready' in the feed_watched_items table
-
-=cut
-
-sub set_watched_ready {
-  my ($ns,$objid) = @_;
-
-  my $watch_update_sth = get_dbh()->prepare("update feed_watched_items set ready = '1' where namespace = ? and id = ?");
-
-  $watch_update_sth->execute($ns,$objid);
 }
 
 =item get_volumes_with_status

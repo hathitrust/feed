@@ -25,6 +25,7 @@ use POSIX ":sys_wait_h";
 
 print("feedd running, waiting for something to ingest, pid = $$\n");
 
+
 my $process_id = $$;
 my $subprocesses = 0;
 my @jobs = ();
@@ -34,11 +35,15 @@ my $clean = get_config('clean');
 # run end block on SIGINT and SIGTERM
 $SIG{'INT'} =
     sub {
+      print "Caught SIGINT; releasing locked volumes..\n";
+      HTFeed::DBTools::reset_in_flight_locks();
         exit;
     };
 
 $SIG{'TERM'} = 
     sub {
+      print "Caught SIGTERM; releasing locked volumes..\n";
+      HTFeed::DBTools::reset_in_flight_locks();
         exit;
     };
 
@@ -78,7 +83,7 @@ sub fill_queue{
         if ($needed_volumes > 0){
             lock_volumes($needed_volumes);
         }
-    
+
         if (my $sth = get_queued()){
             while(my $job_info = $sth->fetchrow_arrayref()){
                 # instantiate HTFeed::Job
