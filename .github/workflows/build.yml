@@ -30,13 +30,14 @@ jobs:
       - name: Check out public submodules
         run: git submodule update --init metslib
 
-      - name: Build image and push to DockerHub
+      - name: Build image and push to GHCR
         uses: docker/build-push-action@v2
         with:
           context: .
           push: true
           tags: 'ghcr.io/hathitrust/feed-unstable:${{ github.sha }}, ghcr.io/hathitrust/feed-unstable:latest'
           file: Dockerfile
+          build-args: 'version="commit ${{ github.sha }}"'
 
       - name: Check out including private submodules
         uses: actions/checkout@v2
@@ -46,10 +47,14 @@ jobs:
           token: ${{ secrets.ACCESS_TOKEN }}
           submodules: true
 
-      - name: Build full image and push to DockerHub
+      - name: Build full image and push to GHCR
         uses: docker/build-push-action@v2
         with:
           context: .
           push: true
           tags: 'ghcr.io/hathitrust/feed-full-unstable:${{ github.sha }}, ghcr.io/hathitrust/feed-full-unstable:latest'
           file: Dockerfile.full
+          build-args: |
+            image_tag=ghcr.io/hathitrust/feed-unstable:${{ github.sha }}
+            UID=${{ secrets.CONTAINER_UID }}
+            GID=${{ secrets.CONTAINER_GID }}

@@ -16,6 +16,7 @@ sub links {
 }
 
 package HTFeed::PackageType::IA::Download;
+use Encode qw(decode);
 
 use warnings;
 use strict;
@@ -140,7 +141,7 @@ sub get_links {
         my $res = $ua->request($req);
 
         my $parser = HTFeed::PackageType::IA::Download::LinkParser->new;
-        $parser->parse($res->content);
+        $parser->parse(decode('UTF-8',$res->content));
 
         $self->{links} = $parser->links;
     }

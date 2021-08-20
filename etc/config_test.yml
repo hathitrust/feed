@@ -1,21 +1,7 @@
-staging_root: /tmp/stage
-sip_root: /tmp/prep
-
-database:
-  # The Perl DBI DSN to use when connecting with mysql. See perldoc DBD::mysql.
-  datasource: dbi:mysql:ht:mariadb
-  # The username used to connect to the database.
-  username: feed
-  # The password used to connect to the database.
-  password: feed
-
 test_staging:
   damaged: /tmp/prep/DAMAGED
   logs: /tmp/prep/logs
   undamaged: /tmp/prep/UNDAMAGED
-
-xerces: /usr/local/feed/blib/bin/validateCache
-epubcheck: /usr/bin/java -jar /usr/bin/epubcheck
 
 test_fixtures: /usr/local/feed/etc/feed_fixtures.sql
 
@@ -33,9 +19,6 @@ storage_classes:
     link_dir: /tmp/obj_link
     # The directory into which volumes will be loaded
     obj_dir: /tmp/obj
-
-jhove: /usr/bin/jhove
-jhoveconf: /etc/jhove/jhove.conf
 
 emma:
   namespace: test

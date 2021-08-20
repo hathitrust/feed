@@ -5,15 +5,4 @@ repository:
   obj_dir: /nonexistent
 
 sip_root: /tmp
-staging_root: /ram/feed_audio
 stop_on_error: 0
-
-sqlite:
-  datasource: "dbi:SQLite:dbname=/l/local/feed/var/db/feed_audio.db"
-  username: ""
-  password: ""
-
-jhove: /usr/bin/jhove
-jhoveconf: /etc/jhove/jhove.conf
-
-mp3val: /usr/bin/mp3val

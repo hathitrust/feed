@@ -91,8 +91,10 @@ BEGIN {
         # don't migrate any events by default
         migrate_events => {},
 
-        # use kdu_munge when remediating JPEG2000 images
-        use_kdu_munge => 1,
+        # use kdu_munge when remediating JPEG2000 images. disabled by default;
+        # exiftool should be able to handle extended-size JPEG2000 boxes as of
+        # version 10.03.
+        use_kdu_munge => 0,
 
         # do not skip any validation by default
         skip_validation => [],

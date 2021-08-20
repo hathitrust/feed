@@ -124,7 +124,7 @@ our $config = {
             detail => 'Replace boilerplate images with blank images' ,
             executor => 'umich',
             executor_type => 'HathiTrust Institution ID',
-            tools => ['GROOVE']
+            tools => ['FEEDD']
           },
     },
 
@@ -145,11 +145,5 @@ my $pkgtype = new HTFeed::PackageType('yale');
 =head1 AUTHOR
 
 Aaron Elkiss, University of Michigan, aelkiss@umich.edu
-
-=head1 COPYRIGHT
-
-Copyright (c) 2010-2012 University of Michigan. All rights reserved.  This program
-is free software; you can redistribute it and/or modify it under the same terms
-as Perl itself.
 
 =cut

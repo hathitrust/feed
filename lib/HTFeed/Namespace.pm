@@ -187,12 +187,10 @@ sub get_gpg {
         return ${"${class}::config"}->{gpg_key};
     }
 
-    my $module_path = $class;
-    $module_path =~ s/::/\//g;
-    $module_path .= '.pm';
-    $module_path = $INC{$module_path};
-    $module_path =~ s/.pm$//;
-    my $passphrase_file = sprintf('%s/%s',$module_path,'gpg');
+    my $gpg_path = get_config('gpg_path');
+    my $grinid = ${"${class}::config"}->{grinid};
+    my $passphrase_file = "$gpg_path/$grinid";
+
     open(my $fh, '<', "$passphrase_file")
         or croak 'Can\'t open gpg passphrase file for ' . ref($self) . " at $passphrase_file";
     close($fh);

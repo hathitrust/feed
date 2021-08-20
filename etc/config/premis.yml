@@ -2,6 +2,31 @@
 #
 #
 
+# A perl snippet returning the software name and version for each 'tool' code
+# in the PREMIS events below. $self is the HTFeed::METS stage generating the
+# PREMIS events.
+
+# Adjust this when updating the container image.
+
+premis_tools:
+# Leave as-is.
+  FEEDD: $FindBin::Script . " " . HTFeed::Version::get_vstring();
+# Leave as-is.
+  EXIFTOOL: perl_mod_version('Image::ExifTool');
+# FIXME check these versions
+# Set to the version of Xerces you are using (must be 3.0 or later)
+  XERCES: qq(Xerces-C 3.1)
+  JHOVE: qq(JHOVE 1.11)
+# Leave as is.
+  DIGEST_MD5: perl_mod_version('Digest::MD5');
+# GnuPG is not needed unless downloading packages from Google.
+  GPG: qq(GnuPG 2)
+  ZIP: qq(Zip 3.0)
+  KDU_COMPRESS: qq(kdu_compress 6.4.0)
+  EPUBCHECK: qq(epubcheck 4.0.2)
+  MP3VAL: qq(mp3val 0.1.8)
+  CLAMAV: qq(ClamAV 0.102.3)
+
 # For each possible kind of PREMIS event, list the PREMIS eventType, the
 # eventDetail, the executor linkingAgent VOLUME_ARTIST), and any tool
 # linkingAgents. The tools must be drawn from the list in the 'tools'
@@ -31,7 +56,7 @@ premis_events:
     executor: umich
     executor_type: HathiTrust Institution ID
     tools:
-      - GROOVE
+      - FEEDD
 
   ht_mets_creation:
     type: mets creation
@@ -39,7 +64,7 @@ premis_events:
     executor: umich
     executor_type: HathiTrust Institution ID
     tools:
-      - GROOVE
+      - FEEDD
 
   image_compression:
     type: image compression
@@ -48,7 +73,7 @@ premis_events:
     optional: 1
     executor_type: HathiTrust Institution ID
     tools:
-      - GROOVE
+      - FEEDD
       - KDU_COMPRESS
       - EXIFTOOL
 
@@ -58,7 +83,7 @@ premis_events:
     executor: umich
     executor_type: HathiTrust Institution ID
     tools:
-      - GROOVE
+      - FEEDD
       - EXIFTOOL
 
   ingestion:
@@ -67,7 +92,7 @@ premis_events:
     executor: umich
     executor_type: HathiTrust Institution ID
     tools:
-      - GROOVE
+      - FEEDD
 
   manual_quality_review:
     type: manual quality review
@@ -75,7 +100,7 @@ premis_events:
     executor: umich
     executor_type: HathiTrust Institution ID
     tools:
-      - GROOVE
+      - FEEDD
 
   mets_validation:
     type: validation
@@ -91,7 +116,7 @@ premis_events:
     executor: umich
     executor_type: HathiTrust Institution ID
     tools:
-      - GROOVE
+      - FEEDD
 
   package_inspection:
     type: package inspection
@@ -99,7 +124,7 @@ premis_events:
     executor: umich
     executor_type: HathiTrust Institution ID
     tools:
-      - GROOVE
+      - FEEDD
 
   package_validation:
     type: validation
@@ -107,7 +132,7 @@ premis_events:
     executor: umich
     executor_type: HathiTrust Institution ID
     tools:
-      - GROOVE
+      - FEEDD
       - JHOVE
       - XERCES
 
@@ -117,7 +142,7 @@ premis_events:
     executor: umich
     executor_type: HathiTrust Institution ID
     tools:
-      - GROOVE
+      - FEEDD
 
   page_md5_create:
     type: message digest calculation
@@ -141,7 +166,7 @@ premis_events:
     executor: umich
     executor_type: HathiTrust Institution ID
     tools:
-      - GROOVE
+      - FEEDD
     # list any other tools here??
 
   source_md5_fixity:
@@ -158,7 +183,7 @@ premis_events:
     executor: umich
     executor_type: HathiTrust Institution ID
     tools:
-      - GROOVE
+      - FEEDD
 
   zip_compression:
     type: zip archive creation
@@ -183,7 +208,7 @@ premis_events:
     executor_type: HathiTrust Institution ID
     optional: 1
     tools:
-      - GROOVE
+      - FEEDD
 
   mets_update:
     type: mets migration
@@ -191,7 +216,7 @@ premis_events:
     executor: umich
     executor_type: HathiTrust Institution ID
     tools:
-      - GROOVE
+      - FEEDD
 
   note_from_mom:
     type: manual inspection

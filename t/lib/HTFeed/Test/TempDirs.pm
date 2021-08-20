@@ -15,10 +15,9 @@ sub new {
   my $test_home = shift;
 
   my $self = {};
-  $self->{test_home} = abs_path($FindBin::Bin);
 
-  $self->{tmpdir} = "$self->{test_home}/test-tmp";
-  mkdir("$self->{test_home}/test-tmp");
+  $self->{test_home} = abs_path($FindBin::Bin);
+  $self->{tmpdir} = tempdir("feed-test-XXXXXX",TMPDIR => 1);
 
   return bless ($self, $class);
 }

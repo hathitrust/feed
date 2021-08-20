@@ -16,6 +16,7 @@ use constant {
     NS_DC     => 'http://purl.org/dc/elements/1.1/',
     NS_EAD	  => 'urn:isbn:1-931666-22-9',
     NS_JHOVE  => 'http://hul.harvard.edu/ois/xml/ns/jhove',
+    NS_JHOVE_OPF  => 'http://schema.openpreservation.org/ois/xml/ns/jhove',
     NS_MARC   => 'http://www.loc.gov/MARC21/slim',
     NS_METS   => 'http://www.loc.gov/METS/',
     NS_MIX    => 'http://www.loc.gov/mix/v20',
@@ -55,6 +56,7 @@ sub register_namespaces {
 
     $xpc->registerNs( 'dc',     NS_DC );
     $xpc->registerNs( 'jhove',  NS_JHOVE );
+    $xpc->registerNs( 'jhove_opf',  NS_JHOVE_OPF );
     $xpc->registerNs( 'marc',   NS_MARC );
     $xpc->registerNs( 'mets',   NS_METS );
     $xpc->registerNs( 'mix',    NS_MIX );

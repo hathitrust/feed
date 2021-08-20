@@ -115,10 +115,5 @@ my $pkgtype = new HTFeed::PackageType('ucm');
 
 Aaron Elkiss, University of Michigan, aelkiss@umich.edu
 
-=head1 COPYRIGHT
-
-Copyright (c) 2011 University of Michigan. All rights reserved.  This program
-is free software; you can redistribute it and/or modify it under the same terms
-as Perl itself.
 
 =cut

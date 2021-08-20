@@ -14,6 +14,7 @@ use Digest::MD5;
 use FindBin;
 use File::Find;
 use Carp;
+use File::Temp qw(tempdir);
 
 my %staging_configs = (
     damaged     => {
@@ -35,14 +36,17 @@ my %staging_configs = (
 
 sub test_config{
 	my $test_type = shift;
-	
+
 	die("Unknown config $test_type") unless $staging_configs{$test_type};
 
     my $staging_config = $staging_configs{$test_type};
-    
+
     foreach my $key (keys %{$staging_config}){
         my $value = $staging_config->{$key};
-        set_config($value,'staging',$key);
+        my $tmpdir = tempdir("feed-test-staging-$key-XXXXXX",TMPDIR => 1, CLEANUP => 1);
+
+        system("cp -rfT $value $tmpdir") if -e $value;
+        set_config($tmpdir,'staging',$key);
     }
 }
 
@@ -59,7 +63,7 @@ my @test_classes;
             }
         }, $libDir
     );
-        
+
     # require all test classes
     foreach my $class ( @test_classes ){
         require $class;
@@ -68,7 +72,7 @@ my @test_classes;
     # convert @test_classes from paths to package names
     foreach my $i ( 0..$#test_classes ){
         $test_classes[$i] =~ s/\//::/g;
-        $test_classes[$i] =~ s/\.pm$//;        
+        $test_classes[$i] =~ s/\.pm$//;
     }
 }
 
@@ -96,33 +100,6 @@ sub get_fake_stage{
     my $volume = get_test_volume();
     return HTFeed::Stage::Fake->new(volume => $volume);
 }
-
-# # md5_dir($directory)
-# # returns an md5 sum for the contents of a directory
-# # probably won't work on a non flat heirarchy
-# sub md5_dir{
-#     my $dir = shift;
-# 
-#     my $digest = Digest::MD5->new();
-#     opendir(my $dirh, $dir) or die("Can't open $dir: $!");
-#     my @files = ();
-#     while(my $filename = readdir($dirh)) {
-#         next if $filename eq '.' or $filename eq '..';
-#         push(@files,$filename);
-#     }
-#     closedir($dirh);
-# 
-#     foreach my $file (sort @files){
-#         $file = "$dir/$file";
-#         open(my $fh, '<', $file);
-#         binmode $fh;
-#         eval{$digest->addfile($fh);};
-#             if($@){confess "md5_dir: reading $dir/$file failed";}
-#         close $fh;
-#     }
-#     
-#     return $digest->hexdigest();
-# }
 
 sub get_test_classes{
     return \@test_classes;

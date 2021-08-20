@@ -15,7 +15,6 @@ Makefile
 MANIFEST
 MANIFEST.bak
 MANIFEST.SKIP.bak
-etc/config/*
 etc/config_*
 !etc/config/00_*
 !etc/config/01_*
@@ -23,9 +22,10 @@ etc/config_*
 var/*
 var/db/*
 lib/HTFeed/Config.pm
-MYMETA*
 blib/*
 pm_to_blib
 volumes_to_test
 ingest_stage/*
 ingest_sips/*
+.gnupg
+.bash_history
