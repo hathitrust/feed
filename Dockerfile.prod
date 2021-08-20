@@ -1,6 +1,6 @@
 ARG image_tag=ghcr.io/hathitrust/feed-full-unstable:latest
-ARG version
 FROM ${image_tag}
 LABEL org.opencontainers.image.source https://github.com/hathitrust/feed
 
+ARG version=feed-production
 ENV VERSION=$version
