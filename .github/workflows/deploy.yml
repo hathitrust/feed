@@ -21,4 +21,4 @@ jobs:
         kubectl config set-context default --cluster=cluster --user=default --namespace=ingest
         kubectl config use-context default
     - name: Manual Deploy
-      run: kubectl set image deployment ingest ingest=ghcr.io/hathitrust/feed-full:${{ github.events.input.tag }}
+      run: kubectl set image deployment ingest ingest=ghcr.io/hathitrust/feed-full:${{ github.event.inputs.tag }}
