@@ -18,7 +18,7 @@ jobs:
         echo ${{ secrets.KUBERNETES_CA }} | base64 -d > ${HOME}/.kube/certs/cluster/k8s-ca.crt
         kubectl config set-cluster cluster --certificate-authority=${HOME}/.kube/certs/cluster/k8s-ca.crt --server=${{ secrets.KUBERNETES_SERVER }}
         kubectl config set-credentials default --token=`echo ${{ secrets.KUBERNETES_TOKEN }} | base64 -d`
-        kubectl config set-context default --cluster=cluster --user=default --namespace=otis
+        kubectl config set-context default --cluster=cluster --user=default --namespace=ingest
         kubectl config use-context default
     - name: Manual Deploy
       run: kubectl set image deployment ingest ingest=ghcr.io/hathitrust/feed-full:${{ github.events.input.tag }}
