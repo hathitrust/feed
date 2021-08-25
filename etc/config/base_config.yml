@@ -103,7 +103,7 @@ jhoveconf: /etc/jhove/jhove.conf
 xerces: /usr/local/feed/bin/validateCache
 xerces_cache: /usr/local/feed/etc/schema.cache
 kdu_compress: /usr/local/bin/kdu_compress
-kdu_compress: /usr/local/bin/kdu_expand
+kdu_expand: /usr/local/bin/kdu_expand
 epubcheck: /usr/bin/java -jar /usr/bin/epubcheck
 mp3val: /usr/bin/mp3val
 # FIXME add to image
