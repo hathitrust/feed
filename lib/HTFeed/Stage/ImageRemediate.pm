@@ -731,7 +731,8 @@ sub expand_lossless_jpeg2000 {
                 $tiff =~ s/\.jp2$/.tif/;
                 $jpeg2000_remediated =~ s/\.jp2$/.jp2_remediated/;
 
-                system("/l/local/bin/kdu_expand -i '$path/$jpeg2000' -o '$path/$tiff' > /dev/null 2>&1");
+                my $kdu_expand = get_config('kdu_expand');
+                system("$kdu_expand -i '$path/$jpeg2000' -o '$path/$tiff' > /dev/null 2>&1");
 
 
                 # try to compress the TIFF -> JPEG2000
