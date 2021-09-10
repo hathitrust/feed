@@ -19,4 +19,4 @@ COPY ./bin/jobs  $FEED_HOME/bin/jobs
 COPY ./google    $FEED_HOME/google
 COPY ./lib/HTFeed/Namespace $FEED_HOME/lib/HTFeed/Namespace
 
-CMD ["/usr/bin/perl","-w","$FEED_HOME/bin/feed_single_thread.pl","-level","INFO","-screen","-dbi"]
+CMD ["/usr/bin/perl","-w","$FEED_HOME/bin/feed_single_thread.pl"]
