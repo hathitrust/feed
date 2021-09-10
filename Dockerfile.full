@@ -11,12 +11,12 @@ ARG UID=1001
 ARG GID=1001
 
 RUN groupadd -g $GID -o $UNAME
-RUN useradd -m -d /usr/local/feed -u $UID -g $GID -o -s /bin/bash $UNAME
-RUN chown -R $UID:$GID /tmp/prep /tmp/stage /usr/local/feed/.gnupg
+RUN useradd -m -d $FEED_HOME -u $UID -g $GID -o -s /bin/bash $UNAME
+RUN chown -R $UID:$GID /tmp/prep /tmp/stage $FEED_HOME/.gnupg
 USER $UID:$GID
 
-COPY ./bin/jobs  /usr/local/feed/bin/jobs
-COPY ./google    /usr/local/feed/google
-COPY ./lib/HTFeed/Namespace /usr/local/feed/lib/HTFeed/Namespace
+COPY ./bin/jobs  $FEED_HOME/bin/jobs
+COPY ./google    $FEED_HOME/google
+COPY ./lib/HTFeed/Namespace $FEED_HOME/lib/HTFeed/Namespace
 
-CMD ["/usr/bin/perl","-w","/usr/local/feed/bin/feed_single_thread.pl","-level","INFO","-screen","-dbi"]
+CMD ["/usr/bin/perl","-w","$FEED_HOME/bin/feed_single_thread.pl"]
