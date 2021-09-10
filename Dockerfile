@@ -10,6 +10,7 @@ RUN apt-get update && apt-get install -y \
     libtest-mockobject-perl \
     libtest-most-perl \
     libtest-spec-perl \
+    mariadb-client \
     netcat
 
 ARG UNAME=ingest
