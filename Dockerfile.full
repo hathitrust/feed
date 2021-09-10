@@ -4,6 +4,10 @@ LABEL org.opencontainers.image.source https://github.com/hathitrust/feed
 
 USER root
 
+RUN apt-get update && apt-get install -y \
+    msmtp-mta \
+    bsd-mailx
+
 RUN bash -c 'for i in $(seq 1 24); do ln -s /sdr/$i /sdr$i; done'
 
 ARG UNAME=ingest-full
