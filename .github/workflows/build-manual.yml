@@ -1,0 +1,97 @@
+name: Manual Image Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: tag
+        required: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Clone latest repository
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+        submodules: false
+
+    - name: Check that the tag exists in repo
+      id: tag_check
+      run: |
+        if git rev-parse 'refs/tags/${{ github.event.inputs.tag }}' &> /dev/null; then
+          echo '::set-output name=tag::${{ github.event.inputs.tag }}'
+        elif git rev-parse '${{ github.event.inputs.tag }}' &> /dev/null; then
+          echo "::set-output name=tag::`git rev-parse '${{ github.event.inputs.tag }}'`"
+        else
+          echo "Couldn't figure out tag from input: ${{ github.event.inputs.tag }}"
+          echo "Aborting deployment."
+          false
+        fi
+
+    - name: Log into Github Container Registry
+      uses: docker/login-action@v1
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Check that the tag exists in container registry
+      id: image_check
+      run: |
+        if docker manifest inspect ghcr.io/hathitrust/feed-unstable:${{ steps.tag_check.outputs.tag }} > /dev/null; then
+          echo '::set-output name=image_exists::true'
+          echo "image exists!"
+        else
+          echo "image doesn't exist; Starting to Build and push image"
+        fi
+
+    - name: Check out at given revision
+      if: ${{ steps.image_check.outputs.image_exists != 'true' }}
+      uses: actions/checkout@v2
+      with:
+        ref: ${{ github.event.inputs.tag }}
+
+    - name: Check out public submodules
+      run: git submodule update --init metslib
+
+    - name: Build image and push to GHCR
+      uses: docker/build-push-action@v2
+      with:
+        context: .
+        push: true
+        tags: 'ghcr.io/hathitrust/feed-unstable:${{ github.sha }}, ghcr.io/hathitrust/feed-unstable:${{ steps.tag_check.outputs.tag }}'
+        file: Dockerfile
+        build-args: 'version="commit ${{ github.sha }}"'
+
+    - name: Check that the tag exists in container registry (full version)
+      id: full_image_check
+      run: |
+        if docker manifest inspect ghcr.io/hathitrust/feed-full-unstable:${{ steps.tag_check.outputs.tag }} > /dev/null; then
+          echo '::set-output name=image_exists::true'
+          echo "image exists!"
+        else
+          echo "image doesn't exist; Starting to Build and push image"
+        fi
+
+    - name: Check out including private submodules
+      if: ${{ steps.image_check.outputs.full_image_exists != 'true' }}
+      uses: actions/checkout@v2
+      with:
+        ref: ${{ steps.tag_check.outputs.tag }}
+        token: ${{ secrets.ACCESS_TOKEN }}
+        submodules: true
+
+    - name: Build full image and push to GHCR
+      if: ${{ steps.image_check.outputs.full_image_exists != 'true' }}
+      uses: docker/build-push-action@v2
+      with:
+        context: .
+        push: true
+        tags: 'ghcr.io/hathitrust/feed-full-unstable:${{ github.sha }}, ghcr.io/hathitrust/feed-full-unstable:${{ steps.tag_check.outputs.tag }}'
+        file: Dockerfile.full
+        build-args: |
+          image_tag=ghcr.io/hathitrust/feed-unstable:${{ github.sha }}
+          UID=${{ secrets.CONTAINER_UID }}
+          GID=${{ secrets.CONTAINER_GID }}
