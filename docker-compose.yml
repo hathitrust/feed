@@ -21,6 +21,7 @@ services:
       - .:/usr/local/feed
       - ./ingest_sips:/tmp/sips
       - ./ingest_stage:/tmp/stage
+      # FIXME -- before these will work, run: docker-compose run --rm ingest chown ingest.ingest /sdr1 /sdr2 /htdataden
       - repository_link:/sdr1
       - repository_obj:/sdr2
       - backups:/htdataden
@@ -72,7 +73,6 @@ services:
 
 volumes:
   clamd_data:
-    driver: 'local'
   repository_link:
   repository_obj:
   backups:
