@@ -74,8 +74,4 @@ indicating it is permissable to continue into a critical code section
 
 Die if staging area is overfilled
 
-=back
-
-INSERT_UNIVERSITY_OF_MICHIGAN_COPYRIGHT_INFO_HERE
-
 =cut

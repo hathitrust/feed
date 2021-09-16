@@ -663,11 +663,3 @@ sub new {
 }
 
 1;
-
-__END__
-
-=pod
-
-    INSERT_UNIVERSITY_OF_MICHIGAN_COPYRIGHT_INFO_HERE
-
-=cut

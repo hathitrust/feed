@@ -1192,10 +1192,4 @@ $headers_sub is a callback taking the filename as a parameter
 and returning the force_headers and set_if_undefined_headers parameters for
 remediate_image (qv)
 
-=back
-
-=head1 AUTHOR
-
-    INSERT_UNIVERSITY_OF_MICHIGAN_COPYRIGHT_INFO_HERE
-
 =cut

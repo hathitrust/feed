@@ -100,6 +100,4 @@ At command line:
 script.pl -version
 script.pl --Version
 
-INSERT_UNIVERSITY_OF_MICHIGAN_COPYRIGHT_INFO_HERE
-
 =cut

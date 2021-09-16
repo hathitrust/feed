@@ -1257,8 +1257,4 @@ $next_stage = next_stage($start_state);
 
 =item get_structmap_file_groups_by_page()
 
-=back
-
-INSERT_UNIVERSITY_OF_MICHIGAN_COPYRIGHT_INFO_HERE
-
 =cut

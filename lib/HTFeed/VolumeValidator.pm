@@ -433,8 +433,4 @@ my $checksum = md5sum("$path/$file");
 
 Do cleaning appropriate on failure
 
-=back
-
-INSERT_UNIVERSITY_OF_MICHIGAN_COPYRIGHT_INFO_HERE
-
 =cut

@@ -166,8 +166,4 @@ $variable = get($config);
 
 =item on_factory_load()
 
-=back
-
-INSERT_UNIVERSITY_OF_MICHIGAN_COPYRIGHT_INFO_HERE
-
 =cut
