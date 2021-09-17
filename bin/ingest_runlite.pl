@@ -106,7 +106,7 @@ __END__
 
 =head1 NAME
 
-    ingest_runlite.pl - validate volumes by running all stages through METS generation
+    ingest_runlite.pl - ingest item or a list of items (without using the queue)
 
 =head1 SYNOPSIS
 

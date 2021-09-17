@@ -2,9 +2,14 @@
 
 use strict;
 use warnings;
+
+use FindBin;
+use lib "$FindBin::Bin/../../lib";
+
 use DBI;
 use HTFeed::Config qw(get_config);
 use HTFeed::DBTools qw(get_dbh);
+use HTFeed::Log {root_logger => 'INFO, screen'};
 use File::Basename;
 use File::Pairtree qw(ppath2id s2ppchars);
 use HTFeed::Volume;
@@ -171,6 +176,7 @@ while ( my $line = <RUN> ) {
         or $file =~ /pre_uplift.mets.xml$/;    # ignore backup mets
       if ( $file !~ /^([^.]+)\.(zip|mets.xml)$/ ) {
         print("BAD_FILE $path $file\n");
+        next;
       }
       my $dir_barcode = $1;
       my $ext         = $2;
