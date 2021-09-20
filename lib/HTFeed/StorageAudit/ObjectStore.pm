@@ -10,6 +10,7 @@ use File::Temp;
 use HTFeed::Config qw(get_config);
 use HTFeed::DBTools qw(get_dbh);
 use HTFeed::Volume;
+use HTFeed::Storage::S3;
 
 use base qw(HTFeed::StorageAudit);
 
@@ -53,7 +54,7 @@ sub storage_object_path {
   return $obj->{tmpdir};
 }
 
-sub all_objects {
+sub objects_to_audit {
   my $self = shift;
 
   $self->_request_object($self->random_object());

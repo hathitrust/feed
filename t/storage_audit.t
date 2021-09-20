@@ -154,7 +154,7 @@ describe "HTFeed::StorageAudit" => sub {
 
     it "fails fixity check when METS checksum is altered" => sub {
       my $audit = $vars{storage}->auditor();
-      my $obj = $audit->all_objects()->[0];
+      my $obj = $audit->objects_to_audit()->[0];
       `sed -i s/2d40d65c1aecd857b3f780e85bc9bd92/2d40d65c1aecd857b3f780e85bc9bd91/g $obj->{mets_path}`;
       my $errs = $audit->run_fixity_check($obj);
       is($errs, 1, 'run_fixity_check returns 1 error');
@@ -240,6 +240,28 @@ describe "HTFeed::StorageAudit" => sub {
     };
 
     it_should_behave_like "all storages";
+
+    it "updates lastmd5check on successful fixity check" => sub {
+      my $audit = $vars{storage}->auditor();
+      my $obj = $audit->random_object();
+      my @sql_args = ($obj->{namespace},$obj->{objid},$obj->{version},$vars{storage}->{name});
+
+      # backdate lastmd5check
+      my $update_sql = 'UPDATE feed_backups SET lastmd5check = ?' .
+                ' WHERE namespace = ? AND id = ? and version = ? and storage_name = ?';
+      get_dbh->prepare($update_sql)->execute('2008-01-01 00:00:00',@sql_args);
+
+      my $sql = 'SELECT lastmd5check FROM feed_backups' .
+                ' WHERE namespace = ? AND id = ? and version = ? and storage_name = ?';
+
+      my $prev_lastmd5check = (get_dbh->selectrow_array($sql,undef,@sql_args))[0];
+
+      $audit->run_fixity_check($obj);
+
+      my $new_lastmd5check = (get_dbh->selectrow_array($sql,undef,@sql_args))[0];
+      is($new_lastmd5check ne $prev_lastmd5check,1,'lastmd5check is updated');
+    };
+
   };
 
   describe "HTFeed::StorageAudit::ObjectStore" => sub {
@@ -264,9 +286,9 @@ describe "HTFeed::StorageAudit" => sub {
       };
     };
 
-    describe "#all_objects" => sub {
+    describe "#objects_to_audit" => sub {
       it "records restore_request for zip and METS" => sub {
-        my $objects = $vars{storage}->auditor()->all_objects();
+        my $objects = $vars{storage}->auditor()->objects_to_audit();
         my $sql = 'SELECT COUNT(*) FROM feed_backups' .
                   ' WHERE namespace = ? AND id = ? AND version = ?' .
                   ' AND restore_request IS NOT NULL';
@@ -276,7 +298,7 @@ describe "HTFeed::StorageAudit" => sub {
 
       it "holds on to objects that are still pending" => sub {
         $ENV{S3_HEAD_OBJECT_RESTORE_PENDING} = 1;
-        my $objects = $vars{storage}->auditor()->all_objects();
+        my $objects = $vars{storage}->auditor()->objects_to_audit();
         is(scalar @$objects, 0, 'no objects available from Glacier');
         delete $ENV{S3_HEAD_OBJECT_RESTORE_PENDING};
       };
