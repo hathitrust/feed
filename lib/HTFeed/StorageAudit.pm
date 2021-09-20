@@ -39,6 +39,8 @@ sub for_storage_name {
   my $storage_config = get_config('storage_classes')->{$storage_name};
   die "No configuration found for storage '$storage_name'" unless defined $storage_config;
 
+  eval "require $storage_config->{class};";
+
   return $storage_config->{class}->zip_audit_class->new(storage_name => $storage_name);
 }
 
@@ -126,7 +128,7 @@ sub random_object {
 # In the case of AWS Glacier, it is one or more objects selected in a previous run
 # that have been restored in the intervening time.
 # These are the objects on the filesystem ready for checksumming.
-sub all_objects {
+sub objects_to_audit {
   my $self = shift;
 
   return [$self->random_object()];
@@ -172,7 +174,7 @@ sub run_fixity_check {
   my $obj  = shift;
 
   my $error_count = 0;
-  my $objects = (defined $obj) ? [$obj] : $self->all_objects();
+  my $objects = (defined $obj) ? [$obj] : $self->objects_to_audit();
   unless (0 < scalar @$objects) {
     get_logger->trace("no auditable files: returning");
     return $error_count;
@@ -188,10 +190,10 @@ sub run_fixity_check {
       my $sql = 'UPDATE feed_backups SET md5check_ok=?,lastmd5check=CURRENT_TIMESTAMP,restore_request=NULL'.
                 ' WHERE namespace=? AND id=? AND version=? AND storage_name=?';
       execute_stmt($sql, ($db_ok && $mets_ok)? '1' : '0', $obj->{namespace},
-                   $obj->{objid}, $obj->{version}, $self->{storage_nanme});
+                   $obj->{objid}, $obj->{version}, $self->{storage_name});
     };
     if ($@) {
-      $self->set_error($obj, 'CANT_ZIPCHECK', "$obj->{version} $self->{storage_name}: $@");
+      $self->set_error($obj, 'CANT_ZIPCHECK', version => $obj->{version}, storage_name => $self->{storage_name}, error => $@);
     }
   }
   return $error_count;

@@ -22,6 +22,7 @@ sub for_volume {
 
   foreach my $storage_name (keys %$config) {
     my $storage_config = $config->{$storage_name};
+    eval "require $storage_config->{class};";
     push(@storages, $storage_config->{class}->new(volume => $volume,
                                                   config => $storage_config,
                                                   name   => $storage_name));
@@ -121,7 +122,7 @@ sub encrypt {
 sub encrypted_by_default {
   my $self = shift;
 
-  return 0;
+  return exists $self->{config}{encryption_key};
 }
 
 # For interacting with objects already in storage,
