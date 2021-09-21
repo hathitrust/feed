@@ -105,8 +105,4 @@ Returns whether files in this filegroup should be used in the METS structMap.
 The default is that files are used in a structMap. Override this by setting
 structmap => 0.
 
-=back
-
-INSERT_UNIVERSITY_OF_MICHIGAN_COPYRIGHT_INFO_HERE
-
 =cut

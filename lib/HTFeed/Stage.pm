@@ -267,8 +267,4 @@ Log info message
 Do cleaning that is appropriate after failure
 Run automatically by clean() when needed
 
-=back
-
-INSERT_UNIVERSITY_OF_MICHIGAN_COPYRIGHT_INFO_HERE
-
 =cut

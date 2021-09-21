@@ -357,8 +357,4 @@ Returns true if the given barcode is valid for a book according to the common
 
 luhn_is_valid($systemid, $barcode);
 
-=back
-
-INSERT_UNIVERSITY_OF_MICHIGAN_COPYRIGHT_INFO_HERE
-
 =cut

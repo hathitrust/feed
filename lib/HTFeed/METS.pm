@@ -1239,8 +1239,4 @@ Validate the METS XML against the defined schema.
 
 Do the cleaning that is appropriate on stage failure.
 
-=back
-
-INSERT_UNIVERSITY_OF_MICHIGAN_COPYRIGHT_INFO_HERE
-
 =cut
