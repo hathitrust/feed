@@ -5,6 +5,8 @@ use Test::Spec;
 use HTFeed::Test::SpecSupport qw(mock_zephir);
 use HTFeed::Test::Support qw(load_db_fixtures);
 use HTFeed::Config qw(set_config);
+use HTFeed::PackageType::Simple::Unpack;
+use HTFeed::PackageType::Simple::VerifyManifest;
 
 sub unpacked_volume {
   my $objid = shift;
@@ -54,6 +56,7 @@ describe "HTFeed::PackageType::Simple" => sub {
   describe "checksum.md5" => sub {
     it "reports a relevant error when checksum.md5 is missing" => sub {
       eval { unpack_and_verify("no_checksum"); };
+      printf STDERR "EVAL STATUS: $@\n";
       ok($testlog->matches(qr(Missing file.*checksum.md5)));
     };
 
@@ -103,9 +106,51 @@ describe "HTFeed::PackageType::Simple" => sub {
     it "reports a relevant error when meta.yml is malformed" => sub {
       my $volume = unpacked_volume("bad_meta_yml");
       eval { HTFeed::PackageType::Simple::SourceMETS->new(volume => $volume)->run(); };
-
       ok($testlog->matches(qr(File validation failed.*meta\.yml)s));
     }
+  };
+};
+
+describe "HTFeed::PackageType::Simple::Download" => sub {
+  use HTFeed::PackageType::Simple::Download;
+  my $tmpdirs;
+  my $testlog;
+
+  before all => sub {
+    load_db_fixtures;
+    $tmpdirs = HTFeed::Test::TempDirs->new();
+    $testlog = HTFeed::Test::Logger->new();
+    set_config(0,'stop_on_error');
+    set_config($tmpdirs->test_home . "/fixtures/rclone_config.conf", 'rclone_config_path');
+  };
+
+  before each => sub {
+    $tmpdirs->setup_example;
+    $testlog->reset;
+  };
+
+  after each => sub {
+    $tmpdirs->cleanup_example;
+  };
+
+  after all => sub {
+    $tmpdirs->cleanup;
+  };
+
+  describe "download stage" => sub {
+    it "downloads the file" => sub {
+      my $volume = HTFeed::Volume->new(
+        namespace => 'test',
+        objid => 'test_objid',
+        packagetype => 'simple');
+      my $download = $volume->get_sip_location();
+      ok(!-f $download);
+      my $stage = HTFeed::PackageType::Simple::Download->new(volume => $volume);
+      $stage->{rclone} = "$FindBin::Bin/bin/rclone_stub.pl";
+      $stage->run();
+      ok($stage->succeeded());
+      ok(-f $download);
+    };
   };
 };
 

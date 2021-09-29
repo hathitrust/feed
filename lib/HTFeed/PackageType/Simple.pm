@@ -81,7 +81,8 @@ our $config = {
 
     # what stage to run given the current state
     stage_map => {
-        ready             => 'HTFeed::PackageType::Simple::Unpack',
+        ready        => 'HTFeed::PackageType::Simple::Download',
+        downloaded   => 'HTFeed::PackageType::Simple::Unpack',
         unpacked     => 'HTFeed::PackageType::Simple::VerifyManifest',
         manifest_verified => 'HTFeed::PackageType::Simple::ImageRemediate',
         images_remediated => 'HTFeed::PackageType::Simple::SourceMETS',
@@ -91,7 +92,6 @@ our $config = {
         metsed     => 'HTFeed::Stage::Handle',
         handled    => 'HTFeed::Stage::Collate',
     },
-
 
     # What PREMIS events to include in the source METS file
     source_premis_events => [
