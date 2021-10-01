@@ -14,7 +14,8 @@ BEGIN{
         description => "Base class for HathiTrust namespaces",
         packagetypes => ['singleimage'],
         # timezone to use when not specified in dates. none by default
-        default_timezone => ''
+        default_timezone => '',
+        dropbox_folder => undef
     };
 
 }
@@ -65,18 +66,12 @@ sub get {
         $ns_pkgtype_override = ${"${class}::packagetype_overrides"}->{$packagetype_id};
     }
 
-    if (defined $ns_pkgtype_override and defined $ns_pkgtype_override->{$config_var}) {
+    if (defined $ns_pkgtype_override and exists $ns_pkgtype_override->{$config_var}) {
         return $ns_pkgtype_override->{$config_var};
-    } elsif (defined $ns_config->{$config_var}) {
+    } elsif (exists $ns_config->{$config_var}) {
         return $ns_config->{$config_var};
     } elsif (defined $self->{'packagetype'}) {
-        my $pkgtype_var = eval { $self->{'packagetype'}->get($config_var);
-        };
-        if($@) {
-            croak("Can't find namespace/packagetype configuration variable $config_var");
-        } else {
-            return $pkgtype_var;
-        }
+        return $self->{'packagetype'}->get($config_var);
     }
 
 }

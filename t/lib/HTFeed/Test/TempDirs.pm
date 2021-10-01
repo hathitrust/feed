@@ -31,7 +31,7 @@ sub test_home {
 sub staging_dirtypes {
   my $self = shift;
 
-  return qw(ingest preingest zipfile zip download ingested punted);
+  return qw(ingest preingest zipfile zip download ingested punted fetch);
 }
 
 sub repo_dirtypes {
