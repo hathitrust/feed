@@ -120,7 +120,7 @@ sub get {
 
     my $config = ${"${class}::config"};
 
-    if (defined $config->{$config_var}) {
+    if (exists $config->{$config_var}) {
         return $config->{$config_var};
     } else {
         croak("Can't find namespace/packagetype configuration variable $config_var");

@@ -23,12 +23,9 @@ sub run {
       return 0;
     }
     my $nspkg = $volume->get_nspkg();
-    my $dropbox_folder;
-    eval { 
-      $dropbox_folder = $nspkg->get('dropbox_folder');
-    };
-    if ($@) {
-      $self->set_error('StageFailed', detail => $@);
+    my $dropbox_folder = $nspkg->get('dropbox_folder');
+    if (!$dropbox_folder) {
+      $self->set_error('MissingFile', file => $sip_loc, detail => "SIP not present and Dropbox folder not configured");
       return $self->succeeded();
     }
     my $filename = $volume->get_SIP_filename();
@@ -45,8 +42,6 @@ sub run {
       $self->set_error('StageFailed', detail => $output);
       return 0;
     }
-    my $outcome = PREMIS::Outcome->new('pass');
-    $volume->record_premis_event("package_inspection", outcome => $outcome);
   }
   $self->_set_done();
   return $self->succeeded();
