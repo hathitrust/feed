@@ -17,34 +17,42 @@ sub run {
   if (-f $sip_loc) {
     get_logger->trace("$sip_loc already exists");
   } else {
-    my $rclone_config_path = get_config('rclone_config_path');
-    unless (defined $rclone_config_path) {
-      $self->set_error('StageFailed', detail => "rclone_config_path not configured");
-      return 0;
-    }
-    my $nspkg = $volume->get_nspkg();
-    my $dropbox_folder = $nspkg->get('dropbox_folder');
-    if (!$dropbox_folder) {
-      $self->set_error('MissingFile', file => $sip_loc, detail => "SIP not present and Dropbox folder not configured");
-      return $self->succeeded();
-    }
-    my $filename = $volume->get_SIP_filename();
-    my $url = "$download_base$dropbox_folder/$filename";
-    my $sip_directory = sprintf "%s/%s", $volume->get_sip_directory(), $volume->get_namespace();
-    if (not -d $sip_directory) {
-      get_logger->trace("Creating download directory $sip_directory");
-      mkdir($sip_directory, 0770) or $self->set_error('OperationFailed', operation=>'mkdir', detail=>"$sip_directory could not be created");
-    }
-    my $cmd = $self->rclone_command($rclone_config_path, $url, $sip_directory);
-    get_logger->trace("Running $cmd");
-    my $output = `$cmd `;
-    if (${^CHILD_ERROR_NATIVE} != 0) {
-      $self->set_error('StageFailed', detail => $output);
-      return 0;
-    }
+    $self->download($volume);
   }
   $self->_set_done();
   return $self->succeeded();
+}
+
+sub download {
+  my $self   = shift;
+  my $volume = shift;
+
+  my $rclone_config_path = get_config('rclone_config_path');
+  unless (defined $rclone_config_path) {
+    $self->set_error('StageFailed', detail => "rclone_config_path not configured");
+    return;
+  }
+  my $nspkg = $volume->get_nspkg();
+  my $dropbox_folder = $nspkg->get('dropbox_folder');
+  if (!$dropbox_folder) {
+    $self->set_error('MissingFile', file => $volume->get_sip_location(),
+                     detail => "SIP not present and Dropbox folder not configured");
+    return;
+  }
+  my $filename = $volume->get_SIP_filename();
+  my $url = "$download_base$dropbox_folder/$filename";
+  my $sip_directory = sprintf "%s/%s", $volume->get_sip_directory(), $volume->get_namespace();
+  if (not -d $sip_directory) {
+    get_logger->trace("Creating download directory $sip_directory");
+    mkdir($sip_directory, 0770) or $self->set_error('OperationFailed', operation=>'mkdir',
+                                                    detail=>"$sip_directory could not be created");
+  }
+  my $cmd = $self->rclone_command($rclone_config_path, $url, $sip_directory);
+  get_logger->trace("Running $cmd");
+  my $output = `$cmd `;
+  if (${^CHILD_ERROR_NATIVE} != 0) {
+    $self->set_error('StageFailed', detail => $output);
+  }
 }
 
 sub rclone {

@@ -144,12 +144,10 @@ describe "HTFeed::PackageType::Simple::Download" => sub {
         objid => 'test_objid',
         packagetype => 'simple');
       my $download = $volume->get_sip_location();
-      ok(!-f $download);
       my $stage = HTFeed::PackageType::Simple::Download->new(volume => $volume);
       $stage->{rclone} = "$FindBin::Bin/bin/rclone_stub.pl";
       $stage->run();
-      ok($stage->succeeded());
-      ok(-f $download);
+      ok($stage->succeeded() && -f $download);
     };
   };
 };
