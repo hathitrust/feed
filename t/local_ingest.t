@@ -7,6 +7,7 @@ use HTFeed::Test::Support qw(load_db_fixtures);
 use HTFeed::Config qw(set_config);
 use HTFeed::PackageType::Simple::Unpack;
 use HTFeed::PackageType::Simple::VerifyManifest;
+use File::Path qw(remove_tree);
 
 sub unpacked_volume {
   my $objid = shift;
@@ -115,6 +116,7 @@ describe "HTFeed::PackageType::Simple::Download" => sub {
   use HTFeed::PackageType::Simple::Download;
   my $tmpdirs;
   my $testlog;
+  my $save_rclone;
 
   before all => sub {
     load_db_fixtures;
@@ -127,10 +129,13 @@ describe "HTFeed::PackageType::Simple::Download" => sub {
   before each => sub {
     $tmpdirs->setup_example;
     $testlog->reset;
+    $save_rclone = $ENV{rclone};
+    $ENV{rclone} = "$FindBin::Bin/bin/rclone_stub.pl";
   };
 
   after each => sub {
     $tmpdirs->cleanup_example;
+    $ENV{rclone} = $save_rclone;
   };
 
   after all => sub {
@@ -145,9 +150,59 @@ describe "HTFeed::PackageType::Simple::Download" => sub {
         packagetype => 'simple');
       my $download = $volume->get_sip_location();
       my $stage = HTFeed::PackageType::Simple::Download->new(volume => $volume);
-      $stage->{rclone} = "$FindBin::Bin/bin/rclone_stub.pl";
       $stage->run();
       ok($stage->succeeded() && -f $download);
+    };
+  };
+};
+
+describe "HTFeed::PackageType::Simple::Volume" => sub {
+  use HTFeed::PackageType::Simple::Download;
+  my $tmpdirs;
+  my $testlog;
+  my $save_rclone;
+  my $fetchdir;
+
+  before all => sub {
+    load_db_fixtures;
+    $tmpdirs = HTFeed::Test::TempDirs->new();
+    $testlog = HTFeed::Test::Logger->new();
+    set_config(0,'stop_on_error');
+    set_config($tmpdirs->test_home . "/fixtures/rclone_config.conf", 'rclone_config_path');
+  };
+
+  before each => sub {
+    $tmpdirs->setup_example;
+    $testlog->reset;
+    $save_rclone = $ENV{rclone};
+    $ENV{rclone} = "$FindBin::Bin/bin/rclone_stub.pl";
+    $fetchdir = $tmpdirs->dir_for("fetch");
+    set_config($fetchdir,'staging','fetch');
+    mkdir("$fetchdir/test");
+    system("touch","$fetchdir/test/test_objid.zip");
+    system("touch","$fetchdir/test/test_objid.xml");
+  };
+
+  after each => sub {
+    $tmpdirs->cleanup_example;
+    $ENV{rclone} = $save_rclone;
+    remove_tree($fetchdir);
+  };
+
+  after all => sub {
+    $tmpdirs->cleanup;
+  };
+
+  describe "#clean_sip_success" => sub {
+    it "calls rclone to remove SIP from Dropbox" => sub {
+      my $volume = HTFeed::Volume->new(
+        namespace => 'test',
+        objid => 'test_objid',
+        packagetype => 'simple');
+      eval {
+        $volume->clean_sip_success();
+      };
+      ok(!$@);
     };
   };
 };

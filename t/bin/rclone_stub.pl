@@ -24,11 +24,20 @@ Getopt::Long::GetOptions('dry-run' => \$opt_dry_run,
 die "rclone --config file not found" unless -e $opt_config;
 
 if ($subcommand eq 'copy') {
+  # Copy a canned fixture, ignoring the source URL.
   my $src = "$FindBin::Bin/../fixtures/volumes/test.zip";
   my $dest = $ARGV[-1];
+  die "destination $dest is not a directory" unless -d $dest;
+
   my $target_file = File::Basename::basename($ARGV[-2]);
   $dest .= "/$target_file";
-  File::Copy::copy($src, $dest) or die "rclone copy $src -> $dest failed: $!";
+  if (!$opt_dry_run) {
+    File::Copy::copy($src, $dest) or die "rclone copy $src -> $dest failed: $!";
+  }
+} elsif ($subcommand eq 'delete') {
+  die 'single parameter expected for delete command' unless scalar @ARGV == 1;
+
+  my $dest = $ARGV[-1];
 } else {
   die "unknown rclone subcommand '$subcommand'";
 }
