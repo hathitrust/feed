@@ -13,6 +13,18 @@ sub new {
   return $self;
 }
 
+sub copy {
+  my $self = shift;
+
+  $self->run('copy', @_);
+}
+
+sub delete {
+  my $self = shift;
+
+  $self->run('delete', @_);
+}
+
 sub run {
   my $self       = shift;
   my $subcommand = shift;
@@ -32,7 +44,7 @@ sub run {
 sub _rclone {
   my $self = shift;
 
-  return $ENV{rclone} || 'rclone';
+  return get_config('rclone') || 'rclone';
 }
 
 1;

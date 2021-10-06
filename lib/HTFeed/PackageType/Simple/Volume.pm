@@ -122,7 +122,7 @@ sub clean_sip_success {
 
   $self->SUPER::clean_sip_success();
   my $rclone = HTFeed::Rclone->new;
-  $rclone->run('delete', $self->dropbox_url());
+  $rclone->delete($self->dropbox_url());
 }
 
 sub dropbox_url {

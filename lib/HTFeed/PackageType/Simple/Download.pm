@@ -42,7 +42,7 @@ sub download {
   }
   eval {
     my $rclone = HTFeed::Rclone->new;
-    $rclone->run('copy', $url, $sip_directory);
+    $rclone->copy($url, $sip_directory);
   };
   if ($@) {
     $self->set_error('OperationFailed', detail => $@);
