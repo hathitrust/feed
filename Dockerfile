@@ -11,7 +11,8 @@ RUN apt-get update && apt-get install -y \
     libtest-most-perl \
     libtest-spec-perl \
     mariadb-client \
-    netcat
+    netcat \
+    rclone
 
 ARG UNAME=ingest
 ARG UID=1000

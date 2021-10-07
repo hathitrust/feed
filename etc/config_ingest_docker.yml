@@ -27,3 +27,5 @@ handle:
     datasource: dbi:mysql:handle:mariadb
     username: feed
     password: feed
+
+rclone_config_path: /usr/local/feed/etc/rclone.conf
