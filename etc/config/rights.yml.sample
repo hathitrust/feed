@@ -1,13 +1,14 @@
 # For development use only - override for production
 
-rights:
-# Database with the rights_current table
-  database: dbi:mysql:ht:mariadb
+database:
+  datasource: dbi:mysql:ht:mariadb
   # The username used to connect to the database.
   username: feed
   # The password used to connect to the database.
   password: feed
 
+rights:
+# Database with the rights_current table
   # Location of rights files
   rights_dir: /usr/local/feed/var/rights
   # Where to archive rights files after they are loaded
