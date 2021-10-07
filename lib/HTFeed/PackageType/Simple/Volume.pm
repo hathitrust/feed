@@ -117,6 +117,27 @@ sub get_checksums{
 
 }
 
+sub clean_sip_success {
+  my $self = shift;
+
+  $self->SUPER::clean_sip_success();
+  my $rclone = HTFeed::Rclone->new;
+  $rclone->delete($self->dropbox_url());
+}
+
+sub dropbox_url {
+  my $self = shift;
+
+  my $download_base = 'dropbox:';
+  my $nspkg = $self->get_nspkg();
+  my $dropbox_folder = $nspkg->get('dropbox_folder');
+  if (not defined $dropbox_folder) {
+    croak('Dropbox folder not configured');
+  }
+  my $filename = $self->get_SIP_filename();
+  return "$download_base$dropbox_folder/$filename";
+}
+
 1;
 
 __END__
