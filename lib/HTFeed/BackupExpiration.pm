@@ -31,22 +31,26 @@ sub run {
 
   my $config = get_config('storage_classes');
   my $storage_config = $config->{$self->{storage_name}};
-  # Get a list of all volumes with this storage name that have one or more old
-  # versions. This query is about finding sets of volumes, nothing more granular.
+  # Get a list of all volumes with this storage name that have at least one new version
+  # and at least one old version, and at least three in all. Those that have multiple old
+  # versions will be culled below.
   my $sth = get_dbh()->prepare(<<'SQL');
-    SELECT namespace,id,MAX(version) AS max_version
+    SELECT namespace,id
     FROM feed_backups
     WHERE deleted IS NULL
       AND storage_name=?
     GROUP BY namespace,id
-    HAVING COUNT(*) > 1
+    HAVING COUNT(*) > 2
       AND MIN(version) < DATE_FORMAT(DATE_SUB(NOW(), INTERVAL 180 DAY),"%Y%m%d%H%i%S")
+      AND MAX(version) >= DATE_FORMAT(DATE_SUB(NOW(), INTERVAL 180 DAY),"%Y%m%d%H%i%S")
 SQL
 
   $sth->execute($self->{storage_name});
   while (my $row = $sth->fetchrow_hashref) {
-    # Get the versions in this group that can be deleted:
-    # Everything except the newest (regardless of its age), and except new versions.
+    # Get the versions in this group that can be deleted: select only the old versions,
+    # sort from most recent and offset by one to exclude the newest.
+    # MySQL reference gives an example of using an arbitrary large number to
+    # fetch remainder after offset, seems pretty sketchy to me.
     my $versions_sth = get_dbh()->prepare(<<'SQL');
       SELECT version
       FROM feed_backups
@@ -55,10 +59,9 @@ SQL
         AND namespace=?
         AND id=?
         AND version < DATE_FORMAT(DATE_SUB(NOW(), INTERVAL 180 DAY),"%Y%m%d%H%i%S")
-        AND version!=?
+        ORDER BY version DESC LIMIT 1,999999999
 SQL
-    $versions_sth->execute($self->{storage_name}, $row->{namespace},
-                           $row->{id}, $row->{max_version});
+    $versions_sth->execute($self->{storage_name}, $row->{namespace}, $row->{id});
     foreach my $version (map { $_->[0]; } @{$versions_sth->fetchall_arrayref}) {
       my $volume = new HTFeed::Volume(namespace => $row->{namespace},
                                       objid => $row->{id},
