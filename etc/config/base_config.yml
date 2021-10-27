@@ -63,15 +63,6 @@ release_states:
 # FIXME: Should this be on a shared volume? How to handle graceful exit?
 stop_file: /usr/local/feed/etc/STOPFEED
 
-# Directories for downloading and moving material
-staging:
-  # each package type will have a separate fetch directory
-  fetch: $sip_root
-  ingest: $staging_root/ingest
-  zip: $staging_root/zip
-  zipfile: $staging_root/zipfile
-  preingest: $staging_root/preingest
-
 staging:
   # where to look for material to ingest
   fetch: $sip_root/toingest

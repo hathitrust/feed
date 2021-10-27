@@ -12,16 +12,20 @@ use HTFeed::Version;
 use HTFeed::StagingSetup;
 use HTFeed::Job;
 
-use HTFeed::Config;
+use HTFeed::Config qw(get_config set_config);
 use HTFeed::Volume;
 use HTFeed::DBTools qw(get_queued lock_volumes count_locks update_queue disconnect);
 use Log::Log4perl qw(get_logger);
+use File::Path qw(remove_tree);
 
 use HTFeed::ServerStatus qw(continue_running_server check_disk_usage);
 use Sys::Hostname;
 use Mail::Mailer;
 use POSIX ":sys_wait_h";
 
+# dynamically determine tmp dir based on hostname
+my $node_staging = get_config('staging_root') . '/'. hostname;
+set_config($node_staging,'staging_root');
 
 print("feedd running, waiting for something to ingest, pid = $$\n");
 
@@ -35,7 +39,12 @@ my $clean = get_config('clean');
 # run end block on SIGINT and SIGTERM
 $SIG{'INT'} =
     sub {
-      print "Caught SIGINT; releasing locked volumes..\n";
+      print "Caught SIGINT\n";
+      if($clean) {
+        print "cleaning up $node_staging..\n";
+        remove_tree $node_staging if $clean;
+      }
+      print "releasing locked volumes..\n";
       HTFeed::DBTools::reset_in_flight_locks();
         exit;
     };
@@ -43,6 +52,11 @@ $SIG{'INT'} =
 $SIG{'TERM'} = 
     sub {
       print "Caught SIGTERM; releasing locked volumes..\n";
+      if($clean) {
+        print "cleaning up $node_staging..\n";
+        remove_tree $node_staging if $clean;
+      }
+      print "releasing locked volumes..\n";
       HTFeed::DBTools::reset_in_flight_locks();
         exit;
     };
