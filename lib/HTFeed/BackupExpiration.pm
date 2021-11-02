@@ -31,26 +31,20 @@ sub run {
 
   my $config = get_config('storage_classes');
   my $storage_config = $config->{$self->{storage_name}};
-  # Get a list of all volumes with this storage name that have at least one new version
-  # and at least one old version, and at least three in all. Those that have multiple old
-  # versions will be culled below.
+  # find everything with more than one version that is at least 6 months old
+  # delete all but the most recent > 6 months old version
   my $sth = get_dbh()->prepare(<<'SQL');
     SELECT namespace,id
     FROM feed_backups
     WHERE deleted IS NULL
       AND storage_name=?
+      AND version < DATE_FORMAT(DATE_SUB(NOW(), INTERVAL 180 DAY),"%Y%m%d%H%i%S")
     GROUP BY namespace,id
-    HAVING COUNT(*) > 2
-      AND MIN(version) < DATE_FORMAT(DATE_SUB(NOW(), INTERVAL 180 DAY),"%Y%m%d%H%i%S")
-      AND MAX(version) >= DATE_FORMAT(DATE_SUB(NOW(), INTERVAL 180 DAY),"%Y%m%d%H%i%S")
+    HAVING COUNT(*) > 1
 SQL
 
   $sth->execute($self->{storage_name});
   while (my $row = $sth->fetchrow_hashref) {
-    # Get the versions in this group that can be deleted: select only the old versions,
-    # sort from most recent and offset by one to exclude the newest.
-    # MySQL reference gives an example of using an arbitrary large number to
-    # fetch remainder after offset, seems pretty sketchy to me.
     my $versions_sth = get_dbh()->prepare(<<'SQL');
       SELECT version
       FROM feed_backups
@@ -59,16 +53,18 @@ SQL
         AND namespace=?
         AND id=?
         AND version < DATE_FORMAT(DATE_SUB(NOW(), INTERVAL 180 DAY),"%Y%m%d%H%i%S")
-        ORDER BY version DESC LIMIT 1,999999999
+        ORDER BY version DESC
 SQL
     $versions_sth->execute($self->{storage_name}, $row->{namespace}, $row->{id});
-    foreach my $version (map { $_->[0]; } @{$versions_sth->fetchall_arrayref}) {
+    my @versions = map { $_->[0]; } @{$versions_sth->fetchall_arrayref};
+    shift @versions; # jettison the most recent
+    foreach my $version (@versions) {
       my $volume = new HTFeed::Volume(namespace => $row->{namespace},
                                       objid => $row->{id},
                                       package_type => 'ht');
-      my $storage = $storage_config->{class}->new(volume    => $volume,
-                                                  config    => $storage_config,
-                                                  name      => $self->{storage_name});
+      my $storage = $storage_config->{class}->new(volume => $volume,
+                                                  config => $storage_config,
+                                                  name   => $self->{storage_name});
       unless (defined $storage) {
         die "Unable to get storage for $volume->{namespace}.$volume->{objid}";
       }
