@@ -119,74 +119,87 @@ describe "HTFeed::BackupExpiration" => sub {
       is($exp->{storage_name}, $vars{storage_name}, 'expiration has correct storage name');
     };
 
-    it "does not do anything with a single version" => sub {
-      my $storage = prepare_storage($vars{storage_name}, old_random_timestamp());
-      my $exp = HTFeed::BackupExpiration->new(storage_name => $vars{storage_name});
-      $exp->run();
-      my $deleted = count_deleted_objects('test', 'test', $storage->{timestamp});
-      is($deleted, 0, 'object is not deleted');
-      ok(!mets_deleted($storage), "new ($storage->{timestamp}) mets left intact");
-      ok(!zip_deleted($storage), "new ($storage->{timestamp}) zip left intact");
-    };
-
-    it "deletes old versions when there is a new one" => sub {
-      my @old_versions;
-      foreach my $n (1 .. 2) {
-        my $storage = prepare_storage($vars{storage_name}, old_random_timestamp());
-        push @old_versions, $storage;
+    it "deletes nothing when all versions are < 6 months old" => sub {
+      my @versions;
+      foreach my $n (1 .. 3) {
+        my $storage = prepare_storage($vars{storage_name}, new_random_timestamp());
+        push @versions, $storage;
       }
-      my $storage = prepare_storage($vars{storage_name}, new_random_timestamp());
       my $exp = HTFeed::BackupExpiration->new(storage_name => $vars{storage_name});
       $exp->run();
       my $deleted = count_deleted_objects('test', 'test');
-      is($deleted, 2, 'two old objects marked with feed_backups.deleted=1');
-      $deleted = count_deleted_objects('test', 'test', $storage->{timestamp});
-      is($deleted, 0, 'newest object still feed_backups.deleted=0');
-      foreach my $old_storage (@old_versions) {
-        ok(mets_deleted($old_storage), "old ($old_storage->{timestamp}) mets deleted");
-        ok(zip_deleted($old_storage), "old ($old_storage->{timestamp}) zip deleted");
+      is($deleted, 0, 'no objects deleted');
+      foreach my $storage (@versions) {
+        ok(!mets_deleted($storage), "new ($storage->{timestamp}) mets left intact");
+        ok(!zip_deleted($storage), "new ($storage->{timestamp}) zip left intact");
       }
-      ok(!mets_deleted($storage), "new ($storage->{timestamp}) mets left intact");
-      ok(!zip_deleted($storage), "new ($storage->{timestamp}) zip left intact");
     };
 
-    it "keeps the newest old version" => sub {
+    it "deletes nothing with a single old version and single new one" => sub {
+      my $old_storage = prepare_storage($vars{storage_name}, old_random_timestamp());
+      my $new_storage = prepare_storage($vars{storage_name}, new_random_timestamp());
+      my $exp = HTFeed::BackupExpiration->new(storage_name => $vars{storage_name});
+      $exp->run();
+      my $deleted = count_deleted_objects('test', 'test');
+      is($deleted, 0, 'no objects deleted');
+      ok(!mets_deleted($old_storage), "old ($old_storage->{timestamp}) mets left intact");
+      ok(!zip_deleted($old_storage), "old ($old_storage->{timestamp}) zip left intact");
+      ok(!mets_deleted($new_storage), "new ($new_storage->{timestamp}) mets left intact");
+      ok(!zip_deleted($new_storage), "new ($new_storage->{timestamp}) zip left intact");
+    };
+
+    it "deletes the oldest old versions when there are no new ones" => sub {
       my @old_versions;
-      foreach my $n (1 .. 2) {
+      foreach my $n (1 .. 3) {
         my $storage = prepare_storage($vars{storage_name}, old_random_timestamp());
         push @old_versions, $storage;
       }
-      my ($older, $newer) = @old_versions;
-      if ($old_versions[0]->{timestamp} > $old_versions[1]->{timestamp}) {
-        ($newer, $older) = @old_versions;
-      }
+      @old_versions = sort { $a->{timestamp} cmp $b->{timestamp}; } @old_versions;
+      my $keep = pop @old_versions;
       my $exp = HTFeed::BackupExpiration->new(storage_name => $vars{storage_name});
       $exp->run();
-      my $sql = 'SELECT COUNT(*) FROM feed_backups' .
-                ' WHERE namespace=? AND id=? AND version=? AND deleted=1';
-      my @res = get_dbh->selectrow_array($sql, undef, 'test', 'test', $older->{timestamp});
-      is($res[0], 1, 'older object is marked feed_backups.deleted');
-      ok(mets_deleted($older), "older ($older->{timestamp}) mets deleted");
-      ok(zip_deleted($older), "older ($older->{timestamp}) zip deleted");
-      my $deleted = count_deleted_objects('test', 'test', $newer->{timestamp});
-      is($deleted, 0, 'newer object is not marked feed_backups.deleted');
-      ok(!mets_deleted($newer), "newer ($newer->{timestamp}) mets left intact");
-      ok(!zip_deleted($newer), "newer ($newer->{timestamp}) zip left intact");
+      foreach my $storage (@old_versions) {
+        my $deleted = count_deleted_objects('test', 'test', $storage->{timestamp});
+        is($deleted, 1, 'old object is marked feed_backups.deleted');
+        ok(mets_deleted($storage), "old ($storage->{timestamp}) mets deleted");
+        ok(zip_deleted($storage), "old ($storage->{timestamp}) zip deleted");
+      }
+      my $deleted = count_deleted_objects('test', 'test', $keep->{timestamp});
+      is($deleted, 0, 'new object is not marked feed_backups.deleted');
+      ok(!mets_deleted($keep), "newer ($keep->{timestamp}) mets left intact");
+      ok(!zip_deleted($keep), "newer ($keep->{timestamp}) zip left intact");
     };
 
-    it "keeps all new versions" => sub {
+    it "deletes the oldest old versions when there are new ones" => sub {
+      my @old_versions;
+      foreach my $n (1 .. 3) {
+        my $storage = prepare_storage($vars{storage_name}, old_random_timestamp());
+        push @old_versions, $storage;
+      }
+      @old_versions = sort { $a->{timestamp} cmp $b->{timestamp}; } @old_versions;
+      my $keep = pop @old_versions;
       my @new_versions;
-      foreach my $n (1 .. 2) {
+      foreach my $n (1 .. 3) {
         my $storage = prepare_storage($vars{storage_name}, new_random_timestamp());
         push @new_versions, $storage;
       }
       my $exp = HTFeed::BackupExpiration->new(storage_name => $vars{storage_name});
       $exp->run();
-      my $deleted = count_deleted_objects('test', 'test');
-      is($deleted, 0, 'no objects are marked feed_backups.deleted');
-      foreach my $new_storage (@new_versions) {
-        ok(!mets_deleted($new_storage), "new ($new_storage->{timestamp}) mets left intact");
-        ok(!zip_deleted($new_storage), "new ($new_storage->{timestamp}) zip left intact");
+      foreach my $storage (@old_versions) {
+        my $deleted = count_deleted_objects('test', 'test', $storage->{timestamp});
+        is($deleted, 1, 'old object is marked feed_backups.deleted');
+        ok(mets_deleted($storage), "old ($storage->{timestamp}) mets deleted");
+        ok(zip_deleted($storage), "old ($storage->{timestamp}) zip deleted");
+      }
+      my $deleted = count_deleted_objects('test', 'test', $keep->{timestamp});
+      is($deleted, 0, 'newer object is not marked feed_backups.deleted');
+      ok(!mets_deleted($keep), "newer ($keep->{timestamp}) mets left intact");
+      ok(!zip_deleted($keep), "newer ($keep->{timestamp}) zip left intact");
+      foreach my $storage (@new_versions) {
+        $deleted = count_deleted_objects('test', 'test', $storage->{timestamp});
+        is($deleted, 0, 'new object is not marked feed_backups.deleted');
+        ok(!mets_deleted($storage), "new ($storage->{timestamp}) mets left intact");
+        ok(!zip_deleted($storage), "new ($storage->{timestamp}) zip left intact");
       }
     };
   };
