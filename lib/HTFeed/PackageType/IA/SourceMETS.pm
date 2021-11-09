@@ -60,6 +60,33 @@ sub _add_dmdsecs {
         label  => 'IA metadata'
     );
     $self->{mets}->add_dmd_sec($dmdsec);
+
+    # add reading order info -- see lib/HTFeed/PackageType/Simple/SourceMETS.pm
+    my $page_progression = $metaxml->findvalue("/metadata/page-progression");
+    if ($page_progression) {
+        if ($page_progression ne 'lr' and $page_progression ne 'rl') {
+            $self->set_error('BadValue',file=>"${ia_id}_meta.xml",field=>'page_progression',
+              actual=>$page_progression,expected=>'lr or rl');
+        }
+        my $scanning = ($page_progression eq 'lr')? 'left-to-right' : 'right-to-left';
+        my $reading = $scanning;
+        $self->{mets}->add_schema("gbs", "http://books.google.com/gbs");
+        my $xml = <<EOT;
+<gbs:scanningOrder xmlns:gbs="http://books.google.com/gbs">$scanning</gbs:scanningOrder>
+<gbs:readingOrder xmlns:gbs="http://books.google.com/gbs">$reading</gbs:readingOrder>
+<gbs:coverTag xmlns:gbs="http://books.google.com/gbs">follows-reading-order</gbs:coverTag>
+EOT
+        my $dmdsec = new METS::MetadataSection( 'dmdSec', 'id' => $self->_get_subsec_id("DMD"));
+        my $parser = new XML::LibXML;
+        my $parsed_xml = $parser->parse_balanced_chunk( $xml );
+        $dmdsec->set_xml_node(
+            $parsed_xml,
+            mdtype => 'OTHER',
+            othermdtype => 'Google',
+            label  => 'reading order'
+        );
+        $self->{mets}->add_dmd_sec($dmdsec);
+    }
 }
 
 sub _add_techmds {
