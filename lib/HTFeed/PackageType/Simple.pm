@@ -88,7 +88,7 @@ our $config = {
         images_remediated => 'HTFeed::PackageType::Simple::SourceMETS',
         src_metsed        => 'HTFeed::VolumeValidator',
         validated  => 'HTFeed::Stage::Pack',
-        packed     => 'HTFeed::PackageType::Simple::METS',
+        packed     => 'HTFeed::METS',
         metsed     => 'HTFeed::Stage::Handle',
         handled    => 'HTFeed::Stage::Collate',
     },

@@ -155,9 +155,27 @@ sub _add_dmdsecs {
 
 }
 
-# no techmds by default
+# add reading order techMD if it is present
 sub _add_techmds {
     my $self = shift;
+    my $volume = $self->{volume};
+    my $xc = $volume->get_source_mets_xpc();
+
+    my $reading_order = new METS::MetadataSection( 'techMD',
+        id => $self->_get_subsec_id('TMD'));
+
+    my @mdwraps = $xc->findnodes('//mets:mdWrap[@LABEL="reading order"]');
+    if(@mdwraps == 1) {
+        my $mdwrap = $mdwraps[0];
+
+        my $mets = $self->{mets};
+        $mets->add_schema( "gbs", "http://books.google.com/gbs");
+        $reading_order->set_mdwrap($mdwrap);
+        push(@{ $self->{amd_mdsecs} },$reading_order);
+    } elsif(@mdwraps > 1) {
+        my $count = scalar(@mdwraps);
+        $self->set_error("BadField",field=>"reading order",detail=>"Found $count reading order techMDs, expected 1");
+    }
 }
 
 # generate info from feed_zephir_items and ht_collections table, or throw error if it's missing.

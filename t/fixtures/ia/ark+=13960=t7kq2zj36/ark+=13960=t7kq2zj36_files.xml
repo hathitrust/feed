@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<files>
+  <file name="McGillLibrary-rbsc_isl_majmu-ah-yi-rasa-il-i-cirag_BP165C531917-v1-16275_archive.torrent" source="metadata">
+    <btih>b6c625fabcadc4f8d44196ff99a732b38dddbc92</btih>
+    <mtime>1530993247</mtime>
+    <size>20614</size>
+    <md5>4547fecf1b0432123e71a11750480e95</md5>
+    <crc32>b912359e</crc32>
+    <sha1>f3be76c6fe89da2cefe0bdfccb837f4a7ab9aef1</sha1>
+    <format>Archive BitTorrent</format>
+  </file>
+  <file name="McGillLibrary-rbsc_isl_majmu-ah-yi-rasa-il-i-cirag_BP165C531917-v1-16275_dc.xml" source="original">
+    <format>Dublin Core</format>
+    <mtime>1477062123</mtime>
+    <size>659</size>
+    <md5>c9b01ad821101e823a0e9d117e960fa0</md5>
+    <crc32>b8f90d4d</crc32>
+    <sha1>838ba61fb534a3e11e60a8e3f7447bb4671c6427</sha1>
+  </file>
+  <file name="McGillLibrary-rbsc_isl_majmu-ah-yi-rasa-il-i-cirag_BP165C531917-v1-16275_files.xml" source="original">
+    <format>Metadata</format>
+    <md5>1dae60766b51f5af24ef5aa12abb8fae</md5>
+  </file>
+  <file name="McGillLibrary-rbsc_isl_majmu-ah-yi-rasa-il-i-cirag_BP165C531917-v1-16275_marc.xml" source="original">
+    <mtime>1477062103</mtime>
+    <size>3970</size>
+    <md5>3f23f571245d65bf7c8be91aa71ff706</md5>
+    <crc32>4c9c9414</crc32>
+    <sha1>7069e2b76e73d5e43bfe7601c81b14bc3b02cbef</sha1>
+    <format>MARC</format>
+  </file>
+  <file name="McGillLibrary-rbsc_isl_majmu-ah-yi-rasa-il-i-cirag_BP165C531917-v1-16275_meta.sqlite" source="original">
+    <mtime>1477062110</mtime>
+    <size>9216</size>
+    <md5>92907ee2f128aeb599fea615c4083e2e</md5>
+    <crc32>d595edcc</crc32>
+    <sha1>a3cbc246fd399076632b8872f664ea4395150793</sha1>
+    <format>Metadata</format>
+  </file>
+  <file name="McGillLibrary-rbsc_isl_majmu-ah-yi-rasa-il-i-cirag_BP165C531917-v1-16275_meta.xml" source="original">
+    <mtime>1482421030</mtime>
+    <size>1381</size>
+    <format>Metadata</format>
+    <md5>906fad1003d5699ceae289e3e0aeb25b</md5>
+    <crc32>ddb180a6</crc32>
+    <sha1>ea1d3a9ed85c0508b589de020a70f1142f141197</sha1>
+  </file>
+  <file name="__ia_thumb.jpg" source="original">
+    <mtime>1530993242</mtime>
+    <size>25421</size>
+    <md5>3001ff9e23d2aa70ac2b0ee17d4d855d</md5>
+    <crc32>f27c541d</crc32>
+    <sha1>b6d83fa7eb08ce5301820a46d8b88b7f2b14e7c5</sha1>
+    <format>Item Tile</format>
+    <rotation>0</rotation>
+  </file>
+  <file name="rbsc_isl_majmu-ah-yi-rasa-il-i-cirag_BP165C531917-v1.gif" source="derivative">
+    <format>Animated GIF</format>
+    <original>rbsc_isl_majmu-ah-yi-rasa-il-i-cirag_BP165C531917-v1_jp2.zip</original>
+    <mtime>1477063645</mtime>
+    <size>295557</size>
+    <md5>19b238067cc9bbb71285ac5f6a10ffb1</md5>
+    <crc32>80333ac9</crc32>
+    <sha1>0324e8168770e2699aa261cfecc59ad7279fa5d7</sha1>
+  </file>
+  <file name="rbsc_isl_majmu-ah-yi-rasa-il-i-cirag_BP165C531917-v1.pdf" source="original">
+    <mtime>1477062091</mtime>
+    <size>54132878</size>
+    <md5>a42fb96a51bab20ce9c0f6d728d1ed75</md5>
+    <crc32>60a8c4c3</crc32>
+    <sha1>9b55b7c8e7bc3c0d6e9a68b078a20454259a9769</sha1>
+    <format>Image Container PDF</format>
+  </file>
+  <file name="rbsc_isl_majmu-ah-yi-rasa-il-i-cirag_BP165C531917-v1_abbyy.gz" source="derivative">
+    <format>Abbyy GZ</format>
+    <original>rbsc_isl_majmu-ah-yi-rasa-il-i-cirag_BP165C531917-v1_jp2.zip</original>
+    <mtime>1477081912</mtime>
+    <size>2388926</size>
+    <md5>f91dbef960fc07a3da2ebd5dbf61b1eb</md5>
+    <crc32>5a48dfa7</crc32>
+    <sha1>66ee18f0797f170e08d1fea3cf803e1473a3c18b</sha1>
+  </file>
+  <file name="rbsc_isl_majmu-ah-yi-rasa-il-i-cirag_BP165C531917-v1_djvu.txt" source="derivative">
+    <format>DjVuTXT</format>
+    <original>rbsc_isl_majmu-ah-yi-rasa-il-i-cirag_BP165C531917-v1_djvu.xml</original>
+    <mtime>1477084889</mtime>
+    <size>136505</size>
+    <md5>d0b761ad6316015dfa2490697d3c5e7a</md5>
+    <crc32>4f492f37</crc32>
+    <sha1>15d2f873f9daf38c986b7251cb58e09beb5b0f21</sha1>
+  </file>
+  <file name="rbsc_isl_majmu-ah-yi-rasa-il-i-cirag_BP165C531917-v1_djvu.xml" source="derivative">
+    <format>Djvu XML</format>
+    <original>rbsc_isl_majmu-ah-yi-rasa-il-i-cirag_BP165C531917-v1_abbyy.gz</original>
+    <mtime>1477081953</mtime>
+    <size>2147582</size>
+    <md5>3c56657dc98f46d2a4aef2e81779a847</md5>
+    <crc32>005f2221</crc32>
+    <sha1>fcbd66811f241f7bd054e219b64dd69a3aa4b5bc</sha1>
+  </file>
+  <file name="rbsc_isl_majmu-ah-yi-rasa-il-i-cirag_BP165C531917-v1_jp2.zip" source="derivative">
+    <format>Single Page Processed JP2 ZIP</format>
+    <original>rbsc_isl_majmu-ah-yi-rasa-il-i-cirag_BP165C531917-v1.pdf</original>
+    <mtime>1477063608</mtime>
+    <size>316863112</size>
+    <md5>e7f7ac07ba96f21364de563792f77ec7</md5>
+    <crc32>a34944fb</crc32>
+    <sha1>57775a1bb90b908eba6c806fe2cdb35f82dafce2</sha1>
+  </file>
+  <file name="rbsc_isl_majmu-ah-yi-rasa-il-i-cirag_BP165C531917-v1_scandata.xml" source="derivative">
+    <format>Scandata</format>
+    <original>rbsc_isl_majmu-ah-yi-rasa-il-i-cirag_BP165C531917-v1_djvu.xml</original>
+    <mtime>1477084895</mtime>
+    <size>94376</size>
+    <md5>93cf5c66a946e65983cac1c36557b252</md5>
+    <crc32>80647ccb</crc32>
+    <sha1>cc61ae6bf5ce6c425bb214d03801ee47eebda049</sha1>
+  </file>
+  <file name="rbsc_isl_majmu-ah-yi-rasa-il-i-cirag_BP165C531917-v1_text.pdf" source="derivative">
+    <format>Additional Text PDF</format>
+    <original>rbsc_isl_majmu-ah-yi-rasa-il-i-cirag_BP165C531917-v1_djvu.xml</original>
+    <mtime>1477084884</mtime>
+    <size>50614792</size>
+    <md5>26a878dbdcfc5cf5cf09fcdd1105ba4c</md5>
+    <crc32>d4e59988</crc32>
+    <sha1>0b65db7730b9ebe136abfee32f6e4fe6b0ed9db2</sha1>
+  </file>
+</files>

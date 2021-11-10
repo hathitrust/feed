@@ -81,6 +81,19 @@ sub _add_dmdsecs {
     my $objid = $volume->get_objid();
     my $preingest_directory = $volume->get_preingest_directory();
     $self->_add_marc_from_file("$preingest_directory/marc.xml");
+}
+
+sub _add_techmds {
+  my $self = shift;
+
+  $self->_add_reading_order();
+}
+
+sub _add_reading_order {
+
+    my $self = shift;
+    my $volume = $self->{volume};
+    my $objid = $volume->get_objid();
 
     # add reading order info
     #  <METS:techMD ID="PD1">
@@ -120,16 +133,16 @@ sub _add_dmdsecs {
 <gbs:readingOrder xmlns:gbs="http://books.google.com/gbs">$reading</gbs:readingOrder>
 <gbs:coverTag xmlns:gbs="http://books.google.com/gbs">follows-reading-order</gbs:coverTag>
 EOT
-        my $dmdsec = new METS::MetadataSection( 'dmdSec', 'id' => $self->_get_subsec_id("DMD"));
+        my $reading_order = new METS::MetadataSection( 'techMD', 'id' => $self->_get_subsec_id("TMD"));
         my $parser = new XML::LibXML;
         my $parsed_xml = $parser->parse_balanced_chunk( $xml );
-        $dmdsec->set_xml_node(
+        $reading_order->set_xml_node(
             $parsed_xml,
             mdtype => 'OTHER',
             othermdtype => 'Google',
             label  => 'reading order'
         );
-        $self->{mets}->add_dmd_sec($dmdsec);
+        push(@{ $self->{amd_mdsecs} }, $reading_order);
 
     }
 
