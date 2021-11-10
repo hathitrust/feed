@@ -155,7 +155,7 @@ our $config = {
     # Optional items for download
     non_core_package_items => [ 
     'files.xml',
-    'scanfactors.xml' ],
+    'scanfactors.xml'],
 
     # migrate old 'transformation' events 
     migrate_events => {

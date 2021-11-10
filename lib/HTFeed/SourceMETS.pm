@@ -30,6 +30,10 @@ sub new {
     return $self;
 }
 
+sub _add_techmds {
+  # no-op by default; subclasses can override
+}
+
 sub _add_premis {
     my $self = shift;
     my $volume = $self->{volume};

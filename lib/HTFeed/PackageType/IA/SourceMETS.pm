@@ -34,6 +34,22 @@ sub _add_header {
     $header->add_alt_record_id( "ia.$ia_id", type => 'IAidentifier' );
 }
 
+sub _meta_xml {
+  my $self = shift;
+
+  return $self->{meta_xml} if $self->{meta_xml};
+
+  my $volume = $self->{volume};
+  my $ia_id = $volume->get_ia_id();
+  my $download_directory = $volume->get_download_directory();
+  my $metaxml_path = "$download_directory/${ia_id}_meta.xml";
+  my $parser = new XML::LibXML;
+  $self->{meta_xml} = $parser->parse_file($metaxml_path);
+
+  return $self->{meta_xml};
+
+}
+
 sub _add_dmdsecs {
     my $self = shift;
     my $volume = $self->{volume};
@@ -41,13 +57,11 @@ sub _add_dmdsecs {
     my $download_directory = $volume->get_download_directory();
     my $ia_id = $volume->get_ia_id();
     my $marc_path = "$download_directory/${ia_id}_marc.xml";
-    my $metaxml_path = "$download_directory/${ia_id}_meta.xml";
+    my $metaxml = $self->_meta_xml();
 
     $self->_add_marc_from_file($marc_path);
 
     # Verify arkid in meta.xml matches given arkid
-    my $parser = new XML::LibXML;
-    my $metaxml = $parser->parse_file("$download_directory/${ia_id}_meta.xml");
     my $meta_arkid = $metaxml->findvalue("//identifier-ark");
     if($meta_arkid ne $volume->get_objid()) {
         $self->set_error("NotEqualValues",field=>"identifier-ark",expected=>$objid,actual=>$meta_arkid);
@@ -55,11 +69,20 @@ sub _add_dmdsecs {
 
     my $dmdsec = new METS::MetadataSection( 'dmdSec', 'id' => $self->_get_subsec_id("DMD"));
     $dmdsec->set_xml_file(
-        $metaxml_path,
+        "$download_directory/${ia_id}_meta.xml",
         mdtype => 'OTHER',
         label  => 'IA metadata'
     );
     $self->{mets}->add_dmd_sec($dmdsec);
+}
+
+sub _add_reading_order {
+
+    my $self = shift;
+    my $volume = $self->{volume};
+    my $objid = $volume->get_objid();
+    my $metaxml = $self->_meta_xml();
+    my $ia_id = $volume->get_ia_id();
 
     # add reading order info -- see lib/HTFeed/PackageType/Simple/SourceMETS.pm
     my $page_progression = $metaxml->findvalue("/metadata/page-progression");
@@ -76,16 +99,16 @@ sub _add_dmdsecs {
 <gbs:readingOrder xmlns:gbs="http://books.google.com/gbs">$reading</gbs:readingOrder>
 <gbs:coverTag xmlns:gbs="http://books.google.com/gbs">follows-reading-order</gbs:coverTag>
 EOT
-        my $dmdsec = new METS::MetadataSection( 'dmdSec', 'id' => $self->_get_subsec_id("DMD"));
+        my $reading_order = new METS::MetadataSection( 'techMD', 'id' => $self->_get_subsec_id("TMD"));
         my $parser = new XML::LibXML;
         my $parsed_xml = $parser->parse_balanced_chunk( $xml );
-        $dmdsec->set_xml_node(
+        $reading_order->set_xml_node(
             $parsed_xml,
             mdtype => 'OTHER',
             othermdtype => 'Google',
             label  => 'reading order'
         );
-        $self->{mets}->add_dmd_sec($dmdsec);
+        push(@{ $self->{amd_mdsecs} }, $reading_order);
     }
 }
 
@@ -115,6 +138,8 @@ sub _add_techmds {
         );
         push( @{ $self->{amd_mdsecs} }, $scanfactors );
     }
+
+    $self->_add_reading_order();
 }
 
 sub _get_capture_date {

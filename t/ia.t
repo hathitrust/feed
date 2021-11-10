@@ -83,9 +83,38 @@ context "with volume & temporary ingest/preingest/zipfile dirs" => sub {
     };
   };
 
+  share my %vars;
+  shared_examples_for "mets with reading order" => sub {
+    it "succeeds" => sub {
+      my $stage = $vars{stage};
+      $stage->run();
+      ok($stage->succeeded());
+    };
+
+    it "generates the METS xml" => sub {
+      $vars{stage}->run();
+      ok(-e $vars{mets_xml});
+    };
+
+    context "with a mets xml" => sub {
+
+      before each => sub {
+        $vars{stage}->run;
+      };
+
+      it "writes scanningOrder, readingOrder, and coverTag" => sub {
+        my $xc = $volume->_parse_xpc($vars{mets_xml});
+        ok($xc->findnodes('/METS:mets/METS:amdSec/METS:techMD/METS:mdWrap/METS:xmlData/gbs:scanningOrder')->size() == 1);
+        is($xc->findvalue('/METS:mets/METS:amdSec/METS:techMD/METS:mdWrap/METS:xmlData/gbs:scanningOrder'), 'right-to-left');
+        ok($xc->findnodes('/METS:mets/METS:amdSec/METS:techMD/METS:mdWrap/METS:xmlData/gbs:readingOrder')->size() == 1);
+        is($xc->findvalue('/METS:mets/METS:amdSec/METS:techMD/METS:mdWrap/METS:xmlData/gbs:readingOrder'), 'right-to-left');
+        ok($xc->findnodes('/METS:mets/METS:amdSec/METS:techMD/METS:mdWrap/METS:xmlData/gbs:coverTag')->size() == 1);
+        is($xc->findvalue('/METS:mets/METS:amdSec/METS:techMD/METS:mdWrap/METS:xmlData/gbs:coverTag'), 'follows-reading-order');
+      };
+    };
+  };
+
   describe "HTFeed::PackageType::IA::SourceMETS" => sub {
-    my $stage;
-    my $mets_xml;
 
     before each => sub {
       $volume->record_premis_event('package_inspection');
@@ -94,37 +123,31 @@ context "with volume & temporary ingest/preingest/zipfile dirs" => sub {
       HTFeed::PackageType::IA::DeleteCheck->new(volume => $volume)->run();
       HTFeed::PackageType::IA::OCRSplit->new(volume => $volume)->run();
       HTFeed::PackageType::IA::ImageRemediate->new(volume => $volume)->run();
-      $stage = HTFeed::PackageType::IA::SourceMETS->new(volume => $volume);
       mock_zephir();
-      $mets_xml = "$tmpdirs->{ingest}/$pt_objid/IA_$pt_objid.xml"
+      $vars{stage} = HTFeed::PackageType::IA::SourceMETS->new(volume => $volume);
+      $vars{mets_xml} = "$tmpdirs->{ingest}/$pt_objid/IA_$pt_objid.xml"
     };
 
-    it "succeeds" => sub {
-      $stage->run();
-      ok($stage->succeeded());
+    it_should_behave_like "mets with reading order";
+  };
+
+  describe "HTFeed::PackageType::IA::METS" => sub {
+    before each => sub {
+      $volume->record_premis_event('package_inspection');
+      HTFeed::PackageType::IA::VerifyManifest->new(volume => $volume)->run();
+      HTFeed::PackageType::IA::Unpack->new(volume => $volume)->run();
+      HTFeed::PackageType::IA::DeleteCheck->new(volume => $volume)->run();
+      HTFeed::PackageType::IA::OCRSplit->new(volume => $volume)->run();
+      HTFeed::PackageType::IA::ImageRemediate->new(volume => $volume)->run();
+      mock_zephir();
+      HTFeed::PackageType::IA::SourceMETS->new(volume => $volume)->run();
+      HTFeed::VolumeValidator->new(volume => $volume)->run();
+      HTFeed::Stage::Pack->new(volume => $volume)->run();
+      $vars{stage} = HTFeed::METS->new(volume => $volume);
+      $vars{mets_xml} = "$tmpdirs->{ingest}/$pt_objid.mets.xml"
     };
 
-    it "generates the METS xml" => sub {
-      $stage->run();
-      ok(-e $mets_xml);
-    };
-
-    context "with a mets xml" => sub {
-
-      before each => sub {
-        $stage->run;
-      };
-
-      it "writes scanningOrder, readingOrder, and coverTag" => sub {
-        my $xc = $volume->_parse_xpc($mets_xml);
-        ok($xc->findnodes('/METS:mets/METS:dmdSec/METS:mdWrap/METS:xmlData/gbs:scanningOrder')->size() == 1);
-        is($xc->findvalue('/METS:mets/METS:dmdSec/METS:mdWrap/METS:xmlData/gbs:scanningOrder'), 'right-to-left');
-        ok($xc->findnodes('/METS:mets/METS:dmdSec/METS:mdWrap/METS:xmlData/gbs:readingOrder')->size() == 1);
-        is($xc->findvalue('/METS:mets/METS:dmdSec/METS:mdWrap/METS:xmlData/gbs:readingOrder'), 'right-to-left');
-        ok($xc->findnodes('/METS:mets/METS:dmdSec/METS:mdWrap/METS:xmlData/gbs:coverTag')->size() == 1);
-        is($xc->findvalue('/METS:mets/METS:dmdSec/METS:mdWrap/METS:xmlData/gbs:coverTag'), 'follows-reading-order');
-      };
-    };
+    it_should_behave_like "mets with reading order";
   };
 };
 
