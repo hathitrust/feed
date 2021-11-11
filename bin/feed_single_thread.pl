@@ -1,5 +1,3 @@
-#!/usr/bin/perl
-
 use warnings;
 use strict;
 
@@ -67,7 +65,21 @@ HTFeed::StagingSetup::make_stage();
 my $i = 0;
 while( continue_running_server() ){
   while (my $job = get_next_job()){
+    # don't re-use database connection in child; maybe chicken-waving since we
+    # aren't doing anything in the parent while we wait for the child, but it
+    # shouldn't hurt, and it should avoid surprises later
+    disconnect();
+    my $pid = fork();
+    if( $pid ) {
+      # parent; wait on child
+      my $pid = wait();
+    } elsif (defined $pid) {
+      # child
       $job->run_job($clean);
+      exit(0);
+    } else {
+      die("Couldn't fork: $!");
+    }
   }
   sleep 15;
 }
