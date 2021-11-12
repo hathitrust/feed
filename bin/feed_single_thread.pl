@@ -65,6 +65,7 @@ HTFeed::StagingSetup::make_stage();
 my $i = 0;
 while( continue_running_server() ){
   while (my $job = get_next_job()){
+    get_logger()->info("next job: " . $job->{namespace} . "." . $job->{id} . " " . $job->stage_class);
     # don't re-use database connection in child; maybe chicken-waving since we
     # aren't doing anything in the parent while we wait for the child, but it
     # shouldn't hurt, and it should avoid surprises later
@@ -72,9 +73,11 @@ while( continue_running_server() ){
     my $pid = fork();
     if( $pid ) {
       # parent; wait on child
-      my $pid = wait();
+      my $finished_pid = 0;
+      while($finished_pid != $pid) {
+        $finished_pid = wait();
+      }
     } elsif (defined $pid) {
-      # child
       $job->run_job($clean);
       exit(0);
     } else {
@@ -83,7 +86,7 @@ while( continue_running_server() ){
   }
   sleep 15;
 }
-print "Stop file found; finishing work on locked volumes...\n";
+print "Exiting ... \n";
 exit(1);
 
 sub get_next_job{
