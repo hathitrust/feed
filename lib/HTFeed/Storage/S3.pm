@@ -29,7 +29,7 @@ sub cp_to {
   my $src = shift;
   my $path = shift;
 
-  return $self->s3('cp',$src,"s3://$self->{bucket}/$path",@_);
+  return $self->s3('cp','--only-show-errors',$src,"s3://$self->{bucket}/$path",@_);
 }
 
 sub mb {
