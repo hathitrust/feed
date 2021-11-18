@@ -80,6 +80,11 @@ services:
       - ./ingest_sips:/tmp/sips
       - ./ingest_stage:/tmp/stage
 
+  pushgateway:
+    image: prom/pushgateway
+    ports:
+      - "9091:9091"
+
 volumes:
   repository_link:
   repository_obj:
