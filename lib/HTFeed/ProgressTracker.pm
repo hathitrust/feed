@@ -8,19 +8,25 @@ use File::Basename;
 use strict;
 use warnings;
 
+my $DEFAULT_REPORT_INTERVAL = 1000;
+
 sub new {
   my $class = shift;
+  my %params = @;
 
-  my $job = shift || basename($0);
-  my $success_interval = shift || $ENV{'JOB_SUCCESS_INTERVAL'};
 
   my $self = bless {}, $class;
+
+  $self->{job} = $params->{job} || $ENV{'JOB_NAME'} || basename($0);
+  $self->{report_interval} = $params->{report_interval} || $DEFAULT_REPORT_INTERVAL;
+  my $success_interval = $params->{success_interval} || $ENV{'JOB_SUCCESS_INTERVAL'};
 
   $self->{job} = $job;
   $self->{prom} = Net::Prometheus->new;
   $self->{ua} = LWP::UserAgent->new;
 
-  $self->{records_so_far} = 0;
+  $self->{records_so_far} = {};
+  $self->{last_reported_records} = {};
   $self->{start_time} = time();
 
   if($success_interval) { 
@@ -33,28 +39,49 @@ sub new {
 
 }
 
+sub inc {
+  my $self = shift;
+  my $label = shift || "";
+  my $amount = shift || 1;
+
+  $self->{records_so_far}{$label} += $amount;
+
+  if($self->{records_so_far}{$label} > 
+    $self->{last_reported_records}{$label} + $self->{report_interval}) {
+    $self->update_metrics;
+  }
+}
+
 sub update_metrics {
   my $self = shift;
 
   $self->duration->set(time() - $self->{start_time});
-  $self->records_processed->set($self->{records_so_far});
+
+  while(my ($label, $value) = each(%{$self->{records_so_far}})) { 
+    $self->records_processed->set({ stage => $label }, $value);
+    $self->{last_reported_records}{$label} = $value;
+  }
 
   $self->push_metrics;
 
 }
 
-sub push_metrics {
+sub finalize {
   my $self = shift;
 
-  # TODO: wipes out last_success with 0 on push. Need to wait to register
-  # metric until we want to use it?
+  $self->last_success->set(time());
+
+  $self->update_metrics;
+}
+
+sub push_metrics {
+  my $self = shift;
 
   my $job = $self->{job};
   my $url = get_config('pushgateway') . "/metrics/job/$job";
   my $data = $self->{prom}->render;
 
   $self->{ua}->post($url, Content => $data);
-
 
 }
 

@@ -29,3 +29,5 @@ handle:
     password: feed
 
 rclone_config_path: /usr/local/feed/etc/rclone.conf
+
+pushgateway: http://pushgateway:9091

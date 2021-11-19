@@ -30,7 +30,7 @@ services:
       - repository_link:/sdr1
       - repository_obj:/sdr2
       - backups:/htdataden
-      - ~/.config/rclone/rclone.conf:/usr/local/feed/etc/rclone.conf
+        #      - ~/.config/rclone/rclone.conf:/usr/local/feed/etc/rclone.conf
     environment:
       - HTFEED_CONFIG=/usr/local/feed/etc/config_ingest_docker.yml
       - FEED_HOME=/usr/local/feed
@@ -79,6 +79,11 @@ services:
     volumes:
       - ./ingest_sips:/tmp/sips
       - ./ingest_stage:/tmp/stage
+
+  pushgateway:
+    image: prom/pushgateway
+    ports:
+      - "9091:9091"
 
 volumes:
   repository_link:
