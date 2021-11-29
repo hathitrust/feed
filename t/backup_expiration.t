@@ -114,7 +114,7 @@ describe "HTFeed::BackupExpiration" => sub {
   share my %vars;
   shared_examples_for "all storages" => sub {
     it "should create expiration object" => sub {
-      my $exp = HTFeed::BackupExpiration->new(storage_name => $vars{storage_name});
+      my $exp = HTFeed::BackupExpiration->new(storage_name => $vars{storage_name}, dry_run => 0);
       ok($exp, 'new returns a value');
       is($exp->{storage_name}, $vars{storage_name}, 'expiration has correct storage name');
     };
@@ -125,7 +125,7 @@ describe "HTFeed::BackupExpiration" => sub {
         my $storage = prepare_storage($vars{storage_name}, new_random_timestamp());
         push @versions, $storage;
       }
-      my $exp = HTFeed::BackupExpiration->new(storage_name => $vars{storage_name});
+      my $exp = HTFeed::BackupExpiration->new(storage_name => $vars{storage_name}, dry_run => 0);
       $exp->run();
       my $deleted = count_deleted_objects('test', 'test');
       is($deleted, 0, 'no objects deleted');
@@ -138,7 +138,7 @@ describe "HTFeed::BackupExpiration" => sub {
     it "deletes nothing with a single old version and single new one" => sub {
       my $old_storage = prepare_storage($vars{storage_name}, old_random_timestamp());
       my $new_storage = prepare_storage($vars{storage_name}, new_random_timestamp());
-      my $exp = HTFeed::BackupExpiration->new(storage_name => $vars{storage_name});
+      my $exp = HTFeed::BackupExpiration->new(storage_name => $vars{storage_name}, dry_run => 0);
       $exp->run();
       my $deleted = count_deleted_objects('test', 'test');
       is($deleted, 0, 'no objects deleted');
@@ -156,7 +156,7 @@ describe "HTFeed::BackupExpiration" => sub {
       }
       @old_versions = sort { $a->{timestamp} cmp $b->{timestamp}; } @old_versions;
       my $keep = pop @old_versions;
-      my $exp = HTFeed::BackupExpiration->new(storage_name => $vars{storage_name});
+      my $exp = HTFeed::BackupExpiration->new(storage_name => $vars{storage_name}, dry_run => 0);
       $exp->run();
       foreach my $storage (@old_versions) {
         my $deleted = count_deleted_objects('test', 'test', $storage->{timestamp});
@@ -183,7 +183,7 @@ describe "HTFeed::BackupExpiration" => sub {
         my $storage = prepare_storage($vars{storage_name}, new_random_timestamp());
         push @new_versions, $storage;
       }
-      my $exp = HTFeed::BackupExpiration->new(storage_name => $vars{storage_name});
+      my $exp = HTFeed::BackupExpiration->new(storage_name => $vars{storage_name}, dry_run => 0);
       $exp->run();
       foreach my $storage (@old_versions) {
         my $deleted = count_deleted_objects('test', 'test', $storage->{timestamp});
@@ -198,6 +198,22 @@ describe "HTFeed::BackupExpiration" => sub {
       foreach my $storage (@new_versions) {
         $deleted = count_deleted_objects('test', 'test', $storage->{timestamp});
         is($deleted, 0, 'new object is not marked feed_backups.deleted');
+        ok(!mets_deleted($storage), "new ($storage->{timestamp}) mets left intact");
+        ok(!zip_deleted($storage), "new ($storage->{timestamp}) zip left intact");
+      }
+    };
+
+    it "deletes nothing when there are old versions but is given the dry run flag" => sub {
+      my @versions;
+      foreach my $n (1 .. 3) {
+        my $storage = prepare_storage($vars{storage_name}, old_random_timestamp());
+        push @versions, $storage;
+      }
+      my $exp = HTFeed::BackupExpiration->new(storage_name => $vars{storage_name}, dry_run => 1);
+      $exp->run();
+      my $deleted = count_deleted_objects('test', 'test');
+      is($deleted, 0, 'no objects deleted');
+      foreach my $storage (@versions) {
         ok(!mets_deleted($storage), "new ($storage->{timestamp}) mets left intact");
         ok(!zip_deleted($storage), "new ($storage->{timestamp}) zip left intact");
       }
