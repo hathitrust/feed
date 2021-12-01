@@ -212,7 +212,7 @@ sub ia_ark_id_is_valid {
     my $ark_id = shift;
 
     # match ia scheme
-    return unless ( $ark_id =~ m|ark:/13960/t\d[a-z\d][a-z\d]\d[a-z\d][a-z\d]\d[a-z\d]| );
+    return unless ( $ark_id =~ m|^ark:/13960/| );
     # trim off ark:/
     $ark_id =~ s/^ark:\///;
     # validate check char
