@@ -79,6 +79,7 @@ sub labels {
 sub update_metrics {
   my $self = shift;
 
+  $self->{last_reported_records} = $self->{records_so_far};
   $self->duration->set($self->labels, time() - $self->{start_time});
   $self->records_processed->set($self->labels, $self->{records_so_far});
 

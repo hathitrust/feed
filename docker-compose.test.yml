@@ -9,10 +9,11 @@ services:
       - FEED_HOME=/usr/local/feed
       - TEST=1
       - VERSION=feed-testing
-    command: bash -c "bin/wait-for --timeout=300 mariadb:3306 minio:9000 -- prove -I lib"
+    command: bash -c "bin/wait-for --timeout=300 mariadb:3306 minio:9000 pushgateway:9091 -- prove -I lib"
     depends_on:
       - mariadb
       - minio
+      - pushgateway
 
   mariadb:
     build: docker/database
@@ -27,3 +28,8 @@ services:
       MINIO_ACCESS_KEY: TESTINGACCESSKEY
       MINIO_SECRET_KEY: testingsecretkey
     command: server /data
+
+  pushgateway:
+    image: prom/pushgateway
+    command:
+      - --web.enable-admin-api
