@@ -27,3 +27,5 @@ emma:
   awscli: ['aws','--endpoint-url','http://minio:9000']
 
 test_awscli: ['aws','--endpoint-url','http://minio:9000']
+
+pushgateway: http://pushgateway:9091

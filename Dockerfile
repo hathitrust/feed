@@ -5,10 +5,12 @@ RUN apt-get update && apt-get install -y \
     awscli \
     epubcheck \
     libclamav-client-perl \
+    libnet-prometheus-perl \
     libswitch-perl \
     libtest-class-perl \
     libtest-mockobject-perl \
     libtest-most-perl \
+    libtest-time-perl \
     libtest-spec-perl \
     mariadb-client \
     netcat \

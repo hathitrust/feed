@@ -13,12 +13,12 @@ services:
       - CLAMAV_HOST=clamav
       - CLAMAV_PORT=3310
       - VERSION=feed-development
-    command: bin/wait-for --timeout=300 mariadb:3306 clamav:3310 -- prove -I lib
+    command: bin/wait-for --timeout=300 mariadb:3306 clamav:3310 minio:9000 pushgateway:9091 -- prove -I lib
     depends_on:
       - mariadb
       - clamav
       - minio
-
+      - pushgateway
 
   ingest:
     build: .
@@ -79,6 +79,13 @@ services:
     volumes:
       - ./ingest_sips:/tmp/sips
       - ./ingest_stage:/tmp/stage
+
+  pushgateway:
+    image: prom/pushgateway
+    command:
+      - --web.enable-admin-api
+    ports:
+      - "9091:9091"
 
 volumes:
   repository_link:
