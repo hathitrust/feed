@@ -1,5 +1,5 @@
 damaged:
-  count: '31'
+  count: '36'
   package_types:
     simple:
       txi:
@@ -45,9 +45,19 @@ damaged:
       coo:
       - '31924028621642'
       utk:
-      - 'ark:/87290/v8tm7895'
+      - 'ark:/87290/v81v6c4m'
+    ia:
+      ia:
+        # Wrong prefix
+        - 'ark:/87290/v8tm7893'
+        - 'ark:/99999/t9280bv8v'
+        # Bad check char
+        - 'ark:/13960/t59c7j07e'
+        - 'ark:/13960/s2953d962k3'
+        - 'ark:/13960/fk2z31nq2c'
+
 undamaged:
-  count: '41'
+  count: '49'
   package_types:
     google:
       inu:
@@ -109,5 +119,19 @@ undamaged:
       - '11084322_000_00'
       - '11737238_1945-1950_93-159'
       utk:
-      - 'ark:/87290/v8tm7893'
-
+      - 'ark:/87290/v81v5c4m'
+    ia:
+      aeu:
+      - 'ark:/13960/t3kw6kz73'
+      coo1:
+      - 'ark:/13960/t59c7j07d'
+      uc2:
+      - 'ark:/13960/t9280bv8v'
+      - 'ark:/13960/fk2z31nq2b'
+      - 'ark:/13960/fk1qf8jm4j'
+      uiuo:
+      - 'ark:/13960/s2953d962k2'
+      ia:
+      - 'ark:/13960/t38138b49'
+      # Any shoulder should be OK so long as the prefix is correct
+      - 'ark:/13960/v81v5c4d'
