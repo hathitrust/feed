@@ -14,12 +14,17 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-
-      - name: Check out submodules
-        run: git submodule update --init metslib
+        with:
+          # This should be a PAT that has read access to the private submodules
+          # for this repository
+          token: ${{ secrets.ACCESS_TOKEN }}
+          submodules: true
 
       - name: Build docker image
         run: docker-compose --file docker-compose.test.yml build
 
       - name: Run tests
         run: docker-compose --file docker-compose.test.yml run sut
+
+      - name: Run tests for submodules
+        run: docker-compose --file docker-compose.test.yml run sut-submodule

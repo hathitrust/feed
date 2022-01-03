@@ -15,6 +15,15 @@ services:
       - minio
       - pushgateway
 
+  sut-submodule:
+    build: .
+    environment:
+      - HTFEED_CONFIG=/usr/local/feed/etc/config_test.yml
+      - FEED_HOME=/usr/local/feed
+      - TEST=1
+      - VERSION=feed-testing
+    command: bash -c "prove -I lib t/submodules"
+
   mariadb:
     build: docker/database
     restart: always
