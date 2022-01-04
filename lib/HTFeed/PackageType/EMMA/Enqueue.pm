@@ -8,6 +8,7 @@ use HTFeed::Storage::S3;
 use HTFeed::DBTools::Queue qw(enqueue_volumes);
 use HTFeed::Volume;
 use File::Temp qw(tempdir);
+use HTFeed::ProgressTracker;
 use File::Copy;
 
 use base qw( Exporter );
@@ -37,6 +38,8 @@ sub new {
 sub run {
   my $self = shift;
 
+  my $tracker = HTFeed::ProgressTracker->new();
+
   my $last_id;
   my $ids = {}; # Set of ids for enqueue command
 
@@ -44,6 +47,7 @@ sub run {
 
   foreach my $item (@{$self->{s3}->list_objects})
   {
+    $tracker->inc();
     my $file = $item->{'Key'};
     my ($id, $dir, $ext) = File::Basename::fileparse($file, '\..*');
     if (!$self->is_id_in_queue($id))
@@ -70,6 +74,8 @@ sub run {
 
   # Not in scope for here - tracking for stuff sitting in the queue not
   # ingested, handling resubmissions
+
+  $tracker->finalize();
 }
 
 sub is_id_in_queue {
