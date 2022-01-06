@@ -26,6 +26,12 @@ emma:
   bucket: emma-test-bucket
   awscli: ['aws','--endpoint-url','http://minio:9000']
 
+rabbitmq:
+  host: rabbitmq
+  user: guest
+  password: guest
+  queue: testqueue
+
 test_awscli: ['aws','--endpoint-url','http://minio:9000']
 
 pushgateway: http://pushgateway:9091
