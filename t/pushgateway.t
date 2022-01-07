@@ -19,6 +19,8 @@ describe "HTFeed::ProgressTracker" => sub {
   before each => sub {
     delete $ENV{JOB_NAME};
     delete $ENV{JOB_SUCCESS_INTERVAl};
+    delete $ENV{JOB_NAMESPACE};
+    delete $ENV{JOB_APP};
 
     LWP::UserAgent->new
       ->request(HTTP::Request->new(PUT => pushgateway . '/api/v1/admin/wipe'));
@@ -58,6 +60,56 @@ describe "HTFeed::ProgressTracker" => sub {
       ok(metrics !~ /^job_duration_seconds\{instance="",job="some-job-name"\}/m);
       ok(metrics =~ /^job_duration_seconds\{instance="",job="override-job-name"\}/m);
     }
+  };
+
+  describe "namespace label" => sub {
+    it "has no namespace label by default" => sub {
+      my $tracker = HTFeed::ProgressTracker->new();
+      $tracker->update_metrics;
+
+      ok(metrics !~ /^job_duration_seconds.*namespace=/m);
+    };
+
+    it "uses namespace param if given" => sub {
+      $ENV{JOB_NAMESPACE} = 'some-namespace';
+      my $tracker = HTFeed::ProgressTracker->new(namespace=>'override-namespace');
+      $tracker->update_metrics;
+
+      ok(metrics =~ /^job_duration_seconds\S*namespace="override-namespace"/m);
+    };
+
+    it "uses JOB_NAMESPACE env var if given" => sub {
+      $ENV{JOB_NAMESPACE} = 'some-namespace';
+      my $tracker = HTFeed::ProgressTracker->new();
+      $tracker->update_metrics;
+
+      ok(metrics =~ /^job_duration_seconds\S*namespace="some-namespace"/m);
+    };
+  };
+
+  describe "app label" => sub {
+    it "has no app label by default" => sub {
+      my $tracker = HTFeed::ProgressTracker->new();
+      $tracker->update_metrics;
+
+      ok(metrics !~ /^job_duration_seconds.*app=/m);
+    };
+
+    it "uses app param if given" => sub {
+      $ENV{JOB_APP} = 'some-app';
+      my $tracker = HTFeed::ProgressTracker->new(app=>'override-app');
+      $tracker->update_metrics;
+
+      ok(metrics =~ /^job_duration_seconds\S*app="override-app"/m);
+    };
+
+    it "uses JOB_APP env var if given" => sub {
+      $ENV{JOB_APP} = 'some-app';
+      my $tracker = HTFeed::ProgressTracker->new();
+      $tracker->update_metrics;
+
+      ok(metrics =~ /^job_duration_seconds\S*app="some-app"/m);
+    };
   };
 
   describe "job_expected_success_interval metric" => sub {
@@ -147,7 +199,7 @@ describe "HTFeed::ProgressTracker" => sub {
       # Test::Time overrides to change apparent time
       sleep(300);
       $tracker->update_metrics;
-      ok(metrics =~ /^job_duration_seconds.*stage="new_stage"\S* 300$/m);
+      ok(metrics =~ /^job_duration_seconds\S*stage="new_stage"\S* 300$/m);
     };
 
     it "resets record count and time for new stage" => sub {
@@ -175,7 +227,7 @@ describe "HTFeed::ProgressTracker" => sub {
       # compare ==
       ok(metrics =~ /^job_last_success\S* (\S+)/m);
       ok($1 == $now);
-      
+
     };
   };
 

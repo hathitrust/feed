@@ -16,7 +16,15 @@ sub new {
 
   my $self = bless {}, $class;
 
+  $self->{labels} = { };
   $self->{job} = $params{job} || $ENV{'JOB_NAME'} || basename($0);
+
+  my $namespace =  $params{namespace} || $ENV{'JOB_NAMESPACE'};
+  $self->{labels}{namespace} = $namespace if $namespace;
+
+  my $app =  $params{app} || $ENV{'JOB_APP'};
+  $self->{labels}{app} = $app if $app;
+
   $self->{report_interval} = $params{report_interval} || $DEFAULT_REPORT_INTERVAL;
   my $success_interval = $params{success_interval} || $ENV{'JOB_SUCCESS_INTERVAL'};
 
@@ -26,17 +34,20 @@ sub new {
   );
   $self->{ua} = LWP::UserAgent->new;
 
-  $self->{labels} = {};
   $self->{records_so_far} = 0;
   $self->{last_reported_records} = 0;
   $self->{start_time} = time();
 
-  if($success_interval) {
-    $self->success_interval->set($success_interval);
-  }
+  $self->success_interval->set($success_interval) if $success_interval;
 
   return $self;
 
+}
+
+sub label_names {
+  my $self = shift;
+
+  [keys(%{$self->{labels}})];
 }
 
 sub start_stage {
@@ -46,8 +57,7 @@ sub start_stage {
   # final counts from previous stage
   $self->update_metrics if $self->{stage};
 
-  $self->{labels} = { labels => [ 'stage' ] };
-  $self->{stage} = $stage;
+  $self->{labels}{stage} = $stage;
   $self->{start_time} = time();
   $self->{records_so_far} = 0;
 
@@ -67,21 +77,12 @@ sub inc {
   }
 }
 
-sub labels {
-  my $self = shift;
-  if($self->{stage}) {
-    { stage => $self->{stage} }
-  } else {
-    {}
-  }
-}
-
 sub update_metrics {
   my $self = shift;
 
   $self->{last_reported_records} = $self->{records_so_far};
-  $self->duration->set($self->labels, time() - $self->{start_time});
-  $self->records_processed->set($self->labels, $self->{records_so_far});
+  $self->duration->set($self->{labels}, time() - $self->{start_time});
+  $self->records_processed->set($self->{labels}, $self->{records_so_far});
 
   $self->push_metrics;
 
@@ -90,9 +91,13 @@ sub update_metrics {
 sub finalize {
   my $self = shift;
 
-  $self->last_success->set(time());
-
+  # final metrics for this stage
   $self->update_metrics;
+  
+  delete $self->{labels}{stage};
+  $self->last_success->set($self->{labels},time());
+
+  $self->push_metrics;
 }
 
 sub push_metrics {
@@ -112,6 +117,7 @@ sub last_success {
   $self->{last_success} ||= $self->{prom}->new_gauge(
     name => 'job_last_success',
     help => 'Last Unix time when job successfully completed',
+    labels => $self->label_names,
   )
 }
 
@@ -121,7 +127,7 @@ sub duration {
   $self->{duration} ||= $self->{prom}->new_gauge(
     name => 'job_duration_seconds',
     help => 'Time spend running job in seconds',
-    %{$self->{labels}}
+    labels => $self->label_names,
   )
 
 }
@@ -132,7 +138,7 @@ sub records_processed {
   $self->{records_processed} ||= $self->{prom}->new_gauge(
     name => 'job_records_processed',
     help => 'Records processed by job',
-    %{$self->{labels}}
+    labels => $self->label_names,
   )
 }
 
@@ -141,7 +147,8 @@ sub success_interval {
 
   $self->{success_interval} ||= $self->{prom}->new_gauge(
     name => 'job_expected_success_interval',
-    help => 'Maximum expected time in seconds between job completions'
+    help => 'Maximum expected time in seconds between job completions',
+    labels => $self->label_names,
   )
 }
 
