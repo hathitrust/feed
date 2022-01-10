@@ -125,17 +125,26 @@ describe "HTFeed::ProgressTracker" => sub {
       my $tracker = HTFeed::ProgressTracker->new();
       $tracker->update_metrics;
 
-      ok(metrics =~ /^job_expected_success_interval\S+ 12345$/m);
+      ok(metrics =~ /^job_expected_success_interval\S* 12345$/m);
     };
 
     it "uses success interval parameter" => sub {
-      $ENV{JOB_SUCCESS_INTERVAL} = '67890';
+      $ENV{JOB_SUCCESS_INTERVAL} = '12345';
+      my $tracker = HTFeed::ProgressTracker->new(success_interval => 67890);
+      $tracker->update_metrics;
+
+      ok(metrics !~ /^job_expected_success_interval\S* 12345$/m);
+      ok(metrics =~ /^job_expected_success_interval\S* 67890$/m);
+    };
+
+    it "works if there is a namespace label" => sub {
+      $ENV{JOB_SUCCESS_INTERVAL} = '12345';
+      $ENV{JOB_NAMESPACE} = 'some-namespace';
       my $tracker = HTFeed::ProgressTracker->new();
       $tracker->update_metrics;
 
-      ok(metrics !~ /^job_expected_success_interval\S+ 12345$/m);
-      ok(metrics =~ /^job_expected_success_interval\S+ 67890$/m);
-    }
+      ok(metrics =~ /^job_expected_success_interval\S*namespace="some-namespace"\S* 12345$/m);
+    };
   };
 
   describe "push_metrics" => sub {
