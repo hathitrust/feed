@@ -38,7 +38,7 @@ sub new {
   $self->{last_reported_records} = 0;
   $self->{start_time} = time();
 
-  $self->success_interval->set($success_interval) if $success_interval;
+  $self->success_interval->set($self->{labels},$success_interval) if $success_interval;
 
   return $self;
 
