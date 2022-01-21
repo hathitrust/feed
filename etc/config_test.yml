@@ -1,3 +1,4 @@
+---
 test_staging:
   damaged: /tmp/prep/DAMAGED
   logs: /tmp/prep/logs
@@ -24,7 +25,7 @@ emma:
   namespace: test
   packagetype: emma
   bucket: emma-test-bucket
-  awscli: ['aws','--endpoint-url','http://minio:9000']
+  awscli: ['aws', '--endpoint-url', 'http://minio:9000']
 
 rabbitmq:
   host: rabbitmq
@@ -37,3 +38,17 @@ use_rabbitmq: 1
 test_awscli: ['aws', '--endpoint-url', 'http://minio:9000']
 
 pushgateway: http://pushgateway:9091
+
+
+# To configure in production
+
+handle:
+  repo_url_base: https://babel.hathitrust.org/cgi/pt?id=
+  root_admin: 0.NA/9999
+  local_admin: 9999/test
+  database:
+    datasource: dbi:mysql:handle:mariadb
+    username: feed
+    password: feed
+
+use_dropbox: 0

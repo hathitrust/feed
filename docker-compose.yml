@@ -33,6 +33,9 @@ services:
       - repository_link:/sdr1
       - repository_obj:/sdr2
       - backups:/htdataden
+    command:
+      - /usr/bin/perl
+      - /usr/local/feed/bin/feedd.pl
     environment:
       - HTFEED_CONFIG=/usr/local/feed/etc/config_ingest_docker.yml
       - FEED_HOME=/usr/local/feed

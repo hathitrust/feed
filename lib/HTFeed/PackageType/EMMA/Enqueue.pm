@@ -69,7 +69,7 @@ sub run {
 
   # Will log any errors in queueing; what to do about those errors is not in
   # scope
-    $queue->queue(volume=> $volume, no_bibdata_ok => 1);
+    $queue->enqueue(volume=> $volume, no_bibdata_ok => 1);
 
   }
 

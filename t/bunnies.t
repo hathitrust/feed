@@ -7,6 +7,7 @@ use HTFeed::Config qw(get_config);
 use HTFeed::Bunnies;
 use utf8;
 
+use strict;
 
 # before each connect & clear queue
 

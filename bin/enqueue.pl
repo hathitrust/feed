@@ -122,10 +122,10 @@ my $queue = HTFeed::Queue->new();
 foreach my $volume (@volumes) {
   if(!($reset_level) or $insert) {
       if(defined $priority){
-          print_result('queued',$volume,$queue->queue(volume=>$volume,status=>$state,ignore=>$insert,priority=>$priority,use_disallow_list=>$use_disallow_list));        
+          print_result('queued',$volume,$queue->enqueue(volume=>$volume,status=>$state,ignore=>$insert,priority=>$priority,use_disallow_list=>$use_disallow_list));        
       }
       else{
-          print_result('queued',$volume,$queue->queue(volume=>$volume,status=>$state,ignore=>$insert,use_disallow_list=>$use_disallow_list));
+          print_result('queued',$volume,$queue->enqueue(volume=>$volume,status=>$state,ignore=>$insert,use_disallow_list=>$use_disallow_list));
       }
   }
 

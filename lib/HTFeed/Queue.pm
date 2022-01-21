@@ -11,6 +11,7 @@ use Carp;
 use HTFeed::Config qw(get_config);
 use HTFeed::DBTools qw(get_dbh);
 use HTFeed::DBTools::Priority qw(reprioritize initial_priority);
+use HTFeed::Bunnies;
 
 use Log::Log4perl qw(get_logger);
 
@@ -272,8 +273,8 @@ sub send_to_message_queue {
   
   $q->queue_job(
     namespace    => $volume->get_namespace,
-    objid        => $volume->get_objid,
-    packagetype => $volume->get_packagetype,
+    id           => $volume->get_objid,
+    pkg_type     => $volume->get_packagetype,
     status       => $status,
   );
 

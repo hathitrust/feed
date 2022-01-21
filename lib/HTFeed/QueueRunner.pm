@@ -2,6 +2,14 @@ package HTFeed::QueueRunner;
 
 use HTFeed::StagingSetup;
 use HTFeed::Bunnies;
+use HTFeed::Config qw(get_config set_config);
+use HTFeed::DBTools qw(update_queue);
+use Log::Log4perl qw(get_logger);
+use HTFeed::Job;
+use Sys::Hostname qw(hostname);
+use File::Path qw(remove_tree);
+
+use strict;
 
 # Gets items to ingest from queue; processes them start to finish.
 
@@ -13,11 +21,16 @@ sub new {
   bless($self, $class);
 
   # TODO: HTFeed::VolumeList that can be used as the queue instead
-  $self->{queue} = $params->{queue} || HTFeed::Bunnies->new();
-  $self->{clean} = $params->{clean} || get_config('clean');
+  $self->{queue} = $params{queue} || HTFeed::Bunnies->new();
+  $self->{clean} = $params{clean} || get_config('clean');
   # update status in the database by default
-  $self->{update_db} = $params->{update_db} || 1;
-  $self->{staging_root} = $params->{staging_root} || $self->node_stage_dir;
+  $self->{staging_root} = $params{staging_root} || $self->node_stage_dir;
+  $self->{timeout} = $params{timeout};
+  $self->{update_db} = $params{update_db};
+  $self->{update_db} = 1 if not defined $self->{update_db};
+  # for testing
+  $self->{should_fork} = $params{should_fork};
+  $self->{should_fork} = 1 if not defined $self->{should_fork};
 
   set_config($self->{staging_root}, 'staging_root');
   HTFeed::StagingSetup::make_stage();
@@ -38,23 +51,47 @@ sub run {
   $self->setup_signal_handlers;
 
   print("feedd QueueRunner running, waiting for something to ingest, pid = $$\n");
-  while( my $job = $self->next_job() ){
-    while($job){
-      $self->fork_and_wait($job);
-      $job = $job->successor;
-    }
+
+  while( my $job_info = $self->{queue}->next_job($self->{timeout}) ){
+    $self->marshal_and_run($job_info);
   }
 }
 
-sub fork_and_wait {
+sub marshal_and_run {
+  my $self = shift;
+  my $job_info = shift;
+
+  my $job = HTFeed::Job->new(%{$job_info},callback=>$self->finish_callback());
+
+  if($self->{should_fork}) {
+    $self->fork_and_run_job_sequence($job);
+  } else {
+    $self->run_job_sequence($job);
+  }
+
+  $self->{queue}->finish($job_info);
+}
+
+sub run_job_sequence {
   my $self = shift;
   my $job = shift;
 
-  get_logger()->info("next job: " . $job->{namespace} . "." . $job->{id} . " " . $job->stage_class);
+  while($job){
+    get_logger()->info("next job: " . $job->namespace . "." . $job->id . " " . $job->stage_class);
+
+    $job->run_job($self->{clean});
+    $job = $job->successor;
+  }
+}
+
+sub fork_and_run_job_sequence {
+  my $self = shift;
+  my $job = shift;
+
   # don't re-use database connection in child; maybe chicken-waving since we
   # aren't doing anything in the parent while we wait for the child, but it
   # shouldn't hurt, and it should avoid surprises later
-  disconnect();
+  HTFeed::DBTools::disconnect();
   my $pid = fork();
   if( $pid ) {
     # parent; wait on child
@@ -63,28 +100,20 @@ sub fork_and_wait {
       $finished_pid = wait();
     }
   } elsif (defined $pid) {
-    $job->run_job($clean);
+    # parent will handle signals
+    delete $SIG{'INT'};
+    delete $SIG{'TERM'};
+    $self->run_job_sequence($job);
     exit(0);
   } else {
     die("Couldn't fork: $!");
   }
 }
 
-sub next_job {
-  my $self = shift;
-  my $job_info = $self->{queue}->next_job;
-
-  return HTFeed::Job->new(@{$job_info},$self->finish_callback($job_info));
-}
-
 sub finish_callback {
   my $self = shift;
-  my $job_info = shift;
 
   return sub {
-    # Progress both in DB queue and in rabbitmq. Could implement more advanced
-    # handling with rabbitmq for failure/retry here.
-    $self->{queue}->finished($job_info);
     if($self->{update_db}) {
       update_queue(@_);
     }
@@ -93,9 +122,9 @@ sub finish_callback {
 
 sub clean_and_exit {
   my $self = shift;
-  if($self->{clean}) {
+  if($self->{clean} and -e $self->{staging_root}) {
     print "cleaning up $self->{staging_root}..\n";
-    remove_tree $self->{staging_root};
+    remove_tree($self->{staging_root});
   }
   exit;
 }
@@ -116,3 +145,5 @@ sub setup_signal_handlers {
     $self->clean_and_exit;
   };
 }
+
+1;

@@ -123,6 +123,7 @@ describe "HTFeed::PackageType::Simple::Download" => sub {
     $tmpdirs = HTFeed::Test::TempDirs->new();
     $testlog = HTFeed::Test::Logger->new();
     set_config(0,'stop_on_error');
+    set_config(1,'use_dropbox');
     set_config($tmpdirs->test_home . "/fixtures/rclone_config.conf", 'rclone_config_path');
     set_config("$FindBin::Bin/bin/rclone_stub.pl", 'rclone');
   };
@@ -138,6 +139,7 @@ describe "HTFeed::PackageType::Simple::Download" => sub {
 
   after all => sub {
     $tmpdirs->cleanup;
+    set_config(0,'use_dropbox');
   };
 
   describe "download stage" => sub {
@@ -165,6 +167,7 @@ describe "HTFeed::PackageType::Simple::Volume" => sub {
     $tmpdirs = HTFeed::Test::TempDirs->new();
     $testlog = HTFeed::Test::Logger->new();
     set_config(0,'stop_on_error');
+    set_config(1,'use_dropbox');
     set_config($tmpdirs->test_home . "/fixtures/rclone_config.conf", 'rclone_config_path');
     set_config("$FindBin::Bin/bin/rclone_stub.pl", 'rclone');
   };
@@ -186,6 +189,7 @@ describe "HTFeed::PackageType::Simple::Volume" => sub {
 
   after all => sub {
     $tmpdirs->cleanup;
+    set_config(0,'use_dropbox');
   };
 
   describe "#clean_sip_success" => sub {

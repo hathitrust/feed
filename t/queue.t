@@ -45,10 +45,10 @@ describe "HTFeed::Queue" => sub {
     my $status = shift;
 
     my $job = HTFeed::Bunnies->new()->next_job($NO_WAIT);
-    is($job->{packagetype}, $volume->get_packagetype);
+    is($job->{pkg_type},  $volume->get_packagetype);
     is($job->{namespace}, $volume->get_namespace);
-    is($job->{objid}, $volume->get_objid);
-    is($job->{status}, $status);
+    is($job->{id},        $volume->get_objid);
+    is($job->{status},    $status);
   }
 
   sub volume_in_feed_queue {
