@@ -29,7 +29,7 @@ my $pid = undef;
 
 sub _init {
     # do not make new db connections if are trying to exit
-    continue_running_server or return undef;
+    continue_running_server or return;
 
     my $dsn = get_config('database','datasource');
     my $user = get_config('database','username');

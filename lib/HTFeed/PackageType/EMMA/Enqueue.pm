@@ -5,7 +5,7 @@ use warnings;
 use HTFeed::DBTools qw(get_dbh);
 use HTFeed::Config qw(get_config);
 use HTFeed::Storage::S3;
-use HTFeed::DBTools::Queue qw(enqueue_volumes);
+use HTFeed::Queue;
 use HTFeed::Volume;
 use File::Temp qw(tempdir);
 use HTFeed::ProgressTracker;
@@ -59,18 +59,19 @@ sub run {
     }
   }
 
-  my $volumes;
+  my $queue = HTFeed::Queue->new;
   foreach my $id (keys %$ids)
   {
-    push(@$volumes, HTFeed::Volume->new(
+    my $volume = HTFeed::Volume->new(
         packagetype => $self->{packagetype},
         namespace => $self->{namespace},
-        objid => $id));
-  }
+        objid => $id);
 
   # Will log any errors in queueing; what to do about those errors is not in
   # scope
-  enqueue_volumes(volumes => $volumes, no_bibdata_ok => 1);
+    $queue->queue(volume=> $volume, no_bibdata_ok => 1);
+
+  }
 
   # Not in scope for here - tracking for stuff sitting in the queue not
   # ingested, handling resubmissions
