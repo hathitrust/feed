@@ -32,6 +32,8 @@ rabbitmq:
   password: guest
   queue: testqueue
 
-test_awscli: ['aws','--endpoint-url','http://minio:9000']
+use_rabbitmq: 1
+
+test_awscli: ['aws', '--endpoint-url', 'http://minio:9000']
 
 pushgateway: http://pushgateway:9091

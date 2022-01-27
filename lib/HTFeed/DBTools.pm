@@ -29,7 +29,7 @@ my $pid = undef;
 
 sub _init {
     # do not make new db connections if are trying to exit
-    continue_running_server or return;
+    continue_running_server or return undef;
 
     my $dsn = get_config('database','datasource');
     my $user = get_config('database','username');
@@ -58,6 +58,8 @@ sub get_dbh {
 
     return($dbh);
 }
+
+## TO REMOVE AFTER USING RABBITMQ IN PRODUCTION
 
 =item get_queued()
 
@@ -150,6 +152,8 @@ sub count_locks{
     my $res = $sth->fetchrow;
     return $res;
 }
+
+####### END TO REMOVE AFTER USING RABBITMQ IN PRODUCTION #####
 
 =item update_queue()
 

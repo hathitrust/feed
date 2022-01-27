@@ -255,6 +255,8 @@ sub send_to_message_queue {
   my $volume = shift;
   my $status = shift;
 
+  # feature gate
+  return unless get_config('use_rabbitmq');
   return if grep { $_ eq $status } @{get_config('release_states')};
 
   my $q = $self->message_queue;
