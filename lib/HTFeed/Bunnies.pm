@@ -92,11 +92,34 @@ sub next_job {
 
   get_logger()->debug("$BUNNY: received message with delivery tag $msg->{delivery_tag}");
   get_logger()->trace("$BUNNY: received message: " . Dumper($msg));
-  my $job_info = decode_json $msg->{body};
-  get_logger()->trace("$BUNNY: deserialized message json: " . Dumper($job_info));
-  $job_info->{msg} = $msg;
-  return $job_info;
+
+  my $job_info;
   
+  eval { 
+    $job_info = decode_json $msg->{body};
+    get_logger()->trace("$BUNNY: deserialized message json: " . Dumper($job_info));
+    die("Job was not a HASH") unless ref($job_info) eq 'HASH';
+    $job_info->{msg} = $msg;
+  };
+
+  if($@) {
+    get_logger()->error("Invalid job", detail => $@);
+    $self->reject($msg);
+  } else {
+    return $job_info;
+  }
+  
+}
+
+sub reject {
+  my $self = shift;
+  my $msg = shift;
+
+  # message may or may not be deseralized
+  my $tag = $msg->{delivery_tag} || $msg->{msg}{delivery_tag};
+
+  $self->{mq}->nack($self->{channel},$tag);
+  get_logger()->debug("$BUNNY: nacked message with delivery tag $tag");
 }
 
 sub finish {

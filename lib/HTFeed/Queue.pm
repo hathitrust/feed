@@ -139,31 +139,6 @@ sub reset {
   return \@results;
 }
 
-=item update_queue()
-
- update_queue($ns, $objid, $new_status, [$release, [$fail]])
-
- $fail indicates to incriment failure_count
- job will be released if $new_status is a release state
-
-=cut
-
-sub update_queue {
-  my $self = shift;
-
-  my ($namespace, $objid, $new_status, $release, $fail) = @_;
-
-  my $syntax = qq(UPDATE feed_queue SET status = ?);
-  $syntax .= q(, failure_count=failure_count+1) if ($fail);
-  $syntax .= q(, node = NULL) if ($release);
-  $syntax .= qq( WHERE namespace = ? AND id = ?;);
-
-  get_dbh()->do($syntax,$new_status,$namespace,$objid);
-
-  # TODO: get pkg type; send to message queue if new status is worker-ready
-
-}
-
 sub message_queue {
   my $self = shift;
   $self->{message_queue} ||= HTFeed::Bunnies->new();

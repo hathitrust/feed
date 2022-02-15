@@ -34,12 +34,30 @@ describe "HTFeed::QueueRunner" => sub {
     HTFeed::Queue->new()->enqueue(volume => $volume, no_bibdata_ok => 1);
   }
 
+  sub queue_bad_job {
+    # Directly insert data to database & rabbitmq to test what happens when we
+    # get something we can't handle
+    my ($namespace, $objid, $pkgtype, $status) = @_;
+    HTFeed::Bunnies->new->queue_job(namespace => $namespace,
+        id => $objid, pkg_type => $pkgtype, status => $status);
+
+    get_dbh()->do("INSERT INTO feed_queue (namespace, id, pkg_type, status) VALUES (?,?,?,?)",{},$namespace,$objid,$pkgtype,$status);
+  }
+
+  sub feed_queue_has_row {
+    my ($namespace, $objid, $pkgtype, $status) = @_;
+    get_dbh()->selectrow_hashref("SELECT * FROM feed_queue WHERE namespace = ? and id = ? and pkg_type = ? and status = ?",{},$namespace,$objid,$pkgtype,$status);
+  }
+
   sub volume_in_feed_queue {
     my $volume = shift;
     my $status = shift;
 
-    get_dbh()->selectrow_hashref("SELECT * FROM feed_queue WHERE namespace = ? and id = ? and pkg_type = ? and status = ?",{},$volume->get_namespace,$volume->get_objid,$volume->get_packagetype,$status);
+    feed_queue_has_row($volume->get_namespace,$volume->get_objid,$volume->get_packagetype,$status);
+  }
 
+  sub no_messages_in_queue {
+    not defined HTFeed::Bunnies->new()->next_job($NO_WAIT);
   }
 
   sub queue_runner {
@@ -85,38 +103,81 @@ describe "HTFeed::QueueRunner" => sub {
     ok(-e "$tmpdirs->{obj_dir}/test/pairtree_root/ok/ok/ok.zip",'puts the zip in the repository');
     ok(-e "$tmpdirs->{obj_dir}/test/pairtree_root/ok/ok/ok.mets.xml",'puts the METS in the repository');
   };
-
-  # XXX: whose responsibility is this? Probably the job, not really the queue runner..
-  it "updates the status in the database for each job";
   
   it "reports success to the database" => sub {
     queue_test_item('ok');
     queue_runner->run();
-    volume_in_feed_queue(testvolume('ok'),'collated');
+    ok(volume_in_feed_queue(testvolume('ok'),'collated'));
   };
 
   it "acks the message on success" => sub {
     queue_test_item('ok');
     queue_runner->run();
 
-    # job should have been acked, so message should not be re-delivered
-    ok(not defined HTFeed::Bunnies->new()->next_job($NO_WAIT));
+    ok(no_messages_in_queue);
   };
 
   it "reports failure to the database" => sub {
     queue_test_item('bad_meta_yml');
     queue_runner->run();
 
-    volume_in_feed_queue(testvolume('bad_meta_yml'),'punted');
+    ok(volume_in_feed_queue(testvolume('bad_meta_yml'),'punted'));
   };
 
   it "acks the message on failure" => sub {
     queue_test_item('bad_meta_yml');
     queue_runner->run();
 
-    # job should still be acked on failure; no separate 'failure queue' in
-    # rabbitmq
-    ok(not defined HTFeed::Bunnies->new()->next_job($NO_WAIT));
+    ok(no_messages_in_queue);
+  };
+
+  it "reports failure with a job with no namespace/objid" => sub {
+    HTFeed::Bunnies->new->queue_job(data => 'garbage');
+
+    queue_runner->run();
+
+    ok($testlog->matches(qr(Missing job fields)));
+    ok(no_messages_in_queue);
+  };
+
+  it "reports failure with a job with unknown state" => sub {
+    queue_bad_job('test','test','simple','unknown');
+
+    queue_runner->run();
+
+    ok(volume_in_feed_queue(testvolume('test'),'punted'));
+    ok($testlog->matches(qr(stage unknown not defined)));
+    ok(no_messages_in_queue);
+  };
+
+  it "reports failure with a job with an unknown namespace" => sub {
+    queue_bad_job('unknown','test','simple','ready');
+
+    queue_runner->run();
+
+    ok(feed_queue_has_row('unknown','test','simple','punted'));
+    ok($testlog->matches(qr(unknown.*namespace.*unknown)i));
+    ok(no_messages_in_queue);
+  };
+
+  it "reports failure with a job with an invalid id" => sub {
+    queue_bad_job('test','invalid','simple','ready');
+
+    queue_runner->run();
+
+    ok(feed_queue_has_row('test','invalid','simple','punted'));
+    ok($testlog->matches(qr(invalid barcode)i));
+    ok(no_messages_in_queue);
+  };
+
+  it "reports failure with a job with an unknown package type" => sub {
+    queue_bad_job('test','test','unknown','ready');
+
+    queue_runner->run();
+
+    ok(feed_queue_has_row('test','test','unknown','punted'));
+    ok($testlog->matches(qr(invalid packagetype)i));
+    ok(no_messages_in_queue);
   };
 
   # TODO: how to simulate this?

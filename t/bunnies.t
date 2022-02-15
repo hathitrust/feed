@@ -64,6 +64,28 @@ describe "HTFeed::Bunnies" => sub {
       ok($job_info->{msg});
     };
 
+    it "without valid json, logs an error and rejects the message" => sub {
+      my $bunnies = bunnies;
+      $bunnies->{mq}->publish($bunnies->{channel},
+        $bunnies->{queue},
+        "not valid json");
+
+      bunnies->next_job($NO_WAIT);
+      # ok(logs_error)
+      ok(!bunnies->next_job($NO_WAIT));
+    };
+
+    it "without json that decodes to a hash, logs an error and rejects the message" => sub {
+      my $bunnies = bunnies;
+      $bunnies->{mq}->publish($bunnies->{channel},
+        $bunnies->{queue},
+        "[1, 2, 3]");
+
+      bunnies->next_job($NO_WAIT);
+      # ok(logs_error)
+      ok(!bunnies->next_job($NO_WAIT));
+    };
+
   };
 
   describe "retry" => sub {

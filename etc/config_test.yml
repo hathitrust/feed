@@ -52,3 +52,4 @@ handle:
     password: feed
 
 use_dropbox: 0
+failure_limit: 5

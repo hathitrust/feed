@@ -53,6 +53,7 @@ sub run {
   print("feedd QueueRunner running, waiting for something to ingest, pid = $$\n");
 
   while( my $job_info = $self->{queue}->next_job($self->{timeout}) ){
+    next unless $self->validate_job($job_info);
     $self->marshal_and_run($job_info);
   }
 }
@@ -61,15 +62,49 @@ sub marshal_and_run {
   my $self = shift;
   my $job_info = shift;
 
-  my $job = HTFeed::Job->new(%{$job_info},callback=>$self->finish_callback());
+  eval {
+    my $job = HTFeed::Job->new(%{$job_info},callback=>$self->finish_callback());
 
-  if($self->{should_fork}) {
-    $self->fork_and_run_job_sequence($job);
-  } else {
-    $self->run_job_sequence($job);
+    if($self->{should_fork}) {
+      $self->fork_and_run_job_sequence($job);
+    } else {
+      $self->run_job_sequence($job);
+    }
+  };
+
+  if($@) {
+    get_logger()->error("UnexpectedError",
+      namespace => $job_info->{namespace},
+      objid => $job_info->{id},
+      stage => $job_info->{pkg_type} . " " . $job_info->{status},
+      detail => "$@");
+
+    update_queue($job_info->{namespace}, $job_info->{id}, 'punted',1,1); 
   }
 
   $self->{queue}->finish($job_info);
+}
+
+sub validate_job {
+  my $self = shift;
+  my $job_info = shift;
+
+  # make sure job_info refers to something we can deal with. If not, reject the
+  # message and log an error; don't try to update the queue since we don't know
+  # what this job refers to
+
+  unless(ref($job_info) eq 'HASH'
+      and $job_info->{namespace} and $job_info->{id} 
+      and $job_info->{pkg_type} and $job_info->{status}) {
+
+    get_logger()->error("UnexpectedError", detail => "Missing job fields");
+
+    $self->{queue}->reject($job_info);
+
+    return 0;
+
+  }
+
 }
 
 sub run_job_sequence {

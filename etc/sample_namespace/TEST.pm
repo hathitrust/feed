@@ -16,9 +16,12 @@ our $config = {
     default_timezone => 'America/Detroit',
 };
 
-# Everything is permitted. Nothing is forbidden.
+# Everything is OK except a test invalid barcode
 sub validate_barcode {
-    return 1;
+  my $self = shift;
+  my $barcode = shift;
+
+  return ($barcode ne 'invalid');
 }
 
 1;

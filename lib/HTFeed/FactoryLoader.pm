@@ -193,7 +193,7 @@ sub new {
     my $identifier = shift;
 
     my $inc_key = $subclass_map{$class}{$identifier};
-    croak("Unknown subclass identifier $identifier") unless $inc_key;
+    croak("Unknown $class identifier $identifier") unless $inc_key;
     my $subclass = $inc_key;
     $subclass =~ s|/|::|g;
     $subclass =~ s/\.pm$//;
