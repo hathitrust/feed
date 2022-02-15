@@ -10,7 +10,6 @@ use strict;
 use Carp;
 use HTFeed::Config qw(get_config);
 use HTFeed::DBTools qw(get_dbh);
-use HTFeed::DBTools::Priority qw(reprioritize initial_priority);
 use HTFeed::Bunnies;
 
 use Log::Log4perl qw(get_logger);
@@ -35,25 +34,17 @@ enqueue(
         status        => $status_string,
         ignore        => 1,
         use_disallow_list => 0,
-        priority      => $priority_modifier, # see Priority.pm for valid priority modifiers
 )
 =cut
 
 sub enqueue{
   my $self = shift;
 
-  my %args = (
-    volume        => undef,
-    status        => undef,
-    ignore        => undef,
-    no_bibdata_ok    => undef,
-    use_disallow_list => 1,
-    priority      => undef,
-    @_
-  );
+  my %args = @_;
+  
+  $args{use_disallow_list} = 1 unless defined $args{use_disallow_list};
 
   my $volume = $args{volume};
-  my $priority_modifier = $args{priority};
 
   my $rval = eval {
     my $status = $args{status};
@@ -69,10 +60,9 @@ sub enqueue{
       $self->{dbh}->rollback && return 0;
     }
 
-    my $priority = initial_priority($volume,$priority_modifier);
     # DBI returns '0E0' (0 but true) if the insert statement was successful but no rows
     # were inserted
-    my $inserted = $self->queue_db($volume,$status,$args{ignore},$priority);
+    my $inserted = $self->queue_db($volume,$status,$args{ignore});
     $self->mark_returned($volume) if($inserted and !$args{no_bibdata_ok});
     $self->send_to_message_queue($volume,$status) if $inserted == 1;
 
@@ -223,22 +213,22 @@ sub mark_returned {
 sub queue_sth {
   my $self = shift;
 
-  $self->{queue_sth} ||= $self->{dbh}->prepare("INSERT INTO feed_queue (pkg_type, namespace, id, priority, status) VALUES (?,?,?,?,?);");
+  $self->{queue_sth} ||= $self->{dbh}->prepare("INSERT INTO feed_queue (pkg_type, namespace, id, status) VALUES (?,?,?,?);");
 }
 
 sub queue_ignore_existing_sth {
   my $self = shift;
 
-  $self->{queue_ignore_sth} ||= $self->{dbh}->prepare("INSERT IGNORE INTO feed_queue (pkg_type, namespace, id, priority, status) VALUES (?,?,?,?,?);");
+  $self->{queue_ignore_sth} ||= $self->{dbh}->prepare("INSERT IGNORE INTO feed_queue (pkg_type, namespace, id, status) VALUES (?,?,?,?);");
 }
 
 sub queue_db {
   my $self = shift;
-  my ($volume, $status, $ignore, $priority) = @_;
+  my ($volume, $status, $ignore) = @_;
 
   my $sth = $ignore ? $self->queue_ignore_existing_sth : $self->queue_sth;
 
-  my $rval = $sth->execute($volume->get_packagetype, $volume->get_namespace, $volume->get_objid, $priority, $status);
+  my $rval = $sth->execute($volume->get_packagetype, $volume->get_namespace, $volume->get_objid, $status);
 
   if(!$rval) {
     die("INSERT returned false");

@@ -22,7 +22,6 @@ my $insert = 0; # -i
 my $verbose = 0; # -v
 my $quiet = 0; # -q
 my $state = undef; # -s
-my $priority = undef; # -y
 my $help = 0; # -help,-?
 my $use_disallow_list = 1;
 
@@ -40,7 +39,6 @@ GetOptions(
     'verbose|v' => \$verbose,
     'quiet|q' => \$quiet,
     'state|s=s' => \$state,
-    'priority|y=s' => \$priority,
     'help|?' => \$help,
     'dot-packagetype|d=s' => \$dot_packagetype,    
     'pkgtype|p=s' => \$default_packagetype,
@@ -121,16 +119,11 @@ my $queue = HTFeed::Queue->new();
 
 foreach my $volume (@volumes) {
   if(!($reset_level) or $insert) {
-      if(defined $priority){
-          print_result('queued',$volume,$queue->enqueue(volume=>$volume,status=>$state,ignore=>$insert,priority=>$priority,use_disallow_list=>$use_disallow_list));        
-      }
-      else{
-          print_result('queued',$volume,$queue->enqueue(volume=>$volume,status=>$state,ignore=>$insert,use_disallow_list=>$use_disallow_list));
-      }
+    print_result('queued',$volume,$queue->enqueue(volume=>$volume,status=>$state,ignore=>$insert,use_disallow_list=>$use_disallow_list));
   }
 
   if($reset_level){
-      print_result('reset',$volume,$queue->reset(volume => $volume, status => $state, reset_level => $reset_level));
+    print_result('reset',$volume,$queue->reset(volume => $volume, status => $state, reset_level => $reset_level));
       
   }
 }
@@ -162,11 +155,11 @@ __END__
 
 =head1 SYNOPSIS
 
-enqueue.pl [-v|-q] [-r|-R|-i] [-y priority] [-p packagetype [-n namespace]] [infile]
+enqueue.pl [-v|-q] [-r|-R|-i] [-p packagetype [-n namespace]] [infile]
 
-enqueue.pl [-v|-q] [-r|-R|-i] [-y priority] -d packagetype [infile]
+enqueue.pl [-v|-q] [-r|-R|-i] -d packagetype [infile]
 
-enqueue.pl [-v|-q] [-r|-R|-i] [-y priority] -1 packagetype namespace objid
+enqueue.pl [-v|-q] [-r|-R|-i] -1 packagetype namespace objid
 
     INPUT OPTIONS
     -d dot format infile - follow with packagetype
@@ -195,8 +188,6 @@ enqueue.pl [-v|-q] [-r|-R|-i] [-y priority] -1 packagetype namespace objid
     -q quiet - skip report
     
     -s state - set initial state to state (e.g. ready, available, etc)
-    
-    -y priority - set initial priority, valid choices are: first, last, group_first, group_last
 
     --no-use-disallow-list - ignore the disallow list and force enqueueing of the given volumes
 

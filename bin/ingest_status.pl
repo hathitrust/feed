@@ -16,7 +16,6 @@ my $one_line = 0; # -1
 my $verbose = 0; # -v
 my $quiet = 0; # -q
 my $status = undef; # -s
-my $priority = undef; # -y
 my $help = 0; # -help,-?
 my $dot = 0;
 
