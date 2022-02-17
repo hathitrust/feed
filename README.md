@@ -8,19 +8,13 @@ git clone https://github.com/hathitrust/feed
 cd feed
 git submodule update --init metslib
 docker-compose build
-docker-compose run test bin/setup_dev.sh
 ```
 
 # Development
 
-Start services via Docker if necessary:
+Running tests:
 ```
-docker-compose up -d mariadb clamav
-```
-
-Then:
-```
-docker-compose run test make test
+docker-compose run test 
 ```
 
 Running specific tests and/or getting prettier output:
