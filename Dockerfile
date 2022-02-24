@@ -3,6 +3,7 @@ LABEL org.opencontainers.image.source https://github.com/hathitrust/feed
 
 RUN apt-get update && apt-get install -y \
     awscli \
+    curl \
     epubcheck \
     libclamav-client-perl \
     libnet-prometheus-perl \

@@ -31,3 +31,9 @@ handle:
 rclone_config_path: /usr/local/feed/etc/rclone.conf
 
 pushgateway: http://pushgateway:9091
+
+zephir_ftps_server: ftps
+zephir_submissions_path: ""
+
+rights:
+  rights_dir: /usr/local/feed/var/rights
