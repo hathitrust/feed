@@ -28,6 +28,15 @@ handle:
     username: feed
     password: feed
 
+rabbitmq:
+  host: rabbitmq
+  user: guest
+  password: guest
+  queue: ingest
+
+volumes_in_process_limit: 1
+
+use_dropbox: 1
 rclone_config_path: /usr/local/feed/etc/rclone.conf
 
 pushgateway: http://pushgateway:9091

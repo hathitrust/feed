@@ -17,6 +17,8 @@ RUN apt-get update && apt-get install -y \
     netcat \
     rclone
 
+RUN cpan -f -i Net::AMQP::RabbitMQ
+
 ARG UNAME=ingest
 ARG UID=1000
 ARG GID=1000

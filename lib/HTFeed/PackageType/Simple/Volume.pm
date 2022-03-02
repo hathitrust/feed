@@ -121,6 +121,7 @@ sub clean_sip_success {
   my $self = shift;
 
   $self->SUPER::clean_sip_success();
+  return 1 unless get_config('use_dropbox');
   my $rclone = HTFeed::Rclone->new;
   $rclone->delete($self->dropbox_url());
 }

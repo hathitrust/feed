@@ -59,6 +59,8 @@ sub get_dbh {
     return($dbh);
 }
 
+## TO REMOVE AFTER USING RABBITMQ IN PRODUCTION
+
 =item get_queued()
 
  Return $sth, with rows containing (ns,pkg_type,objid,status)
@@ -150,6 +152,8 @@ sub count_locks{
     my $res = $sth->fetchrow;
     return $res;
 }
+
+####### END TO REMOVE AFTER USING RABBITMQ IN PRODUCTION #####
 
 =item update_queue()
 

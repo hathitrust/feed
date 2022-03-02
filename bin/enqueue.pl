@@ -8,7 +8,7 @@ use strict;
 use HTFeed::Log { root_logger => 'INFO, screen' };
 use HTFeed::Version;
 use Log::Log4perl qw(get_logger);
-use HTFeed::DBTools::Queue;
+use HTFeed::Queue;
 use HTFeed::Volume;
 use Getopt::Long qw(:config no_ignore_case);
 use Pod::Usage;
@@ -22,7 +22,6 @@ my $insert = 0; # -i
 my $verbose = 0; # -v
 my $quiet = 0; # -q
 my $state = undef; # -s
-my $priority = undef; # -y
 my $help = 0; # -help,-?
 my $use_disallow_list = 1;
 
@@ -40,7 +39,6 @@ GetOptions(
     'verbose|v' => \$verbose,
     'quiet|q' => \$quiet,
     'state|s=s' => \$state,
-    'priority|y=s' => \$priority,
     'help|?' => \$help,
     'dot-packagetype|d=s' => \$dot_packagetype,    
     'pkgtype|p=s' => \$default_packagetype,
@@ -117,41 +115,35 @@ else{
 }
 
 # add volumes to queue
-my $results;
+my $queue = HTFeed::Queue->new();
 
-if(!($reset_level) or $insert) {
-    if(defined $priority){
-        print_results('queued',enqueue_volumes(volumes=>\@volumes,status=>$state,ignore=>$insert,priority=>$priority,use_disallow_list=>$use_disallow_list));        
-    }
-    else{
-        print_results('queued',enqueue_volumes(volumes=>\@volumes,status=>$state,ignore=>$insert,use_disallow_list=>$use_disallow_list));
-    }
+foreach my $volume (@volumes) {
+  if(!($reset_level) or $insert) {
+    print_result('queued',$volume,$queue->enqueue(volume=>$volume,status=>$state,ignore=>$insert,use_disallow_list=>$use_disallow_list));
+  }
+
+  if($reset_level){
+    print_result('reset',$volume,$queue->reset(volume => $volume, status => $state, reset_level => $reset_level));
+      
+  }
 }
 
-if($reset_level){
-    print_results('reset',reset_volumes(volumes => \@volumes, status => $state, reset_level => $reset_level));
-    
-}
-
-sub print_results {
+sub print_result {
     my $verb = shift;
-    my $results = shift;
+    my $volume = shift;
+    my $result = shift;
     if ($verbose or !$quiet){
-        # print report
-        foreach my $volume (@volumes){
-            print  $volume->get_packagetype() . ' ' . $volume->get_namespace() . ' ' . $volume->get_objid() . ': ';
-            my $result = shift @{$results};
-            # dbi returned true
-            if ($result){
-                # 0 lines updated
-                print 'not ' if ($result < 1);
-                print "$verb \n";
-            }
-            # dbi returned false or died
-            else {
-                print "failure or skipped\n";
-            }
-        }
+      print  $volume->get_packagetype() . ' ' . $volume->get_namespace() . ' ' . $volume->get_objid() . ': ';
+      # dbi returned true
+      if ($result){
+          # 0 lines updated
+          print 'not ' if ($result < 1);
+          print "$verb \n";
+      }
+      # dbi returned false or died
+      else {
+          print "failure or skipped\n";
+      }
     }
 }
 
@@ -163,11 +155,11 @@ __END__
 
 =head1 SYNOPSIS
 
-enqueue.pl [-v|-q] [-r|-R|-i] [-y priority] [-p packagetype [-n namespace]] [infile]
+enqueue.pl [-v|-q] [-r|-R|-i] [-p packagetype [-n namespace]] [infile]
 
-enqueue.pl [-v|-q] [-r|-R|-i] [-y priority] -d packagetype [infile]
+enqueue.pl [-v|-q] [-r|-R|-i] -d packagetype [infile]
 
-enqueue.pl [-v|-q] [-r|-R|-i] [-y priority] -1 packagetype namespace objid
+enqueue.pl [-v|-q] [-r|-R|-i] -1 packagetype namespace objid
 
     INPUT OPTIONS
     -d dot format infile - follow with packagetype
@@ -196,8 +188,6 @@ enqueue.pl [-v|-q] [-r|-R|-i] [-y priority] -1 packagetype namespace objid
     -q quiet - skip report
     
     -s state - set initial state to state (e.g. ready, available, etc)
-    
-    -y priority - set initial priority, valid choices are: first, last, group_first, group_last
 
     --no-use-disallow-list - ignore the disallow list and force enqueueing of the given volumes
 

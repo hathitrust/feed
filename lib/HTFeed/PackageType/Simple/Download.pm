@@ -27,6 +27,12 @@ sub download {
   my $volume = shift;
 
   my $url;
+
+  if(!get_config('use_dropbox')) {
+    $self->set_error('MissingFile', file => $volume->get_sip_location(), detail => "Dropbox download disabled and file not found");
+    return;
+  }
+
   eval {
     $url = $volume->dropbox_url;
   };
