@@ -317,6 +317,22 @@ describe "HTFeed::Queue" => sub {
         $queue->reset(volume=>testvolume, reset_level => 3);
         test_job_queued_for_volume(testvolume,'ready');
       };
+
+      it "updates an 'available' item to 'ready'" => sub {
+        my $queue = HTFeed::Queue->new;
+        $queue->enqueue(volume=>testvolume, status=>'available');
+        $queue->reset(volume=>testvolume, reset_level => 3, status => 'ready');
+        ok(volume_in_feed_queue(testvolume, 'ready'));
+      };
+
+      it "queues a message when changing 'available' to 'ready'" => sub {
+        my $queue = HTFeed::Queue->new;
+        $queue->enqueue(volume=>testvolume, status=>'available');
+        HTFeed::Bunnies->new->reset_queue;
+        
+        $queue->reset(volume=>testvolume, reset_level => 3, status => 'ready');
+        test_job_queued_for_volume(testvolume,'ready');
+      };
     };
 
   };
