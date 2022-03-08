@@ -6,17 +6,15 @@ services:
     build: .
     volumes:
       - .:/usr/local/feed
+      - ./clamav:/var/lib/clamav
     environment:
       - HTFEED_CONFIG=/usr/local/feed/etc/config_test.yml
       - FEED_HOME=/usr/local/feed
       - TEST=1
-      - CLAMAV_HOST=clamav
-      - CLAMAV_PORT=3310
       - VERSION=feed-development
-    command: bin/wait-for --timeout=300 mariadb:3306 clamav:3310 minio:9000 pushgateway:9091 rabbitmq:5672 -- prove -I lib
+    command: bin/wait-for --timeout=300 mariadb:3306 minio:9000 pushgateway:9091 rabbitmq:5672 -- prove -I lib
     depends_on:
       - mariadb
-      - clamav
       - minio
       - pushgateway
       - rabbitmq
@@ -29,6 +27,7 @@ services:
       - ./ingest_stage:/tmp/stage
       - ~/.config/rclone/rclone.conf:/usr/local/feed/etc/rclone.conf
       - ./etc/curlrc-development:/usr/local/feed/.curlrc
+      - ./clamav:/var/lib/clamav
       # FIXME -- before these will work, run: docker-compose run --rm ingest chown ingest.ingest /sdr1 /sdr2 /htdataden
       - repository_link:/sdr1
       - repository_obj:/sdr2
@@ -39,12 +38,9 @@ services:
     environment:
       - HTFEED_CONFIG=/usr/local/feed/etc/config_ingest_docker.yml
       - FEED_HOME=/usr/local/feed
-      - CLAMAV_HOST=clamav
-      - CLAMAV_PORT=3310
       - VERSION=feed-development
     depends_on:
       - mariadb
-      - clamav
 
   validate:
     build: .
@@ -54,13 +50,10 @@ services:
     environment:
       - HTFEED_CONFIG=/usr/local/feed/etc/config_prevalidate.yml
       - FEED_HOME=/usr/local/feed
-      - CLAMAV_HOST=clamav
-      - CLAMAV_PORT=3310
       - VERSION=feed-development
     command: bash -c "/bin/ls /tmp/stage/toingest/test/*.zip | xargs -n 1 basename | sed s/.zip// | perl -w /usr/local/feed/bin/validate_volume.pl -p simple -n test --no-clean"
     depends_on:
       - mariadb
-      - clamav
 
   mariadb:
     build: docker/database
@@ -76,14 +69,6 @@ services:
       MINIO_ACCESS_KEY: TESTINGACCESSKEY
       MINIO_SECRET_KEY: testingsecretkey
     command: server /data
-
-  clamav:
-    image: clamav/clamav:stable
-    tty: true
-    restart: unless-stopped
-    volumes:
-      - ./ingest_sips:/tmp/sips
-      - ./ingest_stage:/tmp/stage
 
   pushgateway:
     image: prom/pushgateway

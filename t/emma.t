@@ -379,4 +379,38 @@ context "with volume & temporary ingest/preingest/zipfile dirs" => sub {
 
 };
 
+# To run these tests, first run
+# `docker-compose run test freshclam -l -`
+# (You may need to adjust permissions on ./clamav)
+if ( -e "/var/lib/clamav/main.cvd") { 
+  use HTFeed::ClamScan;
+
+  describe "HTFeed::ClamScan" => sub {
+    my $tmpdirs;
+
+    before all => sub {
+      $tmpdirs = HTFeed::Test::TempDirs->new();
+    };
+
+    it "can scan a file" => sub {
+      my $scanner = HTFeed::ClamScan->new();
+      my ($path, $result) = $scanner->scan_path($tmpdirs->test_home . "/fixtures/emma/test/emmatest.zip");
+      ok(not defined $result);
+      ok($path =~ qr(emmatest\.zip));
+    };
+
+    it "fails with a nonexistent file" => sub {
+      my $scanner = HTFeed::ClamScan->new();
+      my ($path, $result) = $scanner->scan_path('/tmp/nonexistent');
+      ok(defined $result);
+      ok($result =~ /Can't access file/m);
+      ok($path eq '/tmp/nonexistent');
+    };
+    
+  };
+} else {
+  warn("Skipping ClamAV tests; run freshclam first")
+}
+
+
 runtests unless caller;

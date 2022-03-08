@@ -9,7 +9,7 @@ use base qw(HTFeed::Stage);
 use Log::Log4perl qw(get_logger);
 use HTFeed::Config qw(get_config);
 use PREMIS::Outcome;
-use ClamAV::Client;
+use HTFeed::ClamScan;
 
 sub new {
   my $class = shift;
@@ -21,15 +21,7 @@ sub new {
   if(!$self->{scanner}) {
     my $scanner;
 
-    eval {
-
-      my $clamav_options = get_config('clamav') || {};
-      $clamav_options->{'socket_host'} = $ENV{CLAMAV_HOST} if $ENV{CLAMAV_HOST};
-      $clamav_options->{'socket_port'} = $ENV{CLAMAV_PORT} if $ENV{CLAMAV_PORT};
-
-      $scanner = ClamAV::Client->new(%$clamav_options);
-    };
-
+    $scanner = HTFeed::ClamScan->new();
     $self->{scanner} = $scanner;
   }
   return $self;
@@ -41,14 +33,10 @@ sub run {
   my $volume = $self->{volume};
   my $dest = $volume->get_staging_directory();
 
-  my $scanner = $self->{scanner};
-  $scanner->ping();
-  die "unable to connect to ClamAV: $@" if $@;
-
   my $files = $volume->get_all_content_files();
   my $virus_count = 0;
   foreach my $file (@$files) {
-    my ($path, $result) = $scanner->scan_path($dest . '/' . $file);
+    my ($path, $result) = $self->{scanner}->scan_path($dest . '/' . $file);
     if (defined $result) {
       $virus_count++;
       $self->set_error("Virus", detail => "Virus detected in $file ($result)");

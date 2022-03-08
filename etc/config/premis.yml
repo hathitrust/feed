@@ -25,7 +25,7 @@ premis_tools:
   KDU_COMPRESS: qq(kdu_compress 6.4.0)
   EPUBCHECK: qq(epubcheck 4.0.2)
   MP3VAL: qq(mp3val 0.1.8)
-  CLAMAV: qq(ClamAV 0.102.3)
+  CLAMAV: qq(ClamAV 0.103.5)
 
 # For each possible kind of PREMIS event, list the PREMIS eventType, the
 # eventDetail, the executor linkingAgent VOLUME_ARTIST), and any tool
