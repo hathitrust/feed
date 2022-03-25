@@ -33,8 +33,13 @@ enqueue(
         volume => $volume,
         status        => $status_string,
         ignore        => 1,
+        priority      => 1|2|3|,
         use_disallow_list => 0,
 )
+
+All items queued with higher-number priorities will be processed before
+lower-number priority items.
+
 =cut
 
 sub enqueue{
@@ -43,6 +48,7 @@ sub enqueue{
   my %args = @_;
   
   $args{use_disallow_list} = 1 unless defined $args{use_disallow_list};
+  $args{priority} = 0 unless defined $args{priority};
 
   my $volume = $args{volume};
 
@@ -64,7 +70,7 @@ sub enqueue{
     # were inserted
     my $inserted = $self->queue_db($volume,$status,$args{ignore});
     $self->mark_returned($volume) if($inserted and !$args{no_bibdata_ok});
-    $self->send_to_message_queue($volume,$status) if $inserted == 1;
+    $self->send_to_message_queue($volume,$status,$args{priority}) if $inserted == 1;
 
     $self->{dbh}->commit();
 
@@ -103,6 +109,7 @@ sub reset {
     volume  => undef,
     reset_level   => undef,
     status  => undef,
+    priority => 0,
     @_
   );
 
@@ -134,7 +141,7 @@ sub reset {
     }
     my $res = $sth->execute($volume->get_packagetype(),$status,$volume->get_namespace, $volume->get_objid);
     push @results, $res;
-    $self->send_to_message_queue($volume,$status) if $res == 1;
+    $self->send_to_message_queue($volume,$status,$args{priority}) if $res == 1;
   }
   return \@results;
 }
@@ -220,6 +227,7 @@ sub send_to_message_queue {
   my $self = shift;
   my $volume = shift;
   my $status = shift;
+  my $priority = shift;
 
   # feature gate
   return unless get_config('use_rabbitmq');
@@ -241,6 +249,7 @@ sub send_to_message_queue {
     id           => $volume->get_objid,
     pkg_type     => $volume->get_packagetype,
     status       => $status,
+    priority     => $priority
   );
 
 }

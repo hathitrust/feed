@@ -78,6 +78,13 @@ describe "HTFeed::Queue" => sub {
 
         test_job_queued_for_volume(testvolume, 'ready');
       };
+
+      it "accepts a priority" => sub {
+        HTFeed::Queue->new->enqueue(volume => testvolume, status => 'ready', priority => 3);
+        my $job = HTFeed::Bunnies->new()->next_job($NO_WAIT);
+
+        is($job->{msg}{props}{priority}, 3);
+      }
     };
 
     describe "with an item already in the queue" => sub {
@@ -236,6 +243,15 @@ describe "HTFeed::Queue" => sub {
         $queue->enqueue(volume=>testvolume, status=>'punted');
         $queue->reset(volume=>testvolume, reset_level => 1);
         ok(volume_in_feed_queue(testvolume, 'ready'));
+      };
+
+      it "accepts a priority" => sub {
+        my $queue = HTFeed::Queue->new;
+        $queue->enqueue(volume=>testvolume, status=>'punted');
+        $queue->reset(volume=>testvolume, reset_level => 1, priority => 3);
+
+        my $job = HTFeed::Bunnies->new()->next_job($NO_WAIT);
+        is($job->{msg}{props}{priority}, 3);
       };
 
       it "re-queues a message for a punted volume" => sub {
