@@ -21,6 +21,8 @@ my $reset_level = 0;
 my $insert = 0; # -i
 my $verbose = 0; # -v
 my $quiet = 0; # -q
+# Manually-queued stuff is at high priority by default
+my $priority = 3; # -p
 my $state = undef; # -s
 my $help = 0; # -help,-?
 my $use_disallow_list = 1;
@@ -44,6 +46,7 @@ GetOptions(
     'pkgtype|p=s' => \$default_packagetype,
     'namespace|n=s' => \$default_namespace,
     'use-disallow-list|b!' => \$use_disallow_list,
+    'priority|y=i' => \$priority,
 )  or pod2usage(2);
 
 # highest level wins
@@ -119,11 +122,11 @@ my $queue = HTFeed::Queue->new();
 
 foreach my $volume (@volumes) {
   if(!($reset_level) or $insert) {
-    print_result('queued',$volume,$queue->enqueue(volume=>$volume,status=>$state,ignore=>$insert,use_disallow_list=>$use_disallow_list));
+    print_result('queued',$volume,$queue->enqueue(volume=>$volume,status=>$state,ignore=>$insert,priority=>$priority,use_disallow_list=>$use_disallow_list));
   }
 
   if($reset_level){
-    print_result('reset',$volume,$queue->reset(volume => $volume, status => $state, reset_level => $reset_level));
+    print_result('reset',$volume,$queue->reset(volume => $volume, status => $state, priority=>$priority, reset_level => $reset_level));
       
   }
 }
@@ -188,6 +191,8 @@ enqueue.pl [-v|-q] [-r|-R|-i] -1 packagetype namespace objid
     -q quiet - skip report
     
     -s state - set initial state to state (e.g. ready, available, etc)
+
+    -y priority - set priority; 3 is high priority, 2 is medium priority, 1 is low priority
 
     --no-use-disallow-list - ignore the disallow list and force enqueueing of the given volumes
 
