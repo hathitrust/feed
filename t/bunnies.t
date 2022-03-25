@@ -40,7 +40,36 @@ describe "HTFeed::Bunnies" => sub {
       $bunnies->queue_job(%params);
       my $msg = $bunnies->{mq}->get($bunnies->{channel},$bunnies->{queue});
       is_deeply(decode_json($msg->{body}),\%params);
+    };
 
+    it "can queue and retrieve a job with priority" => sub {
+      my $bunnies = bunnies;
+      my %params = (param => "value", priority => 3);
+      $bunnies->queue_job(%params);
+      my $msg = $bunnies->{mq}->get($bunnies->{channel},$bunnies->{queue});
+      is_deeply(decode_json($msg->{body}),{ param => "value" });
+    };
+  };
+
+  describe "#priority" => sub {
+    it "gets higher-priority messages first" => sub {
+      my $bunnies = HTFeed::Bunnies->new(priority_levels => 3);
+      $bunnies->queue_job(tag => "low1", priority => 1);
+      $bunnies->queue_job(tag => "med", priority => 2);
+      $bunnies->queue_job(tag => "low2", priority => 1);
+      $bunnies->queue_job(tag => "high", priority => 3);
+
+      my @jobs;
+      foreach my $i (1..4) { 
+        my $job = $bunnies->next_job(1000);
+        $bunnies->finish($job);
+        push(@jobs, $job);
+      }
+      
+      is($jobs[0]->{tag},"high");
+      is($jobs[1]->{tag},"med");
+      is($jobs[2]->{tag},"low1");
+      is($jobs[3]->{tag},"low2");
     };
   };
 
