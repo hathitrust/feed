@@ -18,13 +18,17 @@ RUN apt-get update && apt-get install -y \
     netcat \
     rclone
 
+RUN curl https://hathitrust.github.io/debian/hathitrust-archive-keyring.gpg -o /usr/share/keyrings/hathitrust-archive-keyring.gpg
+RUN echo "deb [signed-by=/usr/share/keyrings/hathitrust-archive-keyring.gpg] https://hathitrust.github.io/debian/ bullseye main" > /etc/apt/sources.list.d/hathitrust.list
+
+RUN apt-get update && apt-get install -y grokj2k-tools
+
 RUN cpan -f -i Net::AMQP::RabbitMQ
 
 ARG UNAME=ingest
 ARG UID=1000
 ARG GID=1000
 ENV FEED_HOME=/usr/local/feed
-
 RUN groupadd -g $GID -o $UNAME
 RUN useradd -m -d $FEED_HOME -u $UID -g $GID -o -s /bin/bash $UNAME
 

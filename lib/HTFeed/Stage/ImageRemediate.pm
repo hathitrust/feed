@@ -536,8 +536,7 @@ sub _remediate_jpeg2000 {
         $self->set_new_if_undefined( $field, $val );
     }
 
-    # first copy old values, since kdu_munge will strip the XMP if it is
-    # present
+    # first copy old values, since XMP may be stripped/corrupted in some cases 
     my $exifTool = new Image::ExifTool;
     $exifTool->Options('ScanForXMP' => 1);
     $exifTool->Options('IgnoreMinorErrors' => 1);
@@ -557,30 +556,7 @@ sub _remediate_jpeg2000 {
         }
     }
 
-    # Use kdu_munge to strip out the existing XMP. This may help in situations
-    # where exiftool cannot update existing XMP because it is in a "huge
-    # JPEG2000 box". Note that as of exiftool 10.03, exiftool should be able to
-    # handle "extended-size JPEG2000 boxes" so long as they are <4GB.
-    #
-    # kdu_munge is a modification to kdu_transcode; see
-    # http://websites.umich.edu/~roger/kdu_transcode.html
-    my $kdu_munge = get_config('kdu_munge');
-    if (    $self->{volume}->get_nspkg()->get('use_kdu_munge')
-        and defined $kdu_munge
-        and $kdu_munge )
-    {
-        system("$kdu_munge -i '$infile' -o '$outfile' > /dev/null 2>&1")
-          and $self->set_error(
-            "OperationFailed",
-            file      => $outfile,
-            operation => "kdu_munge"
-          );
-
-        $self->update_tags( $exifTool, $outfile );
-    }
-    else {
-        $self->update_tags( $exifTool, $outfile, $infile );
-    }
+    $self->update_tags( $exifTool, $outfile, $infile );
 
 }
 
@@ -729,37 +705,36 @@ sub expand_lossless_jpeg2000 {
                 my $jpeg2000_remediated = $file;
                 my $tiff = $file;
                 $tiff =~ s/\.jp2$/.tif/;
-                $jpeg2000_remediated =~ s/\.jp2$/.jp2_remediated/;
+                $jpeg2000_remediated =~ s/\.jp2$/.remediated.jp2/;
 
-                my $kdu_expand = get_config('kdu_expand');
-                system("$kdu_expand -i '$path/$jpeg2000' -o '$path/$tiff' > /dev/null 2>&1");
+                my $grk_decompress = get_config('grk_decompress');
+                system("$grk_decompress -i '$path/$jpeg2000' -o '$path/$tiff' > /dev/null 2>&1");
 
 
                 # try to compress the TIFF -> JPEG2000
                 get_logger()->trace("Compressing $path/$tiff to $path/$jpeg2000");
-                my $kdu_compress = get_config('kdu_compress');
+                my $grk_compress = get_config('grk_compress');
 
                 if(not defined $self->{recorded_image_compression}) {
                     $volume->record_premis_event('image_compression');
                     $self->{recorded_image_compression} = 1;
                 }
 
-                system(
-            "$kdu_compress -quiet -i '$path/$tiff' -o '$path/$jpeg2000_remediated' Clevels=5 Clayers=8 Corder=RLCP Cuse_sop=yes Cuse_eph=yes 'Cmodes=RESET|RESTART|CAUSAL|ERTERM|SEGMARK' -no_weights -slope 42988 > /dev/null 2>&1"
-                  )
+                # Single quality level with reqested PSNR of 32dB. See DEV-10
+                system(qq($grk_compress -i "$path/$tiff" -o "$path/$jpeg2000_remediated" -p RLCP -n 5 -SOP -EPH -M 62 -I -q 32 > /dev/null 2>&1))
 
                   and $self->set_error(
                     "OperationFailed",
-                    operation => "kdu_compress",
+                    operation => "grk_compress",
                     file      => "$path/$tiff",
-                    detail    => "kdu_compress returned $?"
+                    detail    => "grk_compress returned $?"
                   );
 
 
                 # copy all headers from the original jpeg2000
-                # kdu_compress loses info from IFD0 headers, which are sometimes present in JPEG2000 images
+                # grk_compress loses info from IFD0 headers, which are sometimes present in JPEG2000 images
                 my $exiftool = new Image::ExifTool;
-                $exiftool->SetNewValuesFromFile("$path/$jpeg2000");
+                $exiftool->SetNewValuesFromFile("$path/$jpeg2000",'*:*');
                 $exiftool->WriteInfo("$path/$jpeg2000_remediated");
 
                 rename("$path/$jpeg2000_remediated","$path/$jpeg2000");
@@ -883,14 +858,14 @@ sub convert_tiff_to_jpeg2000 {
 
     # try to compress the TIFF -> JPEG2000
     get_logger()->trace("Compressing $infile to $outfile");
-    my $kdu_compress = get_config('kdu_compress');
+    my $grk_compress = get_config('grk_compress');
 
     if(not defined $self->{recorded_image_compression}) {
         $volume->record_premis_event('image_compression');
         $self->{recorded_image_compression} = 1;
     }
 
-    # Settings for kdu_compress recommended from Roger Espinosa. "-slope"
+    # Settings for grk_compress recommended from Roger Espinosa. "-slope"
     # is a VBR compression mode; the value of 42988 corresponds to pre-6.4
     # slope of 51180, the current (as of 5/6/2011) recommended setting for
     # Google digifeeds.
@@ -929,15 +904,13 @@ sub convert_tiff_to_jpeg2000 {
     system( "$imagemagick_cmd -compress None $infile -strip $infile.unc.tif > /dev/null 2>&1" )
             and $self->set_error("OperationFailed", operation => "imagemagick", file => $infile, detail => "decompress and ICC profile strip failed: returned $?");
 
-    system(
-"$kdu_compress -quiet -i '$infile.unc.tif' -o '$outfile' Clevels=$levels Clayers=8 Corder=RLCP Cuse_sop=yes Cuse_eph=yes 'Cmodes=RESET|RESTART|CAUSAL|ERTERM|SEGMARK' -no_weights -slope 42988 > /dev/null 2>&1"
-      )
+    system(qq($grk_compress -i "$infile.unc.tif" -o "$outfile" -p RLCP -n $levels -SOP -EPH -M 62 -I > /dev/null 2>&1))
 
       and $self->set_error(
         "OperationFailed",
-        operation => "kdu_compress",
+        operation => "grk_compress",
         file      => $infile,
-        detail    => "kdu_compress returned $?"
+        detail    => "grk_compress returned $?"
       );
 
     # then set new metadata fields - the rest will automatically be 

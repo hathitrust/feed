@@ -43,17 +43,14 @@ foreach my $infile (@ARGV) {
 
     # try to compress the TIFF -> JPEG2000
     print("Compressing $infile to $outfile\n");
-    my $kdu_compress = get_config('kdu_compress');
-    die("You must correctly configure the path to kdu_compress in the feed configuration\n") 
-    if not defined $kdu_compress or !-x $kdu_compress;
+    my $grk_compress = get_config('grk_compress');
+    die("You must correctly configure the path to grk_compress in the feed configuration\n") 
+    if not defined $grk_compress or !-x $grk_compress;
 
-    # Settings for kdu_compress recommended from Roger Espinosa. "-slope"
-    # is a VBR compression mode; the value of 42988 corresponds to pre-6.4
-    # slope of 51180, the current (as of 5/6/2011) recommended setting for
-    # Google digifeeds.
-    system(qq($kdu_compress -quiet -i '$infile' -o '$outfile' Clevels=$levels Clayers=8 Corder=RLCP Cuse_sop=yes Cuse_eph=yes "Cmodes=RESET|RESTART|CAUSAL|ERTERM|SEGMARK" -no_weights -slope 42988))
+    # Single quality level with reqested PSNR of 32dB. See DEV-10
+    system(qq($grk_compress -i "$infile" -o "$outfile" -p RLCP -n $levels -SOP -EPH -M 62 -I -q 32))
 
-        and die("kdu_compress returned $?");
+        and die("grk_compress returned $?");
 
     # then set new metadata fields: copy from exiftool field called
     # IFD0:whatever to XMP-tiff:whatever, where the fields have the same name

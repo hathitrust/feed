@@ -110,6 +110,62 @@ describe "HTFeed::PackageType::Simple" => sub {
       ok($testlog->matches(qr(File validation failed.*meta\.yml)s));
     }
   };
+
+  describe "HTFeed::PackageType::Simple::ImageRemediate" => sub {
+    it "compresses tif to a valid jpeg2000" => sub {
+      my $volume = unpacked_volume("rgb_tif");
+      my $remediate = HTFeed::PackageType::Simple::ImageRemediate->new(volume => $volume);
+      $remediate->run();
+
+      ok(-e "$tmpdirs->{ingest}/rgb_tif/00000001.jp2");
+      ok($remediate->succeeded());
+
+      HTFeed::PackageType::Simple::SourceMETS->new(volume => $volume)->run();
+
+      my $validate = HTFeed::VolumeValidator->new(volume => $volume);
+      $validate->run();
+      ok($validate->succeeded());
+    };
+
+    it "preserves XMP values when compressing tif" => sub {
+      my $volume = unpacked_volume("rgb_tif");
+      my $remediate = HTFeed::PackageType::Simple::ImageRemediate->new(volume => $volume);
+      $remediate->run();
+
+      my $exiftool = Image::ExifTool->new();
+      $exiftool->ExtractInfo("$tmpdirs->{ingest}/rgb_tif/00000001.jp2");
+      is($exiftool->GetValue("XMP-tiff:Make"),"Test scanner make");
+    };
+
+    it "recompresses lossless jpeg2000 to a valid jpeg2000" => sub {
+      my $volume = unpacked_volume("lossless_jp2");
+
+      HTFeed::PackageType::Simple::ImageRemediate->new(volume => $volume)->run();
+      HTFeed::PackageType::Simple::SourceMETS->new(volume => $volume)->run();
+
+      my $validate = HTFeed::VolumeValidator->new(volume => $volume);
+      $validate->run();;
+      ok($validate->succeeded());
+    };
+
+    it "preserves the XMP when recompressing a lossless JPEG2000" => sub {
+      # jp2 has artist & resolution fields in XMP; should preserve those
+      my $volume = unpacked_volume("lossless_jp2_with_xmp");
+      HTFeed::PackageType::Simple::ImageRemediate->new(volume => $volume)->run();
+
+      HTFeed::PackageType::Simple::SourceMETS->new(volume => $volume)->run();
+
+      my $validate = HTFeed::VolumeValidator->new(volume => $volume);
+      $validate->run();
+      ok($validate->succeeded());
+
+      my $exiftool = Image::ExifTool->new();
+      $exiftool->ExtractInfo("$tmpdirs->{ingest}/lossless_jp2_with_xmp/00000001.jp2");
+      is($exiftool->GetValue("XMP-tiff:Make"),"Test scanner make");
+
+    };
+
+  };
 };
 
 describe "HTFeed::PackageType::Simple::Download" => sub {
