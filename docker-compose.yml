@@ -26,7 +26,6 @@ services:
       - ./ingest_sips:/tmp/sips
       - ./ingest_stage:/tmp/stage
       - ~/.config/rclone/rclone.conf:/usr/local/feed/etc/rclone.conf
-      - ./etc/curlrc-development:/usr/local/feed/.curlrc
       - ./clamav:/var/lib/clamav
       # FIXME -- before these will work, run: docker-compose run --rm ingest chown ingest.ingest /sdr1 /sdr2 /htdataden
       - repository_link:/sdr1
@@ -56,7 +55,9 @@ services:
       - mariadb
 
   mariadb:
-    build: docker/database
+    image: ghcr.io/hathitrust/db-image:latest
+    volumes:
+      - ./etc/ingest.sql:/docker-entrypoint-initdb.d/999-ingest.sql
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: mysqlroot
@@ -76,20 +77,6 @@ services:
       - --web.enable-admin-api
     ports:
       - "9091:9091"
-
-  ftps:
-    image: stilliard/pure-ftpd
-    container_name: ftps
-    environment:
-      FTP_USER_NAME: ingest
-      FTP_USER_PASS: ingest
-      FTP_USER_HOME: /home/ingest
-      ADDED_FLAGS: "--tls=2"
-      TLS_CN: "ingest"
-      TLS_ORG: "HathiTrust"
-      TLS_C: "US"
-    volumes:
-      - ./var/zephir:/home/ingest
 
   rabbitmq:
     image: rabbitmq

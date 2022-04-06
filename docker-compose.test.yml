@@ -16,17 +16,10 @@ services:
       - pushgateway
       - rabbitmq
 
-  sut-submodule:
-    build: .
-    environment:
-      - HTFEED_CONFIG=/usr/local/feed/etc/config_test.yml
-      - FEED_HOME=/usr/local/feed
-      - TEST=1
-      - VERSION=feed-testing
-    command: bash -c "prove -I lib t/submodules"
-
   mariadb:
-    build: docker/database
+    image: ghcr.io/hathitrust/db-image:latest
+    volumes:
+      - ./etc/ingest.sql:/docker-entrypoint-initdb.d/999-ingest.sql
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: mysqlroot

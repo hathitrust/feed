@@ -136,3 +136,34 @@ CREATE TABLE IF NOT EXISTS `feed_audit_detail` (
   `time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   KEY `fs_log_status_objid_idx` (`namespace`,`id`)
 );
+USE `ht`;
+
+CREATE TABLE IF NOT EXISTS `emma_items` (
+  `remediated_item_id` varchar(255) PRIMARY KEY NOT NULL,
+  `original_item_id` varchar(255) NOT NULL,
+  `dc_format` varchar(255),
+  `rem_coverage` text,
+  `rem_remediation` text,
+  `indexed_date` datetime
+);
+CREATE DATABASE IF NOT EXISTS `handle`;
+
+CREATE TABLE IF NOT EXISTS `handle`.`handles` (
+  `handle` varchar(255) NOT NULL DEFAULT '',
+  `idx` int(11) NOT NULL DEFAULT '0',
+  `type` blob,
+  `data` blob,
+  `ttl_type` smallint(6) DEFAULT NULL,
+  `ttl` int(11) DEFAULT NULL,
+  `timestamp` int(11) DEFAULT NULL,
+  `refs` blob,
+  `admin_read` tinyint(1) DEFAULT NULL,
+  `admin_write` tinyint(1) DEFAULT NULL,
+  `pub_read` tinyint(1) DEFAULT NULL,
+  `pub_write` tinyint(1) DEFAULT NULL,
+  PRIMARY KEY (`handle`,`idx`)
+);
+
+GRANT USAGE ON *.* TO 'feed'@'%' IDENTIFIED BY 'feed';
+GRANT SELECT, INSERT, UPDATE, DELETE, LOCK TABLES ON `ht`.* TO 'feed'@'%';
+GRANT SELECT, INSERT, UPDATE, DELETE, LOCK TABLES ON `handle`.* TO 'feed'@'%';

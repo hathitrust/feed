@@ -1,12 +1,11 @@
-HathiTrust Ingest Toolkit (Feed)
+HathiTrust Ingest Toolkit
 
 ![Run CI](https://github.com/hathitrust/feed/actions/workflows/ci.yml/badge.svg)
 ![Docker Build](https://github.com/hathitrust/feed/actions/workflows/build.yml/badge.svg)
 
 ```bash
 git clone https://github.com/hathitrust/feed
-cd feed
-git submodule update --init metslib
+cd ingest
 docker-compose build
 ```
 
