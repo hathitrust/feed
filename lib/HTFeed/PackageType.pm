@@ -101,8 +101,7 @@ BEGIN {
     };
 }
 
-use lib "$ENV{FEED_HOME}/google/lib";
-use HTFeed::FactoryLoader 'load_subclasses', "$ENV{FEED_HOME}/google/lib";
+use HTFeed::FactoryLoader 'load_subclasses';
 use base qw(HTFeed::FactoryLoader);
 
 sub get {

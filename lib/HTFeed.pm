@@ -8,7 +8,6 @@ use HTFeed::Version qw(:no_getopt);
 
 my $loaded_namespaces = 0;
 my $loaded_pkgtypes = 0;
-my $loaded_google_pkgtype = 0;
 
 use HTFeed::Volume;
 use HTFeed::Config qw(get_config);
@@ -59,16 +58,8 @@ sub load_namespaces {
 sub load_pkgtypes {
     if(!$loaded_pkgtypes) {
         HTFeed::PackageType->load_all_subclasses();
+        
         $loaded_pkgtypes = 1;
-    }
-
-    my $google_lib = "$ENV{FEED_HOME}/google/lib/HTFeed/PackageType";
-    if(!$loaded_google_pkgtype) {
-      if (-d $google_lib) {
-        use lib "$ENV{FEED_HOME}/google/lib";
-        HTFeed::PackageType->load_all_subclasses($google_lib,'HTFeed/PackageType') if(-d "$google_lib");
-      }
-      $loaded_google_pkgtype = 1;
     }
 }
 

@@ -82,6 +82,11 @@ sub import {
 
         # determine the subdirectory to find plugins in
         my @module_paths = (module_path($caller));
+
+        if (defined $ENV{FEED_EXT} and -d $ENV{FEED_EXT}) {
+          push(@module_paths, "$ENV{FEED_EXT}/lib/$relative_path")
+        }
+
         foreach my $lib_path (@_) {
           push(@module_paths, "$lib_path/$relative_path");
         }
@@ -118,11 +123,24 @@ sub import {
 
 sub load_all_subclasses {
 
-    no strict 'refs';
     # determine the subdirectory to find plugins in
     my $caller = shift;
-    my $module_path = shift || module_path($caller);
-    my $relative_path = shift || relative_path($caller);
+    my $module_path = module_path($caller);
+    my $relative_path = relative_path($caller);
+    load_all_subclasses_from_dir($caller,$module_path,$relative_path);
+
+    if(defined $ENV{FEED_EXT}) {
+      my $ext_path = "$ENV{FEED_EXT}/lib/$relative_path";
+      load_all_subclasses_from_dir($caller,$ext_path,$relative_path) if -d $ext_path;
+    }
+
+}
+
+sub load_all_subclasses_from_dir {
+    no strict 'refs';
+    my $caller = shift;
+    my $module_path = shift;
+    my $relative_path = shift;
    
     # load the base class's identifier
     my $subclass_identifier = ${"${caller}::identifier"};

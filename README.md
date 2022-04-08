@@ -19,11 +19,11 @@ docker-compose run test
 Running specific tests and/or getting prettier output:
 ```
 # Runs all tests
-docker-compose run test prove -I lib 
+docker-compose run test prove
 # Run a specific set of tests
-docker-compose run test prove -I lib t/storage.t
+docker-compose run test prove t/storage.t
 # Get more verbose output from a specific test
-docker-compose run test perl -I lib t/storage.t
+docker-compose run test perl t/storage.t
 ```
 
 ## Validating volumes

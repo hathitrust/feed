@@ -67,7 +67,7 @@ RUN useradd -m -d $FEED_HOME -u $UID -g $GID -o -s /bin/bash $UNAME
 
 RUN mkdir /extlib
 RUN chown $UID:$GID /extlib
-ENV PERL5LIB="/extlib/lib/perl5"
+ENV PERL5LIB="/extlib/lib/perl5:$FEED_HOME/lib"
 
 USER $UID:$GID
 
