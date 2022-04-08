@@ -2,7 +2,6 @@ use ExtUtils::MakeMaker;
 
 WriteMakefile(
   NAME      => 'HTFeed',
-  VERSION_FROM  => 'lib/HTFeed.pm', # finds \$VERSION
   AUTHOR      => 'Aaron Elkiss (aelkiss@hathitrust.org)',
   ABSTRACT    => 'HathiTrust repository toolkit',
   PREREQ_PM    => {

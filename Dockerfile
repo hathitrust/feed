@@ -74,7 +74,6 @@ USER $UID:$GID
 WORKDIR $FEED_HOME
 
 COPY ./Makefile.PL $FEED_HOME/Makefile.PL
-COPY ./lib/HTFeed.pm $FEED_HOME/lib/HTFeed.pm
 RUN cpanm https://github.com/hathitrust/metslib.git@v1.0.1 -l /extlib
 RUN cpanm --notest -l /extlib --installdeps .
 

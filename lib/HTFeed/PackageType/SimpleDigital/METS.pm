@@ -2,7 +2,7 @@ package HTFeed::PackageType::SimpleDigital::METS;
 use strict;
 use warnings;
 
-use base qw(HTFeed::PackageType::Simple::METS);
+use base qw(HTFeed::METS);
 
 sub new {
     my $class = shift;
