@@ -32,6 +32,7 @@ rabbitmq:
   user: guest
   password: guest
   queue: testqueue
+  priority_levels: 3
 
 use_rabbitmq: 1
 

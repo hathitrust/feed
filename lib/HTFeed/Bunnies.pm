@@ -1,4 +1,5 @@
 use utf8;
+use strict;
 package HTFeed::Bunnies;
 
 use Net::AMQP::RabbitMQ;
@@ -17,11 +18,12 @@ sub new {
   my %params = @_;
 
   my $self = {
-    channel     => $params{channel}  || $AMQP_DEFAULT_CHANNEL,
-    host        => $params{host}     || get_config('rabbitmq','host'),
-    user        => $params{user}     || get_config('rabbitmq','user'),
-    password    => $params{password} || get_config('rabbitmq','password'),
-    queue       => $params{queue}    || get_config('rabbitmq','queue'),
+    channel          => $params{channel}         || $AMQP_DEFAULT_CHANNEL,
+    host             => $params{host}            || get_config('rabbitmq','host'),
+    user             => $params{user}            || get_config('rabbitmq','user'),
+    password         => $params{password}        || get_config('rabbitmq','password'),
+    queue            => $params{queue}           || get_config('rabbitmq','queue'),
+    priority_levels  => $params{priority_levels} || get_config('rabbitmq','priority_levels'),
     consumer_started => 0,
   };
   bless($self, $class);
@@ -36,9 +38,14 @@ sub connect {
 
   my $mq = Net::AMQP::RabbitMQ->new();
 
+  my $queue_arguments = {};
+  if($self->{priority_levels} > 1) {
+    $queue_arguments->{"x-max-priority"} = int($self->{priority_levels});
+  }
+
   $mq->connect($self->{host}, { user => $self->{user}, password => $self->{password} });
   $mq->channel_open($self->{channel});
-  $mq->queue_declare($self->{channel}, $self->{queue}, { durable => 1, auto_delete => 0});
+  $mq->queue_declare($self->{channel}, $self->{queue}, { durable => 1, auto_delete => 0}, $queue_arguments);
   get_logger()->debug("$BUNNY: connected to $self->{host} on channel $self->{channel} using queue $self->{queue}");
 
   $self->{mq} = $mq;
@@ -49,13 +56,20 @@ sub queue_job {
 
   my %job_params = @_;
 
+  my $props = { delivery_mode => $AMQP_DELIVERY_PERSISTENT };
+  
+  if($job_params{priority}) {
+    $props->{priority} = $job_params{priority};
+    delete $job_params{priority};
+  }
+
   my $msg = encode_json(\%job_params);
 
   my $rval = $self->{mq}->publish($self->{channel},
     $self->{queue},
     $msg,
     {},
-    { delivery_mode => $AMQP_DELIVERY_PERSISTENT }
+    $props,
   );
 
   get_logger()->debug("$BUNNY: published message on channel $self->{channel} to queue $self->{queue}");
