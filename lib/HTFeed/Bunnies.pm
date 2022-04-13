@@ -1,4 +1,5 @@
 use utf8;
+use strict;
 package HTFeed::Bunnies;
 
 use Net::AMQP::RabbitMQ;
@@ -39,7 +40,7 @@ sub connect {
 
   my $queue_arguments = {};
   if($self->{priority_levels} > 1) {
-    $queue_arguments->{"x-max-priority"} = $self->{priority_levels};
+    $queue_arguments->{"x-max-priority"} = int($self->{priority_levels});
   }
 
   $mq->connect($self->{host}, { user => $self->{user}, password => $self->{password} });
