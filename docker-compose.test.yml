@@ -9,24 +9,17 @@ services:
       - FEED_HOME=/usr/local/feed
       - TEST=1
       - VERSION=feed-testing
-    command: bash -c "bin/wait-for --timeout=300 mariadb:3306 minio:9000 pushgateway:9091 rabbitmq:5672 -- prove -I lib"
+    command: bash -c "bin/wait-for --timeout=300 mariadb:3306 minio:9000 pushgateway:9091 rabbitmq:5672 -- prove"
     depends_on:
       - mariadb
       - minio
       - pushgateway
       - rabbitmq
 
-  sut-submodule:
-    build: .
-    environment:
-      - HTFEED_CONFIG=/usr/local/feed/etc/config_test.yml
-      - FEED_HOME=/usr/local/feed
-      - TEST=1
-      - VERSION=feed-testing
-    command: bash -c "prove -I lib t/submodules"
-
   mariadb:
-    build: docker/database
+    image: ghcr.io/hathitrust/db-image:latest
+    volumes:
+      - ./etc/ingest.sql:/docker-entrypoint-initdb.d/999-ingest.sql
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: mysqlroot

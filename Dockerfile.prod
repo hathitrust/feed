@@ -1,4 +1,4 @@
-ARG image_tag=ghcr.io/hathitrust/feed-full-unstable:latest
+ARG image_tag=ghcr.io/hathitrust/feed-unstable:latest
 FROM ${image_tag}
 LABEL org.opencontainers.image.source https://github.com/hathitrust/feed
 

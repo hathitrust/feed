@@ -30,3 +30,6 @@ ingest_sips/*
 .gnupg
 .bash_history
 var/*
+.cpanm
+MYMETA.json
+MYMETA.yml

@@ -1,22 +1,59 @@
-FROM ghcr.io/hathitrust/perl_base:bullseye
+FROM debian:bullseye
 LABEL org.opencontainers.image.source https://github.com/hathitrust/feed
 
-RUN apt-get update && apt-get install -y \
+ARG UNAME=ingest
+ARG UID=1000
+ARG GID=1000
+ENV FEED_HOME=/usr/local/feed
+
+RUN sed -i 's/main.*/main contrib non-free/' /etc/apt/sources.list
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
     awscli \
+    build-essential \
     clamav \
+    cpanminus \
     curl \
     epubcheck \
-    libclamav-client-perl \
+    git \
+    gpg \
+    gpg-agent \
+    imagemagick \
+    jhove \
+    libdate-manip-perl \
+    libdbd-mysql-perl \
+    libdbi-perl \
+    libimage-exiftool-perl \
+    libipc-run-perl \
+    libjson-xs-perl \
+    liblist-compare-perl \
+    liblist-moreutils-perl \
+    liblog-log4perl-perl \
+    libmailtools-perl \
+    libmouse-perl \
     libnet-prometheus-perl \
-    libswitch-perl \
+    libreadonly-perl \
+    libreadonly-xs-perl \
+    libroman-perl \
     libtest-class-perl \
     libtest-mockobject-perl \
     libtest-most-perl \
-    libtest-time-perl \
     libtest-spec-perl \
-    mariadb-client \
+    libtest-time-perl \
+    libssl-dev \
+    liburi-perl \
+    libwww-perl \
+    libxerces-c3.2 \
+    libxerces-c3-dev \
+    libxml-libxml-perl \
+    libyaml-libyaml-perl \
+    mp3val \
     netcat \
-    rclone
+    openjdk-11-jre-headless \
+    perl \
+    rclone \
+    unzip \
+    zip
 
 RUN curl https://hathitrust.github.io/debian/hathitrust-archive-keyring.gpg -o /usr/share/keyrings/hathitrust-archive-keyring.gpg
 RUN echo "deb [signed-by=/usr/share/keyrings/hathitrust-archive-keyring.gpg] https://hathitrust.github.io/debian/ bullseye main" > /etc/apt/sources.list.d/hathitrust.list
@@ -25,19 +62,23 @@ RUN apt-get update && apt-get install -y grokj2k-tools
 
 RUN cpan -f -i Net::AMQP::RabbitMQ
 
-ARG UNAME=ingest
-ARG UID=1000
-ARG GID=1000
-ENV FEED_HOME=/usr/local/feed
 RUN groupadd -g $GID -o $UNAME
 RUN useradd -m -d $FEED_HOME -u $UID -g $GID -o -s /bin/bash $UNAME
 
+RUN mkdir /extlib
+RUN chown $UID:$GID /extlib
+ENV PERL5LIB="/extlib/lib/perl5:$FEED_HOME/lib"
+
 USER $UID:$GID
+
+WORKDIR $FEED_HOME
+
+COPY ./Makefile.PL $FEED_HOME/Makefile.PL
+RUN cpanm https://github.com/hathitrust/metslib.git@v1.0.1 -l /extlib
+RUN cpanm --notest -l /extlib --installdeps .
 
 RUN mkdir -p /tmp/stage/grin
 RUN mkdir -p /tmp/prep/toingest /tmp/prep/failed /tmp/prep/ingested /tmp/prep/logs /tmp/prep/toingest/emma
-
-WORKDIR $FEED_HOME
 
 RUN mkdir $FEED_HOME/bin $FEED_HOME/src $FEED_HOME/.gnupg
 RUN chown $UID:$GID $FEED_HOME/.gnupg
@@ -46,7 +87,6 @@ COPY ./src/validateCache.cpp $FEED_HOME/src/validateCache.cpp
 RUN /usr/bin/g++ -o bin/validateCache src/validateCache.cpp -lxerces-c
 
 COPY . $FEED_HOME
-COPY ./etc/sample_namespace/TEST.pm $FEED_HOME/etc/namespaces/TEST.pm
 
 ARG version=feed-development
 ENV VERSION=$version
