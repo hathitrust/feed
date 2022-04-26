@@ -4,7 +4,7 @@ name: Docker Build
 on:
   workflow_run:
     workflows: ['Run CI']
-    branches: ['master']
+    branches: ['main']
     types: [completed]
 
 jobs:
