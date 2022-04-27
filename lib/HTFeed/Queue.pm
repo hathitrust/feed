@@ -14,7 +14,11 @@ use HTFeed::Bunnies;
 
 use Log::Log4perl qw(get_logger);
 
-our @EXPORT = qw(enqueues reset);
+our @EXPORT = qw(enqueues reset QUEUE_PRIORITY_HIGH QUEUE_PRIORITY_MED QUEUE_PRIORITY_LOW);
+
+use constant QUEUE_PRIORITY_HIGH => 3;
+use constant QUEUE_PRIORITY_MED => 2;
+use constant QUEUE_PRIORITY_LOW => 2;
 
 sub new {
   my $class = shift;
@@ -33,7 +37,7 @@ enqueue(
         volume => $volume,
         status        => $status_string,
         ignore        => 1,
-        priority      => 1|2|3|,
+        priority      => QUEUE_PRIORITY_HIGH|MED|LOW
         use_disallow_list => 0,
 )
 
@@ -68,7 +72,7 @@ sub enqueue{
 
     # DBI returns '0E0' (0 but true) if the insert statement was successful but no rows
     # were inserted
-    my $inserted = $self->queue_db($volume,$status,$args{ignore});
+    my $inserted = $self->queue_db($volume,$status,$args{ignore},$args{priority});
     $self->mark_returned($volume) if($inserted and !$args{no_bibdata_ok});
     $self->send_to_message_queue($volume,$status,$args{priority}) if $inserted == 1;
 
@@ -109,7 +113,7 @@ sub reset {
     volume  => undef,
     reset_level   => undef,
     status  => undef,
-    priority => 0,
+    priority => undef,
     @_
   );
 
@@ -140,10 +144,20 @@ sub reset {
       $status = $volume->get_nspkg()->get('default_queue_state');
     }
     my $res = $sth->execute($volume->get_packagetype(),$status,$volume->get_namespace, $volume->get_objid);
+    my $priority = $args{priority} || $self->existing_priority($volume) || 0;
     push @results, $res;
-    $self->send_to_message_queue($volume,$status,$args{priority}) if $res == 1;
+    $self->send_to_message_queue($volume,$status,$priority) if $res == 1;
   }
   return \@results;
+}
+
+sub existing_priority {
+  my $self = shift;
+  my $volume = shift;
+
+  my $row = get_dbh()->selectrow_hashref("SELECT priority FROM feed_queue WHERE namespace = ? and id = ?",{},$volume->get_namespace,$volume->get_objid);
+
+  $row && return $row->{priority};
 }
 
 sub message_queue {
@@ -195,22 +209,22 @@ sub mark_returned {
 sub queue_sth {
   my $self = shift;
 
-  $self->{queue_sth} ||= $self->{dbh}->prepare("INSERT INTO feed_queue (pkg_type, namespace, id, status) VALUES (?,?,?,?);");
+  $self->{queue_sth} ||= $self->{dbh}->prepare("INSERT INTO feed_queue (pkg_type, namespace, id, status, priority) VALUES (?,?,?,?,?);");
 }
 
 sub queue_ignore_existing_sth {
   my $self = shift;
 
-  $self->{queue_ignore_sth} ||= $self->{dbh}->prepare("INSERT IGNORE INTO feed_queue (pkg_type, namespace, id, status) VALUES (?,?,?,?);");
+  $self->{queue_ignore_sth} ||= $self->{dbh}->prepare("INSERT IGNORE INTO feed_queue (pkg_type, namespace, id, status, priority) VALUES (?,?,?,?,?);");
 }
 
 sub queue_db {
   my $self = shift;
-  my ($volume, $status, $ignore) = @_;
+  my ($volume, $status, $ignore, $priority) = @_;
 
   my $sth = $ignore ? $self->queue_ignore_existing_sth : $self->queue_sth;
 
-  my $rval = $sth->execute($volume->get_packagetype, $volume->get_namespace, $volume->get_objid, $status);
+  my $rval = $sth->execute($volume->get_packagetype, $volume->get_namespace, $volume->get_objid, $status, $priority);
 
   if(!$rval) {
     die("INSERT returned false");
