@@ -14,7 +14,7 @@ use HTFeed::Bunnies;
 
 use Log::Log4perl qw(get_logger);
 
-our @EXPORT = qw(enqueues reset QUEUE_PRIORITY_HIGH QUEUE_PRIORITY_MED QUEUE_PRIORITY_LOW);
+our @EXPORT = qw(enqueue reset QUEUE_PRIORITY_HIGH QUEUE_PRIORITY_MED QUEUE_PRIORITY_LOW);
 
 use constant QUEUE_PRIORITY_HIGH => 3;
 use constant QUEUE_PRIORITY_MED => 2;
