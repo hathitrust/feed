@@ -13,6 +13,7 @@ use HTFeed::XMLNamespaces qw(register_namespaces);
 use Encode qw(decode);
 use File::Basename qw(basename);
 use Date::Manip;
+use Image::ExifTool;
 
 =head1 NAME
 
