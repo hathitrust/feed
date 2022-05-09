@@ -22,7 +22,7 @@ my $insert = 0; # -i
 my $verbose = 0; # -v
 my $quiet = 0; # -q
 # Manually-queued stuff is at high priority by default
-my $priority = 3; # -p
+my $priority = HTFeed::Queue::QUEUE_PRIORITY_HIGH; # -p
 my $state = undef; # -s
 my $help = 0; # -help,-?
 my $use_disallow_list = 1;

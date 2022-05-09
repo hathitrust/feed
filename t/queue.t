@@ -60,7 +60,8 @@ describe "HTFeed::Queue" => sub {
   }
 
   describe "enqueue" => sub {
-    describe "with a new item with ready status" => sub {
+
+    describe "with a new item" => sub {
       before each => sub { fake_bibdata(testvolume); };
 
       it "returns true" => sub {
@@ -80,11 +81,19 @@ describe "HTFeed::Queue" => sub {
       };
 
       it "accepts a priority" => sub {
-        HTFeed::Queue->new->enqueue(volume => testvolume, status => 'ready', priority => 3);
+        my $priority = HTFeed::Queue::QUEUE_PRIORITY_MED;
+
+        HTFeed::Queue->new->enqueue(volume => testvolume, status => 'ready', priority => $priority);
         my $job = HTFeed::Bunnies->new()->next_job($NO_WAIT);
 
-        is($job->{msg}{props}{priority}, 3);
-      }
+        is($job->{msg}{props}{priority}, $priority);
+      };
+
+      it "records the priority in the feed_queue table" => sub {
+        my $priority = HTFeed::Queue::QUEUE_PRIORITY_HIGH;
+        HTFeed::Queue->new->enqueue(volume => testvolume, status => 'ready', priority => $priority);
+        is($priority,volume_in_feed_queue(testvolume, 'ready')->{priority});
+      };
     };
 
     describe "with an item already in the queue" => sub {
@@ -247,12 +256,15 @@ describe "HTFeed::Queue" => sub {
 
       it "accepts a priority" => sub {
         my $queue = HTFeed::Queue->new;
+        my $priority = HTFeed::Queue::QUEUE_PRIORITY_LOW;
         $queue->enqueue(volume=>testvolume, status=>'punted');
-        $queue->reset(volume=>testvolume, reset_level => 1, priority => 3);
+        $queue->reset(volume=>testvolume, reset_level => 1, priority => $priority);
 
         my $job = HTFeed::Bunnies->new()->next_job($NO_WAIT);
-        is($job->{msg}{props}{priority}, 3);
+        is($job->{msg}{props}{priority}, $priority);
       };
+
+      it "resets the priority in the database";
 
       it "re-queues a message for a punted volume" => sub {
         my $queue = HTFeed::Queue->new;
@@ -348,6 +360,17 @@ describe "HTFeed::Queue" => sub {
         
         $queue->reset(volume=>testvolume, reset_level => 3, status => 'ready');
         test_job_queued_for_volume(testvolume,'ready');
+      };
+
+      it "uses the priority when initially queued when changing 'available' to 'ready'" => sub {
+        my $queue = HTFeed::Queue->new;
+        my $priority = 2;
+        $queue->enqueue(volume=>testvolume, status=>'available', priority => $priority);
+        HTFeed::Bunnies->new->reset_queue;
+        
+        $queue->reset(volume=>testvolume, reset_level => 3, status => 'ready');
+        my $job = HTFeed::Bunnies->new()->next_job($NO_WAIT);
+        is($job->{msg}{props}{priority}, $priority);
       };
     };
 
