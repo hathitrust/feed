@@ -1,4 +1,10 @@
 staging_root: /tmp/prevalidate
 sip_root: /tmp/stage
 
+storage_classes:
+
+repository:
+  link_dir: /tmp/nonexistent
+  obj_dir: /tmp/nonexistent
+
 stop_on_error: 0
