@@ -36,7 +36,8 @@ sub _init {
     my $passwd = get_config('database','password');
 
     $dbh = DBI->connect($dsn, $user, $passwd,
-    {'RaiseError' => 1});
+    {'RaiseError' => 1, 'mysql_enable_utf8=1' => 1});
+    $dbh->do('SET NAMES "utf8";');
 
     $pid = $$;
 
