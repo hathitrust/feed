@@ -229,7 +229,9 @@ sub _remediate_tiff {
                                               # wrong data type for tag - will get automatically stripped
                                                'Type mismatch for tag',
                                                # related to thumbnails, which imagemagick will strip
-                                               'JPEGProc not defined for JPEG compression');
+                                               'JPEGProc not defined for JPEG compression',
+                                               # related to ICC profiles, which imagemagick will strip
+                                               'Bad ICCProfile in tag 34675');
             if ( grep { $error =~ /^$_/ } @imagemagick_remediable_errs ) {
                 get_logger()
                   ->trace(
