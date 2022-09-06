@@ -84,7 +84,7 @@ sub _set_validators {
         'compression' => {
             desc  => "JPEG2000 compression",
             valid => v_and(
-                v_eq( 'mix', 'compression', 'Unknown' ),   # JPEG 2000 compression
+                v_eq( 'mix', 'compression', 'JPEG2000 Lossy' ),   # JPEG 2000 compression
                 v_eq( 'xmp', 'compression', '34712' ),
             ),
             detail =>

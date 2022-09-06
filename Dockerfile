@@ -19,10 +19,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gpg \
     gpg-agent \
     imagemagick \
-    jhove \
     libdate-manip-perl \
     libdbd-mysql-perl \
     libdbi-perl \
+    libdevel-cover-perl \
     libimage-exiftool-perl \
     libipc-run-perl \
     libjson-xs-perl \
@@ -61,6 +61,12 @@ RUN echo "deb [signed-by=/usr/share/keyrings/hathitrust-archive-keyring.gpg] htt
 RUN apt-get update && apt-get install -y grokj2k-tools
 
 RUN cpan -f -i Net::AMQP::RabbitMQ
+
+COPY etc/imagemagick-policy.xml /etc/ImageMagick-6/policy.xml
+
+COPY etc/jhove-auto-install.xml /tmp/jhove-auto-install.xml
+RUN curl https://software.openpreservation.org/rel/jhove/1.26/jhove-xplt-installer-1.26.1.jar -o /tmp/jhove-installer.jar
+RUN java -jar /tmp/jhove-installer.jar /tmp/jhove-auto-install.xml
 
 RUN groupadd -g $GID -o $UNAME
 RUN useradd -m -d $FEED_HOME -u $UID -g $GID -o -s /bin/bash $UNAME

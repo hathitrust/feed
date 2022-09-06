@@ -21,3 +21,5 @@ jobs:
 
       - name: Run tests
         run: docker-compose --file docker-compose.test.yml run sut
+        env:
+          GITHUB_TOKEN: ${{ secrets.github_token }}

@@ -442,7 +442,7 @@ sub new {
                     desc       => 'DocumentName',
                     remediable => 1,
                     query =>
-"jhove:property[jhove:name='DocmentName']/jhove:values/jhove:value",
+"jhove:property[jhove:name='DocumentName']/jhove:values/jhove:value",
                 },
                 xmp => {
                     desc       => 'XMP data',
