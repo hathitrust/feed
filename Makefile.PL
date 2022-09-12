@@ -38,6 +38,7 @@ WriteMakefile(
     'Test::Most'       => 0,
     'Test::Spec'       => 0,
     'Test::Time'       => 0,
+    'Devel::Cover::Report::Coveralls' => 0,
   },
   CONFIGURE_REQUIRES => { "ExtUtils::MakeMaker" => 0 },
 );

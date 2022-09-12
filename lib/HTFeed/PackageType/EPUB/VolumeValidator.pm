@@ -45,7 +45,7 @@ sub validate_epub {
     register_namespaces($xc);
 
     # is status 'Well-formed'?
-    my $status = $xc->findvalue('//jhove_opf:jhove/jhove_opf:repInfo/jhove_opf:status/text()');
+    my $status = $xc->findvalue('//jhove:jhove/jhove:repInfo/jhove:status/text()');
 
     if ($status eq 'Well-formed') {
       return 1;

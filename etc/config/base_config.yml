@@ -89,8 +89,8 @@ gpg_path: /usr/local/feed/etc/gpg
 # These should all be installed by the Dockerfile so should not need to be adjusted.
 
 imagemagick: /usr/bin/convert
-jhove: /usr/bin/jhove
-jhoveconf: /etc/jhove/jhove.conf
+jhove: /opt/jhove/jhove
+jhoveconf: /opt/jhove/conf/jhove.conf
 xerces: /usr/local/feed/bin/validateCache
 xerces_cache: /usr/local/feed/etc/schema.cache
 grk_compress: /usr/bin/grk_compress
