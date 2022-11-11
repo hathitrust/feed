@@ -8,7 +8,7 @@ use HTFeed::Storage::S3;
 use HTFeed::Queue;
 use HTFeed::Volume;
 use File::Temp qw(tempdir);
-use HTFeed::ProgressTracker;
+use ProgressTracker;
 use File::Copy;
 
 use base qw( Exporter );
@@ -38,7 +38,7 @@ sub new {
 sub run {
   my $self = shift;
 
-  my $tracker = HTFeed::ProgressTracker->new();
+  my $tracker = ProgressTracker->new();
 
   my $last_id;
   my $ids = {}; # Set of ids for enqueue command

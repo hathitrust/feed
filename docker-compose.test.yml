@@ -6,6 +6,7 @@ services:
     build: .
     environment:
       - HTFEED_CONFIG=/usr/local/feed/etc/config_test.yml
+      - PUSHGATEWAY=http://pushgateway:9091
       - FEED_HOME=/usr/local/feed
       - TEST=1
       - VERSION=feed-testing
