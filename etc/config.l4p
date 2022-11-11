@@ -4,7 +4,7 @@ log4perl.rootLogger                     = sub {return HTFeed::Log::get_root_log_
 log4perl.appender.dbi                   = HTFeed::Log::Appender::DBI
 log4perl.appender.dbi.sql =         \
             insert into feed_log   \
-            (timestamp,level,message,namespace,id,file,field,actual,expected,detail,operation,stage)\
+            (timestamp,level,message,namespace,id,file,field,actual,expected,substring(detail,1,255),operation,stage)\
             values (?,?,?,?,?,?,?,?,?,?,?,?)
 log4perl.appender.dbi.params.1 = %d
 log4perl.appender.dbi.params.2 = %p
