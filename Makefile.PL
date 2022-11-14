@@ -24,6 +24,7 @@ WriteMakefile(
     'Mouse'               => 0,
     'Net::AMQP::RabbitMQ' => 0,
     'Net::Prometheus'     => 0,
+    'ProgressTracker'     => 0,
     'Readonly'            => 0,
     'Roman'               => 0,
     'URI::Escape'         => 0,
@@ -42,3 +43,4 @@ WriteMakefile(
   },
   CONFIGURE_REQUIRES => { "ExtUtils::MakeMaker" => 0 },
 );
+

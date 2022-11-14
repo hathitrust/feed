@@ -12,6 +12,7 @@ services:
       - FEED_HOME=/usr/local/feed
       - TEST=1
       - VERSION=feed-development
+      - PUSHGATEWAY=http://pushgateway:9091
     command: bin/wait-for --timeout=300 mariadb:3306 minio:9000 pushgateway:9091 rabbitmq:5672 -- prove
     depends_on:
       - mariadb
