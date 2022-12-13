@@ -66,8 +66,7 @@ BEGIN {
               validate_consistency
               validate_checksums
               validate_utf8
-              validate_metadata
-              validate_digitizer)
+              validate_metadata)
         ],
 
         premis_overrides => {

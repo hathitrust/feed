@@ -100,8 +100,7 @@ our $config = {
       validate_checksums
       validate_utf8
       validate_metadata
-      validate_epub
-      validate_digitizer)
+      validate_epub)
     ],
 
     # What PREMIS events to include in the source METS file

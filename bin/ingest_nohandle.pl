@@ -60,11 +60,6 @@ if ($fakemeta) {
     return ( 'ht_test','ht_test','ht_test' );
   };
 
-  # don't validate digitizer -- will fail against faked up sources
-  *HTFeed::VolumeValidator::_validate_digitizer = sub {
-    return 1;
-  };
-
   # use faked-up marc in case it's missing
 
   *HTFeed::SourceMETS::_get_marc_from_zephir = sub {

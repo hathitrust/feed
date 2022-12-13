@@ -31,7 +31,6 @@ unless( $dir ){
 my $volume =  HTFeed::TestVolume->new(packagetype => $packagetype, namespace => $namespace, dir => $dir, objid => $objid);
 
 my $vol_val = HTFeed::PackageType::Audio::VolumeValidator->new(volume => $volume);
-@{$vol_val->{run_stages}} = grep { $_ ne 'validate_digitizer' } @{$vol_val->{run_stages}};
 
 $vol_val->run();
 

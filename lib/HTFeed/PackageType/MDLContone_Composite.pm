@@ -53,8 +53,7 @@ our $config = {
     validate_filegroups_nonempty
     validate_checksums
     validate_utf8
-    validate_metadata
-    validate_digitizer)
+    validate_metadata)
     ],
 
     # what stage to run given the current state
