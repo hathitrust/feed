@@ -16,6 +16,7 @@ my $one_line = 0; # -1
 my $verbose = 0; # -v
 my $quiet = 0; # -q
 my $status = undef; # -s
+my $not_status = undef; # -S
 my $help = 0; # -help,-?
 my $dot = 0;
 
@@ -26,6 +27,7 @@ GetOptions(
     '1' => \$one_line,
     'verbose|v' => \$verbose,
     'status|s=s' => \$status,
+    'not-status|S=s' => \$not_status,
     'quiet|q' => \$quiet,
     'dot|d' => \$dot,
     'help|?' => \$help,
@@ -113,6 +115,7 @@ foreach my $volume (@volumes) {
     }
 
     next unless !$status or $status eq $queue_info->{status};
+    next unless !$not_status or $not_status ne $queue_info->{status};
 
     print "$namespace.$objid: $queue_info->{pkg_type}; $queue_info->{status}";
 
