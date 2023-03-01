@@ -13,6 +13,7 @@ use HTFeed::QueueRunner;
 use strict;
 
 my $NO_WAIT = -1;
+my $RECV_WAIT = 500;
 
 describe "HTFeed::QueueRunner" => sub {
   local our ($tmpdirs, $testlog);
@@ -61,7 +62,7 @@ describe "HTFeed::QueueRunner" => sub {
   }
 
   sub queue_runner {
-    HTFeed::QueueRunner->new(timeout => $NO_WAIT, should_fork => 0, clean => 0);
+    HTFeed::QueueRunner->new(timeout => $RECV_WAIT, should_fork => 0, clean => 0);
   }
 
   before all => sub {
