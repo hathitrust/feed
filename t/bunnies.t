@@ -13,6 +13,8 @@ use strict;
 
 describe "HTFeed::Bunnies" => sub {
   my $NO_WAIT = -1;
+  # Amount of time to wait if we expect there will be a message eventually
+  my $RECV_WAIT = 500;
   sub bunnies {
     HTFeed::Bunnies->new();
   }
@@ -61,7 +63,7 @@ describe "HTFeed::Bunnies" => sub {
 
       my @jobs;
       foreach my $i (1..4) { 
-        my $job = $bunnies->next_job(1000);
+        my $job = $bunnies->next_job($RECV_WAIT);
         $bunnies->finish($job);
         push(@jobs, $job);
       }
@@ -76,20 +78,20 @@ describe "HTFeed::Bunnies" => sub {
   describe "#next_job" => sub {
     it "gets the previously-queued job" => sub {
       bunnies->queue_job();
-      ok(bunnies->next_job($NO_WAIT));
+      ok(bunnies->next_job($RECV_WAIT));
     };
 
     it "returns the given parameters" => sub {
       my %params = (param1 => "value1", param2 => "value2");
       bunnies->queue_job(%params);
-      my $job_info = bunnies->next_job($NO_WAIT);
+      my $job_info = bunnies->next_job($RECV_WAIT);
       is($job_info->{param1}, "value1");
       is($job_info->{param2}, "value2");
     };
 
     it "saves a reference to the message" => sub {
       bunnies->queue_job();
-      my $job_info = bunnies->next_job($NO_WAIT);
+      my $job_info = bunnies->next_job($RECV_WAIT);
       ok($job_info->{msg});
     };
 
@@ -99,7 +101,7 @@ describe "HTFeed::Bunnies" => sub {
         $bunnies->{queue},
         "not valid json");
 
-      bunnies->next_job($NO_WAIT);
+      bunnies->next_job($RECV_WAIT);
       # ok(logs_error)
       ok(!bunnies->next_job($NO_WAIT));
     };
@@ -110,7 +112,7 @@ describe "HTFeed::Bunnies" => sub {
         $bunnies->{queue},
         "[1, 2, 3]");
 
-      bunnies->next_job($NO_WAIT);
+      bunnies->next_job($RECV_WAIT);
       # ok(logs_error)
       ok(!bunnies->next_job($NO_WAIT));
     };
@@ -122,7 +124,7 @@ describe "HTFeed::Bunnies" => sub {
       bunnies->queue_job;
 
       my $receiver = bunnies;
-      my $job = $receiver->next_job($NO_WAIT);
+      my $job = $receiver->next_job($RECV_WAIT);
       $receiver->finish($job);
       # ensure channel is closed
       $receiver->{mq}->disconnect();
@@ -134,7 +136,7 @@ describe "HTFeed::Bunnies" => sub {
     it "after reconnect, gets the same job again if job wasn't finished" => sub {
       bunnies->queue_job;
       # consume, don't ack, reset & try again; should get it again
-      bunnies->next_job($NO_WAIT);
+      bunnies->next_job($RECV_WAIT);
       ok(bunnies->next_job($NO_WAIT));
     };
 
@@ -144,7 +146,7 @@ describe "HTFeed::Bunnies" => sub {
       $queuer->queue_job;
       
       my $receiver = bunnies;
-      $receiver->next_job($NO_WAIT);
+      $receiver->next_job($RECV_WAIT);
       ok(not defined $receiver->next_job($NO_WAIT));
     };
   }

@@ -24,7 +24,7 @@ sub new{
     };
     
     $self->{nspkg} = new HTFeed::Namespace($self->{namespace},$self->{packagetype});
-    
+    $self->{note_from_mom} = [];
     bless($self, $class);
     return $self;
 }
