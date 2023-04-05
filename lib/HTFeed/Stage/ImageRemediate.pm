@@ -882,12 +882,6 @@ sub convert_tiff_to_jpeg2000 {
       $self->{newFields}->{"XMP-tiff:$tag"} = $tagvalue if defined $tagvalue;
     }
 
-    # strip off the XMP to prevent confusion during conversion
-    my $exifTool = new Image::ExifTool;
-    $exifTool->Options('ScanForXMP' => 1);
-    $exifTool->Options('IgnoreMinorErrors' => 1);
-    $exifTool->SetNewValue('XMP',undef,Protected => 1);
-    $self->update_tags( $exifTool, $infile );
 
     # first decompress & strip ICC profiles
     my $imagemagick = get_config('imagemagick');
@@ -906,6 +900,13 @@ sub convert_tiff_to_jpeg2000 {
 
     system( "$imagemagick_cmd -compress None $infile -strip $infile.unc.tif > /dev/null 2>&1" )
             and $self->set_error("OperationFailed", operation => "imagemagick", file => $infile, detail => "decompress and ICC profile strip failed: returned $?");
+          
+    # strip off the XMP to prevent confusion during conversion
+    my $exifTool = new Image::ExifTool;
+    $exifTool->Options('ScanForXMP' => 1);
+    $exifTool->Options('IgnoreMinorErrors' => 1);
+    $exifTool->SetNewValue('XMP',undef,Protected => 1);
+    $self->update_tags( $exifTool, "$infile.unc.tif" );
 
     system(qq($grk_compress -i "$infile.unc.tif" -o "$outfile" -p RLCP -n $levels -SOP -EPH -M 62 -I > /dev/null 2>&1))
 
