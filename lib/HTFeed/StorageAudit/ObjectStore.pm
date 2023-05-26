@@ -60,7 +60,7 @@ sub objects_to_audit {
   $self->_request_object($self->random_object());
   my $sql = 'SELECT namespace,id,version,path FROM feed_backups' .
             ' WHERE storage_name=?' .
-            ' AND restore_request IS NOT NULL';
+            ' AND deleted IS NULL and restore_request IS NOT NULL';
   $self->{pending_objects} = [];
   eval {
     my $ref = get_dbh->selectall_arrayref($sql, undef, $self->{storage_name});
