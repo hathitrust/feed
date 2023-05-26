@@ -136,7 +136,7 @@ our $config = {
         'HTFeed::ModuleValidator::JPEG2000_hul' => {
             'camera' => undef,
             # allow most common # of layers
-          'layers' => v_in( 'codingStyleDefault', 'layers', ['1','6','8','25'] ),
+          'layers' => v_between( 'codingStyleDefault', 'layers', '1','25' ),
           'decomposition_levels' => v_between( 'codingStyleDefault', 'decompositionLevels', '1', '32'),
           'resolution'      => v_and(
               v_ge( 'xmp', 'xRes', 300 ), # should work even though resolution is specified as NNN/1
