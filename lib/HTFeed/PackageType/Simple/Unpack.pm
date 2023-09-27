@@ -22,11 +22,6 @@ sub run {
 
   my $file = $volume->get_sip_location();
 
-  # for retrying
-  if(not -e $file) {
-    $file = $volume->get_failure_sip_location();
-  }
-
   if(-e $file) {
     $self->unzip_file($file,$dest);
     $self->_set_done();
