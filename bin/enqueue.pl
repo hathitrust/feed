@@ -12,12 +12,14 @@ use HTFeed::Queue;
 use HTFeed::Volume;
 use Getopt::Long qw(:config no_ignore_case);
 use Pod::Usage;
+use File::Copy qw(move);
 
 my $one_line = 0; # -1
 my $reset_punted = 0; # -r
 my $reset_most = 0; # -R
 my $force_reset = 0; # --force-reset
 my $reset_level = 0;
+my $reuse = 0; # --reuse
 my $insert = 0; # -i
 my $verbose = 0; # -v
 my $quiet = 0; # -q
@@ -38,6 +40,7 @@ GetOptions(
     'reset|R' => \$reset_most,
     'force-reset' => \$force_reset,
     'insert|i' => \$insert,
+    'reuse|u' => \$reuse,
     'verbose|v' => \$verbose,
     'quiet|q' => \$quiet,
     'state|s=s' => \$state,
@@ -60,6 +63,7 @@ pod2usage(1) if $help;
 # check options
 pod2usage(-msg => '-1 and -d flags incompatible', -exitval => 2) if ($one_line and $dot_packagetype);
 pod2usage(-msg => '-p and -n exclude -d and -1', -exitval => 2) if (($default_packagetype or $default_namespace) and ($one_line or $dot_packagetype));
+pod2usage(-msg => 'can only use -u (reuse) when resetting') if ($reuse and !$reset_level);
 
 if ($one_line){
     $default_packagetype = shift;
@@ -129,32 +133,71 @@ foreach my $volume (@volumes) {
     print_result('reset',$volume,$queue->reset(volume => $volume, status => $state, priority=>$priority, reset_level => $reset_level));
       
   }
+
+  if($reuse) {
+    move_from_failed($volume);
+  }
+}
+
+sub move_from_failed {
+  my $volume = shift;
+  
+  my $to_ingest_file = $volume->get_sip_location();
+  my $failed_file = $volume->get_failure_sip_location();
+
+  if(! -e $failed_file) { 
+    log_result($volume,"punted item not reused - $failed_file doesn't exist");
+  }
+
+  if(-e $to_ingest_file) { 
+    log_result($volume,"punted item not reused - won't overwrite $to_ingest_file");
+  }
+  
+  # failed file does exist, to ingest doesn't, move it back
+  $volume->move_sip($volume->get_sip_location());
+
+  if(-e $to_ingest_file) {
+    log_result($volume,"punted item reused");
+  } else {
+    log_result($volume,"punted item not re-used - move failed");
+  }
+
+}
+
+sub log_result {
+  my $volume = shift;
+  my $message = shift;
+
+  if ($verbose or $quiet) {
+    print  $volume->get_packagetype() . ' ' . $volume->get_namespace() . ' ' . $volume->get_objid() . ': ' . $message . "\n";
+  }
 }
 
 sub print_result {
     my $verb = shift;
     my $volume = shift;
     my $result = shift;
-    if ($verbose or !$quiet){
-      print  $volume->get_packagetype() . ' ' . $volume->get_namespace() . ' ' . $volume->get_objid() . ': ';
-      # dbi returned true
-      if ($result){
-          # 0 lines updated
-          print 'not ' if ($result < 1);
-          print "$verb \n";
-      }
-      # dbi returned false or died
-      else {
-          print "failure or skipped\n";
-      }
+
+    my $message = "";
+    # dbi returned true
+    if ($result){
+        # 0 lines updated
+        $message .= "not " if ($result < 1);
+        $message .= "$verb";
     }
+    # dbi returned false or died
+    else {
+        $message .= "failure or skipped";
+    }
+
+    log_result($volume,$message);
 }
 
 __END__
 
 =head1 NAME
 
-    enqueue.pl - add volumes to Feedr queue
+    enqueue.pl - add volumes to ingest queue
 
 =head1 SYNOPSIS
 
@@ -181,10 +224,15 @@ enqueue.pl [-v|-q] [-r|-R|-i] -1 packagetype namespace objid
 
     --force-reset - resets all volumes in list to ready (use with care)
 
-    -i insert - volumes are added if they are not already in the queue, but no error is raised for duplicate volumes
+    -u, --reuse - use with one of the reset flags above. Moves items from the
+      "failed" area back to "to ingest" (but does not overwrite anything in "to
+      ingest")
 
-      If the -i flag is specified with the -R or -r option, will first reset any punted, etc. volumes.
-      then enqueue any items not in the queue, 
+    -i insert - volumes are added if they are not already in the queue, but no
+      error is raised for duplicate volumes
+
+      If the -i flag is specified with the -R or -r option, will first reset
+      any punted, etc. volumes.  then enqueue any items not in the queue, 
 
     -v verbose - verbose output for file parsing - overrides quiet
 

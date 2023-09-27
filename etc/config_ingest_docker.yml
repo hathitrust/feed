@@ -33,6 +33,7 @@ rabbitmq:
   user: guest
   password: guest
   queue: ingest
+  priority_levels: 3
 
 volumes_in_process_limit: 1
 
