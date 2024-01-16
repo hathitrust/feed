@@ -2,3 +2,4 @@ volumes_to_test
 ingest_stage
 ingest_sips
 incoming_samples
+.gnupg

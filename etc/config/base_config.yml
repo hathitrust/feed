@@ -91,7 +91,7 @@ gpg_path: /usr/local/feed/etc/gpg
 imagemagick: /usr/bin/convert
 jhove: /opt/jhove/jhove
 jhoveconf: /opt/jhove/conf/jhove.conf
-xerces: /usr/local/feed/bin/validateCache
+xerces: /usr/local/bin/validate-cache
 xerces_cache: /usr/local/feed/etc/schema.cache
 grk_compress: /usr/bin/grk_compress
 grk_decompress: /usr/bin/grk_decompress
