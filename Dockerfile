@@ -75,6 +75,9 @@ RUN mkdir /extlib
 RUN chown $UID:$GID /extlib
 ENV PERL5LIB="/extlib/lib/perl5:$FEED_HOME/lib"
 
+COPY ./src/validateCache.cpp /usr/src/validateCache.cpp
+RUN /usr/bin/g++ -o /usr/local/bin/validate-cache /usr/src/validateCache.cpp -lxerces-c
+
 USER $UID:$GID
 
 WORKDIR $FEED_HOME
@@ -93,8 +96,6 @@ RUN mkdir -p /tmp/prep/toingest /tmp/prep/failed /tmp/prep/ingested /tmp/prep/lo
 RUN mkdir $FEED_HOME/bin $FEED_HOME/src $FEED_HOME/.gnupg
 RUN chown $UID:$GID $FEED_HOME/.gnupg
 RUN chmod 700 $FEED_HOME/.gnupg
-COPY ./src/validateCache.cpp $FEED_HOME/src/validateCache.cpp
-RUN /usr/bin/g++ -o bin/validateCache src/validateCache.cpp -lxerces-c
 
 COPY . $FEED_HOME
 
