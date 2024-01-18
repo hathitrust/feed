@@ -16,7 +16,7 @@ use Exporter 'import';
 our @EXPORT_OK = qw(mock_zephir mock_clamav stage_volume);
 
 sub mock_zephir {
-
+  no warnings 'redefine';
   *HTFeed::Volume::get_sources = sub {
     return ( 'ht_test','ht_test','ht_test' );
   };
@@ -42,6 +42,7 @@ EOT
 
   };
 
+  use warnings 'redefine';
 }
 
 sub mock_clamav {

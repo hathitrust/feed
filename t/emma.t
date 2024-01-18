@@ -380,7 +380,7 @@ context "with volume & temporary ingest/preingest/zipfile dirs" => sub {
 };
 
 # To run these tests, first run
-# `docker-compose run test freshclam -l -`
+# `docker compose run test freshclam -l -`
 # (You may need to adjust permissions on ./clamav)
 if ( -e "/var/lib/clamav/main.cvd") { 
   use HTFeed::ClamScan;

@@ -6,24 +6,24 @@ HathiTrust Ingest Toolkit
 ```bash
 git clone https://github.com/hathitrust/feed
 cd ingest
-docker-compose build
+docker compose build
 ```
 
 # Development
 
 Running tests:
 ```
-docker-compose run test 
+docker compose run test
 ```
 
 Running specific tests and/or getting prettier output:
 ```
 # Runs all tests
-docker-compose run test prove
+docker compose run test prove
 # Run a specific set of tests
-docker-compose run test prove t/storage.t
+docker compose run test prove t/storage.t
 # Get more verbose output from a specific test
-docker-compose run test perl t/storage.t
+docker compose run test perl t/storage.t
 ```
 
 ## Validating volumes
@@ -31,7 +31,7 @@ docker-compose run test perl t/storage.t
 * Put volumes in `volumes_to_test/`
 
 ```bash
-docker-compose run validate
+docker compose run validate
 ```
 
 ## Validating a single image
@@ -63,7 +63,7 @@ zip test_volume.zip 00000001.* checksum.md5 meta.yml
 
 * Put the file in `volumes_to_test/`
 
-* Run `docker-compose run validate`
+* Run `docker compose run validate`
 
 ## Testing with RClone
 
