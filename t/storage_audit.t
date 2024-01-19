@@ -99,6 +99,9 @@ describe "HTFeed::StorageAudit" => sub {
     }
   }
 
+  no warnings 'redefine';
+  # These next subs may redefine existing subs,
+  # suppressing warnings.
   sub HTFeed::Storage::S3::restore_object {
     return 1;
   }
@@ -120,6 +123,7 @@ describe "HTFeed::StorageAudit" => sub {
 
     return HTFeed::StorageAudit->for_storage_name($self->{name});
   }
+  use warnings 'redefine';
 
   share my %vars;
   shared_examples_for "all storages" => sub {

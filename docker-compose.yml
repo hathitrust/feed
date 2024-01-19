@@ -28,7 +28,7 @@ services:
       - ./ingest_stage:/tmp/stage
       - ~/.config/rclone/rclone.conf:/usr/local/feed/etc/rclone.conf
       - ./clamav:/var/lib/clamav
-      # FIXME -- before these will work, run: docker-compose run --rm ingest chown ingest.ingest /sdr1 /sdr2 /htdataden
+      # FIXME -- before these will work, run: docker compose run --rm ingest chown ingest.ingest /sdr1 /sdr2 /htdataden
       - repository_link:/sdr1
       - repository_obj:/sdr2
       - backups:/htdataden

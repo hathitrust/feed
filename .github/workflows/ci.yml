@@ -17,9 +17,9 @@ jobs:
       - uses: actions/checkout@v2
 
       - name: Build docker image
-        run: docker-compose --file docker-compose.test.yml build
+        run: docker compose --file docker-compose.test.yml build
 
       - name: Run tests
-        run: docker-compose --file docker-compose.test.yml run sut
+        run: docker compose --file docker-compose.test.yml run sut
         env:
           GITHUB_TOKEN: ${{ secrets.github_token }}
