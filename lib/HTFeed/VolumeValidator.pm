@@ -2,20 +2,21 @@ package HTFeed::VolumeValidator;
 
 use warnings;
 use strict;
-use Log::Log4perl qw(get_logger);
-use XML::LibXML;
-use HTFeed::ModuleValidator;
-use List::MoreUtils qw(uniq);
+
 use Carp;
+use Data::Dumper qw(Dumper);
 use Digest::MD5;
 use Encode;
+use HTFeed::Config qw(get_config);
+use HTFeed::ModuleValidator;
 use HTFeed::XMLNamespaces qw(register_namespaces);
 use IO::Pipe;
+use List::MoreUtils qw(uniq);
+use Log::Log4perl qw(get_logger);
 use PREMIS::Outcome;
-use HTFeed::Config qw(get_config);
+use XML::LibXML;
 
 use base qw(HTFeed::Stage::JHOVE_Runner);
-
 
 sub new {
   my $class = shift;
@@ -72,24 +73,23 @@ sub stage_info {
 }
 
 sub _validate_file_names {
-  my $self   = shift;
-  my $volume = $self->{volume};
+    my $self   = shift;
+    my $volume = $self->{volume};
 
-  my $valid_file_pattern = $volume->get_nspkg()->get('valid_file_pattern');
-  my @bad                = grep(
-    { !/$valid_file_pattern/ } @{ $volume->get_all_directory_files() } );
+    my $valid_file_pattern = $volume->get_nspkg()->get('valid_file_pattern');
+    my @bad = grep {
+	!/$valid_file_pattern/
+    } @{ $volume->get_all_directory_files() };
 
-  foreach my $file (@bad) {
-    $self->set_error(
-      "BadFilename",
-      field => 'filename',
-      file  => $file
-    );
+    foreach my $file (@bad) {
+	$self->set_error(
+	    "BadFilename",
+	    field => 'filename',
+	    file  => $file
+	);
+    }
 
-  }
-
-  return;
-
+    return;
 }
 
 #TODO: Use required filegroups from ns/packagetype config
@@ -100,10 +100,11 @@ sub _validate_filegroups {
 
   my $filegroups = $volume->get_file_groups();
   while ( my ( $filegroup_name, $filegroup ) = each( %{$filegroups} ) ) {
-    get_logger()->debug("validating nonempty filegroup $filegroup_name");
+      get_logger()->debug("validating nonempty filegroup $filegroup_name");
     my $filecount = scalar( @{ $filegroup->get_filenames() } );
+
     if ( !$filecount and $filegroup->get_required() ) {
-      $self->set_error( "BadFilegroup", filegroup => $filegroup );
+	$self->set_error( "BadFilegroup", filegroup => $filegroup );
     }
   }
 
@@ -178,7 +179,7 @@ sub _validate_checksums {
   my $checksums        = $volume->get_checksums();
   my $checksum_file    = $volume->get_nspkg()->get('checksum_file');
   my $source_mets_file = $volume->get_source_mets_file() if $use_source_mets;
-  my $path             = shift; 
+  my $path             = shift;
   $path = $volume->get_staging_directory() if not defined $path;
 
   # make sure we check every file in the directory except for the checksum file
@@ -385,7 +386,7 @@ Validate each file against a precomputed list of checksums.
 
 * _validate_utf8()
 
-Opens and tries to decode each file alleged to be UTF8 and ensures that it is 
+Opens and tries to decode each file alleged to be UTF8 and ensures that it is
 valid UTF8 and does not contain any control characters other than tab and CR.
 
 * _validate_metadata()

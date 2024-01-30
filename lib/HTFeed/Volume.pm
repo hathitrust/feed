@@ -2,22 +2,24 @@ package HTFeed::Volume;
 
 use warnings;
 use strict;
+
 use Carp;
-use Log::Log4perl qw(get_logger);
-use HTFeed::XMLNamespaces qw(register_namespaces);
-use HTFeed::XPathValidator qw(:closures);
-use HTFeed::Namespace;
-use HTFeed::FileGroup;
-use XML::LibXML;
-use HTFeed::Config qw(get_config);
-use HTFeed::DBTools;
-use Time::gmtime;
-use File::Pairtree qw(id2ppath s2ppchars);
 use Data::UUID;
-use File::Path qw(remove_tree mkpath);
+use Data::Dumper qw(Dumper);
 use File::Basename qw(dirname);
 use File::Copy qw(move);
+use File::Pairtree qw(id2ppath s2ppchars);
+use File::Path qw(remove_tree mkpath);
+use HTFeed::Config qw(get_config);
+use HTFeed::DBTools;
+use HTFeed::FileGroup;
+use HTFeed::Namespace;
+use HTFeed::XMLNamespaces qw(register_namespaces);
+use HTFeed::XPathValidator qw(:closures);
+use Log::Log4perl qw(get_logger);
 use POSIX qw(strftime);
+use Time::gmtime;
+use XML::LibXML;
 
 # singleton stage_map override
 my $stage_map = undef;

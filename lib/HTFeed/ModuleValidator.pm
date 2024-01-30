@@ -2,15 +2,15 @@ package HTFeed::ModuleValidator;
 
 use warnings;
 use strict;
+
 use Carp;
-use XML::LibXML;
-use Log::Log4perl qw(get_logger);
 use Data::Dumper qw(Dumper);
+use HTFeed::Config qw(get_config);
+use HTFeed::XMLNamespaces qw(register_namespaces);
+use Log::Log4perl qw(get_logger);
+use XML::LibXML;
 
 use base qw(HTFeed::XPathValidator);
-
-use HTFeed::XMLNamespaces qw(register_namespaces);
-use HTFeed::Config qw(get_config);
 
 =head1 NAME
 
@@ -30,10 +30,9 @@ HTFeed::ModuleValidator
 
 	my $context_node = $xpc->findnodes("$repInfo/$format"."Metadata");
 	my $validator = HTFeed::ModuleValidator::JPEG2000_hul->new(xpc => $xpc, qlib => $querylib);
-	if ($validator->validate){
+	if ($validator->validate) {
 		# SUCCESS code...
-	}	
-	else{
+	} else {
 		my $errors = $validator->getErrors;
 		# FAILURE code...
 	}
@@ -75,22 +74,20 @@ sub new {
     $object->{filename} =~ /\.([0-9a-zA-Z]+)$/;
     my $file_ext = $1;
 
-    # get module validator list from volume, set class accordingly
-    $class =
-      $object->{volume}->get_nspkg()->get('module_validators')->{$file_ext}
-      or croak "Don't know how to validate file extension $file_ext";
+    my $module_validators = $object->{volume}->get_nspkg()->get('module_validators');
+    defined $module_validators or croak("No module_validators found for " . $object->{filename});
+    my $ext_validator = $module_validators->{$file_ext};
+    defined $ext_validator or croak("None of the module_validators match file_ext $file_ext");
 
-    bless( $object, $class );
-
+    bless( $object, $ext_validator );
     $object->_xpathInit();
     $object->_set_validators();
 
-    my $overrides =
-      $object->{volume}->get_validation_overrides($class);
+    my $overrides = $object->{volume}->get_validation_overrides($ext_validator);
     while ( my ( $k, $v ) = each(%$overrides) ) {
         $object->{validators}{$k}{valid} = $v;
         $object->{validators}{$k}{desc} = $k if not defined $object->{validators}{$k}{desc};
-        $object->{validators}{$k}{detail} = "Package type specific - see $class" if not defined $object->{validators}{$k}{detail};
+        $object->{validators}{$k}{detail} = "Package type specific - see $ext_validator" if not defined $object->{validators}{$k}{detail};
     }
 
     return $object;
