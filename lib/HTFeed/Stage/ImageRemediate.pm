@@ -2,18 +2,22 @@ package HTFeed::Stage::ImageRemediate;
 
 use strict;
 use warnings;
+
 use base qw(HTFeed::Stage::JHOVE_Runner);
-use List::Util qw(max min);
-use POSIX qw(ceil);
-use HTFeed::Config qw(get_config);
-use Log::Log4perl qw(get_logger);
-use File::Copy;
+
 use Carp;
-use HTFeed::XMLNamespaces qw(register_namespaces);
-use Encode qw(decode);
-use File::Basename qw(basename);
 use Date::Manip;
+use Encode qw(decode);
+use File::Basename qw(basename fileparse);
+use File::Copy;
+use HTFeed::Config qw(get_config);
+use HTFeed::XMLNamespaces qw(register_namespaces);
 use Image::ExifTool;
+use List::Util qw(max min);
+use Log::Log4perl qw(get_logger);
+use POSIX qw(ceil);
+
+use Data::Dumper qw(Dumper);
 
 =head1 NAME
 
@@ -68,11 +72,19 @@ sub get_exiftool_fields {
 
 Prevalidates and remediates the image headers in $oldfile and writes the results as $newfile.
 
-usage: $self->remediate_image($oldfile,$newfile,$force_headers,$set_if_undefined_headers)
+usage:
+
+  $self->remediate_image(
+    $oldfile,
+    $newfile,
+    $force_headers,
+    $set_if_undefined_headers
+  )
 
 $force_headers and $set_if_undefined_headers are references to hashes:
-{ header => $value, 
-header2 => $value, ...}
+
+  { header => $value,
+  header2 => $value, ...}
 
 Additional parameters can be passed to set the value for particular fields.
 $force_headers lists headers to force whether or not they are present, and
@@ -86,7 +98,7 @@ remediate_jpeg2000($oldfile,$newfile,['XMP-dc:source' => 'Internet Archive'],['X
 will force the XMP-dc:source field to 'Internet Archive' whether or not it is already present,
 and set XMP-tiff:Make to Canon if XMP-tiff:Make is not otherwise defined.
 
-The special header 'Resolution' can be set to set X/Y resolution related fields; it should be 
+The special header 'Resolution' can be set to set X/Y resolution related fields; it should be
 specified in pixels per inch.
 
 =cut
@@ -94,17 +106,21 @@ specified in pixels per inch.
 sub remediate_image {
     my $self    = shift;
     my $oldfile = shift;
-
     # dispatch to appropriate remediator
-    return $self->_remediate_jpeg2000( $oldfile, @_ )
-      if ( $oldfile =~ /\.jp2$/ );
-    return $self->_remediate_tiff( $oldfile, @_ ) if ( $oldfile =~ /\.tif$/ );
+    $oldfile =~ /\.(.+?)$/;
+    my $oldext = $1;
+    # Possibly plug in other extension-specific remediators here?
+    if ($oldext eq "jp2") {
+	return $self->_remediate_jpeg2000( $oldfile, @_ );
+    } elsif ($oldext eq "tif") {
+	return $self->_remediate_tiff( $oldfile, @_ );
+    }
 
-    # something else..
+    # And if we didn't return anything above, that's an error.
     $self->set_error(
         "BadFile",
         file   => $oldfile,
-        detail => "Unknown image format; can't remediate"
+        detail => "Unknown image format ($oldext); can't remediate"
     );
 }
 
@@ -186,86 +202,77 @@ sub stage_info {
     return { success_state => 'images_remediated', failure_state => '' };
 }
 
+
 sub _remediate_tiff {
     my $self                     = shift;
     my $infile                   = shift;
     my $outfile                  = shift;
     my $force_headers            = ( shift or {} );
     my $set_if_undefined_headers = shift;
-
     my $bad                   = 0;
-    my $remediate_imagemagick = 0;    #needs imagemagick fix
+    my $remediate_imagemagick = 0; #needs imagemagick fix
     $self->{newFields} = $force_headers;
     $self->{oldFields} = $self->get_exiftool_fields($infile);
     my $fields = $self->{oldFields};
 
-
     my $status = $self->{jhoveStatus};
     if ( not defined $status ) {
-        croak(
-"No Status field for $infile, not remediable (did JHOVE run properly?)\n"
-        );
-        $bad = 1;
-    }
-    elsif ( $status ne 'Well-Formed and valid' ) {
-        foreach my $error ( @{ $self->{jhoveErrors} } ) {
+	croak("No Status field for $infile, not remediable (did JHOVE run properly?)\n");
+	$bad = 1;
+    } elsif ( $status ne 'Well-Formed and valid' ) {
+	foreach my $error ( @{ $self->{jhoveErrors} } ) {
+	    # Is the error remediable?
+	    my @exiftool_remediable_errs = (
+		'IFD offset not word-aligned',
+		'Value offset not word-aligned',
+		'Tag 269 out of sequence',
+		'Invalid DateTime separator',
+		'Invalid DateTime digit',
+		'Invalid DateTime length',
+		'FocalPlaneResolutionUnit value out of range',
+		'Count mismatch for tag 306', # DateTime -- fixable
+		'Count mismatch for tag 36867' # EXIF DateTimeOriginal - ignorable
 
-            # Is the error remediable?
-            my @exiftool_remediable_errs = (
-                'IFD offset not word-aligned',
-                'Value offset not word-aligned',
-                'Tag 269 out of sequence',
-                'Invalid DateTime separator',
-                'Invalid DateTime digit',
-                'Invalid DateTime length',
-                'FocalPlaneResolutionUnit value out of range',
-                'Count mismatch for tag 306', # DateTime -- fixable
-                'Count mismatch for tag 36867' # EXIF DateTimeOriginal - ignorable
+	    );
+	    my @imagemagick_remediable_errs = (
+		'PhotometricInterpretation not defined',
+		'ColorSpace value out of range: 2',
+		'WhiteBalance value out of range: 5',
+		# wrong data type for tag - will get automatically stripped
+		'Type mismatch for tag',
+		# related to thumbnails, which imagemagick will strip
+		'JPEGProc not defined for JPEG compression',
+		# related to ICC profiles, which imagemagick will strip
+		'Bad ICCProfile in tag 34675'
+	    );
 
-            );
-            my @imagemagick_remediable_errs = ('PhotometricInterpretation not defined',
-                                               'ColorSpace value out of range: 2',
-                                               'WhiteBalance value out of range: 5',
-                                              # wrong data type for tag - will get automatically stripped
-                                               'Type mismatch for tag',
-                                               # related to thumbnails, which imagemagick will strip
-                                               'JPEGProc not defined for JPEG compression',
-                                               # related to ICC profiles, which imagemagick will strip
-                                               'Bad ICCProfile in tag 34675');
-            if ( grep { $error =~ /^$_/ } @imagemagick_remediable_errs ) {
-                get_logger()
-                  ->trace(
-"PREVALIDATE_REMEDIATE: $infile has remediable error '$error'\n"
-                  );
-                $remediate_imagemagick = 1;
-            }
-            elsif ( grep { $error =~ /^$_/ } @exiftool_remediable_errs ) {
-                get_logger()
-                  ->trace(
-"PREVALIDATE_REMEDIATE: $infile has remediable error '$error'\n"
-                  );
-            }
-            else {
-                $self->set_error(
-                    "BadFile",
-                    file   => $infile,
-                    detail => "Nonremediable error '$error'"
-                );
-                $bad = 1;
-            }
-
-        }
-
+	    if ( grep { $error =~ /^$_/ } @imagemagick_remediable_errs ) {
+		get_logger()
+		->trace(
+		    "PREVALIDATE_REMEDIATE: $infile has remediable error '$error'\n"
+		);
+		$remediate_imagemagick = 1;
+	    } elsif ( grep { $error =~ /^$_/ } @exiftool_remediable_errs ) {
+		get_logger()
+		->trace(
+		    "PREVALIDATE_REMEDIATE: $infile has remediable error '$error'\n"
+		);
+	    } else {
+		$self->set_error(
+		    "BadFile",
+		    file   => $infile,
+		    detail => "Nonremediable error '$error'"
+		);
+		$bad = 1;
+	    }
+	}
     }
 
     # Does it look like a contone? Bail & convert to JPEG2000 if so.
     if(!$bad and (is_rgb_tiff($fields) or is_grayscale_tiff($fields))) {
-
         $infile = basename($infile);
         my ($seq) = ($infile =~ /^(.*).tif$/);
         return $self->convert_tiff_to_jpeg2000($seq);
-        
-
     }
 
     if($self->{newFields}{DateTime}) {
@@ -287,7 +294,6 @@ sub _remediate_tiff {
     }
 
     # Prevalidate other fields for bitonal images
-
     if ( !$bad and $fields->{'IFD0:BitsPerSample'} eq '1'
                and $fields->{'IFD0:SamplesPerPixel'} eq '1' ) {
         $remediate_imagemagick = 1
@@ -313,15 +319,10 @@ sub _remediate_tiff {
         {
             $self->{newFields}{'IFD0:Orientation'} = 'Horizontal (normal)';
         }
-
     }
 
-
-
     my $ret = !$bad;
-
     if ( $remediate_imagemagick and !$bad ) {
-
         # return true if remediation succeeds
         $ret = $self->repair_tiff_imagemagick( $infile, $outfile );
 
@@ -350,8 +351,8 @@ sub _remediate_tiff {
           if(defined $self->{oldFields}{"IFD0:$field"}) {
             chomp($self->{oldFields}{"IFD0:$field"});
             $self->{newFields}{"IFD0:$field"} = $self->{oldFields}{"IFD0:$field"};
-          } 
-          
+          }
+
           if(defined $self->{newFields}{"IFD0:$field"}) {
             $self->{newFields}{"XMP-tiff:$field"} = $self->{newFields}{"IFD0:$field"};
           }
@@ -369,7 +370,6 @@ sub _remediate_tiff {
       && $self->repair_tiff_exiftool( $infile, $outfile, $self->{newFields} );
 
     return $ret;
-
 }
 
 sub is_rgb_tiff {
@@ -435,7 +435,6 @@ sub repair_tiff_imagemagick {
     croak("failed repairing $infile\n") if $rval;
 
     return !$rval;
-
 }
 
 sub _remediate_jpeg2000 {
@@ -467,7 +466,7 @@ sub _remediate_jpeg2000 {
     # aren't already defined.
     if ( defined $self->{oldFields}->{'Jpeg2000:ColorSpace'} and $self->{oldFields}->{'Jpeg2000:ColorSpace'} eq 'sRGB' ) {
         $self->{newFields}{'XMP-tiff:BitsPerSample'} = '8, 8, 8';
-        $self->{newFields}{'XMP-tiff:PhotometricInterpretation'} = 'RGB'; 
+        $self->{newFields}{'XMP-tiff:PhotometricInterpretation'} = 'RGB';
         $self->{newFields}{'XMP-tiff:SamplesPerPixel'} = '3';
     }
 
@@ -481,9 +480,7 @@ sub _remediate_jpeg2000 {
     }
 
     # Orientation should always be normal
-    $self->set_new_if_undefined( 'XMP-tiff:Orientation',
-        'Horizontal (normal)' );
-
+    $self->set_new_if_undefined( 'XMP-tiff:Orientation', 'Horizontal (normal)' );
 
     # normalize the date to ISO8601 if it is close to that; assume UTC if no time zone given (rare in XMP)
     my $normalized_date = fix_iso8601_date($self->{'oldFields'}{'XMP-tiff:DateTime'});
@@ -513,12 +510,12 @@ sub _remediate_jpeg2000 {
           } else {
             $xresunit = $self->{oldFields}->{$prefix . 'ResolutionUnit'};
             $yresunit = $xresunit;
-          } 
+          }
 
           get_logger()->warn("Resolution unit awry")
             if ( not $xresunit or not $yresunit or $xresunit ne $yresunit );
 
-          my $dpi_resolution = $self->_dpi($xres,$xresunit);
+          my $dpi_resolution = $self->_dpi($xres, $xresunit);
 
           if(defined $dpi_resolution and $dpi_resolution >= 100) {
             # Absurdly low DPI is likely to be an error or default, so don't
@@ -531,7 +528,7 @@ sub _remediate_jpeg2000 {
 
     }
 
-    $self->_set_new_resolution($force_headers,$set_if_undefined_headers);
+    $self->_set_new_resolution($force_headers, $set_if_undefined_headers);
 
     # Add other provided new headers if requested and the file does not
     # already have a value set for the given field
@@ -539,7 +536,7 @@ sub _remediate_jpeg2000 {
         $self->set_new_if_undefined( $field, $val );
     }
 
-    # first copy old values, since XMP may be stripped/corrupted in some cases 
+    # first copy old values, since XMP may be stripped/corrupted in some cases
     my $exifTool = new Image::ExifTool;
     $exifTool->Options('ScanForXMP' => 1);
     $exifTool->Options('IgnoreMinorErrors' => 1);
@@ -593,7 +590,10 @@ sub _set_new_resolution {
   my $force_headers = shift;
   my $set_if_undefined_headers = shift;
 
-  my $xmp_resolution = $self->_dpi($self->{oldFields}->{'XMP-tiff:XResolution'},$self->{oldFields}->{'XMP-tiff:ResolutionUnit'});
+  my $xmp_resolution = $self->_dpi(
+      $self->{oldFields}->{'XMP-tiff:XResolution'},
+      $self->{oldFields}->{'XMP-tiff:ResolutionUnit'}
+  );
 
   # if the resolution in the XMP is nonsense, ensure it gets updated with any
   # info we might have even if we aren't otherwise forcing the resolution
@@ -622,7 +622,9 @@ sub _set_new_resolution {
     $self->{newFields}->{'IFD0:YResolution'} = $resolution;
     $self->{newFields}->{'IFD0:ResolutionUnit'} = 'inches';
   }
-} sub prevalidate_field {
+}
+
+sub prevalidate_field {
     my $self      = shift;
     my $fieldname = shift;
     my $expected  = shift
@@ -665,7 +667,7 @@ sub _set_new_resolution {
 
 $self->expand_lossless_jpeg2000($volume, $path, $files)
 
-Runs JHOVE to find any losslessly compressed JPEG2000 images and expands them 
+Runs JHOVE to find any losslessly compressed JPEG2000 images and expands them
 to TIFF. The TIFF remediation will then recompress the TIFF to a JPEG2000 image
 that meets spec.
 
@@ -679,15 +681,13 @@ FILENAME.tif, and FILENAME.jp2 will be removed.
 
 sub expand_lossless_jpeg2000 {
     my ($self, $volume, $path, $files) = @_;
-
     my $transformation_xp = XML::LibXML::XPathExpression->new(
-                    "/jhove:jhove/jhove:repInfo/" .
-                    "jhove:properties/jhove:property[jhove:name='JPEG2000Metadata']/jhove:values/" .
-                    "jhove:property[jhove:name='Codestreams']/jhove:values/jhove:property[jhove:name='Codestream']/jhove:values/" .
-                    "jhove:property[jhove:name='CodingStyleDefault']/jhove:values/" . 
-                    "jhove:property[jhove:name='Transformation']/jhove:values/jhove:value"
-                );
-
+	"/jhove:jhove/jhove:repInfo/" .
+	"jhove:properties/jhove:property[jhove:name='JPEG2000Metadata']/jhove:values/" .
+	"jhove:property[jhove:name='Codestreams']/jhove:values/jhove:property[jhove:name='Codestream']/jhove:values/" .
+	"jhove:property[jhove:name='CodingStyleDefault']/jhove:values/" .
+	"jhove:property[jhove:name='Transformation']/jhove:values/jhove:value"
+    );
 
     $self->run_jhove(
         $volume,
@@ -713,7 +713,6 @@ sub expand_lossless_jpeg2000 {
                 my $grk_decompress = get_config('grk_decompress');
                 system("$grk_decompress -i '$path/$jpeg2000' -o '$path/$tiff' > /dev/null 2>&1");
 
-
                 # try to compress the TIFF -> JPEG2000
                 get_logger()->trace("Compressing $path/$tiff to $path/$jpeg2000");
                 my $grk_compress = get_config('grk_compress');
@@ -733,7 +732,6 @@ sub expand_lossless_jpeg2000 {
                     detail    => "grk_compress returned $?"
                   );
 
-
                 # copy all headers from the original jpeg2000
                 # grk_compress loses info from IFD0 headers, which are sometimes present in JPEG2000 images
                 my $exiftool = new Image::ExifTool;
@@ -742,19 +740,123 @@ sub expand_lossless_jpeg2000 {
 
                 rename("$path/$jpeg2000_remediated","$path/$jpeg2000");
                 unlink("$path/$tiff");
-
             }
-
         },
         "-m JPEG2000-hul"
     );
+}
+
+sub expand_other_file_formats {
+    my ($self, $volume, $path, $files) = @_;
+    my @other_recognized_formats = qw(.png .jpg);
+    my $imagemagick = get_config('imagemagick');
+    my $imagemagick_cmd = qq($imagemagick);
+
+    # Parse other recognized formats to .tif, put in same dir, then delete original.
+    foreach my $file (@$files) {
+	my $infile = "$path/$file";
+	my ($outname, undef, $ext) = fileparse($infile, @other_recognized_formats);
+	my $outfile = "$path/$outname.tif";
+
+	my $cmd =  "$imagemagick_cmd -compress None $infile -strip $outfile";
+	get_logger()->trace("Expanding $file: $cmd");
+
+	my $err_code = system($cmd);
+	if ($err_code) {
+	    $self->set_error(
+		"OperationFailed",
+		operation => "imagemagick",
+		file      => $infile,
+		detail    => "decompress and ICC profile strip failed: returned $?"
+	    );
+	} else {
+	    $self->copy_metadata($ext, $infile, $outfile);
+	    unlink($infile);
+	}
+    }
+}
+
+sub copy_metadata {
+    my $self    = shift;
+    my $ext     = shift;
+    my $infile  = shift;
+    my $outfile = shift;
+
+    $self->{oldFields} = $self->get_exiftool_fields($infile);
+    $self->{newFields} = {};
+
+    # Delegate to the method that knows how to extract from a ".$ext"
+    if ($ext eq ".jpg") {
+	$self->{newFields} = extract_jpg_metadata($self->{oldFields});
+    } elsif ($ext eq ".png") {
+	$self->{newFields} = extract_png_metadata($self->{oldFields});
+    } else {
+	croak "copy_metadata knows not extension: $ext";
+	return;
+    }
+
+    # Write extracted metadata to outfile.
+    my $exifTool = new Image::ExifTool;
+    while (my ($field, $val) = each(%{$self->{newFields}})) {
+	my ($success, $errStr) = $exifTool->SetNewValue($field, $val);
+	if (defined $errStr) {
+	    croak("Error setting new tag $field => $val: $errStr\n");
+	    return 0;
+	}
+    }
+    my $exif_write_status = $exifTool->WriteInfo($outfile);
+    unless ($exif_write_status == 1) {
+	get_logger()->trace("Failed EXIF write to $outfile");
+    }
+}
+
+# Extract relevant jpg metadata
+sub extract_jpg_metadata {
+    my $olf = shift; # ref to $self->{oldFields}, a hash of exiftool data.
+    # Return a hash of extracted metadata that we want to ensure
+    # is copied to the outfile.
+    my $h = {
+	'IFD0:ResolutionUnit'     => $olf->{'JFIF:ResolutionUnit'},
+	'IFD0:XResolution'        => $olf->{'JFIF:XResolution'},
+	'IFD0:YResolution'        => $olf->{'JFIF:YResolution'},
+	'XMP-tiff:ResolutionUnit' => $olf->{'JFIF:ResolutionUnit'},
+	'XMP-tiff:XResolution'    => $olf->{'JFIF:XResolution'},
+	'XMP-tiff:YResolution'    => $olf->{'JFIF:YResolution'}
+    };
+
+    return $h;
+}
+
+sub extract_png_metadata {
+    my $olf = shift; # ref to $self->{oldFields}, a hash of exiftool data.
+    my $originalPixelUnit = $olf->{'PNG-pHYs:PixelUnits'};
+    my $pixelUnit = "in";
+    my $multiplier = 1;
+
+    # PNG might give resolution in meters, we want it in centimeters.
+    # 100 pixels-per-meter is 1 pixels-per-centimeter (100:1)
+    if ($originalPixelUnit eq "meters") {
+	$pixelUnit = "cm";
+	$multiplier = 0.01;
+    }
+
+    my $h = {
+	'IFD0:ResolutionUnit'     => $pixelUnit,
+	'IFD0:XResolution'        => $olf->{'PNG-pHYs:PixelsPerUnitX'} * $multiplier,
+	'IFD0:YResolution'        => $olf->{'PNG-pHYs:PixelsPerUnitY'} * $multiplier,
+	'XMP-tiff:ResolutionUnit' => $pixelUnit,
+	'XMP-tiff:XResolution'    => $olf->{'PNG-pHYs:PixelsPerUnitX'} * $multiplier,
+	'XMP-tiff:YResolution'    => $olf->{'PNG-pHYs:PixelsPerUnitY'} * $multiplier
+    };
+
+    return $h;
 }
 
 =item remediate_tiffs()
 
 $self->remediate_tiffs($volume,$path,$tiffs,$headers_sub);
 
-Runs jhove and calls image_remediate for all tiffs in $tiffs. 
+Runs jhove and calls image_remediate for all tiffs in $tiffs.
 $tiffs is a reference to an array of filenames.
 $path is the base directory containing all the files in $tiffs.
 
@@ -767,16 +869,15 @@ for remediate_image (qv)
 sub remediate_tiffs {
 
     my ( $self, $volume, $tiffpath, $files, $headers_sub ) = @_;
-
     my $repStatus_xp = XML::LibXML::XPathExpression->new(
         '/jhove:jhove/jhove:repInfo/jhove:status');
     my $error_xp = XML::LibXML::XPathExpression->new(
-'/jhove:jhove/jhove:repInfo/jhove:messages/jhove:message[@severity="error"]'
+	'/jhove:jhove/jhove:repInfo/jhove:messages/jhove:message[@severity="error"]'
     );
     my $stage_path = $volume->get_staging_directory();
     my $objid      = $volume->get_objid();
 
-# check if Artist and/or ModifyDate header is full of binary junk; if so remove it
+    # check if Artist and/or ModifyDate header is full of binary junk; if so remove it
     foreach my $tiff (@$files) {
         my $headers   = $self->get_exiftool_fields("$tiffpath/$tiff");
         my $needwrite = 0;
@@ -840,7 +941,6 @@ sub convert_tiff_to_jpeg2000 {
     my $self        = shift;
     my $volume      = $self->{volume};
     my $seq         = shift;
-
     my $preingest_dir = $volume->get_preingest_directory();
     my $infile  = "$preingest_dir/$seq.tif";
     my $outfile = "$preingest_dir/$seq.jp2";
@@ -882,7 +982,6 @@ sub convert_tiff_to_jpeg2000 {
       $self->{newFields}->{"XMP-tiff:$tag"} = $tagvalue if defined $tagvalue;
     }
 
-
     # first decompress & strip ICC profiles
     my $imagemagick = get_config('imagemagick');
     my $imagemagick_cmd = qq($imagemagick);
@@ -891,16 +990,22 @@ sub convert_tiff_to_jpeg2000 {
         and ($self->{oldFields}->{'IFD0:BitsPerSample'} eq '8'
             or $self->{oldFields}->{'IFD0:BitsPerSample'} eq '8 8 8')) {
         $imagemagick_cmd .= qq( -type TrueColor)
-    } elsif($self->{oldFields}->{'IFD0:BitsPerSample'} eq '8' 
+    } elsif($self->{oldFields}->{'IFD0:BitsPerSample'} eq '8'
             and $self->{oldFields}->{'IFD0:SamplesPerPixel'} eq '1') {
         $imagemagick_cmd .= qq( -type Grayscale -depth 8)
     }
 
-    # strip 
+    my $magick_compress_cmd = "$imagemagick_cmd -compress None $infile -strip $infile.unc.tif";
+    my $magick_compress_err = system($magick_compress_cmd);
+    if ($magick_compress_err) {
+	$self->set_error(
+	    "OperationFailed",
+	    operation => "imagemagick",
+	    file      => $infile,
+	    detail    => "decompress and ICC profile strip failed: returned $?"
+	);
+    }
 
-    system( "$imagemagick_cmd -compress None $infile -strip $infile.unc.tif > /dev/null 2>&1" )
-            and $self->set_error("OperationFailed", operation => "imagemagick", file => $infile, detail => "decompress and ICC profile strip failed: returned $?");
-          
     # strip off the XMP to prevent confusion during conversion
     my $exifTool = new Image::ExifTool;
     $exifTool->Options('ScanForXMP' => 1);
@@ -908,16 +1013,18 @@ sub convert_tiff_to_jpeg2000 {
     $exifTool->SetNewValue('XMP',undef,Protected => 1);
     $self->update_tags( $exifTool, "$infile.unc.tif" );
 
-    system(qq($grk_compress -i "$infile.unc.tif" -o "$outfile" -p RLCP -n $levels -SOP -EPH -M 62 -I > /dev/null 2>&1))
+    my $grk_compress_cmd = qq($grk_compress -i "$infile.unc.tif" -o "$outfile" -p RLCP -n $levels -SOP -EPH -M 62 -I > /dev/null 2>&1);
+    my $grk_compress_err = system($grk_compress_cmd);
+    if ($grk_compress_err) {
+	$self->set_error(
+	    "OperationFailed",
+	    operation => "grk_compress",
+	    file      => $infile,
+	    detail    => "grk_compress returned $?"
+	);
+    }
 
-      and $self->set_error(
-        "OperationFailed",
-        operation => "grk_compress",
-        file      => $infile,
-        detail    => "grk_compress returned $?"
-      );
-
-    # then set new metadata fields - the rest will automatically be 
+    # then set new metadata fields - the rest will automatically be
     # set from the JP2
     foreach $field ( qw( XResolution YResolution ResolutionUnit Artist Make Model))
     {
@@ -975,15 +1082,15 @@ sub fix_tiff_date {
   # two digit year from 1990s; assume mm/dd/yy
   elsif ( $datetime =~ /^(\d{2})\/(\d{2})\/(9\d)$/ ) {
     return  "19$3:$1:$2 00:00:00";
-  } 
+  }
   # four digit year, no time; assume mm/dd/yy
   elsif ( $datetime =~ qr(^(\d{2})[/:-](\d{2})[/:-](\d{4})$)) {
     return "$3:$1:$2 00:00:00";
   }
-  else 
+  else
   {
     # garbage / unparseable
-    return; 
+    return;
   }
 
 }
@@ -998,7 +1105,7 @@ sub set_new_date_fields {
   $tiffdate->parse($new_tiffdate);
   my $xmpdate = Date::Manip::Date->new;
   $xmpdate->parse($new_xmpdate);
-  
+
   $self->{newFields}{'IFD0:ModifyDate'} = $tiffdate->printf("%Y:%m:%d %H:%M:%S");
   if($self->needs_xmp) {
     $self->{newFields}{'XMP-tiff:DateTime'} = $xmpdate->printf("%O");
@@ -1078,7 +1185,7 @@ sub tiff_xmp_date_mismatch {
     return undef;
   }
 
-  return (defined $xmp_datetime and defined $mix_datetime 
+  return (defined $xmp_datetime and defined $mix_datetime
       and $xmp_datetime !~ /^\Q$mix_datetime\E([+-]\d{2}:\d{2})?/)
 }
 
@@ -1119,7 +1226,7 @@ Prevalidates and remediates the image headers in $oldfile and writes the results
 usage: $self->remediate_image($oldfile,$newfile,$force_headers,$set_if_undefined_headers)
 
 $force_headers and $set_if_undefined_headers are references to hashes:
-{ header => $value, 
+{ header => $value,
 header2 => $value, ...}
 
 Additional parameters can be passed to set the value for particular fields.
@@ -1134,7 +1241,7 @@ $stage->remediate_image($oldfile,$newfile,{'XMP-dc:source' => 'Internet Archive'
 will force the XMP-dc:source field to 'Internet Archive' whether or not it is already present,
 and set XMP-tiff:Make to Canon if XMP-tiff:Make is not otherwise defined.
 
-The special header 'Resolution' can be set to set X/Y resolution related fields; it should be 
+The special header 'Resolution' can be set to set X/Y resolution related fields; it should be
 specified in pixels per inch.
 
 =item update_tags()
@@ -1161,7 +1268,7 @@ $self->set_new_if_undefined($newFieldName,$newFieldVal);
 
 $self->remediate_tiffs($volume,$path,$tiffs,$headers_sub);
 
-Runs jhove and calls image_remediate for all tiffs in $tiffs. 
+Runs jhove and calls image_remediate for all tiffs in $tiffs.
 $tiffs is a reference to an array of filenames.
 $path is the base directory containing all the files in $tiffs.
 
