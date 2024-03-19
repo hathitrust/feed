@@ -1,24 +1,52 @@
----
-name: Docker Build
+name: Build
 
 on:
-  workflow_run:
-    workflows: ['Run CI']
-    branches: ['main']
-    types: [completed]
+    workflow_run:
+        workflows: ['Run Tests']
+        branches: ['main']
+        types: [completed]
+
+    workflow_dispatch:
+        inputs:
+            img_tag:
+                description: Docker Image Tag
+            ref:
+                description: Revision or Branch to build
+                default: main
+            push_latest:
+                description: Set True if the build is for the latest version
+                type: boolean
+                required: false
+                default: false
+            platforms:
+                description: Platforms to build for
+                type: choice
+                default: linux/amd64,linux/arm64
+                options:
+                - linux/amd64,linux/arm64
+                - linux/amd64
+                - linux/arm64
+            rebuild:
+                description: Rebuild this image?
+                type: boolean
+                default: false
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
+    build-image:
+        runs-on: ubuntu-latest
+        permissions:
+            contents: read
+            packages: write
 
-    steps:
-      - uses: hathitrust/github_actions/build@v1
-        with:
-          image: ghcr.io/hathitrust/feed-unstable
-          tag: ${{ github.sha }}
-          push_latest: true
-          registry_token: ${{ secrets.GITHUB_TOKEN }}
-          build-args: 'version="commit ${{ github.sha }}"'
+        steps:
+            - name: Build Image
+              uses: hathitrust/github_actions/build@v1.4.0
+              with:
+                image: ghcr.io/${{ github.repository }}-unstable
+                dockerfile: Dockerfile
+                img_tag: ${{ inputs.img_tag }}
+                tag: ${{ inputs.ref }}
+                push_latest: ${{ inputs.push_latest}}
+                registry_token: ${{ github.token }}
+                rebuild: ${{ inputs.rebuild }}
+                build-args: 'version="commit ${{ github.sha }}"'
