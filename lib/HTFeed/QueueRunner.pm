@@ -1,15 +1,16 @@
 package HTFeed::QueueRunner;
 
-use HTFeed::StagingSetup;
+use strict;
+use File::Path qw(remove_tree);
 use HTFeed::Bunnies;
 use HTFeed::Config qw(get_config set_config);
 use HTFeed::DBTools qw(update_queue);
-use Log::Log4perl qw(get_logger);
 use HTFeed::Job;
+use HTFeed::StagingSetup;
+use Log::Log4perl qw(get_logger);
+use HTFeed::JobMetrics;
 use Sys::Hostname qw(hostname);
-use File::Path qw(remove_tree);
-
-use strict;
+use Time::HiRes;
 
 # Gets items to ingest from queue; processes them start to finish.
 
@@ -31,6 +32,7 @@ sub new {
   # for testing
   $self->{should_fork} = $params{should_fork};
   $self->{should_fork} = 1 if not defined $self->{should_fork};
+  $self->{job_metrics} = HTFeed::JobMetrics->get_instance;
 
   set_config($self->{staging_root}, 'staging_root');
   HTFeed::StagingSetup::make_stage();
@@ -67,7 +69,7 @@ sub marshal_and_run {
 
     if($self->{should_fork}) {
       $self->fork_and_run_job_sequence($job);
-    } else {
+  } else {
       $self->run_job_sequence($job);
     }
   };
@@ -104,19 +106,34 @@ sub validate_job {
     return 0;
 
   }
-
 }
 
 sub run_job_sequence {
-  my $self = shift;
-  my $job = shift;
+    my $self = shift;
+    my $job = shift;
 
-  while($job){
-    get_logger()->info("next job: " . $job->namespace . "." . $job->id . " " . $job->stage_class);
-
-    $job->run_job($self->{clean});
-    $job = $job->successor;
-  }
+    while($job){
+	get_logger()->info(
+	    "next job: " . $job->namespace . "." . $job->id . " " . $job->stage_class
+	);
+	# Get the verby part of the stage class name (e.g. "pack")
+	# that we need for job metrics.
+	my $jobtype = lc((split("::", $job->stage_class))[-1]);
+	my $t_start = Time::HiRes::time();
+	$job->run_job($self->{clean});
+	my $t_end = Time::HiRes::time();                  # gives milliseconds,
+	my $t_delta_seconds = ($t_end - $t_start) * 1000; # multiply to seconds
+	my $seconds_metric = "ingest_" . $jobtype . "_seconds";
+	my $items_metric   = "ingest_" . $jobtype . "_items";
+	$self->{job_metrics}->add($seconds_metric, $t_end - $t_start);
+	$self->{job_metrics}->inc($items_metric);
+	if ($jobtype eq "download") {
+	    # TODO: for job metrics, not sure what is best way of determining
+	    # if a download job is for ia/google/dropbox
+	}
+	# TODO: for job_metrics, not sure what the best way is to get filesize from job
+	$job = $job->successor;
+    }
 }
 
 sub fork_and_run_job_sequence {

@@ -55,35 +55,33 @@ if ($one_line){
 }
 
 unless ($realmeta) {
+    no warnings 'redefine';
 
-  *HTFeed::Volume::get_sources = sub {
-    return ( 'ht_test','ht_test','ht_test' );
-  };
+    *HTFeed::Volume::get_sources = sub {
+	return ('ht_test', 'ht_test', 'ht_test');
+    };
 
-  # use faked-up marc in case it's missing
-
-  *HTFeed::SourceMETS::_get_marc_from_zephir = sub {
-    my $self = shift;
-    my $marc_path = shift;
-
-    my $identifier = $self->{volume}->get_identifier();
-
-    if (not HTFeed::Stage::Download::download($self,
-      url => "http://zephir.cdlib.org/api/item/" . $self->{volume}->get_identifier(),
-      path => dirname($marc_path),
-      filename => basename($marc_path),
-      not_found_ok => 1)) {
-
-
-      HTFeed::Stage::Download::download($self,
-        url => "http://zephir.cdlib.org/api/item/mdp.39015039746220",
-        path => dirname($marc_path),
-        filename => basename($marc_path),
-        not_found_ok => 1);
-      
-    }
-
-  };
+    # use faked-up marc in case it's missing
+    *HTFeed::SourceMETS::_get_marc_from_zephir = sub {
+	my $self = shift;
+	my $marc_path = shift;
+	my $downloaded = HTFeed::Stage::Download::download(
+	    $self,
+	    url => "http://zephir.cdlib.org/api/item/" . $self->{volume}->get_identifier(),
+	    path => dirname($marc_path),
+	    filename => basename($marc_path),
+	    not_found_ok => 1
+	);
+	if (not $downloaded) {
+	    HTFeed::Stage::Download::download(
+		$self,
+		url => "http://zephir.cdlib.org/api/item/mdp.39015039746220",
+		path => dirname($marc_path),
+		filename => basename($marc_path),
+		not_found_ok => 1
+	    );
+	}
+    };
 }
 
 pod2usage(-msg => 'must specify package type with -p or -d') if not defined $default_packagetype and not defined $dot_packagetype;

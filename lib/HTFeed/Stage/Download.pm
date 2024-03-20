@@ -2,12 +2,11 @@ package HTFeed::Stage::Download;
 
 use warnings;
 use strict;
-use LWP::UserAgent;
-use HTFeed::Version;
-use Date::Manip;
-
 use base qw(HTFeed::Stage);
 
+use Date::Manip;
+use HTFeed::Version;
+use LWP::UserAgent;
 use Log::Log4perl qw(get_logger);
 
 =head1 NAME
@@ -64,8 +63,9 @@ sub download{
 
     if( $response->is_success() ){
         my $size = (-s $pathname);
+	$self->{job_metrics}->add("ingest_download_bytes", $size);
         my $date = $response->header('last-modified');
-        utime(time,UnixDate(ParseDate($date),"%s"),$pathname);
+        utime(time, UnixDate(ParseDate($date), "%s"), $pathname);
         my $expected_size = $response->header('content-length');
         if (not defined $expected_size or $size eq $expected_size){
             get_logger()->trace("Downloading $url succeeded, $size bytes downloaded");

@@ -71,6 +71,7 @@ describe "HTFeed::QueueRunner" => sub {
     $tmpdirs = HTFeed::Test::TempDirs->new();
     $testlog = HTFeed::Test::Logger->new();
     set_config(0,'stop_on_error');
+    queue_runner->{job_metrics}->clear;
   };
 
   before each => sub {
@@ -95,7 +96,7 @@ describe "HTFeed::QueueRunner" => sub {
   };
 
   after all => sub {
-    $tmpdirs->cleanup;
+      $tmpdirs->cleanup;
   };
 
   it "ingests an enqueued item" => sub {
@@ -110,6 +111,26 @@ describe "HTFeed::QueueRunner" => sub {
     queue_runner->run();
     ok(volume_in_feed_queue(testvolume('ok'),'collated'));
   };
+  it "does some roundabout jobmetrics integration testing" => sub {
+    # Same test as the one above, except with the addition of testing
+    # that it increments $metric. First clear the metrics.
+    my $pack_bytes_metric = "ingest_pack_bytes";
+    my $collate_metric = "ingest_collate_items";
+    my $jm = queue_runner->{job_metrics};
+    $jm->clear;
+    ok($jm->get_value($collate_metric) == 0);
+    # Run the test and expect the metric to increment
+    queue_test_item('ok');
+    queue_runner->run();
+    ok(volume_in_feed_queue(testvolume('ok'),'collated'));
+    ok($jm->get_value($collate_metric) == 1);
+    # Also check that at least 5 time-based metrics were incremented
+    my $timebased_metrics = $jm->match('^ingest_.+_seconds');
+    ok(scalar(@$timebased_metrics) > 5);
+    # Also check that HTFeed::Stage::Pack incremented bytes
+    # (it's the only stage implementing bytes so far)
+    ok($jm->get_value($pack_bytes_metric) > 1); # i.e. has counted SOME bytes
+};
 
   it "acks the message on success" => sub {
     queue_test_item('ok');

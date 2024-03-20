@@ -60,8 +60,6 @@ RUN echo "deb [signed-by=/usr/share/keyrings/hathitrust-archive-keyring.gpg] htt
 
 RUN apt-get update && apt-get install -y grokj2k-tools
 
-RUN cpan -f -i Net::AMQP::RabbitMQ
-
 COPY etc/imagemagick-policy.xml /etc/ImageMagick-6/policy.xml
 
 COPY etc/jhove-auto-install.xml /tmp/jhove-auto-install.xml

@@ -1,11 +1,11 @@
 package HTFeed::Stage::DirectoryMaker;
 
-use warnings;
 use strict;
-use Carp;
-use Filesys::Df;
+use warnings;
 
 use base qw(HTFeed::Stage);
+use Carp;
+use Filesys::Df;
 use HTFeed::Config;
 
 =head1 NAME
