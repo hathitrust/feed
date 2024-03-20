@@ -1,15 +1,14 @@
 package HTFeed::QueueRunner;
 
-use HTFeed::StagingSetup;
+use strict;
+use File::Path qw(remove_tree);
 use HTFeed::Bunnies;
 use HTFeed::Config qw(get_config set_config);
 use HTFeed::DBTools qw(update_queue);
-use Log::Log4perl qw(get_logger);
 use HTFeed::Job;
+use HTFeed::StagingSetup;
+use Log::Log4perl qw(get_logger);
 use Sys::Hostname qw(hostname);
-use File::Path qw(remove_tree);
-
-use strict;
 
 # Gets items to ingest from queue; processes them start to finish.
 

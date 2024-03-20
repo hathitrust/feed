@@ -7,13 +7,11 @@ package HTFeed::Stage;
 use warnings;
 use strict;
 use Carp;
-use Log::Log4perl qw(get_logger);
 use File::Find;
 use HTFeed::Config qw(get_config);
+use Log::Log4perl qw(get_logger);
 use POSIX qw(ceil);
-
 use base qw(HTFeed::SuccessOrFailure);
-
 
 sub new {
     my $class = shift;
