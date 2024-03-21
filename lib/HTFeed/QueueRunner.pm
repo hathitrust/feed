@@ -10,6 +10,8 @@ use HTFeed::StagingSetup;
 use Log::Log4perl qw(get_logger);
 use Sys::Hostname qw(hostname);
 
+use Prometheus::Tiny::Shared;
+
 # Gets items to ingest from queue; processes them start to finish.
 
 sub new {
