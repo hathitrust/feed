@@ -32,7 +32,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libmailtools-perl \
     libmouse-perl \
     libnet-prometheus-perl \
-    libprometheus-tiny-perl \
     libreadonly-perl \
     libreadonly-xs-perl \
     libroman-perl \
@@ -61,7 +60,8 @@ RUN echo "deb [signed-by=/usr/share/keyrings/hathitrust-archive-keyring.gpg] htt
 
 RUN apt-get update && apt-get install -y grokj2k-tools
 
-RUN cpan -f -i Net::AMQP::RabbitMQ
+RUN cpan -f -i Net::AMQP::RabbitMQ \
+    Prometheus::Tiny::Shared
 
 COPY etc/imagemagick-policy.xml /etc/ImageMagick-6/policy.xml
 
