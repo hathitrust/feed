@@ -3,6 +3,7 @@ name: Docker Tag Latest Release
 on:
   release:
     types: [ released ]
+  workflow_dispatch:
 
 jobs:
   tag-release:
