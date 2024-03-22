@@ -8,7 +8,7 @@ jobs:
   tag-release:
     runs-on: ubuntu-latest
     steps:
-      - uses: hathitrust/github_actions/tag-release@v1
+      - uses: hathitrust/github_actions/tag-release@action-updates
         with:
           registry_token: ${{ github.token }}
           existing_tag: ghcr.io/hathitrust/feed-unstable:${{ github.sha }}
