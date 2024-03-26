@@ -135,6 +135,7 @@ sub _setup_metrics {
 
     my @scales = qw(items kb ms);
     # essentially, generate: @measurable_stages x @scales
+    # so that we get packed_items, packed_kb, packed_ms ... etc
     $self->{metrics} = {};
     foreach my $stage (@measurable_stages) {
 	foreach my $scale (@scales) {
