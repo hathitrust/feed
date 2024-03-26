@@ -123,7 +123,7 @@ sub run_job_sequence {
 
 	$job->run_job($self->{clean});
 	my $t_end = Time::HiRes::time();
-	$job->{job_metrics}->observe("packed_ms", $t_end - $t_start);
+	$self->{job_metrics}->observe("packed_ms", $t_end - $t_start);
 	$job = $job->successor;
     }
 }
