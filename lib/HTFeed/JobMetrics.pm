@@ -45,7 +45,7 @@ if (!caller) { # If called from commandline:
     # pass --clear to irrevocably clear the metrics
     # (necessary when changing existing metric definitions)
     if (grep { /^--clear$/ } @ARGV) {
-	$jm->{prom}->clear();
+	$jm->clear();
 	print "JobMetrics cleared!\n";
     }
 }
@@ -94,6 +94,11 @@ sub list_metrics {
 sub pretty {
     my $self = shift;
     $self->{prom}->format
+}
+
+sub clear {
+    my $self = shift;
+    $self->{prom}->clear;
 }
 
 # Check that only valid metrics are used,
