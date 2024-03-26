@@ -55,6 +55,7 @@ sub new {
     my $self  = {};
 
     # TODO: Need to determine best place to store metrics
+    # pod's /tmp? /htprep? some other location?
     $self->{file} = "/tmp/HTFeed::JobMetrics::Data";
     if (defined $ENV{'HTFEED_JOBMETRICS_DATA_DIR'}) {
 	$self->{file} = $ENV{'HTFEED_JOBMETRICS_DATA_DIR'};
@@ -69,19 +70,23 @@ sub new {
     return $self;
 }
 
-sub observe { # for histograms
+# for histograms
+# e.g. $jm->observe("Unpack_ms", 125);
+sub observe {
     my $self   = shift;
     my $metric = shift;
     my $value  = shift;
 
-    $self->valid_metric($metric) && $self->{prom}->histogram_observe($metric, $value);
+    $self->_valid_metric($metric) && $self->{prom}->histogram_observe($metric, $value);
 }
 
-sub inc { # for counters
+# for counters
+# e.g. $jm->inc("Unpack_items");
+sub inc {
     my $self   = shift;
     my $metric = shift;
 
-    $self->valid_metric($metric) && $self->{prom}->inc($metric);
+    $self->_valid_metric($metric) && $self->{prom}->inc($metric);
 }
 
 # just show names of metrics
@@ -96,6 +101,7 @@ sub pretty {
     $self->{prom}->format
 }
 
+# irrevocably delete job metrics
 sub clear {
     my $self = shift;
     $self->{prom}->clear;
@@ -103,7 +109,9 @@ sub clear {
 
 # Check that only valid metrics are used,
 # or make an intelligent complaint.
-sub valid_metric {
+# e.g. $jm->_valid_metric("Unpack_ms") # -> 1
+# e.g. $jm->_valid_metric("ms pacman") # -> warn & 0
+sub _valid_metric { # "private"
     my $self   = shift;
     my $metric = shift;
 
@@ -114,8 +122,7 @@ sub valid_metric {
     return 0;
 }
 
-# The leading underscore indicates private
-sub _setup_metrics {
+sub _setup_metrics { # "private"
     my $self = shift;
     my $prom = $self->{prom};
 
@@ -139,11 +146,11 @@ sub _setup_metrics {
 
     my @scales = qw(items kb ms);
     # essentially, generate: @measurable_stages x @scales
-    # so that we get packed_items, packed_kb, packed_ms ... etc
+    # so that we get Pack_items, Pack_kb, Pack_ms ... etc
     $self->{metrics} = {};
     foreach my $stage (@measurable_stages) {
 	foreach my $scale (@scales) {
-	    # e.g. $self->{metrics}->{Unpack_items} = 1
+	    # e.g. $self->{metrics}->{Pack_items} = 1
 	    my $metric_name = $stage ."_". $scale;
 	    $self->{metrics}->{$metric_name} = 1;
 	    if ($scale eq "items") {
