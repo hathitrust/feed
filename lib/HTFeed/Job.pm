@@ -1,12 +1,10 @@
 package HTFeed::Job;
 
-#use Moose;
-use Mouse;
-use HTFeed::Volume;
-use HTFeed::Config;
 use Carp;
-
+use HTFeed::Config;
+use HTFeed::Volume;
 use Log::Log4perl qw(get_logger);
+use Mouse;
 
 has [qw(pkg_type namespace id)]         => (is => 'ro', isa => 'Str',     lazy_build => 1);
 has 'status'                            => (is => 'ro', isa => 'Str',     required => 1, default => 'ready');
@@ -17,6 +15,7 @@ has 'new_status'                        => (is => 'ro', isa => 'Str',     init_a
 has '_release'                          => (is => 'ro', isa => 'Bool',    init_arg => undef, lazy_build => 1);
 has 'volume'                            => (is => 'ro', isa => 'Object',                     lazy_build => 1);
 has 'stage'                             => (is => 'ro', isa => 'Object',  init_arg => undef, lazy_build => 1);
+
 
 =head1 NAME
 
@@ -54,9 +53,9 @@ HTFeed::Job->new(   volume => $volume,
 sub update{
     my $self = shift;
 
-    my $stage      = $self->stage;
-    my $fail       = $stage->failed;
-    my $new_status = $self->new_status;
+    my $stage       = $self->stage;
+    my $fail        = $stage->failed;
+    my $new_status  = $self->new_status;
 
     ## TODO: make this a class global or see if it can be better accessed with YAML::Config, etc.
     ## i.e. put it somwhere else, but preferably somthing tidy
@@ -264,7 +263,7 @@ sub run_job {
     my $force_failed_status = shift;
 
     my $stage;
-
+    
     eval {
         $stage = $job->stage;
 
@@ -276,7 +275,10 @@ sub run_job {
 	);
 
         $job->volume->reset();
+
+	
         $stage->run();
+
     };
 
     my $err = $@;
