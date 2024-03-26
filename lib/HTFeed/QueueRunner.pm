@@ -106,7 +106,6 @@ sub validate_job {
     return 0;
 
   }
-
 }
 
 sub run_job_sequence {
@@ -117,13 +116,17 @@ sub run_job_sequence {
 	get_logger()->info(
 	    "next job: " . $job->namespace . "." . $job->id . " " . $job->stage_class
 	);
-	
-	print "part of job: " . $job->stage_class . "\n";
+	my $jobtype = (split("::", $job->stage_class))[-1];
 	my $t_start = Time::HiRes::time();
-
 	$job->run_job($self->{clean});
 	my $t_end = Time::HiRes::time();
-	$self->{job_metrics}->observe("packed_ms", $t_end - $t_start);
+	$self->{job_metrics}->observe($jobtype."_ms", $t_end - $t_start);
+	$self->{job_metrics}->inc($jobtype."_items");
+	if ($jobtype eq "Download") {
+	    # TODO: for job metrics, not sure what is best way of determining
+	    # if a download job is for ia/google/dropbox
+	}
+	# TODO: for job_metrics, not sure what the best way is to get filesize from job
 	$job = $job->successor;
     }
 }
