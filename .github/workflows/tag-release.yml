@@ -3,15 +3,14 @@ name: Docker Tag Latest Release
 on:
   release:
     types: [ released ]
-  workflow_dispatch:
 
 jobs:
   tag-release:
     runs-on: ubuntu-latest
     steps:
-      - uses: hathitrust/github_actions/tag-release@action-updates
+      - uses: hathitrust/github_actions/tag-release@v1
         with:
           registry_token: ${{ github.token }}
           existing_tag: ghcr.io/hathitrust/feed-unstable:${{ github.sha }}
           image: ghcr.io/hathitrust/feed
-          new_tag: feed_v1.12.3
+          new_tag: ${{ github.event.release.tag_name }}
