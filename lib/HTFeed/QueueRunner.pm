@@ -8,9 +8,9 @@ use HTFeed::DBTools qw(update_queue);
 use HTFeed::Job;
 use HTFeed::StagingSetup;
 use Log::Log4perl qw(get_logger);
+use HTFeed::JobMetrics;
 use Sys::Hostname qw(hostname);
-
-use Prometheus::Tiny::Shared;
+use Time::HiRes;
 
 # Gets items to ingest from queue; processes them start to finish.
 
@@ -32,6 +32,7 @@ sub new {
   # for testing
   $self->{should_fork} = $params{should_fork};
   $self->{should_fork} = 1 if not defined $self->{should_fork};
+  $self->{job_metrics} = HTFeed::JobMetrics->new;
 
   set_config($self->{staging_root}, 'staging_root');
   HTFeed::StagingSetup::make_stage();
@@ -68,7 +69,7 @@ sub marshal_and_run {
 
     if($self->{should_fork}) {
       $self->fork_and_run_job_sequence($job);
-    } else {
+  } else {
       $self->run_job_sequence($job);
     }
   };
@@ -109,15 +110,22 @@ sub validate_job {
 }
 
 sub run_job_sequence {
-  my $self = shift;
-  my $job = shift;
+    my $self = shift;
+    my $job = shift;
 
-  while($job){
-    get_logger()->info("next job: " . $job->namespace . "." . $job->id . " " . $job->stage_class);
+    while($job){
+	get_logger()->info(
+	    "next job: " . $job->namespace . "." . $job->id . " " . $job->stage_class
+	);
+	
+	print "part of job: " . $job->stage_class . "\n";
+	my $t_start = Time::HiRes::time();
 
-    $job->run_job($self->{clean});
-    $job = $job->successor;
-  }
+	$job->run_job($self->{clean});
+	my $t_end = Time::HiRes::time();
+	$job->{job_metrics}->observe("packed_ms", $t_end - $t_start);
+	$job = $job->successor;
+    }
 }
 
 sub fork_and_run_job_sequence {
