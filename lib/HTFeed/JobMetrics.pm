@@ -122,20 +122,19 @@ sub _setup_metrics {
     # Each element x in this array gets turned into 3 prom declarations:
     # x_ms, x_kb and x_count
     my @measurable_stages = (
-	'downloaded_dropbox',
-	'downloaded_google',
-	'downloaded_ia',
-	'collated',
-	'fetched',
-	'handled',
-	'packed',
-	'remetsed',
-	'unpacked',
-	'deposited',
-	'sip_deposited',
-	'storage_migrated',
-	'unpacked',
-	'remediated'
+	'Collate',
+	'Download',
+	'Download_dropbox',
+	'Download_google',
+	'Download_ia',
+	'Handle',
+	'ImageRemediate',
+	'METS',
+	'Pack',
+	'SourceMETS',
+	'Unpack',
+	'VerifyManifest',
+	'VolumeValidator'
     );
 
     my @scales = qw(items kb ms);
@@ -144,13 +143,13 @@ sub _setup_metrics {
     $self->{metrics} = {};
     foreach my $stage (@measurable_stages) {
 	foreach my $scale (@scales) {
-	    my $name = $stage . "_" . $scale;
-	    # e.g. $self->{metrics}->{deposited_items} = 1
-	    $self->{metrics}->{$name} = 1;
+	    # e.g. $self->{metrics}->{Unpack_items} = 1
+	    my $metric_name = $stage ."_". $scale;
+	    $self->{metrics}->{$metric_name} = 1;
 	    if ($scale eq "items") {
-		$prom->declare($name, type => "counter");
+		$prom->declare($metric_name, type => "counter");
 	    } else {
-		$prom->declare($name, type => "histogram");
+		$prom->declare($metric_name, type => "histogram");
 	    }
 	}
     }
