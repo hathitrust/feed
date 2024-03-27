@@ -71,6 +71,7 @@ describe "HTFeed::QueueRunner" => sub {
     $tmpdirs = HTFeed::Test::TempDirs->new();
     $testlog = HTFeed::Test::Logger->new();
     set_config(0,'stop_on_error');
+    queue_runner->{job_metrics}->clear;
   };
 
   before each => sub {
@@ -95,7 +96,8 @@ describe "HTFeed::QueueRunner" => sub {
   };
 
   after all => sub {
-    $tmpdirs->cleanup;
+      $tmpdirs->cleanup;
+      print queue_runner->{job_metrics}->pretty;
   };
 
   it "ingests an enqueued item" => sub {
