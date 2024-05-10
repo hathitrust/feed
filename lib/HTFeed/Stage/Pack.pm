@@ -21,15 +21,11 @@ HTFeed::Stage::Pack.pm
 
 sub run{
     my $self = shift;
-
-    my $volume = $self->{volume};
+    my $volume   = $self->{volume};
     my $pt_objid = $volume->get_pt_objid();
-    my $stage = $volume->get_staging_directory();
-
-    my @files_to_zip = ();
-
+    my $stage    = $volume->get_staging_directory();
     # Make a temporary staging directory
-    my $zip_stage = get_config('staging'=>'zip');
+    my $zip_stage     = get_config('staging'=>'zip');
     my $zipfile_stage = get_config('staging'=>'zipfile');
     mkdir($zip_stage);
     mkdir($zipfile_stage);
@@ -37,11 +33,14 @@ sub run{
     mkdir("$zipfile_stage/$pt_objid");
 
     # don't compress jp2, tif, etc..
-    my $uncompressed_extensions = join(":",@{ $volume->get_nspkg()->get('uncompressed_extensions') });
+    my $uncompressed_extensions = join(
+	":",
+	@{ $volume->get_nspkg()->get('uncompressed_extensions') }
+    );
     # add the necessary flag for zip if we have any uncompressed extensions
-    $uncompressed_extensions = "-n $uncompressed_extensions" if($uncompressed_extensions);
+    $uncompressed_extensions = "-n $uncompressed_extensions" if $uncompressed_extensions;
 
-    my @files = @{ $volume->get_all_content_files() };
+    my @files       = @{ $volume->get_all_content_files() };
     my $source_mets = $volume->get_source_mets_file();
     push(@files, basename($volume->get_source_mets_file())) if $source_mets;
 
@@ -50,18 +49,21 @@ sub run{
             $self->set_error('MissingFile',file => "$stage/$file");
         }
 
-        if(!symlink("$stage/$file","$zip_stage/$pt_objid/$file"))
-        {
-            $self->set_error('OperationFailed',operation=>'symlink',file => "$stage/$file",detail=>"Symlink to staging directory failed: $!");
+        if(!symlink("$stage/$file","$zip_stage/$pt_objid/$file")) {
+            $self->set_error(
+		'OperationFailed',
+		operation => 'symlink',
+		file      => "$stage/$file",
+		detail    => "Symlink to staging directory failed: $!"
+	    );
         }
     }
 
     my $zip_path = $volume->get_zip_path();
-
-    $self->zip($zip_stage,$uncompressed_extensions,$zip_path,$pt_objid) or return;
-
+    $self->zip($zip_stage, $uncompressed_extensions, $zip_path, $pt_objid) or return;
     $self->_set_done();
     $volume->record_premis_event('zip_compression');
+
     return $self->succeeded();
 }
 
@@ -73,23 +75,39 @@ sub run{
 
 sub zip{
     my $self = shift;
-    my ($zip_stage,$other_options,$zip_path,$pt_objid) = @_;
+    my ($zip_stage, $other_options, $zip_path, $pt_objid) = @_;
 
+    my $start_size = $self->dir_size($zip_stage);
     get_logger()->trace("Packing $zip_stage/$pt_objid to $zip_path");
     my $zipret = system("cd '$zip_stage'; zip -q -r $other_options '$zip_path' '$pt_objid'");
 
-    if($zipret) {
-        $self->set_error('OperationFailed',operation=>'zip',detail=>'Creating zip file',exitstatus=>$zipret,file=>$zip_path);
+    if ($zipret) {
+        $self->set_error(
+	    'OperationFailed',
+	    operation  => 'zip',
+	    detail     => 'Creating zip file',
+	    exitstatus => $zipret,
+	    file       => $zip_path
+	);
         return;
     } else {
-
         $zipret = system("unzip -qq -t '$zip_path'");
-
-        if($zipret) {
-            $self->set_error('OperationFailed',operation=>'unzip',exitstatus=>$zipret,file=>$zip_path,detail=>'Verifying zip file');
+        if ($zipret) {
+            $self->set_error(
+		'OperationFailed',
+		operation  => 'unzip',
+		detail     => 'Verifying zip file',
+		exitstatus => $zipret,
+		file       => $zip_path
+	    );
             return;
-        }        
+        }
     }
+
+    # Get size after zipping and report size delta as a job metric for Pack.
+    my $end_size = -s $zip_path;
+    my $delta_size = $start_size - $end_size;
+    $self->{job_metrics}->add("ingest_pack_bytes", $delta_size);
 
     # success
     get_logger()->trace("Packing $zip_stage/$pt_objid to $zip_path succeeded");
@@ -116,7 +134,7 @@ sub clean_always{
     my $self = shift;
     my $pt_objid = $self->{volume}->get_pt_objid();
     my $zip_stage = get_config('staging','zip');
-    
+
     get_logger()->trace("Removing $zip_stage/$pt_objid");
     remove_tree "$zip_stage/$pt_objid";
 }
@@ -132,9 +150,9 @@ sub clean_failure{
     my $self = shift;
     my $pt_objid = $self->{volume}->get_pt_objid();
     my $zipfile_stage = get_config('staging'=>'zipfile');
-    
+
     get_logger()->trace("Removing $zipfile_stage/$pt_objid");
-    remove_tree "$zipfile_stage/$pt_objid";    
+    remove_tree "$zipfile_stage/$pt_objid";
 }
 
 1;

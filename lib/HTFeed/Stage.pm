@@ -6,14 +6,14 @@ package HTFeed::Stage;
 
 use warnings;
 use strict;
-use Carp;
-use Log::Log4perl qw(get_logger);
-use File::Find;
-use HTFeed::Config qw(get_config);
-use POSIX qw(ceil);
-
 use base qw(HTFeed::SuccessOrFailure);
 
+use Carp;
+use File::Find;
+use HTFeed::Config qw(get_config);
+use HTFeed::JobMetrics;
+use Log::Log4perl qw(get_logger);
+use POSIX qw(ceil);
 
 sub new {
     my $class = shift;
@@ -23,11 +23,14 @@ sub new {
         croak __PACKAGE__ . ' can only construct subclass objects';
     }
 
+    # No class inheriting from HTFeed::Stage needs to instantiate
+    # its own $self->{job_metrics} for storing JobMetrics.
     my $self = {
         volume => undef,
         @_,
         has_run => 0,
         failed  => 0,
+	job_metrics => HTFeed::JobMetrics->get_instance
     };
 
     unless ( $self->{volume} && $self->{volume}->isa("HTFeed::Volume") ) {

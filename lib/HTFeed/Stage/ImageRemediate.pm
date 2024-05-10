@@ -116,6 +116,8 @@ sub remediate_image {
 	return $self->_remediate_tiff( $oldfile, @_ );
     }
 
+    $self->{job_metrics}->inc("ingest_imageremediate_images");
+    
     # And if we didn't return anything above, that's an error.
     $self->set_error(
         "BadFile",
@@ -247,14 +249,12 @@ sub _remediate_tiff {
 	    );
 
 	    if ( grep { $error =~ /^$_/ } @imagemagick_remediable_errs ) {
-		get_logger()
-		->trace(
+		get_logger()->trace(
 		    "PREVALIDATE_REMEDIATE: $infile has remediable error '$error'\n"
 		);
 		$remediate_imagemagick = 1;
 	    } elsif ( grep { $error =~ /^$_/ } @exiftool_remediable_errs ) {
-		get_logger()
-		->trace(
+		get_logger()->trace(
 		    "PREVALIDATE_REMEDIATE: $infile has remediable error '$error'\n"
 		);
 	    } else {
@@ -426,13 +426,17 @@ sub repair_tiff_imagemagick {
     my $outfile = shift;
 
     # try running IM on the TIFF file
-    get_logger()
-      ->trace("TIFF_REPAIR: attempting to repair $infile to $outfile\n");
+    get_logger()->trace(
+	"TIFF_REPAIR: attempting to repair $infile to $outfile\n"
+    );
 
     # convert returns 0 on success, 1 on failure
     my $imagemagick = get_config('imagemagick');
     my $rval = system("$imagemagick -compress Group4 '$infile' '$outfile' > /dev/null 2>&1");
     croak("failed repairing $infile\n") if $rval;
+
+    $self->{job_metrics}->add("ingest_imageremediate_bytes", -s $infile);
+    $self->{job_metrics}->inc("ingest_imageremediate_images");
 
     return !$rval;
 }
@@ -524,8 +528,6 @@ sub _remediate_jpeg2000 {
           }
         }
       }
-
-
     }
 
     $self->_set_new_resolution($force_headers, $set_if_undefined_headers);
@@ -713,6 +715,9 @@ sub expand_lossless_jpeg2000 {
                 my $grk_decompress = get_config('grk_decompress');
                 system("$grk_decompress -i '$path/$jpeg2000' -o '$path/$tiff' > /dev/null 2>&1");
 
+		$self->{job_metrics}->add("ingest_imageremediate_bytes", -s $file);
+		$self->{job_metrics}->inc("ingest_imageremediate_images");
+
                 # try to compress the TIFF -> JPEG2000
                 get_logger()->trace("Compressing $path/$tiff to $path/$jpeg2000");
                 my $grk_compress = get_config('grk_compress');
@@ -724,13 +729,15 @@ sub expand_lossless_jpeg2000 {
 
                 # Single quality level with reqested PSNR of 32dB. See DEV-10
                 system(qq($grk_compress -i "$path/$tiff" -o "$path/$jpeg2000_remediated" -p RLCP -n 5 -SOP -EPH -M 62 -I -q 32 > /dev/null 2>&1))
-
                   and $self->set_error(
                     "OperationFailed",
                     operation => "grk_compress",
                     file      => "$path/$tiff",
                     detail    => "grk_compress returned $?"
                   );
+
+		$self->{job_metrics}->add("ingest_imageremediate_bytes", -s "$path/$tiff");
+		$self->{job_metrics}->inc("ingest_imageremediate_images");
 
                 # copy all headers from the original jpeg2000
                 # grk_compress loses info from IFD0 headers, which are sometimes present in JPEG2000 images
@@ -770,6 +777,8 @@ sub expand_other_file_formats {
 		detail    => "decompress and ICC profile strip failed: returned $?"
 	    );
 	} else {
+	    $self->{job_metrics}->add("ingest_imageremediate_bytes", -s $infile);
+	    $self->{job_metrics}->inc("ingest_imageremediate_images");
 	    $self->copy_metadata($ext, $infile, $outfile);
 	    unlink($infile);
 	}
@@ -997,6 +1006,10 @@ sub convert_tiff_to_jpeg2000 {
 
     my $magick_compress_cmd = "$imagemagick_cmd -compress None $infile -strip $infile.unc.tif";
     my $magick_compress_err = system($magick_compress_cmd);
+
+    $self->{job_metrics}->add("ingest_imageremediate_bytes", -s $infile);
+    $self->{job_metrics}->inc("ingest_imageremediate_images");
+
     if ($magick_compress_err) {
 	$self->set_error(
 	    "OperationFailed",
@@ -1023,6 +1036,9 @@ sub convert_tiff_to_jpeg2000 {
 	    detail    => "grk_compress returned $?"
 	);
     }
+
+    $self->{job_metrics}->add("ingest_imageremediate_bytes", -s "$infile.unc.tif");
+    $self->{job_metrics}->inc("ingest_imageremediate_images");
 
     # then set new metadata fields - the rest will automatically be
     # set from the JP2
