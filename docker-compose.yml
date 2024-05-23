@@ -1,4 +1,13 @@
-version: '3'
+---
+
+x-condition-healthy: &healthy
+  condition: service_healthy
+
+x-healthcheck-defaults: &healthcheck-defaults
+  interval: 5s
+  timeout: 10s
+  start_period: 10s
+  retries: 5
 
 services:
 
@@ -10,15 +19,43 @@ services:
     environment:
       - HTFEED_CONFIG=/usr/local/feed/etc/config_test.yml
       - FEED_HOME=/usr/local/feed
-      - TEST=1
       - VERSION=feed-development
       - PUSHGATEWAY=http://pushgateway:9091
-    command: bin/wait-for --timeout=300 mariadb:3306 minio:9000 pushgateway:9091 rabbitmq:5672 -- prove
+      - TEST=1
+    command: prove
     depends_on:
-      - mariadb
-      - minio
-      - pushgateway
-      - rabbitmq
+      mariadb: *healthy
+      minio: *healthy
+      pushgateway: *healthy
+      rabbitmq: *healthy
+
+  # Note: for permissions purposes this does NOT bind in the local development
+  # environment, so local changes after running docker compose build will NOT
+  # be reflected.
+  test-and-cover:
+    build: .
+    volumes:
+      - ./clamav:/var/lib/clamav
+    environment:
+      - HTFEED_CONFIG=/usr/local/feed/etc/config_test.yml
+      - FEED_HOME=/usr/local/feed
+      - VERSION=feed-development
+      - PUSHGATEWAY=http://pushgateway:9091
+      - TEST=1
+      # pass through info needed by coveralls uploader
+      - GITHUB_TOKEN
+      - GITHUB_RUN_ID
+      - GITHUB_EVENT_TOKEN
+      - GITHUB_EVENT_PATH
+      - GITHUB_SHA
+      - GITHUB_REF
+      - GITHUB_ACTIONS
+    command: cover -test -report Coveralls -make 'prove; exit $?'
+    depends_on:
+      mariadb: *healthy
+      minio: *healthy
+      pushgateway: *healthy
+      rabbitmq: *healthy
 
   ingest:
     build: .
@@ -40,7 +77,7 @@ services:
       - FEED_HOME=/usr/local/feed
       - VERSION=feed-development
     depends_on:
-      - mariadb
+      mariadb: *healthy
 
   validate:
     build: .
@@ -53,7 +90,7 @@ services:
       - VERSION=feed-development
     command: bash -c "/bin/ls /tmp/stage/toingest/test/*.zip | xargs -n 1 basename | sed s/.zip// | perl -w /usr/local/feed/bin/validate_volume.pl -p simple -n test --no-clean"
     depends_on:
-      - mariadb
+      mariadb: *healthy
 
   mariadb:
     image: ghcr.io/hathitrust/db-image:latest
@@ -62,6 +99,9 @@ services:
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: mysqlroot
+    healthcheck:
+      <<: *healthcheck-defaults
+      test: ["CMD", "healthcheck.sh", "--su-mysql", "--connect", "--innodb_initialized"]
 
   # S3 compatible object storage
   minio:
@@ -71,6 +111,9 @@ services:
       MINIO_ACCESS_KEY: TESTINGACCESSKEY
       MINIO_SECRET_KEY: testingsecretkey
     command: server /data
+    healthcheck:
+      <<: *healthcheck-defaults
+      test: [ "CMD", "/usr/bin/curl", "-s", "-f", "http://localhost:9000/minio/health/live"]
 
   pushgateway:
     image: prom/pushgateway
@@ -78,9 +121,15 @@ services:
       - --web.enable-admin-api
     ports:
       - "9091:9091"
+    healthcheck:
+      <<: *healthcheck-defaults
+      test: [ "CMD", "wget", "--quiet", "--tries=1", "-O", "/dev/null", "pushgateway:9091/-/healthy" ]
 
   rabbitmq:
     image: rabbitmq
+    healthcheck:
+      <<: *healthcheck-defaults
+      test: ["CMD", "rabbitmqctl", "status"]
 
 volumes:
   repository_link:
