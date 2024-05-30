@@ -76,6 +76,7 @@ services:
       - HTFEED_CONFIG=/usr/local/feed/etc/config_ingest_docker.yml
       - FEED_HOME=/usr/local/feed
       - VERSION=feed-development
+      - HTFEED_JOBMETRICS_DATA_DIR=/usr/local/feed/jobmetrics
     depends_on:
       mariadb: *healthy
 
@@ -86,11 +87,26 @@ services:
       - ./volumes_to_test:/tmp/stage/toingest/test
     environment:
       - HTFEED_CONFIG=/usr/local/feed/etc/config_prevalidate.yml
+      - HTFEED_JOBMETRICS_DATA_DIR=/usr/local/feed/jobmetrics
       - FEED_HOME=/usr/local/feed
       - VERSION=feed-development
     command: bash -c "/bin/ls /tmp/stage/toingest/test/*.zip | xargs -n 1 basename | sed s/.zip// | perl -w /usr/local/feed/bin/validate_volume.pl -p simple -n test --no-clean"
     depends_on:
       mariadb: *healthy
+
+  prometheus-exporter:
+    build: .
+    volumes:
+      - .:/usr/local/feed
+    ports:
+      - "9090:9090"
+    environment:
+      - HTFEED_CONFIG=/usr/local/feed/etc/config_prevalidate.yml
+      - HTFEED_JOBMETRICS_DATA_DIR=/usr/local/feed/jobmetrics
+      - FEED_HOME=/usr/local/feed
+      - VERSION=feed-development
+    command: plackup -p 9090 ./bin/metrics_exporter.pl
+
 
   mariadb:
     image: ghcr.io/hathitrust/db-image:latest
@@ -124,6 +140,7 @@ services:
     healthcheck:
       <<: *healthcheck-defaults
       test: [ "CMD", "wget", "--quiet", "--tries=1", "-O", "/dev/null", "pushgateway:9091/-/healthy" ]
+
 
   rabbitmq:
     image: rabbitmq
