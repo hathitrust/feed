@@ -1,3 +1,6 @@
+use strict;
+use warnings;
+
 use HTFeed::JobMetrics;
 use Plack::Response;
 
@@ -10,7 +13,6 @@ my $app = sub {
   my $env = shift;
 
   my $rendered = $metrics->pretty();
-  my $headers = { "Content-Type" => "text/plain" };
 
   my $response = Plack::Response->new();
   $response->content_type('text/plain');
@@ -18,13 +20,11 @@ my $app = sub {
   if ($rendered) {
     $response->status(200);
     $response->body($rendered);
-
-    return $response->finalize;
   } else {
     $response->status(500);
     $response->body("# metrics rendering failed");
-
-    return $response->finalize;
   }
+
+  return $response->finalize;
 
 };
