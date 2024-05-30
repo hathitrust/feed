@@ -32,6 +32,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libmailtools-perl \
     libmouse-perl \
     libnet-prometheus-perl \
+    libplack-perl \
     libreadonly-perl \
     libreadonly-xs-perl \
     libroman-perl \
