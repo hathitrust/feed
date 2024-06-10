@@ -583,7 +583,6 @@ sub validate_zip_checksums {
     @$files        = map { lc($_) } @$files;
     %$checksums    = map { lc($_) } %$checksums;
     my @tovalidate = uniq(sort(@$files, keys(%$checksums)));
-    my @bad_files  = ();
 
     my $ok = 1;
     foreach my $file (@tovalidate) {
@@ -613,7 +612,6 @@ sub validate_zip_checksums {
 		expected => $expected,
 		actual   => $actual
 	    );
-	    push(@bad_files, "$file"); # not actually used?
 	}
     }
 
