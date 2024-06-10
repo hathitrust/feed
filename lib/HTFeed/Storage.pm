@@ -1,623 +1,690 @@
 package HTFeed::Storage;
 
 use strict;
-use HTFeed::Config qw(get_config);
-use Log::Log4perl qw(get_logger);
-use File::Path qw(make_path remove_tree);
+use warnings;
+
 use File::Pairtree qw(id2ppath s2ppchars);
-use HTFeed::VolumeValidator;
+use File::Path qw(make_path remove_tree);
+use HTFeed::Config qw(get_config);
+use HTFeed::JobMetrics;
 use HTFeed::StorageAudit;
-use URI::Escape;
+use HTFeed::VolumeValidator;
 use List::MoreUtils qw(uniq);
+use Log::Log4perl qw(get_logger);
+use URI::Escape;
 
 sub for_volume {
-  my $volume = shift;
-  my $config_key = shift || 'storage_classes';
+    my $volume     = shift;
+    my $config_key = shift || 'storage_classes';
 
-  my @storages;
-  my $config = get_config($config_key);
-  unless (ref($config) eq 'HASH') {
-    die 'Config is not a HASH ref';
-  }
+    my @storages;
+    my $config = get_config($config_key);
+    unless (ref($config) eq 'HASH') {
+        die 'Config is not a HASH ref';
+    }
 
-  foreach my $storage_name (keys %$config) {
-    my $storage_config = $config->{$storage_name};
-    eval "require $storage_config->{class};";
-    push(@storages, $storage_config->{class}->new(volume => $volume,
-                                                  config => $storage_config,
-                                                  name   => $storage_name));
-  }
+    foreach my $storage_name (keys %$config) {
+        my $storage_config = $config->{$storage_name};
+        eval "require $storage_config->{class};";
 
-  return @storages;
+        my $storage_obj = $storage_config->{class}->new(
+            volume => $volume,
+            config => $storage_config,
+            name   => $storage_name
+        );
+        push(@storages, $storage_obj);
+    }
+
+    return @storages;
 }
 
 sub new {
-  my $class = shift;
+    my $class = shift;
+    my %args  = @_;
 
-  my %args = @_;
+    $args{volume} || die("Missing required argument 'volume'");
+    $args{config} || die("Missing required argument 'config'");
+    $args{name}   || die("Missing required argument 'name'");
 
-  die("Missing required argument 'volume'")
-    unless $args{volume};
+    my $volume    = $args{volume};
+    my $config    = $args{config};
+    my $name      = $args{name};
+    my $timestamp = $args{timestamp};
 
-  die("Missing required argument 'config'")
-    unless $args{config};
+    my $self = {
+        volume         => $volume,
+        namespace      => $volume->get_namespace(),
+        objid          => $volume->get_objid(),
+        errors         => [],
+        mets_source    => $volume->get_mets_path(),
+        zip_source     => $volume->get_zip_path(),
+        zip_suffix     => '',
+        config         => $config,
+        did_encryption => 0,
+        name           => $name,
+        timestamp      => $timestamp,
+        job_metrics    => HTFeed::JobMetrics->new(),
+    };
+    bless($self, $class);
 
-  die("Missing required argument 'name'")
-    unless $args{name};
-
-  my $volume = $args{volume};
-  my $config = $args{config};
-  my $name = $args{name};
-  my $timestamp = $args{timestamp};
-
-  my $self = {
-    volume => $volume,
-    namespace => $volume->get_namespace(),
-    objid => $volume->get_objid(),
-    errors => [],
-    mets_source => $volume->get_mets_path(),
-    zip_source => $volume->get_zip_path(),
-    zip_suffix => '',
-    config => $config,
-    did_encryption => 0,
-    name => $name,
-    timestamp => $timestamp
-  };
-
-  bless($self, $class);
-  return $self;
+    return $self;
 }
 
 # Class method
 sub zip_audit_class {
-  my $class = shift;
+    my $class = shift;
 
-  return 'HTFeed::StorageAudit';
+    return 'HTFeed::StorageAudit';
 }
 
 sub delete_objects {
-  die('delete_objects is unimplemented for this storage class');
+    die('delete_objects is unimplemented for this storage class');
 }
 
 sub zip_source {
-  my $self = shift;
+    my $self = shift;
 
-  return $self->{zip_source};
+    return $self->{zip_source};
 }
 
 # Temporary location for constructing the encrypted zip file prior to copying
 # it to the storage staging area
 sub encrypted_zip_staging {
-  my $self = shift;
+    my $self = shift;
 
-  return $self->{volume}->get_zip_path(get_config('staging','zipfile')) . '.gpg';
+    return $self->{volume}->get_zip_path(get_config('staging', 'zipfile')) . '.gpg';
 }
 
 sub encrypt {
-  my $self = shift;
+    my $self = shift;
+    my $key  = $self->{config}{encryption_key};
 
-  get_logger->debug("  starting encrypt");
+    return 1 unless $key;
 
-  my $key = $self->{config}{encryption_key};
+    get_logger->debug("  starting encrypt");
+    my $start_time = $self->{job_metrics}->time;
+    my $original  = $self->{zip_source};
+    my $bytes_read = -s $original;
+    my $encrypted = $self->encrypted_zip_staging;
+    my $cmd       = "cat \"$key\" | gpg --quiet --passphrase-fd 0 --batch --no-tty --output '$encrypted' --symmetric '$original'";
+    my $success   = ! $?;
+    $self->safe_system($cmd);
 
-  return 1 unless $key;
+    $self->{zip_source}     = $encrypted;
+    $self->{did_encryption} = 1;
+    $self->{zip_suffix}     = ".gpg";
+    # Metrics:
+    my $bytes_write = -s $encrypted;
+    my $metric_base = "ingest_encrypt";
+    my $bytes_base = $metric_base . "_bytes";
+    my $end_time = $self->{job_metrics}->time;
+    my $delta_time = $end_time - $start_time;
+    my $labels = {name => $self->{name}};
+    $self->{job_metrics}->add($metric_base . "_seconds_total", $delta_time, $labels);
+    $self->{job_metrics}->add($bytes_base . "_r_total", $bytes_read, $labels);
+    $self->{job_metrics}->add($bytes_base . "_w_total", $bytes_write, $labels);
+    $self->{job_metrics}->inc($metric_base . "_items_total", $labels);
+    get_logger->debug("  finished encrypt");
 
-  my $original = $self->{zip_source};
-  my $encrypted = $self->encrypted_zip_staging;
-
-  my $cmd = "cat \"$key\" | gpg --quiet --passphrase-fd 0 --batch --no-tty --output '$encrypted' --symmetric '$original'";
-  my $success = ! $?;
-
-  $self->safe_system($cmd);
-
-  $self->{zip_source} = $encrypted;
-  $self->{did_encryption} = 1;
-  $self->{zip_suffix} = ".gpg";
-  get_logger->debug("  finished encrypt");
-
-  return $success;
-
+    return $success;
 }
 
 sub encrypted_by_default {
-  my $self = shift;
+    my $self = shift;
 
-  return exists $self->{config}{encryption_key};
+    return exists $self->{config}{encryption_key};
 }
 
 # For interacting with objects already in storage,
 # this sets the correct zip suffix and any other needed housekeeping.
 sub set_encrypted {
-  my $self = shift;
-  my $flag = shift;
+    my $self = shift;
+    my $flag = shift;
 
-  if ($flag) {
-    unless ($self->{config}{encryption_key}) {
-      die 'cannot set encrypted without encryption_key';
+    if ($flag) {
+        unless ($self->{config}{encryption_key}) {
+            die 'cannot set encrypted without encryption_key';
+        }
+        $self->{did_encryption} = 1;
+        $self->{zip_suffix}     = '.gpg';
+    } else {
+        $self->{did_encryption} = 0;
+        $self->{zip_suffix}     = '';
     }
-    $self->{did_encryption} = 1;
-    $self->{zip_suffix} = '.gpg';
-  } else {
-    $self->{did_encryption} = 0;
-    $self->{zip_suffix} = '';
-  }
 }
 
 sub verify_crypt {
-  my $self = shift;
-  my $volume = $self->{volume};
-  my $encrypted = $self->{zip_source};
+    my $self = shift;
 
-  get_logger()->debug("  starting verify_crypt");
-  my $key = $self->{config}{encryption_key};
-  return 1 unless $key;
+    my $volume    = $self->{volume};
+    my $encrypted = $self->{zip_source};
 
-  my $actual_checksum = $self->crypted_md5sum($encrypted,$key);
+    get_logger()->debug("  starting verify_crypt");
+    my $key = $self->{config}{encryption_key};
+    return 1 unless $key;
 
-  my $valid = $self->validate_zip_checksum($self->{mets_source}, "gpg --decrypt '$encrypted'", $actual_checksum);
+    my $start_time      = $self->{job_metrics}->time;
+    my $actual_checksum = $self->crypted_md5sum($encrypted, $key);
+    my $valid           = $self->validate_zip_checksum(
+        $self->{mets_source},
+        "gpg --decrypt '$encrypted'",
+        $actual_checksum
+    );
+    get_logger()->debug("  finished verify_crypt");
 
-  get_logger()->debug("  finished verify_crypt");
+    my $end_time    = $self->{job_metrics}->time;
+    my $delta_time  = $end_time - $start_time;
+    my $labels = {name => $self->{name}};
+    $self->{job_metrics}->add("ingest_verify_crypt_seconds_total", $delta_time, $labels);
+    $self->{job_metrics}->inc("ingest_verify_crypt_items_total", $labels);
+    my $bytes_read = (-s $encrypted) + (-s $self->{mets_source}, $labels);
+    $self->{job_metrics}->add("ingest_verify_crypt_bytes_r_total", $bytes_read, $labels);
 
-  return $valid;
+    return $valid;
 }
 
 sub crypted_md5sum {
-  my $self = shift;
-  my $encrypted = shift;
-  my $key = shift;
+    my $self      = shift;
+    my $encrypted = shift;
+    my $key       = shift;
 
-  my $cmd = "cat \"$key\" | gpg --quiet --passphrase-fd 0 --batch --no-tty --decrypt '$encrypted' | md5sum | cut -f 1 -d ' '";
-  get_logger()->trace("Running $cmd");
+    my $cmd = "cat \"$key\" | gpg --quiet --passphrase-fd 0 --batch --no-tty --decrypt '$encrypted' | md5sum | cut -f 1 -d ' '";
+    get_logger()->trace("Running $cmd");
+    my $actual_checksum = `$cmd`;
+    chomp($actual_checksum);
 
-  my $actual_checksum = `$cmd`;
-  chomp($actual_checksum);
-
-  return $actual_checksum;
+    return $actual_checksum;
 }
 
 sub make_object_path {
-  my $self = shift;
-  my $ok = 1;
+    my $self = shift;
 
-  get_logger()->debug("  starting make_object_path");
-  if(! -d $self->object_path) {
-    $ok = $self->safe_make_path($self->object_path);
-  }
-  get_logger()->debug("  finished make_object_path");
+    my $ok = 1;
+    get_logger()->debug("  starting make_object_path");
+    if (! -d $self->object_path) {
+        $ok = $self->safe_make_path($self->object_path);
+    }
+    get_logger()->debug("  finished make_object_path");
 
-  return $ok;
+    return $ok;
 }
 
 sub stage {
-  my $self = shift;
-  my $volume = $self->{volume};
-  get_logger()->debug("  starting stage");
+    my $self = shift;
 
-  my $mets_source = $self->{mets_source};
-  my $zip_source = $self->{zip_source};
-  get_logger()->trace("copying METS from: $mets_source");
-  get_logger()->trace("copying ZIP from: $zip_source");
+    my $volume = $self->{volume};
+    get_logger()->debug("  starting stage");
 
-  my $stage_path = $self->stage_path;
-  get_logger()->trace("staging to: $stage_path");
-  my $err;
+    my $start_time  = $self->{job_metrics}->time;
+    my $mets_source = $self->{mets_source};
+    my $zip_source  = $self->{zip_source};
+    my $stage_path  = $self->stage_path;
+    get_logger()->trace("copying METS from: $mets_source");
+    get_logger()->trace("copying ZIP from: $zip_source");
+    get_logger()->trace("staging to: $stage_path");
 
-  $self->safe_make_path($stage_path);
+    my $err;
+    $self->safe_make_path($stage_path);
+    # make sure the operation will succeed
+    if (-f $mets_source and -f $zip_source and -d $stage_path) {
+        $self->safe_system('cp', '-f', $mets_source, $self->mets_stage_path);
+        $self->safe_system('cp', '-f', $zip_source,  $self->zip_stage_path);
 
-  # make sure the operation will succeed
-  if (-f $mets_source and -f $zip_source and -d $stage_path){
-    $self->safe_system('cp','-f',$mets_source,$self->mets_stage_path);
-    $self->safe_system('cp','-f',$zip_source,$self->zip_stage_path);
+        my $end_time   = $self->{job_metrics}->time;
+        my $delta_time = $end_time - $start_time;
+        my $bytes      = (-s $mets_source) + (-s $zip_source);
+        my $labels     = {name => $self->{name}};
+        $self->{job_metrics}->inc("ingest_stage_items_total", $labels);
+        # This is a copy operation: add the same bytes to read/write metrics.
+        $self->{job_metrics}->add("ingest_stage_bytes_r_total", $bytes, $labels);
+        $self->{job_metrics}->add("ingest_stage_bytes_w_total", $bytes, $labels);
+        $self->{job_metrics}->add("ingest_stage_seconds_total", $delta_time, $labels);
 
-    get_logger()->debug("  finished stage");
-    return 1;
+        get_logger()->debug("  finished stage");
+        return 1;
+    } else {
+        # report which file(s) are missing
+        my $detail = 'Collate failed, file(s) not found: ';
+        $detail   .= $mets_source unless(-f $mets_source);
+        $detail   .= $zip_source  unless(-f $zip_source);
+        $detail   .= $stage_path  unless(-d $stage_path);
+        $self->set_error('OperationFailed', detail => $detail);
 
-  } else {
-    # report which file(s) are missing
-    my $detail = 'Collate failed, file(s) not found: ';
-    $detail .= $mets_source unless(-f $mets_source);
-    $detail .= $zip_source  unless(-f $zip_source);
-    $detail .= $stage_path unless(-d $stage_path);
-
-    $self->set_error('OperationFailed', detail => $detail);
-    return;
-  }
+        return;
+    }
 }
 
 sub safe_make_path {
+    my $self = shift;
+    my $path = shift;
 
-  my $self = shift;
-  my $path = shift;
+    get_logger->trace("Making path $path");
 
-  get_logger->trace("Making path $path");
-
-  if( make_path($path) ) {
-    return 1;
-  } else {
-    $self->set_error('OperationFailed',
-      operation => 'mkdir',
-      detail => "Could not create dir $path: $!");
-    return;
-  }
-
+    if (make_path($path)) {
+        return 1;
+    } else {
+        $self->set_error(
+            'OperationFailed',
+            operation => 'mkdir',
+            detail    => "Could not create dir $path: $!"
+        );
+        return;
+    }
 }
 
 sub safe_system {
-  my $self = shift;
-  my @args = @_;
-  my $printable_args = '"' . join(' ',@args) . '"';
+    my $self = shift;
+    my @args = @_;
 
-  get_logger->trace("Running command $printable_args");
+    my $printable_args = '"' . join(' ', @args) . '"';
+    get_logger->trace("Running command $printable_args");
 
-  if ( system(@args) ) {
-    $self->set_error('OperationFailed',
-      operation => $args[0],
-      detail => "Command $printable_args failed: $!");
-    return;
-  } else {
-    return 1;
-  }
+    if (system(@args)) {
+        $self->set_error(
+            'OperationFailed',
+            operation => $args[0],
+            detail    => "Command $printable_args failed: $!"
+        );
+        return;
+    } else {
+        return 1;
+    }
 }
 
 sub object_path {
-  my $self = shift;
-  my $config_key = shift;
+    my $self       = shift;
+    my $config_key = shift;
 
-  return sprintf('%s/%s/%s%s',
-    $self->{config}->{$config_key},
-    $self->{namespace},
-    id2ppath($self->{objid}),
-    s2ppchars($self->{objid}));
+    return sprintf(
+        '%s/%s/%s%s',
+        $self->{config}->{$config_key},
+        $self->{namespace},
+        id2ppath($self->{objid}),
+        s2ppchars($self->{objid})
+    );
 }
 
 sub audit_path {
-  my $self = shift;
-  my $config_key = shift;
+    my $self       = shift;
+    my $config_key = shift;
 
-  return $self->object_path($config_key);
+    return $self->object_path($config_key);
 }
 
 sub stage_path_from_base {
-  my $self = shift;
-  my $base = shift;
+    my $self = shift;
+    my $base = shift;
 
-  return sprintf('%s/.tmp/%s.%s',
-    $base,
-    $self->{namespace},
-    s2ppchars($self->{objid}));
-};
+    return sprintf(
+        '%s/.tmp/%s.%s',
+        $base,
+        $self->{namespace},
+        s2ppchars($self->{objid})
+    );
+}
 
 sub stage_path {
-  my $self = shift;
-  my $config_key = shift;
+    my $self       = shift;
+    my $config_key = shift;
 
-  return $self->stage_path_from_base($self->{config}->{$config_key});
+    return $self->stage_path_from_base($self->{config}->{$config_key});
 }
 
 sub move {
-  my $self = shift;
-  my $volume = $self->{volume};
-  get_logger->debug("  starting move");
+    my $self = shift;
 
-  my $mets_stage = $self->mets_stage_path;
-  my $zip_stage = $self->zip_stage_path;
+    # this op is not worth gathering metrics for
+    get_logger->debug("  starting move");
+    my $volume      = $self->{volume};
+    my $mets_stage  = $self->mets_stage_path;
+    my $zip_stage   = $self->zip_stage_path;
+    my $object_path = $self->object_path;
 
-  my $object_path = $self->object_path;
+    # make sure the operation will succeed
+    if (-f $mets_stage and -f $zip_stage and -d $object_path) {
+        my $bytes_moved = (-s $mets_stage || 0) + (-s $zip_stage || 0);
+        $self->safe_system('mv', '-f', $mets_stage, $object_path);
+        $self->safe_system('mv', '-f', $zip_stage,  $object_path);
+        get_logger->debug("  finished move");
 
-  # make sure the operation will succeed
-  if (-f $mets_stage and -f $zip_stage and -d $object_path){
-    $self->safe_system('mv','-f',$mets_stage,$object_path);
-    $self->safe_system('mv','-f',$zip_stage,$object_path);
+        return 1;
+    } else {
+        # report which file(s) are missing
+        my $detail = 'Collate failed, file(s) not found: ';
+        $detail   .= $mets_stage  unless(-f $mets_stage);
+        $detail   .= $zip_stage   unless(-f $zip_stage);
+        $detail   .= $object_path unless(-d $object_path);
+        $self->set_error('OperationFailed', detail => $detail);
+        get_logger->debug("  finished move");
 
-    get_logger->debug("  finished move");
-    return 1;
-  } else {
-    # report which file(s) are missing
-    my $detail = 'Collate failed, file(s) not found: ';
-    $detail .= $mets_stage unless(-f $mets_stage);
-    $detail .= $zip_stage  unless(-f $zip_stage);
-    $detail .= $object_path unless(-d $object_path);
-
-    $self->set_error('OperationFailed', detail => $detail);
-    get_logger->debug("  finished move");
-    return;
-  }
+        return;
+    }
 }
 
 sub clean_staging {
-  my $self = shift;
-  my $stage_path = $self->stage_path;
+    my $self = shift;
 
-  get_logger->trace("Cleaning up $stage_path");
-  remove_tree($stage_path);
-};
+    my $stage_path = $self->stage_path;
+    get_logger->trace("Cleaning up $stage_path");
+    remove_tree($stage_path);
+}
 
 sub cleanup {
-  my $self = shift;
-  get_logger->trace("in storage cleanup, did_encryption: $self->{did_encryption}");
+    my $self = shift;
 
-  return unless $self->{did_encryption};
+    get_logger->trace("in storage cleanup, did_encryption: $self->{did_encryption}");
 
-  $self->safe_system('rm','-f',$self->{zip_source});
+    return unless $self->{did_encryption};
 
+    $self->safe_system('rm', '-f', $self->{zip_source});
 }
 
 sub rollback {
-  #noop
+    #noop
 }
 
 sub record_audit {
-  #noop
+    #noop
 }
 
 sub postvalidate {
-  my $self = shift;
+    my $self = shift;
 
-  get_logger->debug(" starting postvalidate");
+    my $start_time = $self->{job_metrics}->time;
+    get_logger->debug(" starting postvalidate");
+    my $valid = (
+        $self->validate_mets($self->object_path) &&
+        $self->validate_zip($self->object_path)
+    );
+    get_logger->debug(" finished postvalidate");
+    my $end_time   = $self->{job_metrics}->time;
+    my $delta_time = $end_time - $start_time;
+    my $labels = {name => $self->{name}};
+    $self->{job_metrics}->inc("ingest_postvalidate_items_total", $labels);
+    $self->{job_metrics}->add("ingest_postvalidate_seconds_total", $delta_time, $labels);
 
-  my $valid = ($self->validate_mets($self->object_path) &&
-               $self->validate_zip($self->object_path));
-
-  get_logger->debug(" finished postvalidate");
-
-  return $valid;
+    return $valid;
 }
 
 sub validate_zip_completeness {
-  my $self = shift;
+    my $self = shift;
 
-  get_logger->debug("  starting validate_zip_completeness");
+    get_logger->debug("  starting validate_zip_completeness");
+    my $start_time  = $self->{job_metrics}->time;
+    my $metric_base = "ingest_validate_zip_completeness";
+    my $volume      = $self->{volume};
+    my $pt_objid    = $volume->get_pt_objid();
+    my $zip_stage   = get_config('staging' => 'zip') . "/$pt_objid";
+    my $mets_path   = $self->{mets_source};
+    my $zip_path    = $self->{zip_source}; # read size, zipped
+    my $bytes_read  = -s $zip_path;
 
-  my $volume = $self->{volume};
-  my $pt_objid = $volume->get_pt_objid();
+    HTFeed::Stage::Unpack::unzip_file($self, $zip_path, $zip_stage);
+    my $checksums = $volume->get_checksum_mets($mets_path);
+    my $files     = $volume->get_all_directory_files($zip_stage);
+    my $ok        = $self->validate_zip_checksums($checksums, $files, $zip_stage);
 
-  my $zip_stage = get_config('staging'=>'zip') . "/$pt_objid";
+    remove_tree($zip_stage);
+    get_logger->debug("  finished validate_zip_completeness");
 
-  my $mets_path = $self->{mets_source};
-  my $zip_path = $self->{zip_source};
-  HTFeed::Stage::Unpack::unzip_file($self,$zip_path,$zip_stage);
-  my $checksums = $volume->get_checksum_mets($mets_path);
-  my $files = $volume->get_all_directory_files($zip_stage);
-  my $ok = $self->validate_zip_checksums($checksums,$files,$zip_stage);
+    # For the metrics:
+    my $end_time   = $self->{job_metrics}->time;
+    my $delta_time = $end_time - $start_time;
+    my $labels     = {name => $self->{name}};
+    $self->{job_metrics}->add($metric_base . "_bytes_r_total", $bytes_read, $labels);
+    # Not counting bytes written, was already counted by Stage::Unpack
+    $self->{job_metrics}->add($metric_base . "_seconds_total", $delta_time, $labels);
+    $self->{job_metrics}->inc($metric_base . "_items_total", $labels);
 
-  remove_tree($zip_stage);
-  get_logger->debug("  finished validate_zip_completeness");
-
-  return $ok;
+    return $ok;
 }
 
 sub prevalidate {
-  my $self = shift;
+    my $self = shift;
 
-  get_logger->debug("  starting prevalidate");
-  my $valid = ($self->validate_mets($self->stage_path) &&
-               $self->validate_zip($self->stage_path));
-  get_logger->debug("  finished prevalidate");
+    my $start_time = $self->{job_metrics}->time;
+    get_logger->debug("  starting prevalidate");
+    my $valid = (
+        $self->validate_mets($self->stage_path) &&
+        $self->validate_zip($self->stage_path)
+    );
+    get_logger->debug("  finished prevalidate");
+    my $end_time   = $self->{job_metrics}->time;
+    my $delta_time = $end_time - $start_time;
+    my $labels = {name => $self->{name}};
+    $self->{job_metrics}->inc("ingest_prevalidate_items_total", $labels);
+    $self->{job_metrics}->add("ingest_prevalidate_seconds_total", $delta_time, $labels);
 
-  return $valid;
+    return $valid;
 }
 
 sub validate_mets {
-  my $self = shift;
-  my $volume = $self->{volume};
-  my $path = shift;
-  my $mets_path = $path . '/' . $self->mets_filename;
-  my $orig_mets_path = $self->{mets_source};
+    my $self           = shift;
+    my $path           = shift;
 
-  get_logger()->trace("Validating mets at $mets_path, orig at $orig_mets_path");
+    my $volume         = $self->{volume};
+    my $mets_path      = $path . '/' . $self->mets_filename;
+    my $orig_mets_path = $self->{mets_source};
+    get_logger()->trace("Validating mets at $mets_path, orig at $orig_mets_path");
 
-  my $mets_checksum = HTFeed::VolumeValidator::md5sum($mets_path);
-  my $orig_mets_checksum = HTFeed::VolumeValidator::md5sum($orig_mets_path);
+    my $mets_checksum      = HTFeed::VolumeValidator::md5sum($mets_path);
+    my $orig_mets_checksum = HTFeed::VolumeValidator::md5sum($orig_mets_path);
 
-  unless ( $mets_checksum eq $orig_mets_checksum ) {
-    $self->set_error(
-      "BadChecksum",
-      field    => 'checksum',
-      file     => $mets_path,
-      expected => $orig_mets_checksum,
-      actual   => $mets_checksum
-    );
-    return;
-  }
+    unless ($mets_checksum eq $orig_mets_checksum) {
+        $self->set_error(
+            "BadChecksum",
+            field    => 'checksum',
+            file     => $mets_path,
+            expected => $orig_mets_checksum,
+            actual   => $mets_checksum
+        );
+        return;
+    }
 
-  return 1;
+    return 1;
 }
 
 sub validate_zip_checksum {
-  my $self = shift;
-  my $mets_path = shift;
-  my $zip_path = shift;
-  my $actual_checksum = shift;
-  my $volume = $self->{volume};
+    my $self            = shift;
+    my $mets_path       = shift;
+    my $zip_path        = shift;
+    my $actual_checksum = shift;
 
-  my $mets = $volume->_parse_xpc($mets_path);
-  # will be named with the original zip filename here, not any modified version
-  # for this storage
-  my $zipname = $volume->get_zip_filename();
+    # will be named with the original zip filename here,
+    # not any modified version for this storage
+    my $volume          = $self->{volume};
+    my $mets            = $volume->_parse_xpc($mets_path);
+    my $zipname         = $volume->get_zip_filename();
 
-  my $mets_zip_checksum = $mets->findvalue(
-    "//mets:file[mets:FLocat/\@xlink:href='$zipname']/\@CHECKSUM");
-
-  if(not defined $mets_zip_checksum or length($mets_zip_checksum) ne 32) {
-    # zip name may be uri-escaped in some cases
-    $zipname = uri_escape($zipname);
-    $mets_zip_checksum = $mets->findvalue(
-      "//mets:file[mets:FLocat/\@xlink:href='$zipname']/\@CHECKSUM");
-  }
-
-  if ( not defined $mets_zip_checksum or length($mets_zip_checksum) ne 32 ) {
-    $self->set_error('MissingValue',
-      file => $mets_path,
-      field => 'checksum',
-      detail => "Couldn't locate checksum for zip $zipname in METS $mets_path");
-    return;
-  }
-
-  unless ( $mets_zip_checksum eq $actual_checksum ) {
-    $self->set_error(
-      "BadChecksum",
-      field    => 'checksum',
-      file     => $zip_path,
-      expected => $mets_zip_checksum,
-      actual   => $actual_checksum
+    my $mets_zip_checksum = $mets->findvalue(
+        "//mets:file[mets:FLocat/\@xlink:href='$zipname']/\@CHECKSUM"
     );
-    return;
-  }
 
-  return 1;
+    if (not defined $mets_zip_checksum or length($mets_zip_checksum) ne 32) {
+        # zip name may be uri-escaped in some cases
+        $zipname           = uri_escape($zipname);
+        $mets_zip_checksum = $mets->findvalue(
+            "//mets:file[mets:FLocat/\@xlink:href='$zipname']/\@CHECKSUM"
+        );
+    }
 
+    if (not defined $mets_zip_checksum or length($mets_zip_checksum) ne 32) {
+        $self->set_error(
+            'MissingValue',
+            file   => $mets_path,
+            field  => 'checksum',
+            detail => "Couldn't locate checksum for zip $zipname in METS $mets_path"
+        );
+        return;
+    }
+
+    unless ($mets_zip_checksum eq $actual_checksum) {
+        $self->set_error(
+            "BadChecksum",
+            field    => 'checksum',
+            file     => $zip_path,
+            expected => $mets_zip_checksum,
+            actual   => $actual_checksum
+        );
+        return;
+    }
+
+    return 1;
 }
 
 sub validate_zip {
-  my $self = shift;
+    my $self = shift;
+    my $path = shift;
 
-  my $volume = $self->{volume};
-  my $path = shift;
-  my $mets_path = $path . '/' . $self->mets_filename();
-  my $zip_path = $path . '/' . $self->zip_filename;
+    my $volume    = $self->{volume};
+    my $mets_path = $path . '/' . $self->mets_filename();
+    my $zip_path  = $path . '/' . $self->zip_filename;
+    get_logger()->trace("Validating zip at $zip_path vs. checksum in METS $mets_path");
 
-  get_logger()->trace("Validating zip at $zip_path vs. checksum in METS $mets_path");
+    my $actual_checksum;
+    if ($self->{did_encryption}) {
+        $actual_checksum = $self->crypted_md5sum(
+            $zip_path,
+            $self->{config}{encryption_key}
+        );
+    } else {
+        $actual_checksum = HTFeed::VolumeValidator::md5sum($zip_path);
+    }
 
-  my $actual_checksum;
-  if($self->{did_encryption}) {
-    $actual_checksum = $self->crypted_md5sum($zip_path,$self->{config}{encryption_key});
-  } else {
-    $actual_checksum = HTFeed::VolumeValidator::md5sum($zip_path);
-  }
+    my $validated_checksum = $self->validate_zip_checksum(
+        $mets_path,
+        $zip_path,
+        $actual_checksum
+    );
 
-  return $self->validate_zip_checksum($mets_path,$zip_path,$actual_checksum);
+    return $validated_checksum;
 }
 
 sub set_error {
-  my $self = shift;
-  my $error = shift;
+    my $self  = shift;
+    my $error = shift;
 
-  # log error w/ l4p
-  my $logger = get_logger( ref($self) );
-  $logger->error(
-      $error,
-      namespace => $self->{volume}->get_namespace(),
-      objid     => $self->{volume}->get_objid(),
-      stage     => ref($self),
-      @_
-  );
+    # log error w/ l4p
+    my $logger = get_logger(ref($self));
+    $logger->error(
+        $error,
+        namespace => $self->{volume}->get_namespace(),
+        objid     => $self->{volume}->get_objid(),
+        stage     => ref($self),
+        @_
+    );
 
-  push(@{$self->{errors}},[$error,@_]);
+    push(@{$self->{errors}}, [$error, @_]);
 }
 
 sub zip_obj_path {
-  my $self = shift;
-  $self->object_path() . '/' . $self->zip_filename();
+    my $self = shift;
+
+    $self->object_path() . '/' . $self->zip_filename();
 }
 
 sub mets_obj_path {
-  my $self = shift;
-  $self->object_path() . '/' . $self->mets_filename();
+    my $self = shift;
+
+    $self->object_path() . '/' . $self->mets_filename();
 }
 
 sub zip_stage_path {
-  my $self = shift;
-  $self->stage_path() . '/' . $self->zip_filename();
+    my $self = shift;
+
+    $self->stage_path() . '/' . $self->zip_filename();
 }
 
 sub mets_stage_path {
-  my $self = shift;
-  $self->stage_path() . '/' . $self->mets_filename();
+    my $self = shift;
+
+    $self->stage_path() . '/' . $self->mets_filename();
 }
 
 sub mets_filename {
-  my $self = shift;
-  $self->{volume}->get_mets_filename();
+    my $self = shift;
+
+    $self->{volume}->get_mets_filename();
 }
 
 sub zip_filename {
-  my $self = shift;
-  $self->{volume}->get_pt_objid() . $self->zip_suffix;
+    my $self = shift;
+
+    $self->{volume}->get_pt_objid() . $self->zip_suffix;
 }
 
 sub zip_size {
-  my $self = shift;
-  my $volume = $self->{volume};
+    my $self = shift;
 
-  my $size = -s $self->zip_obj_path;
+    my $volume = $self->{volume};
+    my $size   = -s $self->zip_obj_path;
+    die("Can't get zip size: $!") unless defined $size;
 
-  die("Can't get zip size: $!") unless defined $size;
-
-  return $size;
+    return $size;
 }
 
 sub mets_size {
-  my $self = shift;
-  my $volume = $self->{volume};
+    my $self = shift;
 
-  my $size = -s $self->mets_obj_path;
+    my $volume = $self->{volume};
+    my $size   = -s $self->mets_obj_path;
+    die("Can't get mets size: $!") unless defined $size;
 
-  die("Can't get mets size: $!") unless defined $size;
-
-  return $size;
+    return $size;
 }
 
 sub validate_zip_checksums {
-  my $self             = shift;
-  my $checksums        = shift;
-  my $files = shift;
-  my $path             = shift;
+    my $self      = shift;
+    my $checksums = shift;
+    my $files     = shift;
+    my $path      = shift;
 
-  get_logger()->trace("Validating zip checksums");
-  # make sure we check every file in the directory except for the checksum file
-  # and make sure we check every file in the checksum file
+    get_logger()->trace("Validating zip checksums");
+    # make sure we check every file in the directory except for the checksum file
+    # and make sure we check every file in the checksum file
 
-  @$files = map { lc($_) } @$files;
-  %$checksums = map { lc($_) } %$checksums;
+    @$files        = map { lc($_) } @$files;
+    %$checksums    = map { lc($_) } %$checksums;
+    my @tovalidate = uniq(sort(@$files, keys(%$checksums)));
 
-  my @tovalidate = uniq( sort( @$files, keys(%$checksums) ));
-
-  my @bad_files = ();
-
-  my $ok = 1;
-
-  foreach my $file (@tovalidate) {
-    next if $file =~ /.zip$/;
-    my $expected = $checksums->{$file};
-    if ( not defined $expected ) {
-      $ok = 0;
-      $self->set_error(
-        "BadChecksum",
-        field  => 'checksum',
-        file   => $file,
-        detail => "File present in zip but not in METS"
-      );
-    }
-    elsif ( !-e "$path/$file" ) {
-      $ok = 0;
-      $self->set_error(
-        "MissingFile",
-        file => $file,
-        detail =>
-        "File listed in METS but not present in zip"
-      );
-    }
-    elsif ( ( my $actual = HTFeed::VolumeValidator::md5sum("$path/$file") ) ne $expected ) {
-      $ok = 0;
-      $self->set_error(
-        "BadChecksum",
-        field    => 'checksum',
-        file     => $file,
-        expected => $expected,
-        actual   => $actual
-      );
-      push( @bad_files, "$file" );
+    my $ok = 1;
+    foreach my $file (@tovalidate) {
+        next if $file =~ /.zip$/;
+        my $expected = $checksums->{$file};
+        if (not defined $expected) {
+            $ok = 0;
+            $self->set_error(
+                "BadChecksum",
+                field  => 'checksum',
+                file   => $file,
+                detail => "File present in zip but not in METS"
+            );
+        } elsif (!-e "$path/$file") {
+            $ok = 0;
+            $self->set_error(
+                "MissingFile",
+                file   => $file,
+                detail => "File listed in METS but not present in zip"
+            );
+        } elsif ((my $actual = HTFeed::VolumeValidator::md5sum("$path/$file")) ne $expected) {
+            $ok = 0;
+            $self->set_error(
+                "BadChecksum",
+                field    => 'checksum',
+                file     => $file,
+                expected => $expected,
+                actual   => $actual
+            );
+        }
     }
 
-  }
-
-  return $ok;
-
+    return $ok;
 }
 
 sub zip_suffix {
-  my $self = shift;
-  return '.zip' . $self->{zip_suffix};
+    my $self = shift;
+
+    return '.zip' . $self->{zip_suffix};
 }
 
 1;

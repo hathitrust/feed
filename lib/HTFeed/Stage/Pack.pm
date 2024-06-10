@@ -76,8 +76,8 @@ sub run{
 sub zip{
     my $self = shift;
     my ($zip_stage, $other_options, $zip_path, $pt_objid) = @_;
-
-    my $start_size = $self->dir_size($zip_stage);
+    my $bytes_r = $self->{job_metrics}->dir_size($zip_stage);
+    my $start_time = $self->{job_metrics}->time;
     get_logger()->trace("Packing $zip_stage/$pt_objid to $zip_path");
     my $zipret = system("cd '$zip_stage'; zip -q -r $other_options '$zip_path' '$pt_objid'");
 
@@ -104,11 +104,13 @@ sub zip{
         }
     }
 
-    # Get size after zipping and report size delta as a job metric for Pack.
-    my $end_size = -s $zip_path;
-    my $delta_size = $start_size - $end_size;
-    $self->{job_metrics}->add("ingest_pack_bytes", $delta_size);
-
+    my $end_time = $self->{job_metrics}->time;
+    my $delta_time = $end_time - $start_time;
+    $self->{job_metrics}->add("ingest_pack_seconds_total", $delta_time);
+    my $bytes_w = -s $zip_path;
+    $self->{job_metrics}->add("ingest_pack_bytes_r_total", $bytes_r);
+    $self->{job_metrics}->add("ingest_pack_bytes_w_total", $bytes_w);
+    $self->{job_metrics}->inc("ingest_pack_items_total");
     # success
     get_logger()->trace("Packing $zip_stage/$pt_objid to $zip_path succeeded");
     return 1;
