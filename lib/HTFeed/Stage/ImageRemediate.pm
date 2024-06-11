@@ -57,10 +57,9 @@ sub get_exiftool_fields {
     $exifTool->Options('ScanForXMP' => 1);
     $exifTool->ExtractInfo( $file, { Binary => 1 } );
 
-    foreach my $tag ( $exifTool->GetFoundTags() ) {
-
+    foreach my $tag ($exifTool->GetFoundTags()) {
         # get only the groupname we'll use to update it later
-        my $group = $exifTool->GetGroup( $tag, "1" );
+        my $group   = $exifTool->GetGroup( $tag, "1" );
         my $tagname = Image::ExifTool::GetTagName($tag);
         $fields->{"$group:$tagname"} = $exifTool->GetValue($tag);
     }
@@ -335,7 +334,7 @@ sub _remediate_tiff {
     }
 
     # Fix the XMP, if needed
-    if($self->needs_xmp) {
+    if ($self->needs_xmp) {
         # force required fields
         $self->{newFields}{'XMP-tiff:BitsPerSample'} = 1;
         $self->{newFields}{'XMP-tiff:Compression'} = 'T6/Group 4 Fax';
@@ -366,8 +365,11 @@ sub _remediate_tiff {
 
     }
 
-    $ret = $ret
-      && $self->repair_tiff_exiftool( $infile, $outfile, $self->{newFields} );
+    $ret = $ret && $self->repair_tiff_exiftool(
+	$infile,
+	$outfile,
+	$self->{newFields}
+    );
 
     return $ret;
 }
@@ -430,10 +432,27 @@ sub repair_tiff_imagemagick {
 	"TIFF_REPAIR: attempting to repair $infile to $outfile\n"
     );
 
+    my $in_exif = Image::ExifTool->new;
+    my $in_meta = $in_exif->ImageInfo($infile);
+
     # convert returns 0 on success, 1 on failure
     my $imagemagick = get_config('imagemagick');
     my $rval = system("$imagemagick -compress Group4 '$infile' '$outfile' > /dev/null 2>&1");
     croak("failed repairing $infile\n") if $rval;
+
+    # Some metadata may be lost when imagemagick compresses infile to outfile.
+    # Here we are putting Artist back, or we'll crash at a later stage,
+    # due to missing ImageProducer (which depends on Artist).
+    my $out_exif = Image::ExifTool->new;
+    my $out_meta = $out_exif->ImageInfo($outfile);
+    if (defined $in_meta->{'Artist'} && !defined $out_meta->{'Artist'}) {
+	my ($success, $msg) = $out_exif->SetNewValue('Artist', $in_meta->{'Artist'});
+	if (defined $msg) {
+	    croak("Error setting new tag Artist => $in_meta->{'Artist'}: $msg\n");
+	} else {
+	    $self->update_tags($out_exif, $outfile);
+	}
+    }
 
     $self->{job_metrics}->add("ingest_imageremediate_bytes", -s $infile);
     $self->{job_metrics}->inc("ingest_imageremediate_images");
@@ -746,7 +765,7 @@ sub expand_lossless_jpeg2000 {
                 $exiftool->WriteInfo("$path/$jpeg2000_remediated");
 
                 rename("$path/$jpeg2000_remediated","$path/$jpeg2000");
-                unlink("$path/$tiff");
+		unlink("$path/$tiff");
             }
         },
         "-m JPEG2000-hul"
@@ -876,10 +895,10 @@ for remediate_image (qv)
 =cut
 
 sub remediate_tiffs {
-
-    my ( $self, $volume, $tiffpath, $files, $headers_sub ) = @_;
+    my ($self, $volume, $tiffpath, $files, $headers_sub) = @_;
     my $repStatus_xp = XML::LibXML::XPathExpression->new(
-        '/jhove:jhove/jhove:repInfo/jhove:status');
+        '/jhove:jhove/jhove:repInfo/jhove:status'
+    );
     my $error_xp = XML::LibXML::XPathExpression->new(
 	'/jhove:jhove/jhove:repInfo/jhove:messages/jhove:message[@severity="error"]'
     );
@@ -891,28 +910,24 @@ sub remediate_tiffs {
         my $headers   = $self->get_exiftool_fields("$tiffpath/$tiff");
         my $needwrite = 0;
         my $exiftool  = new Image::ExifTool;
-        $exiftool->Options('ScanForXMP' => 1);
+
+	$exiftool->Options('ScanForXMP' => 1);
         $exiftool->Options('IgnoreMinorErrors' => 1);
-        foreach my $field ( 'IFD0:ModifyDate', 'IFD0:Artist' ) {
+        foreach my $field ('IFD0:ModifyDate', 'IFD0:Artist') {
             my $header = $headers->{$field};
             eval {
-
                 # see if the header is valid ascii or UTF-8
-                my $decoded_header =
-                  decode( 'utf-8', $header, Encode::FB_CROAK );
+                my $decoded_header = decode('utf-8', $header, Encode::FB_CROAK);
             };
             if ($@) {
-
                 # if not, strip it
                 $exiftool->SetNewValue($field);
                 $needwrite = 1;
-            }
-
+	    }
         }
         if ($needwrite) {
             $exiftool->WriteInfo("$tiffpath/$tiff");
         }
-
     }
 
     $self->run_jhove(
@@ -922,25 +937,30 @@ sub remediate_tiffs {
         sub {
             my ( $volume, $file, $node ) = @_;
             my $xpc = XML::LibXML::XPathContext->new($node);
-            my ( $force_headers, $set_if_undefined_headers, $renamed_file ) =
-              ( undef, undef, undef );
+            my $force_headers            = undef;
+	    my $set_if_undefined_headers = undef;
+	    my $renamed_file             = undef;
             register_namespaces($xpc);
 
             $self->{jhoveStatus} = $xpc->findvalue($repStatus_xp);
-            $self->{jhoveErrors} =
-              [ map { $_->textContent } $xpc->findnodes($error_xp) ];
+            $self->{jhoveErrors} = [
+		map { $_->textContent } $xpc->findnodes($error_xp)
+	    ];
 
             # get headers that may depend on the individual file
             if ($headers_sub) {
-                ( $force_headers, $set_if_undefined_headers, $renamed_file ) =
-                  &$headers_sub($file);
+                ($force_headers, $set_if_undefined_headers, $renamed_file) = &$headers_sub($file);
             }
 
             my $outfile = "$stage_path/$file";
             $outfile = "$stage_path/$renamed_file" if ( defined $renamed_file );
 
-            $self->remediate_image( "$tiffpath/$file", $outfile, $force_headers,
-                $set_if_undefined_headers );
+            $self->remediate_image(
+		"$tiffpath/$file",
+		$outfile,
+		$force_headers,
+                $set_if_undefined_headers
+	    );
         },
         "-m TIFF-hul"
     );

@@ -162,9 +162,16 @@ describe "HTFeed::PackageType::Simple" => sub {
       my $exiftool = Image::ExifTool->new();
       $exiftool->ExtractInfo("$tmpdirs->{ingest}/lossless_jp2_with_xmp/00000001.jp2");
       is($exiftool->GetValue("XMP-tiff:Make"),"Test scanner make");
-
     };
 
+    it "does not lose artist when compressing a bitonal tiff" => sub {
+	my $volume = unpacked_volume("bitonal_tiff");
+	HTFeed::PackageType::Simple::ImageRemediate->new(volume => $volume)->run();
+	HTFeed::PackageType::Simple::SourceMETS->new(volume => $volume)->run();
+	my $validate = HTFeed::VolumeValidator->new(volume => $volume);
+	$validate->run();
+	ok($validate->succeeded());
+    };
   };
 };
 
