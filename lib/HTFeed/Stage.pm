@@ -48,14 +48,6 @@ sub estimate_space{
     return ceil($size * $multiplier);
 }
 
-sub dir_size{
-    shift if (ref $_[0]);
-    my $dir = shift;
-    my $size = 0;
-    find( sub{$size += -s if -f;}, $dir);
-    return $size;
-}
-
 # returns information about the stage
 # to support this children should impliment stage_info() that returns a hash ref like:
 #   {success_state => 'validated', failure_state => 'punted'};
@@ -237,10 +229,6 @@ $stage->force_failed_status($failed)
 =item success_info()
 
 returns additional info to log on success.
-
-=item dir_size()
-
-Return the size of a directory
 
 =item clean_punt()
 

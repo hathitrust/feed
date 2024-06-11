@@ -131,7 +131,7 @@ sub run_job_sequence {
         # TODO: it's easy to count seconds and items for jobs out here
         # but we have to go inside the job classes to count bytes r/w.
         my $end_time       = $self->{job_metrics}->time;
-        my $delta_time     = ($end_time - $start_time);
+        my $delta_time     = $end_time - $start_time;
         my $seconds_metric = "ingest_" . $jobtype . "_seconds";
         my $items_metric   = "ingest_" . $jobtype . "_items";
         $self->{job_metrics}->add($seconds_metric, $delta_time);

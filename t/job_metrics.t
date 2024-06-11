@@ -13,7 +13,7 @@ describe "HTFeed::JobMetrics" => sub {
     # SETUP start
     my $jm = HTFeed::JobMetrics->get_instance;
     my $item_metric = "ingest_pack_items";
-    my $byte_metric = "ingest_pack_bytes";
+    my $byte_metric = "ingest_pack_bytes_write";
     my $invalid_metric = "not a valid metric";
     before each => sub {
 	$jm->clear() if defined $jm;
@@ -33,7 +33,7 @@ describe "HTFeed::JobMetrics" => sub {
 
     it "lists all known metrics, alphabetically" => sub {
 	my $metrics = $jm->list_metrics;
-	ok(@$metrics[0]  eq "ingest_collate_bytes");
+	ok(@$metrics[0]  eq "ingest_collate_bytes_read");
 	ok(@$metrics[-1] eq "ingest_volumevalidator_seconds");
     };
     it "reports no value for an empty matching metric" => sub {

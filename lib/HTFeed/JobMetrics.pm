@@ -2,10 +2,18 @@ package HTFeed::JobMetrics;
 
 use strict;
 use warnings;
+use File::Find;
 use Getopt::Long;
 use Log::Log4perl qw(get_logger);
 use Pod::Usage;
 use Prometheus::Tiny::Shared;
+use Time::HiRes;
+
+# TODO: mw 2024 // simplify predefined metrics.
+# Since it is already starting to grow out of hand...
+# I still want metric base names to be predefined, and a predefined set
+# of units. E.g. @metrics = qw(ingest_download ingest_pack)
+# and @units = qw(seconds bytes_r bytes_w items images)
 
 =item HTFeed::JobMetrics
 
@@ -42,76 +50,76 @@ Display the POD snippets in this file as a help document.
 if (!caller) {
     GetOptions(
 	# these are all booleans
-	'clear'    => \my $clear,
-	'help'     => \my $help,
-	'list'     => \my $list,
-	'location' => \my $location,
-	'pretty'   => \my $pretty,
-	'usage'    => \my $usage,
-	# Each operation takes a metric and/or a value:
-	# add(metric, value),
-	# get_value(metric)
-	# inc(metric),
-	# match(value),
-	# observe(metric, value)
-	'operation=s' => \my $operation,
-	'metric=s'    => \my $metric,
-	'value=s'     => \my $value
+        'clear'    => \my $clear,
+        'help'     => \my $help,
+        'list'     => \my $list,
+        'location' => \my $location,
+        'pretty'   => \my $pretty,
+        'usage'    => \my $usage,
+        # Each operation takes a metric and/or a value:
+        # add(metric, value),
+        # get_value(metric)
+        # inc(metric),
+        # match(value),
+        # observe(metric, value)
+        'operation=s' => \my $operation,
+        'metric=s'    => \my $metric,
+        'value=s'     => \my $value
     );
 
     if ($help or $usage) {
-	pod2usage(2);
+        pod2usage(2);
     }
 
     my $job_metrics = HTFeed::JobMetrics->get_instance();
     my %valid_operations = (
-	add       => sub { $job_metrics->add($metric, $value) },
-	inc       => sub { $job_metrics->inc($metric) },
-	match     => sub {
-	    my $matches = $job_metrics->match($value);
-	    print join("\n", @$matches) . "\n";
-	},
-	get_value => sub {
-	    my $value = $job_metrics->get_value($metric);
-	    if (defined $value) {
-		print "$value\n";
-	    } else {
-		print "no value found\n";
-	    }
-	},
-	observe => sub { $job_metrics->observe($metric, $value) }
+        add       => sub { $job_metrics->add($metric, $value) },
+        inc       => sub { $job_metrics->inc($metric) },
+        match     => sub {
+            my $matches = $job_metrics->match($value);
+            print join("\n", @$matches) . "\n";
+        },
+        get_value => sub {
+            my $value = $job_metrics->get_value($metric);
+            if (defined $value) {
+                print "$value\n";
+            } else {
+                print "no value found\n";
+            }
+        },
+        observe => sub { $job_metrics->observe($metric, $value) }
     );
 
     # Check the boolean args and act if true.
     if ($clear) {
-	print "Clearing data...\n";
-	$job_metrics->clear;
-	print "Data cleared.\n";
+        print "Clearing data...\n";
+        $job_metrics->clear;
+        print "Data cleared.\n";
     }
     if ($list) {
-	print "# List of metrics:\n";
-	print join("\n", @{$job_metrics->list_metrics}) . "\n";
+        print "# List of metrics:\n";
+        print join("\n", @{$job_metrics->list_metrics}) . "\n";
     }
     if ($location) {
-	print "# HTFeed::JobMetrics data stored in:\n";
-	print $job_metrics->loc . "\n";
+        print "# HTFeed::JobMetrics data stored in:\n";
+        print $job_metrics->loc . "\n";
     }
     if ($pretty) {
-	print $job_metrics->pretty . "\n";
+        print $job_metrics->pretty . "\n";
     }
 
     # Now check the operation arg
     if (defined $operation) {
-	if (exists $valid_operations{$operation}) {
-	    print "running operation $operation ...\n";
-	    $valid_operations{$operation}();
-	} else {
-	    print "Invalid operation, exiting.\n";
-	    exit(1);
-	}
+        if (exists $valid_operations{$operation}) {
+            print "running operation $operation ...\n";
+            $valid_operations{$operation}();
+        } else {
+            print "Invalid operation, exiting.\n";
+            exit(1);
+        }
     } else {
-	print "No operation defined, exiting.\n";
-	exit(0);
+        print "No operation defined, exiting.\n";
+        exit(0);
     }
 }
 # end commandline stuff
@@ -121,20 +129,21 @@ my $singleton = undef;
 sub get_instance {
     # Re-use singleton if defined.
     if (!defined $singleton) {
-	my $class = shift;
-	my $self  = {};
-	# The default location for storing metrics data is under /tmp/.
-	# You can ovverride that w/ $ENV{'HTFEED_JOBMETRICS_DATA_DIR'}.
-	$self->{file} = "/tmp/htfeed-jobmetrics-data";
-	if (defined $ENV{'HTFEED_JOBMETRICS_DATA_DIR'}) {
-	    $self->{file} = $ENV{'HTFEED_JOBMETRICS_DATA_DIR'};
-	}
-	$self->{prom} = Prometheus::Tiny::Shared->new(
-	    filename => $self->{file}
-	);
-	$singleton = bless($self, $class);
-	$singleton->_setup_metrics();
+        my $class = shift;
+        my $self  = {};
+        # The default location for storing metrics data is under /tmp/.
+        # You can ovverride that w/ $ENV{'HTFEED_JOBMETRICS_DATA_DIR'}.
+        $self->{file} = "/tmp/htfeed-jobmetrics-data";
+        if (defined $ENV{'HTFEED_JOBMETRICS_DATA_DIR'}) {
+            $self->{file} = $ENV{'HTFEED_JOBMETRICS_DATA_DIR'};
+        }
+        $self->{prom} = Prometheus::Tiny::Shared->new(
+            filename => $self->{file}
+        );
+        $singleton = bless($self, $class);
+        $singleton->_setup_metrics();
     }
+
     return $singleton;
 }
 
@@ -146,6 +155,7 @@ Show where the data is stored.
 
 sub loc {
     my $self = shift;
+
     $self->{file};
 }
 
@@ -157,6 +167,7 @@ Show names of all known metrics.
 
 sub list_metrics {
     my $self = shift;
+
     [sort keys %{$self->{metrics}}];
 }
 
@@ -170,6 +181,7 @@ Call this to export/harvest/scrape data from the running production pod.
 
 sub pretty {
     my $self = shift;
+
     $self->{prom}->format;
 }
 
@@ -181,6 +193,7 @@ Irrevocably delete job metrics (see --loc for where that is)
 
 sub clear {
     my $self = shift;
+
     $self->{prom}->clear;
 }
 
@@ -201,6 +214,7 @@ sub match {
     die "match requires a value" if !defined $value;
 
     my @pretties = split("\n", $self->pretty);
+
     [grep { /$value/ } @pretties];
 }
 
@@ -215,17 +229,18 @@ sub get_value {
     my $metric = shift;
 
     if (!$self->_valid_metric($metric)) {
-	return 0;
+        return 0;
     }
 
     my $match = $self->match("^$metric");
     if (scalar @$match == 1) {
-	if ($$match[0] =~ /(\d+(?:\.\d+)?)$/) {
-	    my $matched_numerical_value = $1;
-	    return $matched_numerical_value;
-	}
+        if ($$match[0] =~ /(\d+(?:\.\d+)?)$/) {
+            my $matched_numerical_value = $1;
+            return $matched_numerical_value;
+        }
     }
     get_logger()->warn("JobMetric found no value for $metric");
+
     return 0;
 }
 
@@ -238,8 +253,9 @@ Increment metric x by 1.
 sub inc {
     my $self   = shift;
     my $metric = shift;
+
     if ($self->_valid_metric($metric)) {
-	$self->{prom}->inc($metric);
+        $self->{prom}->inc($metric);
     }
 }
 
@@ -256,12 +272,12 @@ sub add {
 
     # Make sure $value is defined and numeric
     unless (defined $value) {
-	get_logger()->warn("Undefined value given for $metric");
-	return;
+        get_logger()->warn("Undefined value given for $metric");
+        return;
     }
-    unless ($value + 0) {
-	get_logger()->warn("Non-numeric value \"$value\" given for $metric");
-	return;
+    unless ($value + 0 >= 0) {
+        get_logger()->warn("Non-numeric value \"$value\" given for $metric");
+        return;
     }
 
     $self->_valid_metric($metric) && $self->{prom}->add($metric, $value);
@@ -282,11 +298,36 @@ sub observe {
 
     # Make sure $value is numeric
     unless ($value + 0) {
-	get_logger()->warn("Non-numeric value \"$value\" given for $metric");
-	return;
+        get_logger()->warn("Non-numeric value \"$value\" given for $metric");
+        return;
     }
 
     $self->_valid_metric($metric) && $self->{prom}->histogram_observe($metric, $value);
+}
+
+# Not hooked up to CLI. We occasionally want the size of a directory
+# (recursively) for certain metrics.
+# Example:
+#   HTFeed::JobMetrics->dir_size($some_dir) -> 12345;
+sub dir_size {
+    shift if (ref $_[0]); # Discard $self if passed in.
+    my $dir = shift;
+
+    my $size = 0;
+    find(
+        sub {
+            $size += -s if -f;
+        },
+        $dir
+    );
+
+    return $size;
+}
+
+# So that classes that want to measure time don't need to include
+# Time::HiRes themselves.
+sub time {
+    Time::HiRes::time();
 }
 
 # "private" from here on, indicated with _leading_underscores
@@ -308,6 +349,7 @@ sub _valid_metric {
     get_logger()->warn("invalid metric name \"$metric\" at $filename:$line");
     # switch from warn to die to ensure no invalid metric names slip thru:
     # die ("invalid metric name \"$metric\" at $filename:$line");
+
     return 0;
 }
 
@@ -318,61 +360,74 @@ sub _setup_metrics {
     # Prefix all metric names with:
     my $pfx = "ingest";
 
-    # Each element x in this array gets turned into 3 prom declarations:
-    # x_seconds, x_bytes and x_items
-    # Names are based on the downcased class name of the stage.
+    # Each element in @measurable_stages gets combined with
+    # each element in @units, to produce e.g. pack_items etc.
+    # Names are based on the downcased class name of the stage,
+    # or method in which the measured event happens.
     my @measurable_stages = (
-	'collate',
-	'download',
-	'download_dropbox',
-	'download_google',
-	'download_ia',
-	'handle',
-	'imageremediate',
-	'mets',
-	'pack',
-	'sourcemets',
-	'unpack',
-	'verifymanifest',
-	'volumevalidator'
+        'collate',
+        'download',
+        'download_dropbox',
+        'download_google',
+        'download_ia',
+        'handle',
+        'imageremediate',
+        'encrypt',
+        'mets',
+        'move',
+        'pack',
+        'postvalidate',
+        'prevalidate',
+        'record_audit',
+        'record_backup',
+        'sourcemets',
+        'stage',
+        'unpack',
+        'validate_zip_completeness',
+        'verify_crypt',
+        'verifymanifest',
+        'volumevalidator',
+    );
+    my @units = (
+        'bytes_read',
+        'bytes_write',
+        'items',
+        'seconds',
     );
 
-    my @scales = qw(items bytes seconds);
-    # essentially, generate: @measurable_stages x @scales
-    # so that we get Pack_items, Pack_bytes, Pack_seconds ... etc
-
-    # In case we want different bucket setup for different scales.
+    # In case we want different bucket setup for different units.
     # Leaving bytes and seconds commented out for now, meaning
     # we will not have any histograms.
-    my %scale_buckets = (
-	# bytes   => _byte_buckets(),
-	# seconds => _second_buckets()
+    my %unit_buckets = (
+        # bytes   => _byte_buckets(),
+        # seconds => _second_buckets()
     );
 
     $self->{metrics} = {};
     foreach my $stage (@measurable_stages) {
-	foreach my $scale (@scales) {
-	    my $metric_name = join("_", ($pfx, $stage, $scale));
-	    $self->{metrics}->{$metric_name} = 1;
-	    if (defined $scale_buckets{$scale}) {
-		# If $scale defined in %scale_buckets, make $metric_name a histogram
-		# and use the bucket scheme appropriate for the scale
-		# here, scale is either bytes or seconds
-		my $buckets = $scale_buckets{$scale};
-		$prom->declare(
-		    $metric_name,
-		    type    => "histogram",
-		    buckets => $buckets
-		);
-	    } else {
-		# If nothing in particular was said abut the metric or the scale,
-		# turn it into a counter.
-		$prom->declare($metric_name, type => "counter");
-	    }
-	}
+        foreach my $unit (@units) {
+            my $metric_name = join("_", ($pfx, $stage, $unit));
+            $self->{metrics}->{$metric_name} = 1;
+            if (defined $unit_buckets{$unit}) {
+                # If $unit defined in %unit_buckets, make $metric_name a histogram
+                # and use the bucket scheme appropriate for the unit
+                # here, unit is either bytes or seconds
+                my $buckets = $unit_buckets{$unit};
+                $prom->declare(
+                    $metric_name,
+                    type    => "histogram",
+                    buckets => $buckets
+                );
+            } else {
+                # If nothing in particular was said abut the metric or the unit,
+                # turn it into a counter.
+                $prom->declare($metric_name, type => "counter");
+            }
+        }
     }
 
-    # Put in any one-offs that don't fit the above algorithm here:
+    # Declare any other metrics here that don't fit
+    # the @measurable_stages x @units recipe:
     $self->{metrics}->{$pfx . "_imageremediate_images"} = 1;
     $prom->declare($pfx . "_imageremediate_images", type => "counter");
 }
@@ -384,28 +439,28 @@ sub _setup_metrics {
 # and which buckets they should use.
 sub _second_buckets {
     [
-	0.001, # 1 millisec
-	0.01,
-	0.1,
-	1,     # 1 sec
-	10,
-	60,    # 1 minute
-	300,   # 5 minutes
-	6000,  # 10 minutes
-	3_600, # 1 hour
-	7_200, # 2 hours
+        0.001,                  # 1 millisec
+        0.01,
+        0.1,
+        1,                      # 1 sec
+        10,
+        60,                     # 1 minute
+        300,                    # 5 minutes
+        6000,                   # 10 minutes
+        3_600,                  # 1 hour
+        7_200,                  # 2 hours
     ];
 }
 
 sub _byte_buckets {
     [
-	1_000,
-	10_000,
-	100_000,
-	1_000_000,
-	10_000_000,
-	100_000_000,
-	1_000_000_000
+        1_000,
+        10_000,
+        100_000,
+        1_000_000,
+        10_000_000,
+        100_000_000,
+        1_000_000_000
     ];
 }
 
