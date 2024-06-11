@@ -49,14 +49,13 @@ sub untar_file {
 }
 
 sub _extract_file {
-    my $command = shift;
-    my $requester = shift; # not necessarily self..
-    my $infile = shift;
-    my $outdir = shift;
+    my $command      = shift;
+    my $requester    = shift; # not necessarily self..
+    my $infile       = shift;
+    my $outdir       = shift;
     my $otheroptions = shift || '';
 
-    my $full_command= sprintf($command, $infile, $outdir, $otheroptions);
-
+    my $full_command = sprintf($command, $infile, $outdir, $otheroptions);
     get_logger()->trace("Extracting $infile with command $full_command");
 
     # make directory
@@ -73,10 +72,10 @@ sub _extract_file {
     }
 
     my $rstring = `$full_command`;
-    my $rval = $?;
+    my $rval    = $?;
 
-    # 1 is a non-fatal warning for both tar and unzip -- ignore it and let
-    # manifest / validation stuff figure it out
+    # 1 is a non-fatal warning for both tar and unzip...
+    # ignore it and let manifest / validation stuff figure it out
     if ($rval != 0 and $rval != (1 << 8)) {
         $requester->set_error(
 	    'OperationFailed',
@@ -92,5 +91,3 @@ sub _extract_file {
 }
 
 1;
-
-__END__
