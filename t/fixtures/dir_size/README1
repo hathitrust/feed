@@ -1,0 +1,2 @@
+don't change this file or any in/under this dir
+if you do, you'll break the dir_size test in t/job_metrics.t

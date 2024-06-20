@@ -6,6 +6,7 @@ use FindBin;
 use lib "$FindBin::Bin/lib";
 use Test::Spec;
 use Test::Exception;
+use Time::HiRes qw(usleep);
 
 use HTFeed::JobMetrics;
 
@@ -95,7 +96,50 @@ describe "HTFeed::JobMetrics" => sub {
 	} while ($kid > 0);
 	ok($jm->get_value($item_metric) == 5);
     };
+    it "reports time w/ second as base unit, at high resolution" => sub {
+        # To do this we sleep 10% of a second (don't want to slow down tests).
+        # Time::HirRes::usleep lets us sleep with microsec precision.
+        # The "tolerance" is somewhat arbitrary, for testing purposes only,
+        # since we're not really testing that Time::HiRes works as promised,
+        # but rather that our assumptions around time are correct.
+        my $t1                     = $jm->time;
+        my $sleep_time             = 0.1;
+        my $sleep_time_in_microsec = $sleep_time * 1000000;
+        my $resolution_tolerance   = 0.01;
 
+        usleep $sleep_time_in_microsec;
+        my $t2      = $jm->time;
+        my $delta_t = $t2 - $t1;
+
+        # Now prove that t1 and t2 are (very close to) 0.25 sec apart.
+        # Numbers will be relatively similar to:
+        # t1: e.24969, t2: e.50003, delta_t: 0.250342845916748
+        # ... where e is the current epoch in whole seconds
+        ok(    ($delta_t - $sleep_time) < $resolution_tolerance);
+        # e.g. (0.103... - 0.1        ) < 0.01
+    };
+    it "reports dir size, recursively, with bytes as base unit" => sub {
+        # To check that it counts file sizes recursively,
+        # we have this fixture dir:
+        #
+        # feed/t/fixtures/dir_size$ tree
+        # .
+        # ├── README1 (108B)
+        # ├── README2 (36B)
+        # └── subdir
+        #     └── README3 (66B)
+        #
+        # Please don't change anything in these fixture dirs,
+        # without also updating the dir sizes in this test.
+
+        my $dir                  = "/usr/local/feed/t/fixtures/dir_size";
+        my $expected_dir_size    = 210; # (108 + 36) + 66
+        my $subdir               = "$dir/subdir";
+        my $expected_subdir_size = 66;
+
+        ok($jm->dir_size($dir)    == $expected_dir_size);
+        ok($jm->dir_size($subdir) == $expected_subdir_size);
+    };
     # TESTS todo
     it "could have some histogram tests once we figure out histograms" => sub {};
     # TESTS end
