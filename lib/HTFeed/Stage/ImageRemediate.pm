@@ -591,9 +591,9 @@ sub _remediate_jpeg2000 {
     $exifTool->Options('ScanForXMP' => 1);
     $exifTool->Options('IgnoreMinorErrors' => 1);
     my $info = $exifTool->SetNewValuesFromFile( $infile, '*:*' );
-    while ( my ( $key, $val ) = each(%$info) ) {
-        if ( $key eq 'Error' ) {
-            croak("Error extracting old headers: $!");
+    while (my ($key, $val) = each(%$info)) {
+        if ($key eq 'Error') {
+            croak("Error extracting old headers... $key : $val. ($!)");
         }
     }
 
