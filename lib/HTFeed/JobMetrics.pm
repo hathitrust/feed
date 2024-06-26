@@ -253,9 +253,13 @@ Increment metric x by 1.
 sub inc {
     my $self   = shift;
     my $metric = shift;
+    my $labels = shift || {};
+
+    # sets to {} if invalid
+    $labels = $self->_valid_labels($labels);
 
     if ($self->_valid_metric($metric)) {
-        $self->{prom}->inc($metric);
+        $self->{prom}->inc($metric, $labels);
     }
 }
 
@@ -269,6 +273,10 @@ sub add {
     my $self   = shift;
     my $metric = shift;
     my $value  = shift;
+    my $labels = shift || {};
+
+    # sets to {} if invalid
+    $labels = $self->_valid_labels($labels);
 
     # Make sure $value is defined and numeric
     unless (defined $value) {
@@ -280,7 +288,7 @@ sub add {
         return;
     }
 
-    $self->_valid_metric($metric) && $self->{prom}->add($metric, $value);
+    $self->_valid_metric($metric) && $self->{prom}->add($metric, $value, $labels);
 }
 
 =item --operation observe --metric x --value y
@@ -351,6 +359,35 @@ sub _valid_metric {
     # die ("invalid metric name \"$metric\" at $filename:$line");
 
     return 0;
+}
+
+# Labels must be sent as a hashref with simple key-value pairs.
+# Not going to impose any stricter validation at this point.
+# Labels do NOT need to be predefined, unlike metrics.
+sub _valid_labels {
+    my $self    = shift;
+    my $labels  = shift;
+
+    my $reftype = ref $labels;
+    if ($reftype ne "HASH") {
+        my (undef, $filename, $line) = caller(1);
+        get_logger()->warn("invalid labels (must be HASH ref) at $filename:$line");
+
+        return {};
+    }
+
+    # No nested data here, delete on sight.
+    foreach my $k (keys %$labels) {
+        my $v = $labels->{$k};
+        if (ref $v) {
+            get_logger()->warn(
+                "No nested values allowed in labels. Deleting label $k => $v\n"
+            );
+            delete $labels->{$k};
+        }
+    }
+
+    return $labels;
 }
 
 sub _setup_metrics {

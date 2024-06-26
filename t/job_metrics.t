@@ -12,10 +12,13 @@ use HTFeed::JobMetrics;
 
 describe "HTFeed::JobMetrics" => sub {
     # SETUP start
-    my $jm = HTFeed::JobMetrics->get_instance;
-    my $item_metric = "ingest_pack_items";
-    my $byte_metric = "ingest_pack_bytes_write";
+    my $jm             = HTFeed::JobMetrics->get_instance;
+    my $item_metric    = "ingest_pack_items";
+    my $byte_metric    = "ingest_pack_bytes_write";
     my $invalid_metric = "not a valid metric";
+    my $label          = "test_label";
+    my $label_value    = "OK";
+
     before each => sub {
         $jm->clear() if defined $jm;
     };
@@ -137,6 +140,29 @@ describe "HTFeed::JobMetrics" => sub {
 
         ok($jm->dir_size($dir)    == $expected_dir_size);
         ok($jm->dir_size($subdir) == $expected_subdir_size);
+    };
+    it "allows labels passed to inc" => sub {
+        $jm->inc($item_metric, {$label => $label_value});
+        my $match = $jm->match($item_metric);
+        # we can set the value when passing label:
+        ok($jm->get_value($item_metric) == 1);
+        # we didn't create superfluous entries when passing a label:
+        ok(@$match == 2);
+        # we can see the label in match output (which is based on pretty output)
+        # so we know prometheus stored the label
+        ok($$match[1] eq "ingest_pack_items{test_label=\"OK\"} 1");
+    };
+    it "allows labels passed to add" => sub {
+        my $bytes = 123;
+        $jm->add($byte_metric, $bytes, {$label => $label_value});
+        my $match = $jm->match($byte_metric);
+        # we can set the value when passing label:
+        ok($jm->get_value($byte_metric) == $bytes);
+        # we didn't create superfluous entries when passing a label:
+        ok(@$match == 2);
+        # we can see the label in match output (which is based on pretty output)
+        # so we know prometheus stored the label
+        ok($$match[1] eq "ingest_pack_bytes_write{test_label=\"OK\"} $bytes");
     };
     # TESTS todo
     it "could have some histogram tests once we figure out histograms" => sub {};
