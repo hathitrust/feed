@@ -129,7 +129,7 @@ services:
     command: server /data
     healthcheck:
       <<: *healthcheck-defaults
-      test: [ "CMD", "/usr/bin/curl", "-s", "-f", "http://localhost:9000/minio/health/live"]
+      test: timeout 5s mc ready local
 
   pushgateway:
     image: prom/pushgateway
