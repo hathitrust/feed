@@ -378,8 +378,8 @@ sub _remediate_tiff {
     my $delta_time = $end_time - $start_time;
     $self->{job_metrics}->add("ingest_imageremediate_seconds", $delta_time);
     $self->{job_metrics}->inc("ingest_imageremediate_images");
-    $self->{job_metrics}->inc("ingest_imageremediate_bytes_read", $infile_size);
-    $self->{job_metrics}->inc("ingest_imageremediate_bytes_write", -s $outfile);
+    $self->{job_metrics}->add("ingest_imageremediate_bytes_read", $infile_size);
+    $self->{job_metrics}->add("ingest_imageremediate_bytes_write", -s $outfile);
 
     return $ret;
 }
