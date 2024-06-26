@@ -156,13 +156,24 @@ describe "HTFeed::JobMetrics" => sub {
         my $bytes = 123;
         $jm->add($byte_metric, $bytes, {$label => $label_value});
         my $match = $jm->match($byte_metric);
-        # we can set the value when passing label:
         ok($jm->get_value($byte_metric) == $bytes);
-        # we didn't create superfluous entries when passing a label:
         ok(@$match == 2);
-        # we can see the label in match output (which is based on pretty output)
-        # so we know prometheus stored the label
         ok($$match[1] eq "ingest_pack_bytes_write{test_label=\"OK\"} $bytes");
+    };
+    it "wants labels as hashref, otherwise warns & ignores them" => sub {
+        $jm->inc($item_metric, "this will work BUT labels will be ignored");
+        my $match = $jm->match($item_metric);
+        # there is no label in the match return
+        ok($$match[1] eq "ingest_pack_items 1");
+    };
+    it "wants simple label values, nested data will be stripped" => sub{
+        $jm->inc(
+            $item_metric,
+            {$label => ['nested dont work']}
+        );
+        my $match = $jm->match("nested dont work");
+        # no such label in the match return
+        ok(@$match == 0);
     };
     # TESTS todo
     it "could have some histogram tests once we figure out histograms" => sub {};
