@@ -22,7 +22,7 @@ WriteMakefile(
     'Mail::Mailer'        => 0,
     'METS'                => 0,
     'Mouse'               => 0,
-    'Net::AMQP::RabbitMQ' => 0,
+    'Net::AMQP::RabbitMQ' => "== 2.40010",
     'Net::Prometheus'     => 0,
     'Prometheus::Tiny::Shared' => 0,
     'ProgressTracker'     => 0,
