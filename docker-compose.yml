@@ -129,7 +129,7 @@ services:
     command: server /data
     healthcheck:
       <<: *healthcheck-defaults
-      test: [ "CMD","timeout 5s bash -c ':> /dev/tcp/127.0.0.1/9000' || exit 1"]
+      test: timeout 5s mc ready local
 
   pushgateway:
     image: prom/pushgateway
