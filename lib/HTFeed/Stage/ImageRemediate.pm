@@ -376,10 +376,11 @@ sub _remediate_tiff {
 
     my $end_time   = $self->{job_metrics}->time;
     my $delta_time = $end_time - $start_time;
-    $self->{job_metrics}->add("ingest_imageremediate_seconds", $delta_time);
-    $self->{job_metrics}->inc("ingest_imageremediate_images");
-    $self->{job_metrics}->add("ingest_imageremediate_bytes_read", $infile_size);
-    $self->{job_metrics}->add("ingest_imageremediate_bytes_write", -s $outfile);
+    my $labels = {format => 'tiff'}
+    $self->{job_metrics}->add("ingest_imageremediate_seconds", $delta_time, $labels);
+    $self->{job_metrics}->inc("ingest_imageremediate_images", $labels);
+    $self->{job_metrics}->add("ingest_imageremediate_bytes_read", $infile_size, $labels);
+    $self->{job_metrics}->add("ingest_imageremediate_bytes_write", -s $outfile, $labels);
 
     return $ret;
 }
@@ -436,10 +437,11 @@ sub repair_tiff_exiftool {
     }
     my $end_time = $self->{job_metrics}->time;
     my $delta_time = $end_time - $start_time;
-    $self->{job_metrics}->inc("ingest_imageremediate_images");
-    $self->{job_metrics}->add("ingest_imageremediate_bytes_read", $infile_size);
-    $self->{job_metrics}->add("ingest_imageremediate_bytes_write", -s $outfile);
-    $self->{job_metrics}->add("ingest_imageremediate_seconds", $delta_time);
+    my $labels = {format => 'tiff'};
+    $self->{job_metrics}->inc("ingest_imageremediate_images", $labels);
+    $self->{job_metrics}->add("ingest_imageremediate_bytes_read", $infile_size, $labels);
+    $self->{job_metrics}->add("ingest_imageremediate_bytes_write", -s $outfile, $labels);
+    $self->{job_metrics}->add("ingest_imageremediate_seconds", $delta_time, $labels);
 
     return $write_return;
 }
@@ -479,10 +481,11 @@ sub repair_tiff_imagemagick {
 
     my $end_time   = $self->{job_metrics}->time;
     my $delta_time = $end_time - $start_time;
-    $self->{job_metrics}->add("ingest_imageremediate_bytes_read", -s $infile);
-    $self->{job_metrics}->add("ingest_imageremediate_bytes_write", -s $outfile);
-    $self->{job_metrics}->add("ingest_imageremediate_seconds", $delta_time);
-    $self->{job_metrics}->inc("ingest_imageremediate_images");
+    my $labels = {format => 'tiff'}
+    $self->{job_metrics}->add("ingest_imageremediate_bytes_read", -s $infile, $labels);
+    $self->{job_metrics}->add("ingest_imageremediate_bytes_write", -s $outfile, $labels);
+    $self->{job_metrics}->add("ingest_imageremediate_seconds", $delta_time, $labels);
+    $self->{job_metrics}->inc("ingest_imageremediate_images", $labels);
 
     return !$rval;
 }
@@ -609,10 +612,11 @@ sub _remediate_jpeg2000 {
     my $ret_val = $self->update_tags( $exifTool, $outfile, $infile );
     my $end_time = $self->{job_metrics}->time;
     my $delta_time = $end_time - $start_time;
-    $self->{job_metrics}->inc("ingest_imageremediate_images");
-    $self->{job_metrics}->add("ingest_imageremediate_bytes_read", $infile_size);
-    $self->{job_metrics}->add("ingest_imageremediate_bytes_write", -s $outfile);
-    $self->{job_metrics}->add("ingest_imageremediate_seconds", $delta_time);
+    my $labels = {format => 'jpeg2000'};
+    $self->{job_metrics}->inc("ingest_imageremediate_images", $labels);
+    $self->{job_metrics}->add("ingest_imageremediate_bytes_read", $infile_size, $labels);
+    $self->{job_metrics}->add("ingest_imageremediate_bytes_write", -s $outfile, $labels);
+    $self->{job_metrics}->add("ingest_imageremediate_seconds", $delta_time, $labels);
 
     return $ret_val;
 }
@@ -776,10 +780,14 @@ sub expand_lossless_jpeg2000 {
                 $jpeg2000_remediated    =~ s/\.jp2$/.remediated.jp2/;
                 my $grk_decompress      = get_config('grk_decompress');
 
-                system("$grk_decompress -i '$path/$jpeg2000' -o '$path/$tiff' > /dev/null 2>&1");
-		$self->{job_metrics}->add("ingest_imageremediate_bytes_read", -s "$path/$jpeg2000");
-                $self->{job_metrics}->add("ingest_imageremediate_bytes_write", -s "$path/$tiff");
-		$self->{job_metrics}->inc("ingest_imageremediate_images");
+                my $labels = {
+                    converted => "jpeg2000->tiff",
+                    tool      => 'grk_decompress'
+                }
+                system("$grk_decompress -i '$path/$jpeg2000' -o '$path/$tiff' > /dev/null 2>&1", $labels);
+		$self->{job_metrics}->add("ingest_imageremediate_bytes_read", -s "$path/$jpeg2000", $labels);
+                $self->{job_metrics}->add("ingest_imageremediate_bytes_write", -s "$path/$tiff", $labels);
+		$self->{job_metrics}->inc("ingest_imageremediate_images", $labels);
 
                 # try to compress the TIFF -> JPEG2000
                 get_logger()->trace("Compressing $path/$tiff to $path/$jpeg2000");
@@ -799,6 +807,7 @@ sub expand_lossless_jpeg2000 {
                     detail    => "grk_compress returned $?"
                 );
 
+                $start_time = $self->{job_metrics}->time;
                 # copy all headers from the original jpeg2000
                 # grk_compress loses info from IFD0 headers, which are sometimes present in JPEG2000 images
                 my $exiftool = new Image::ExifTool;
@@ -807,10 +816,11 @@ sub expand_lossless_jpeg2000 {
 
                 my $end_time = $self->{job_metrics}->time;
                 my $delta_time = $end_time - $start_time;
-                $self->{job_metrics}->add("ingest_imageremediate_seconds", $delta_time);
-		$self->{job_metrics}->add("ingest_imageremediate_bytes_read", -s "$path/$tiff");
-                $self->{job_metrics}->add("ingest_imageremediate_bytes_write", -s "$path/$jpeg2000_remediated");
-		$self->{job_metrics}->inc("ingest_imageremediate_images");
+                $labels = {tool => 'exiftool'}
+                $self->{job_metrics}->add("ingest_imageremediate_seconds", $delta_time, $labels);
+		$self->{job_metrics}->add("ingest_imageremediate_bytes_read", -s "$path/$tiff", $labels);
+                $self->{job_metrics}->add("ingest_imageremediate_bytes_write", -s "$path/$jpeg2000_remediated", $labels);
+		$self->{job_metrics}->inc("ingest_imageremediate_images", $labels);
 
                 # gotta do metrics first or we can't get file sizes
                 rename("$path/$jpeg2000_remediated","$path/$jpeg2000");
@@ -849,9 +859,13 @@ sub expand_other_file_formats {
             $self->copy_metadata($ext, $infile, $outfile);
             my $infile_size = -s $infile;
             unlink($infile);
-	    $self->{job_metrics}->add("ingest_imageremediate_bytes_read", $infile_size);
-	    $self->{job_metrics}->add("ingest_imageremediate_bytes_write", -s $outfile);
-	    $self->{job_metrics}->inc("ingest_imageremediate_images");
+            my $labels = {
+                tool      => 'imagemagick',
+                converted => $ext."->tiff"
+            };
+	    $self->{job_metrics}->add("ingest_imageremediate_bytes_read", $infile_size, $labels);
+	    $self->{job_metrics}->add("ingest_imageremediate_bytes_write", -s $outfile, $labels);
+	    $self->{job_metrics}->inc("ingest_imageremediate_images", $labels);
 	}
     }
 }
@@ -1027,8 +1041,9 @@ sub remediate_tiffs {
 
     my $end_time = $self->{job_metrics}->time;
     my $delta_time = $end_time - $start_time;
-    $self->{job_metrics}->add("ingest_imageremediate_seconds", $delta_time);
-    $self->{job_metrics}->inc("ingest_imageremediate_items");
+    my $labels = {format => "tiff", tool => 'jhove'};
+    $self->{job_metrics}->add("ingest_imageremediate_seconds", $delta_time, $labels);
+    $self->{job_metrics}->inc("ingest_imageremediate_items", $labels);
 }
 
 sub convert_tiff_to_jpeg2000 {
@@ -1092,9 +1107,14 @@ sub convert_tiff_to_jpeg2000 {
     my $magick_compress_cmd = "$imagemagick_cmd -compress None $infile -strip $infile.unc.tif";
     my $magick_compress_err = system($magick_compress_cmd);
 
-    $self->{job_metrics}->add("ingest_imageremediate_bytes_read", -s $infile);
-    $self->{job_metrics}->add("ingest_imageremediate_bytes_write", -s "$infile.unc.tif");
-    $self->{job_metrics}->inc("ingest_imageremediate_images");
+    my $labels = {converted => "tiff->jpeg2000", tool => "imagemagick"}
+    $self->{job_metrics}->add("ingest_imageremediate_bytes_read", -s $infile, $labels);
+    $self->{job_metrics}->add(
+        "ingest_imageremediate_bytes_write",
+        -s "$infile.unc.tif",
+        $labels
+    );
+    $self->{job_metrics}->inc("ingest_imageremediate_images", $labels);
 
     if ($magick_compress_err) {
 	$self->set_error(
