@@ -225,6 +225,7 @@ sub _valid_metric {
 
 # Labels must be sent as a hashref with simple key-value pairs.
 # Not going to impose any stricter validation at this point.
+# Keys and values will be lowercased.
 # Labels do NOT need to be predefined, unlike metrics.
 sub _valid_labels {
     my $self    = shift;
@@ -246,8 +247,12 @@ sub _valid_labels {
                 "No nested values allowed in labels. Deleting label $k => $v\n"
             );
             delete $labels->{$k};
+            next;
         }
     }
+
+    # lowercase the whole hashref, now that keys & vals are known to be fine
+    $labels = { map lc, %$labels };
 
     return $labels;
 }
