@@ -143,7 +143,7 @@ if (!caller) {
 sub parse_labels {
     my $str = shift;
 
-    my $href_out = {}
+    my $href_out = {};
     if ($str) {
         my @key_value_pairs = split(";", $str);
         foreach my $pair (@key_value_pairs) {
