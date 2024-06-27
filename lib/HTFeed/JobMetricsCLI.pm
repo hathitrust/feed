@@ -19,7 +19,7 @@ A class providing a Command Line Interface to the JobMetrics class.
 
 =item --help / --usage
 
-Display the POD snippets in this file as a help document.
+Render the POD in this file as a help document.
 
 =item --loc
 
@@ -68,6 +68,8 @@ Note that histograms must be set up with buckets ahead of time.
 
 =cut
 
+my $job_metrics = HTFeed::JobMetrics->get_instance();
+
 if (!caller) {
     GetOptions(
 	# these are all booleans
@@ -77,25 +79,29 @@ if (!caller) {
         'location' => \my $location,
         'pretty'   => \my $pretty,
         'usage'    => \my $usage,
-        # Each operation takes a metric and/or a value:
-        # add(metric, value),
+        # Each operation takes a metric and/or a value.
+        # add/inc also take an optional labels arg.
+        # add(metric, value, labels?),
         # get_value(metric)
-        # inc(metric),
+        # inc(metric, labels?),
         # match(value),
         # observe(metric, value)
         'operation=s' => \my $operation,
         'metric=s'    => \my $metric,
-        'value=s'     => \my $value
+        'value=s'     => \my $value,
+        'labels=s'    => \my $labels_str # optional hash as string = a:b;c:d
     );
 
     if ($help or $usage) {
         pod2usage(2);
     }
 
-    my $job_metrics = HTFeed::JobMetrics->get_instance();
+    # Turn the optional labels_str into a hashref
+    my $labels = parse_labels($labels_str);
+
     my %valid_operations = (
-        add       => sub { $job_metrics->add($metric, $value) },
-        inc       => sub { $job_metrics->inc($metric) },
+        add       => sub { $job_metrics->add($metric, $value, $labels) },
+        inc       => sub { $job_metrics->inc($metric, $labels) },
         match     => sub {
             my $matches = $job_metrics->match($value);
             print join("\n", @$matches) . "\n";
@@ -111,23 +117,11 @@ if (!caller) {
         observe => sub { $job_metrics->observe($metric, $value) }
     );
 
-    # Check the boolean args and act if true.
-    if ($clear) {
-        print "Clearing data...\n";
-        $job_metrics->clear;
-        print "Data cleared.\n";
-    }
-    if ($list) {
-        print "# List of metrics:\n";
-        print join("\n", @{$job_metrics->list_metrics}) . "\n";
-    }
-    if ($location) {
-        print "# HTFeed::JobMetrics data stored in:\n";
-        print $job_metrics->loc . "\n";
-    }
-    if ($pretty) {
-        print $job_metrics->pretty . "\n";
-    }
+    # Check the boolean args and call associated sub if true.
+    $clear    && &clear();
+    $list     && &list();
+    $location && &location();
+    $pretty   && &pretty();
 
     # Now check the operation arg
     if (defined $operation) {
@@ -140,8 +134,45 @@ if (!caller) {
         }
     } else {
         print "No operation defined, exiting.\n";
-        exit(0);
     }
+    exit(0);
+}
+
+# Parse string into hashref,
+# "a:b;c:d" -> {a => b, c => d}
+sub parse_labels {
+    my $str = shift;
+
+    my $href_out = {}
+    if ($str) {
+        my @key_value_pairs = split(";", $str);
+        foreach my $pair (@key_value_pairs) {
+            my ($k, $v) = split(":", $pair);
+            $href_out->{$k} = $v;
+        }
+    }
+
+    return $href_out;
+}
+
+sub clear {
+    print "Clearing data...\n";
+    $job_metrics->clear;
+    print "Data cleared.\n";
+}
+
+sub list {
+    print "# List of metrics:\n";
+    print join("\n", @{$job_metrics->list_metrics}) . "\n";
+}
+
+sub location {
+    print "# HTFeed::JobMetrics data stored in:\n";
+    print $job_metrics->loc . "\n";
+}
+
+sub pretty {
+    print $job_metrics->pretty . "\n";
 }
 
 1;
