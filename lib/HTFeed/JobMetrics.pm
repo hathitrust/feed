@@ -3,9 +3,7 @@ package HTFeed::JobMetrics;
 use strict;
 use warnings;
 use File::Find;
-use Getopt::Long;
 use Log::Log4perl qw(get_logger);
-use Pod::Usage;
 use Prometheus::Tiny::Shared;
 use Time::HiRes;
 
@@ -30,102 +28,20 @@ get_instance() method instead of a "normal" new() function.
 The singleton instance is stored in the aptly named
 $singleton variable.
 
+CLI provided by and documented in JobMetricsCLI.pm.
+
 =item See e.g.:
 
   https://www.perl.com/article/52/2013/12/11/Implementing-the-singleton-pattern-in-Perl/
 
 =back
 
-=item Command line options:
-
-=back
-
-=item --help / --usage
-
-Display the POD snippets in this file as a help document.
-
 =cut
-
-# If called from terminal:
-if (!caller) {
-    GetOptions(
-	# these are all booleans
-        'clear'    => \my $clear,
-        'help'     => \my $help,
-        'list'     => \my $list,
-        'location' => \my $location,
-        'pretty'   => \my $pretty,
-        'usage'    => \my $usage,
-        # Each operation takes a metric and/or a value:
-        # add(metric, value),
-        # get_value(metric)
-        # inc(metric),
-        # match(value),
-        # observe(metric, value)
-        'operation=s' => \my $operation,
-        'metric=s'    => \my $metric,
-        'value=s'     => \my $value
-    );
-
-    if ($help or $usage) {
-        pod2usage(2);
-    }
-
-    my $job_metrics = HTFeed::JobMetrics->get_instance();
-    my %valid_operations = (
-        add       => sub { $job_metrics->add($metric, $value) },
-        inc       => sub { $job_metrics->inc($metric) },
-        match     => sub {
-            my $matches = $job_metrics->match($value);
-            print join("\n", @$matches) . "\n";
-        },
-        get_value => sub {
-            my $value = $job_metrics->get_value($metric);
-            if (defined $value) {
-                print "$value\n";
-            } else {
-                print "no value found\n";
-            }
-        },
-        observe => sub { $job_metrics->observe($metric, $value) }
-    );
-
-    # Check the boolean args and act if true.
-    if ($clear) {
-        print "Clearing data...\n";
-        $job_metrics->clear;
-        print "Data cleared.\n";
-    }
-    if ($list) {
-        print "# List of metrics:\n";
-        print join("\n", @{$job_metrics->list_metrics}) . "\n";
-    }
-    if ($location) {
-        print "# HTFeed::JobMetrics data stored in:\n";
-        print $job_metrics->loc . "\n";
-    }
-    if ($pretty) {
-        print $job_metrics->pretty . "\n";
-    }
-
-    # Now check the operation arg
-    if (defined $operation) {
-        if (exists $valid_operations{$operation}) {
-            print "running operation $operation ...\n";
-            $valid_operations{$operation}();
-        } else {
-            print "Invalid operation, exiting.\n";
-            exit(1);
-        }
-    } else {
-        print "No operation defined, exiting.\n";
-        exit(0);
-    }
-}
-# end commandline stuff
 
 my $singleton = undef;
 
+# This class implements the singleton pattern.
+# Call get_instance instead of new.
 sub get_instance {
     # Re-use singleton if defined.
     if (!defined $singleton) {
@@ -147,67 +63,36 @@ sub get_instance {
     return $singleton;
 }
 
-=item --loc
-
-Show where the data is stored.
-
-=cut
-
+# Show where the data is stored.
 sub loc {
     my $self = shift;
 
     $self->{file};
 }
 
-=item --list
-
-Show names of all known metrics.
-
-=cut
-
+# Show names of all known metrics.
 sub list_metrics {
     my $self = shift;
 
     [sort keys %{$self->{metrics}}];
 }
 
-=item --pretty
 
-Full, somewhat readable, accounting of known metrics and their values.
-
-Call this to export/harvest/scrape data from the running production pod.
-
-=cut
-
+# Full, somewhat readable, accounting of known metrics and their values.
 sub pretty {
     my $self = shift;
 
     $self->{prom}->format;
 }
 
-=item --clear
-
-Irrevocably delete job metrics (see --loc for where that is)
-
-=cut
-
+# Irrevocably delete job metrics
 sub clear {
     my $self = shift;
 
     $self->{prom}->clear;
 }
 
-=item --operation
-
---operation takes an operation name (match / inc / add/ observe),
-a --metric and/or a --value. See below for the different operations.
-
-=item --operation match --value x
-
-Return metrics matching x.
-
-=cut
-
+# Return matching lines from pretty output
 sub match {
     my $self   = shift;
     my $value  = shift;
@@ -218,12 +103,7 @@ sub match {
     [grep { /$value/ } @pretties];
 }
 
-=item --operation get_value --metric x
-
-Returns the value for metric x, 0 in case of any issues.
-
-=cut
-
+# Return value for a given metric
 sub get_value {
     my $self   = shift;
     my $metric = shift;
@@ -244,12 +124,7 @@ sub get_value {
     return 0;
 }
 
-=item --operation inc --metric x
-
-Increment metric x by 1.
-
-=cut
-
+# Increment the given metric (w/ optional labels href)
 sub inc {
     my $self   = shift;
     my $metric = shift;
@@ -263,12 +138,7 @@ sub inc {
     }
 }
 
-=item --operation add --metric x --value y
-
-Adds arbitrary numeric value y to the metric x.
-
-=cut
-
+# Add to the value of the given counter metric (w/ optional labels href)
 sub add {
     my $self   = shift;
     my $metric = shift;
@@ -291,14 +161,7 @@ sub add {
     $self->_valid_metric($metric) && $self->{prom}->add($metric, $value, $labels);
 }
 
-=item --operation observe --metric x --value y
-
-Add value y to the histogram metric x.
-
-Note that histograms must be set up with buckets ahead of time.
-
-=cut
-
+# Add to the buckets of the given bucket metric
 sub observe {
     my $self   = shift;
     my $metric = shift;
@@ -313,12 +176,11 @@ sub observe {
     $self->_valid_metric($metric) && $self->{prom}->histogram_observe($metric, $value);
 }
 
-# Not hooked up to CLI. We occasionally want the size of a directory
-# (recursively) for certain metrics.
+# We want the size of a directory (recursively) for certain metrics.
 # Example:
 #   HTFeed::JobMetrics->dir_size($some_dir) -> 12345;
 sub dir_size {
-    shift if (ref $_[0]); # Discard $self if passed in.
+    shift if (ref $_[0]);       # Discard $self if passed in.
     my $dir = shift;
 
     my $size = 0;
