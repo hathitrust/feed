@@ -12,9 +12,14 @@ use HTFeed::Test::Logger;
 use HTFeed::Test::TempDirs;
 use Exporter 'import';
 
+use constant {
+  # Value to pass to RabbitMQ to tell it not to block if the message queue is empty
+  NO_WAIT => -1,
+  # Amount of time to wait (in milliseconds) if we expect there will be a message eventually
+  RECV_WAIT => 500
+};
+
 our @EXPORT_OK = qw(mock_zephir mock_clamav stage_volume NO_WAIT RECV_WAIT);
-use constant NO_WAIT   => -1;
-use constant RECV_WAIT => 500;
 
 sub mock_zephir {
     no warnings 'redefine';

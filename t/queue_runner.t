@@ -2,7 +2,7 @@ use FindBin;
 use lib "$FindBin::Bin/lib";
 use Test::Spec;
 use Test::Exception;
-use HTFeed::Test::SpecSupport qw(mock_zephir);
+use HTFeed::Test::SpecSupport qw(mock_zephir NO_WAIT RECV_WAIT);
 use HTFeed::Test::Support qw(load_db_fixtures);
 use HTFeed::Config qw(get_config set_config);
 use HTFeed::DBTools qw(get_dbh);
@@ -11,9 +11,6 @@ use HTFeed::Queue;
 use HTFeed::QueueRunner;
 
 use strict;
-
-my $NO_WAIT = -1;
-my $RECV_WAIT = 500;
 
 describe "HTFeed::QueueRunner" => sub {
   local our ($tmpdirs, $testlog);
@@ -58,11 +55,11 @@ describe "HTFeed::QueueRunner" => sub {
   }
 
   sub no_messages_in_queue {
-    not defined HTFeed::Bunnies->new()->next_job($NO_WAIT);
+    not defined HTFeed::Bunnies->new()->next_job(NO_WAIT);
   }
 
   sub queue_runner {
-    HTFeed::QueueRunner->new(timeout => $RECV_WAIT, should_fork => 0, clean => 0);
+    HTFeed::QueueRunner->new(timeout => RECV_WAIT, should_fork => 0, clean => 0);
   }
 
   before all => sub {
