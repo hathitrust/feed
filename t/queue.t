@@ -2,7 +2,7 @@ use FindBin;
 use lib "$FindBin::Bin/lib";
 use Test::Spec;
 use Test::Exception;
-use HTFeed::Test::SpecSupport;
+use HTFeed::Test::SpecSupport qw(NO_WAIT RECV_WAIT);
 
 use HTFeed::Config qw(get_config);
 use HTFeed::DBTools qw(get_dbh);
@@ -10,9 +10,6 @@ use HTFeed::Bunnies;
 use HTFeed::Queue;
 
 use strict;
-
-my $NO_WAIT = -1;
-my $RECV_WAIT = 500; # RabbitMQ recv timeout in milliseconds
 
 describe "HTFeed::Queue" => sub {
   my $testlog;
@@ -45,7 +42,7 @@ describe "HTFeed::Queue" => sub {
     my $volume = shift;
     my $status = shift;
 
-    my $job = HTFeed::Bunnies->new()->next_job($RECV_WAIT);
+    my $job = HTFeed::Bunnies->new()->next_job(RECV_WAIT);
     is($job->{pkg_type},  $volume->get_packagetype);
     is($job->{namespace}, $volume->get_namespace);
     is($job->{id},        $volume->get_objid);
@@ -85,7 +82,7 @@ describe "HTFeed::Queue" => sub {
         my $priority = HTFeed::Queue::QUEUE_PRIORITY_MED;
 
         HTFeed::Queue->new->enqueue(volume => testvolume, status => 'ready', priority => $priority);
-        my $job = HTFeed::Bunnies->new()->next_job($RECV_WAIT);
+        my $job = HTFeed::Bunnies->new()->next_job(RECV_WAIT);
 
         is($job->{msg}{props}{priority}, $priority);
       };
@@ -119,7 +116,7 @@ describe "HTFeed::Queue" => sub {
           $receiver->reset_queue;
 
           HTFeed::Queue->new->enqueue(volume => testvolume, status => 'ready', ignore => 1);
-          ok(!$receiver->next_job($RECV_WAIT));
+          ok(!$receiver->next_job(RECV_WAIT));
 
         }
       };
@@ -139,7 +136,7 @@ describe "HTFeed::Queue" => sub {
           $receiver->reset_queue;
 
           HTFeed::Queue->new->enqueue(volume => testvolume, status => 'ready', ignore => 1);
-          ok(!$receiver->next_job($RECV_WAIT));
+          ok(!$receiver->next_job(RECV_WAIT));
 
         }
       };
@@ -160,7 +157,7 @@ describe "HTFeed::Queue" => sub {
         it "doesn't add a message to the queue" => sub {
           HTFeed::Queue->new->enqueue(volume=>testvolume, status=>'ready');
 
-          ok(!HTFeed::Bunnies->new->next_job($RECV_WAIT));
+          ok(!HTFeed::Bunnies->new->next_job(RECV_WAIT));
         };
         it "doesn't put the item in the database" => sub {
           HTFeed::Queue->new->enqueue(volume=>testvolume, status=>'ready');
@@ -213,7 +210,7 @@ describe "HTFeed::Queue" => sub {
         it "doesn't put the item in the message queue" => sub {
           HTFeed::Queue->new->enqueue(volume=>testvolume, status=>'ready');
           
-          ok(!HTFeed::Bunnies->new->next_job($RECV_WAIT));
+          ok(!HTFeed::Bunnies->new->next_job(RECV_WAIT));
         };
       };
 
@@ -261,7 +258,7 @@ describe "HTFeed::Queue" => sub {
         $queue->enqueue(volume=>testvolume, status=>'punted');
         $queue->reset(volume=>testvolume, reset_level => 1, priority => $priority);
 
-        my $job = HTFeed::Bunnies->new()->next_job($RECV_WAIT);
+        my $job = HTFeed::Bunnies->new()->next_job(RECV_WAIT);
         is($job->{msg}{props}{priority}, $priority);
       };
 
@@ -282,7 +279,7 @@ describe "HTFeed::Queue" => sub {
         $queue->enqueue(volume=>testvolume, status=>'done');
         $queue->reset(volume=>testvolume, reset_level => 1);
         ok(!volume_in_feed_queue(testvolume, 'ready'));
-        ok(!HTFeed::Bunnies->new->next_job($RECV_WAIT));
+        ok(!HTFeed::Bunnies->new->next_job(RECV_WAIT));
       };
 
       describe "when resetting to available state" => sub {
@@ -297,7 +294,7 @@ describe "HTFeed::Queue" => sub {
           my $queue = HTFeed::Queue->new;
           $queue->enqueue(volume=>testvolume, status=>'punted');
           $queue->reset(volume=>testvolume, reset_level => 1, status=>'available');
-          ok(!HTFeed::Bunnies->new->next_job($RECV_WAIT));
+          ok(!HTFeed::Bunnies->new->next_job(RECV_WAIT));
         };
       };
     };
@@ -326,7 +323,7 @@ describe "HTFeed::Queue" => sub {
 
         $queue->reset(volume=>testvolume, reset_level => 2);
         ok(!volume_in_feed_queue(testvolume, 'ready'));
-        ok(!HTFeed::Bunnies->new->next_job($RECV_WAIT));
+        ok(!HTFeed::Bunnies->new->next_job(RECV_WAIT));
       };
     };
 
@@ -370,7 +367,7 @@ describe "HTFeed::Queue" => sub {
         HTFeed::Bunnies->new->reset_queue;
         
         $queue->reset(volume=>testvolume, reset_level => 3, status => 'ready');
-        my $job = HTFeed::Bunnies->new()->next_job($RECV_WAIT);
+        my $job = HTFeed::Bunnies->new()->next_job(RECV_WAIT);
         is($job->{msg}{props}{priority}, $priority);
       };
     };
@@ -386,7 +383,7 @@ describe "HTFeed::Queue" => sub {
 
     it "with available status, does not send a message" => sub {
       HTFeed::Queue->new->send_to_message_queue(testvolume,'available');
-      ok(!HTFeed::Bunnies->new->next_job($RECV_WAIT));
+      ok(!HTFeed::Bunnies->new->next_job(RECV_WAIT));
     };
   };
 

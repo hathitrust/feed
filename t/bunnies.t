@@ -2,21 +2,27 @@ use FindBin;
 use lib "$FindBin::Bin/lib";
 use Test::Spec;
 use JSON::XS qw(decode_json);
-use HTFeed::Test::SpecSupport;
+use HTFeed::Test::SpecSupport qw(NO_WAIT RECV_WAIT);
 use HTFeed::Config qw(get_config);
 use HTFeed::Bunnies;
 use utf8;
 
 use strict;
 
-# before each connect & clear queue
-
 describe "HTFeed::Bunnies" => sub {
-  my $NO_WAIT = -1;
-  # Amount of time to wait if we expect there will be a message eventually
-  my $RECV_WAIT = 500;
   sub bunnies {
     HTFeed::Bunnies->new();
+  }
+
+  # verifies we get a message, returns the message payload
+  sub expect_message {
+    my $job_info = bunnies->next_job(RECV_WAIT);
+    ok($job_info);
+    return $job_info;
+  }
+
+  sub expect_no_message {
+    ok(not defined bunnies->next_job(NO_WAIT));
   }
 
   before each => sub {
@@ -63,7 +69,7 @@ describe "HTFeed::Bunnies" => sub {
 
       my @jobs;
       foreach my $i (1..4) { 
-        my $job = $bunnies->next_job($RECV_WAIT);
+        my $job = $bunnies->next_job(RECV_WAIT);
         $bunnies->finish($job);
         push(@jobs, $job);
       }
@@ -76,22 +82,24 @@ describe "HTFeed::Bunnies" => sub {
   };
 
   describe "#next_job" => sub {
-    it "gets the previously-queued job" => sub {
+
+
+    it "gets a message after queuing a message" => sub {
       bunnies->queue_job();
-      ok(bunnies->next_job($RECV_WAIT));
+      expect_message;
     };
 
-    it "returns the given parameters" => sub {
+    it "returns the parameters of the previously-queued message" => sub {
       my %params = (param1 => "value1", param2 => "value2");
       bunnies->queue_job(%params);
-      my $job_info = bunnies->next_job($RECV_WAIT);
+      my $job_info = expect_message;
       is($job_info->{param1}, "value1");
       is($job_info->{param2}, "value2");
     };
 
     it "saves a reference to the message" => sub {
       bunnies->queue_job();
-      my $job_info = bunnies->next_job($RECV_WAIT);
+      my $job_info = expect_message;
       ok($job_info->{msg});
     };
 
@@ -101,9 +109,13 @@ describe "HTFeed::Bunnies" => sub {
         $bunnies->{queue},
         "not valid json");
 
-      bunnies->next_job($RECV_WAIT);
+      # get a message but don't try to decode it
+      expect_message;
+      # Don't have a way to test this currently? #138
       # ok(logs_error)
-      ok(!bunnies->next_job($NO_WAIT));
+      #
+      # Expecting the (malformed) message won't get redelivered
+      expect_no_message;
     };
 
     it "without json that decodes to a hash, logs an error and rejects the message" => sub {
@@ -112,9 +124,13 @@ describe "HTFeed::Bunnies" => sub {
         $bunnies->{queue},
         "[1, 2, 3]");
 
-      bunnies->next_job($RECV_WAIT);
+      # get a message but don't try to decode it
+      expect_message;
+      # Don't have a way to test this currently? #138
       # ok(logs_error)
-      ok(!bunnies->next_job($NO_WAIT));
+      #
+      # Expecting the (malformed) message won't get redelivered
+      expect_no_message;
     };
 
   };
@@ -124,30 +140,37 @@ describe "HTFeed::Bunnies" => sub {
       bunnies->queue_job;
 
       my $receiver = bunnies;
-      my $job = $receiver->next_job($RECV_WAIT);
+      my $job = $receiver->next_job(RECV_WAIT);
       $receiver->finish($job);
       # ensure channel is closed
       $receiver->{mq}->disconnect();
 
-      ok(not defined bunnies->next_job($NO_WAIT));
+      expect_no_message;
 
     };
 
     it "after reconnect, gets the same job again if job wasn't finished" => sub {
-      bunnies->queue_job;
+      my $testdata = int(rand(500));
+      bunnies->queue_job(testparam => $testdata);
       # consume, don't ack, reset & try again; should get it again
-      bunnies->next_job($RECV_WAIT);
-      ok(bunnies->next_job($NO_WAIT));
+      my $msg1 = expect_message;
+      my $msg2 = expect_message;
+      ok(defined $msg1->{testparam} && 
+        $msg1->{testparam} == $msg2->{testparam},"got the same job");
     };
 
     it "on the same connection, does not deliver another job if previous job wasn't acked" => sub {
       my $queuer = bunnies;
+
+      # queue two jobs
       $queuer->queue_job;
       $queuer->queue_job;
       
       my $receiver = bunnies;
-      $receiver->next_job($RECV_WAIT);
-      ok(not defined $receiver->next_job($NO_WAIT));
+      # got one message
+      ok($receiver->next_job(RECV_WAIT));
+      # doesn't get the next message yet
+      ok(not defined $receiver->next_job(NO_WAIT));
     };
   }
 };
