@@ -862,7 +862,7 @@ sub expand_other_file_formats {
 	my $infile     = "$path/$file";
         my @parts      = fileparse($infile, @other_recognized_formats);
         my $outname    = $parts[0];
-        my $ext        = $parts[1];
+        my $ext        = $parts[2];
 	my $outfile    = "$path/$outname.tif";
         my $start_time = $self->{job_metrics}->time;
 	my $cmd        = "$imagemagick_cmd -compress None $infile -strip $outfile";
