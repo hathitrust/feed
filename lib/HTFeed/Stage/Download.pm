@@ -63,7 +63,7 @@ sub download{
 
     if( $response->is_success() ){
         my $size = (-s $pathname);
-	$self->{job_metrics}->add("ingest_download_bytes", $size);
+	$self->{job_metrics}->add("ingest_download_bytes_r_total", $size);
         my $date = $response->header('last-modified');
         utime(time, UnixDate(ParseDate($date), "%s"), $pathname);
         my $expected_size = $response->header('content-length');

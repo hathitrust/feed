@@ -28,11 +28,13 @@ sub new {
 }
 
 sub run {
-    my $self = shift;
-    my $volume = $self->{volume};
+    my $self   = shift;
+
+    my $volume     = $self->{volume};
+    my $start_time = $self->{job_metrics}->time;
     # reset md5 checksum source to repo METS file??
     # add uplift METS events; mess with PREMIS events we will include.
-    my $nspkg = $volume->get_nspkg();
+    my $nspkg     = $volume->get_nspkg();
     my $pkg_class = ref($nspkg);
     no strict 'refs';
     my $pkg_config = ${"${pkg_class}::config"};
@@ -41,7 +43,7 @@ sub run {
         'mets_update'
     ];
 
-    my $old_xpc = $volume->get_repository_mets_xpc();
+    my $old_xpc      = $volume->get_repository_mets_xpc();
     $self->{old_xpc} = $old_xpc;
 
     $volume->record_premis_event('mets_update');
@@ -54,9 +56,9 @@ sub run {
     $mets_stage->run();
 
     # compare new METS to old mets. must have:
-    my $new_mets_file = $mets_stage->{outfile};
+    my $new_mets_file      = $mets_stage->{outfile};
     $self->{new_mets_file} = $new_mets_file;
-    my $new_xpc = $volume->_parse_xpc($new_mets_file);
+    my $new_xpc            = $volume->_parse_xpc($new_mets_file);
 
     # make sure file count, page count, objid are the same
     my @queries = (
@@ -78,11 +80,11 @@ sub run {
     # is this an event we're migrating?
     my $migrate_events = $nspkg->get('migrate_events');
     foreach my $event_type_node ($old_xpc->findnodes("//premis:eventType")) {
-        my $old_event_type = $event_type_node->textContent();
+        my $old_event_type  = $event_type_node->textContent();
         my @new_event_types = ($old_event_type);
 
         if(my $new_event_tags = $migrate_events->{$old_event_type}) {
-            @new_event_types = map { $nspkg->get_event_configuration($_)->{type} } @$new_event_tags;
+            @new_event_types  = map { $nspkg->get_event_configuration($_)->{type} } @$new_event_tags;
         }
 
         foreach my $new_event_type (@new_event_types) {
@@ -201,9 +203,9 @@ sub run {
 
     # move old METS aside
     my $mets_source = $volume->get_mets_path();
-    my $mets_dest = $volume->get_repository_mets_path();
+    my $mets_dest   = $volume->get_repository_mets_path();
     my $mets_old;
-    if($mets_dest =~ /\.mets\.xml$/) {
+    if ($mets_dest =~ /\.mets\.xml$/) {
         $mets_old = $mets_dest;
         $mets_old =~ s/\.mets\.xml$/.pre_uplift.mets.xml/;
     } else {
@@ -233,7 +235,11 @@ sub run {
 	);
 
         $self->_set_done();
-	$self->{job_metrics}->add("ingest_remets_bytes", -s $mets_dest);
+        my $end_time   = $self->{job_metrics}->time;
+        my $delta_time = $end_time - $start_time;
+        $self->{job_metrics}->add("ingest_remets_seconds_total", $delta_time);
+	$self->{job_metrics}->add("ingest_remets_bytes_w_total", -s $mets_dest);
+        $self->{job_metrics}->inc("ingest_remets_items_total");
 
 	return $self->succeeded();
     }

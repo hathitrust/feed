@@ -110,13 +110,11 @@ sub remediate_image {
     my $oldext = $1;
     # Possibly plug in other extension-specific remediators here?
     if ($oldext eq "jp2") {
-	return $self->_remediate_jpeg2000( $oldfile, @_ );
+	return $self->_remediate_jpeg2000($oldfile, @_);
     } elsif ($oldext eq "tif") {
-	return $self->_remediate_tiff( $oldfile, @_ );
+	return $self->_remediate_tiff($oldfile, @_);
     }
 
-    $self->{job_metrics}->inc("ingest_imageremediate_images");
-    
     # And if we didn't return anything above, that's an error.
     $self->set_error(
         "BadFile",
@@ -210,11 +208,16 @@ sub _remediate_tiff {
     my $outfile                  = shift;
     my $force_headers            = ( shift or {} );
     my $set_if_undefined_headers = shift;
+
+    my $start_time  = $self->{job_metrics}->time;
+    my $infile_size = -s $infile;
+
     my $bad                   = 0;
     my $remediate_imagemagick = 0; #needs imagemagick fix
+
     $self->{newFields} = $force_headers;
     $self->{oldFields} = $self->get_exiftool_fields($infile);
-    my $fields = $self->{oldFields};
+    my $fields         = $self->{oldFields};
 
     my $status = $self->{jhoveStatus};
     if ( not defined $status ) {
@@ -371,6 +374,14 @@ sub _remediate_tiff {
 	$self->{newFields}
     );
 
+    my $end_time   = $self->{job_metrics}->time;
+    my $delta_time = $end_time - $start_time;
+    my $labels = {format => 'tiff'};
+    $self->{job_metrics}->add("ingest_imageremediate_seconds_total", $delta_time, $labels);
+    $self->{job_metrics}->inc("ingest_imageremediate_images_total", $labels);
+    $self->{job_metrics}->add("ingest_imageremediate_bytes_r_total", $infile_size, $labels);
+    $self->{job_metrics}->add("ingest_imageremediate_bytes_w_total", -s $outfile, $labels);
+
     return $ret;
 }
 
@@ -394,6 +405,9 @@ sub repair_tiff_exiftool {
     my $outfile = shift;
     my $fields  = shift;
 
+    my $start_time = $self->{job_metrics}->time;
+    my $infile_size = -s $infile;
+
     # fix the DateTime
     my $exifTool = new Image::ExifTool;
     $exifTool->Options('ScanForXMP' => 1);
@@ -412,14 +426,24 @@ sub repair_tiff_exiftool {
 
     # whines if infile is same as outfile
     my @file_params = ($infile);
-    push( @file_params, $outfile ) if ( $outfile ne $infile );
+    push(@file_params, $outfile) if ($outfile ne $infile);
 
-    if ( !$exifTool->WriteInfo(@file_params) ) {
-        croak(  "Couldn't remediate $infile: "
-              . $exifTool->GetValue('Error')
-              . "\n" );
+    my $write_return = $exifTool->WriteInfo(@file_params);
+    if (!$write_return) {
+        croak(
+            "Couldn't remediate $infile: ". $exifTool->GetValue('Error') . "\n"
+        );
         return 0;
     }
+    my $end_time = $self->{job_metrics}->time;
+    my $delta_time = $end_time - $start_time;
+    my $labels = {format => 'tiff'};
+    $self->{job_metrics}->inc("ingest_imageremediate_images_total", $labels);
+    $self->{job_metrics}->add("ingest_imageremediate_bytes_r_total", $infile_size, $labels);
+    $self->{job_metrics}->add("ingest_imageremediate_bytes_w_total", -s $outfile, $labels);
+    $self->{job_metrics}->add("ingest_imageremediate_seconds_total", $delta_time, $labels);
+
+    return $write_return;
 }
 
 sub repair_tiff_imagemagick {
@@ -427,6 +451,7 @@ sub repair_tiff_imagemagick {
     my $infile  = shift;
     my $outfile = shift;
 
+    my $start_time = $self->{job_metrics}->time;
     # try running IM on the TIFF file
     get_logger()->trace(
 	"TIFF_REPAIR: attempting to repair $infile to $outfile\n"
@@ -438,11 +463,19 @@ sub repair_tiff_imagemagick {
     # convert returns 0 on success, 1 on failure
     my $imagemagick = get_config('imagemagick');
     my $rval = system("$imagemagick -compress Group4 '$infile' '$outfile' > /dev/null 2>&1");
+    my $end_time   = $self->{job_metrics}->time;
+    my $delta_time = $end_time - $start_time;
+    my $labels = {format => 'tiff', tool => 'imagemagick'};
+    $self->{job_metrics}->add("ingest_imageremediate_bytes_r_total", -s $infile, $labels);
+    $self->{job_metrics}->add("ingest_imageremediate_bytes_w_total", -s $outfile, $labels);
+    $self->{job_metrics}->add("ingest_imageremediate_seconds_total", $delta_time, $labels);
+    $self->{job_metrics}->inc("ingest_imageremediate_images_total", $labels);
     croak("failed repairing $infile\n") if $rval;
 
     # Some metadata may be lost when imagemagick compresses infile to outfile.
     # Here we are putting Artist back, or we'll crash at a later stage,
     # due to missing ImageProducer (which depends on Artist).
+    $start_time  = $self->{job_metrics}->time;
     my $out_exif = Image::ExifTool->new;
     my $out_meta = $out_exif->ImageInfo($outfile);
     if (defined $in_meta->{'Artist'} && !defined $out_meta->{'Artist'}) {
@@ -454,8 +487,13 @@ sub repair_tiff_imagemagick {
 	}
     }
 
-    $self->{job_metrics}->add("ingest_imageremediate_bytes", -s $infile);
-    $self->{job_metrics}->inc("ingest_imageremediate_images");
+    $end_time   = $self->{job_metrics}->time;
+    $delta_time = $end_time - $start_time;
+    $labels = {format => 'tiff', tool => 'exiftool'};
+    $self->{job_metrics}->add("ingest_imageremediate_bytes_r_total", -s $infile, $labels);
+    $self->{job_metrics}->add("ingest_imageremediate_bytes_w_total", -s $outfile, $labels);
+    $self->{job_metrics}->add("ingest_imageremediate_seconds_total", $delta_time, $labels);
+    $self->{job_metrics}->inc("ingest_imageremediate_images_total", $labels);
 
     return !$rval;
 }
@@ -467,16 +505,18 @@ sub _remediate_jpeg2000 {
     my $force_headers            = ( shift or {} );
     my $set_if_undefined_headers = shift;
 
+    my $start_time = $self->{job_metrics}->time;
+    my $infile_size = -s $infile;
     $self->{newFields} = $force_headers;
     $self->{oldFields} = $self->get_exiftool_fields($infile);
 
     get_logger()->trace("Remediating $infile to $outfile");
 
     foreach my $field (qw(ImageWidth ImageHeight Compression)) {
-        $self->copy_old_to_new( "Jpeg2000:$field", "XMP-tiff:$field" );
+        $self->copy_old_to_new("Jpeg2000:$field", "XMP-tiff:$field");
     }
     foreach my $field (qw(Make Model)) {
-        $self->copy_old_to_new( "IFD0:$field", "XMP-tiff:$field" );
+        $self->copy_old_to_new("IFD0:$field", "XMP-tiff:$field");
     }
 
     # handle old version of exiftool
@@ -562,9 +602,9 @@ sub _remediate_jpeg2000 {
     $exifTool->Options('ScanForXMP' => 1);
     $exifTool->Options('IgnoreMinorErrors' => 1);
     my $info = $exifTool->SetNewValuesFromFile( $infile, '*:*' );
-    while ( my ( $key, $val ) = each(%$info) ) {
-        if ( $key eq 'Error' ) {
-            croak("Error extracting old headers: $!");
+    while (my ($key, $val) = each(%$info)) {
+        if ($key eq 'Error') {
+            croak("Error extracting old headers... $key : $val. ($!)");
         }
     }
 
@@ -577,33 +617,41 @@ sub _remediate_jpeg2000 {
         }
     }
 
-    $self->update_tags( $exifTool, $outfile, $infile );
+    my $ret_val = $self->update_tags( $exifTool, $outfile, $infile );
+    my $end_time = $self->{job_metrics}->time;
+    my $delta_time = $end_time - $start_time;
+    my $labels = {format => 'jpeg2000'};
+    $self->{job_metrics}->inc("ingest_imageremediate_images_total", $labels);
+    $self->{job_metrics}->add("ingest_imageremediate_bytes_r_total", $infile_size, $labels);
+    $self->{job_metrics}->add("ingest_imageremediate_bytes_w_total", -s $outfile, $labels);
+    $self->{job_metrics}->add("ingest_imageremediate_seconds_total", $delta_time, $labels);
 
+    return $ret_val;
 }
 
 sub _dpi {
-  my $self = shift;
-  my $xres = shift;
-  my $xresunit = shift;
-  my $factor = undef;
+    my $self     = shift;
+    my $xres     = shift;
+    my $xresunit = shift;
+    my $factor   = undef;
 
-  return unless $xres and $xresunit;
+    return unless $xres and $xresunit;
 
-  $xresunit eq 'um' and $factor = 25400;
-  $xresunit eq '0.01 mm' and $factor = 2540;
-  $xresunit eq '0.1 mm' and $factor = 254;
-  $xresunit eq 'mm' and $factor = 25.4;
-  $xresunit eq 'cm' and $factor = 2.54;
-  $xresunit eq 'm' and $factor = 0.0254;
-  $xresunit eq 'km' and $factor = 0.0000254;
-  $xresunit eq 'in' and $factor = 1;
-  $xresunit eq 'inches' and $factor = 1;
+    $xresunit eq 'um'      and $factor = 25400;
+    $xresunit eq '0.01 mm' and $factor = 2540;
+    $xresunit eq '0.1 mm'  and $factor = 254;
+    $xresunit eq 'mm'      and $factor = 25.4;
+    $xresunit eq 'cm'      and $factor = 2.54;
+    $xresunit eq 'm'       and $factor = 0.0254;
+    $xresunit eq 'km'      and $factor = 0.0000254;
+    $xresunit eq 'in'      and $factor = 1;
+    $xresunit eq 'inches'  and $factor = 1;
 
-  if(defined $factor) {
-    return sprintf("%.0f",$xres * $factor);
-  } else {
+    if (defined $factor) {
+        return sprintf("%.0f", $xres * $factor);
+    }
+
     return;
-  }
 }
 
 sub _set_new_resolution {
@@ -715,27 +763,41 @@ sub expand_lossless_jpeg2000 {
         $path,
         $files,
         sub {
-            my ( $volume, $file, $node ) = @_;
+            my $volume = shift;
+            my $file   = shift;
+            my $node   = shift;
+
             my $xpc = XML::LibXML::XPathContext->new($node);
             register_namespaces($xpc);
-
             my $transformation = $xpc->findvalue($transformation_xp);
+
             if (not defined $transformation) {
                 # malformed JPEG2000 image
-                $self->set_error("BadFile",file => $file, detail => "Can't find Transformation in JHOVE output");
+                $self->set_error(
+                    "BadFile",
+                    file   => $file,
+                    detail => "Can't find Transformation in JHOVE output"
+                );
             } elsif ($transformation eq '1') {
                 # lossless compression
-                my $jpeg2000 = $file;
+                my $jpeg2000            = $file;
                 my $jpeg2000_remediated = $file;
-                my $tiff = $file;
-                $tiff =~ s/\.jp2$/.tif/;
-                $jpeg2000_remediated =~ s/\.jp2$/.remediated.jp2/;
+                my $tiff                = $file;
+                my $start_time          = $self->{job_metrics}->time;
+                $tiff                   =~ s/\.jp2$/.tif/;
+                $jpeg2000_remediated    =~ s/\.jp2$/.remediated.jp2/;
+                my $grk_decompress      = get_config('grk_decompress');
 
-                my $grk_decompress = get_config('grk_decompress');
+                my $labels = {
+                    converted => "jpeg2000->tiff",
+                    tool      => 'grk_decompress'
+                };
                 system("$grk_decompress -i '$path/$jpeg2000' -o '$path/$tiff' > /dev/null 2>&1");
-
-		$self->{job_metrics}->add("ingest_imageremediate_bytes", -s $file);
-		$self->{job_metrics}->inc("ingest_imageremediate_images");
+		$self->{job_metrics}->add("ingest_imageremediate_bytes_r_total", -s "$path/$jpeg2000", $labels);
+                $self->{job_metrics}->add("ingest_imageremediate_bytes_w_total", -s "$path/$tiff", $labels);
+                my $delta_time = $self->{job_metrics}->time - $start_time;
+                $self->{job_metrics}->add("ingest_imageremediate_seconds_total", $delta_time, $labels);
+		$self->{job_metrics}->inc("ingest_imageremediate_images_total", $labels);
 
                 # try to compress the TIFF -> JPEG2000
                 get_logger()->trace("Compressing $path/$tiff to $path/$jpeg2000");
@@ -747,23 +809,39 @@ sub expand_lossless_jpeg2000 {
                 }
 
                 # Single quality level with reqested PSNR of 32dB. See DEV-10
+                $start_time = $self->{job_metrics}->time;
                 system(qq($grk_compress -i "$path/$tiff" -o "$path/$jpeg2000_remediated" -p RLCP -n 5 -SOP -EPH -M 62 -I -q 32 > /dev/null 2>&1))
-                  and $self->set_error(
+                and $self->set_error(
                     "OperationFailed",
                     operation => "grk_compress",
                     file      => "$path/$tiff",
                     detail    => "grk_compress returned $?"
-                  );
+                );
+                $labels = {
+                    converted => "tiff->jpeg2000",
+                    tool      => 'grk_decompress'
+                };
+		$self->{job_metrics}->add("ingest_imageremediate_bytes_r_total", -s "$path/$tiff", $labels);
+                $self->{job_metrics}->add("ingest_imageremediate_bytes_w_total", -s "$path/$jpeg2000_remediated", $labels);
+                $delta_time = $self->{job_metrics}->time - $start_time;
+                $self->{job_metrics}->add("ingest_imageremediate_seconds_total", $delta_time, $labels);
+		$self->{job_metrics}->inc("ingest_imageremediate_images_total", $labels);
 
-		$self->{job_metrics}->add("ingest_imageremediate_bytes", -s "$path/$tiff");
-		$self->{job_metrics}->inc("ingest_imageremediate_images");
-
+                $start_time = $self->{job_metrics}->time;
                 # copy all headers from the original jpeg2000
                 # grk_compress loses info from IFD0 headers, which are sometimes present in JPEG2000 images
                 my $exiftool = new Image::ExifTool;
                 $exiftool->SetNewValuesFromFile("$path/$jpeg2000",'*:*');
                 $exiftool->WriteInfo("$path/$jpeg2000_remediated");
 
+                $labels = {tool => 'exiftool'};
+		$self->{job_metrics}->add("ingest_imageremediate_bytes_r_total", -s "$path/$tiff", $labels);
+                $self->{job_metrics}->add("ingest_imageremediate_bytes_w_total", -s "$path/$jpeg2000_remediated", $labels);
+                $delta_time =  $self->{job_metrics}->time - $start_time;
+                $self->{job_metrics}->add("ingest_imageremediate_seconds_total", $delta_time, $labels);
+		$self->{job_metrics}->inc("ingest_imageremediate_images_total", $labels);
+
+                # gotta do metrics first or we can't get file sizes
                 rename("$path/$jpeg2000_remediated","$path/$jpeg2000");
 		unlink("$path/$tiff");
             }
@@ -774,20 +852,24 @@ sub expand_lossless_jpeg2000 {
 
 sub expand_other_file_formats {
     my ($self, $volume, $path, $files) = @_;
+
     my @other_recognized_formats = qw(.png .jpg);
-    my $imagemagick = get_config('imagemagick');
-    my $imagemagick_cmd = qq($imagemagick);
+    my $imagemagick              = get_config('imagemagick');
+    my $imagemagick_cmd          = qq($imagemagick);
 
     # Parse other recognized formats to .tif, put in same dir, then delete original.
     foreach my $file (@$files) {
-	my $infile = "$path/$file";
-	my ($outname, undef, $ext) = fileparse($infile, @other_recognized_formats);
-	my $outfile = "$path/$outname.tif";
+	my $infile     = "$path/$file";
+        my @parts      = fileparse($infile, @other_recognized_formats);
+        my $outname    = $parts[0];
+        my $ext        = $parts[1];
+	my $outfile    = "$path/$outname.tif";
+        my $start_time = $self->{job_metrics}->time;
+	my $cmd        = "$imagemagick_cmd -compress None $infile -strip $outfile";
 
-	my $cmd =  "$imagemagick_cmd -compress None $infile -strip $outfile";
 	get_logger()->trace("Expanding $file: $cmd");
-
 	my $err_code = system($cmd);
+
 	if ($err_code) {
 	    $self->set_error(
 		"OperationFailed",
@@ -796,10 +878,19 @@ sub expand_other_file_formats {
 		detail    => "decompress and ICC profile strip failed: returned $?"
 	    );
 	} else {
-	    $self->{job_metrics}->add("ingest_imageremediate_bytes", -s $infile);
-	    $self->{job_metrics}->inc("ingest_imageremediate_images");
-	    $self->copy_metadata($ext, $infile, $outfile);
-	    unlink($infile);
+            $self->copy_metadata($ext, $infile, $outfile);
+            my $infile_size = -s $infile;
+            unlink($infile);
+            my $labels = {
+                tool      => 'imagemagick',
+                converted => $ext."->tiff"
+            };
+            my $end_time = $self->{job_metrics}->time;
+            my $delta_time = $end_time - $start_time;
+            $self->{job_metrics}->add("ingest_imageremediate_seconds_total", $delta_time, $labels);
+	    $self->{job_metrics}->add("ingest_imageremediate_bytes_r_total", $infile_size, $labels);
+	    $self->{job_metrics}->add("ingest_imageremediate_bytes_w_total", -s $outfile, $labels);
+	    $self->{job_metrics}->inc("ingest_imageremediate_images_total", $labels);
 	}
     }
 }
@@ -895,13 +986,20 @@ for remediate_image (qv)
 =cut
 
 sub remediate_tiffs {
-    my ($self, $volume, $tiffpath, $files, $headers_sub) = @_;
+    my $self        = shift;
+    my $volume      = shift;
+    my $tiffpath    = shift;
+    my $files       = shift;
+    my $headers_sub = shift;
+
     my $repStatus_xp = XML::LibXML::XPathExpression->new(
         '/jhove:jhove/jhove:repInfo/jhove:status'
     );
     my $error_xp = XML::LibXML::XPathExpression->new(
 	'/jhove:jhove/jhove:repInfo/jhove:messages/jhove:message[@severity="error"]'
     );
+
+    my $start_time = $self->{job_metrics}->time;
     my $stage_path = $volume->get_staging_directory();
     my $objid      = $volume->get_objid();
 
@@ -923,7 +1021,8 @@ sub remediate_tiffs {
                 # if not, strip it
                 $exiftool->SetNewValue($field);
                 $needwrite = 1;
-	    }
+
+            }
         }
         if ($needwrite) {
             $exiftool->WriteInfo("$tiffpath/$tiff");
@@ -935,11 +1034,11 @@ sub remediate_tiffs {
         $tiffpath,
         $files,
         sub {
-            my ( $volume, $file, $node ) = @_;
-            my $xpc = XML::LibXML::XPathContext->new($node);
+            my ($volume, $file, $node)   = @_;
+            my $xpc                      = XML::LibXML::XPathContext->new($node);
             my $force_headers            = undef;
-	    my $set_if_undefined_headers = undef;
-	    my $renamed_file             = undef;
+            my $set_if_undefined_headers = undef;
+            my $renamed_file             = undef;
             register_namespaces($xpc);
 
             $self->{jhoveStatus} = $xpc->findvalue($repStatus_xp);
@@ -953,7 +1052,7 @@ sub remediate_tiffs {
             }
 
             my $outfile = "$stage_path/$file";
-            $outfile = "$stage_path/$renamed_file" if ( defined $renamed_file );
+            $outfile    = "$stage_path/$renamed_file" if ( defined $renamed_file );
 
             $self->remediate_image(
 		"$tiffpath/$file",
@@ -964,21 +1063,26 @@ sub remediate_tiffs {
         },
         "-m TIFF-hul"
     );
+
+    my $end_time = $self->{job_metrics}->time;
+    my $delta_time = $end_time - $start_time;
+    my $labels = {format => "tiff", tool => 'jhove'};
+    $self->{job_metrics}->add("ingest_imageremediate_seconds_total", $delta_time, $labels);
+    $self->{job_metrics}->inc("ingest_imageremediate_items_total", $labels);
 }
 
 sub convert_tiff_to_jpeg2000 {
     my $self        = shift;
-    my $volume      = $self->{volume};
     my $seq         = shift;
+
+    my $volume        = $self->{volume};
     my $preingest_dir = $volume->get_preingest_directory();
-    my $infile  = "$preingest_dir/$seq.tif";
-    my $outfile = "$preingest_dir/$seq.jp2";
-    my ( $field, $val );
+    my $infile        = "$preingest_dir/$seq.tif";
+    my $outfile       = "$preingest_dir/$seq.jp2";
+    my ($field, $val);
 
     # From Roger:
-    #
-    # $levels would be derived from the largest dimension; minimum is 5.
-    #
+    # $levels would be derived from the largest dimension; minimum is 5:
     # - 0     < x <= 6400  : nlev=5
     # - 6400  < x <= 12800 : nlev=6
     # - 12800 < x <= 25600 : nlev=7
@@ -1006,29 +1110,36 @@ sub convert_tiff_to_jpeg2000 {
 
     # save some info from the TIFF
     foreach my $tag (qw(Artist Make Model)) {
-      my $tagvalue = $self->{oldFields}->{"IFD0:$tag"};
-      $tagvalue = $self->{oldFields}->{"XMP-tiff:$tag"} if not defined $tagvalue;
-      $self->{newFields}->{"XMP-tiff:$tag"} = $tagvalue if defined $tagvalue;
+        my $tagvalue = $self->{oldFields}->{"IFD0:$tag"};
+        $tagvalue    = $self->{oldFields}->{"XMP-tiff:$tag"} if not defined $tagvalue;
+        $self->{newFields}->{"XMP-tiff:$tag"} = $tagvalue if defined $tagvalue;
     }
 
     # first decompress & strip ICC profiles
-    my $imagemagick = get_config('imagemagick');
+    my $imagemagick     = get_config('imagemagick');
     my $imagemagick_cmd = qq($imagemagick);
-    # make sure it's 24-bit RGB or 8-bit grayscale and keep it that way
-    if($self->{oldFields}->{'IFD0:SamplesPerPixel'} eq '3'
-        and ($self->{oldFields}->{'IFD0:BitsPerSample'} eq '8'
-            or $self->{oldFields}->{'IFD0:BitsPerSample'} eq '8 8 8')) {
+
+    # Make sure it's 24-bit RGB or 8-bit grayscale and keep it that way.
+    # Breaking out some expressions to make this condition easier to read.
+    my $sample_per_px   = $self->{oldFields}->{'IFD0:SamplesPerPixel'};
+    my $bits_per_sample = $self->{oldFields}->{'IFD0:BitsPerSample'};
+    if($sample_per_px eq '3' and ($bits_per_sample eq '8' or $sample_per_px eq '8 8 8')) {
         $imagemagick_cmd .= qq( -type TrueColor)
-    } elsif($self->{oldFields}->{'IFD0:BitsPerSample'} eq '8'
-            and $self->{oldFields}->{'IFD0:SamplesPerPixel'} eq '1') {
+    } elsif($bits_per_sample eq '8' and $sample_per_px eq '1') {
         $imagemagick_cmd .= qq( -type Grayscale -depth 8)
     }
 
     my $magick_compress_cmd = "$imagemagick_cmd -compress None $infile -strip $infile.unc.tif";
     my $magick_compress_err = system($magick_compress_cmd);
 
-    $self->{job_metrics}->add("ingest_imageremediate_bytes", -s $infile);
-    $self->{job_metrics}->inc("ingest_imageremediate_images");
+    my $labels = {converted => "tiff->jpeg2000", tool => "imagemagick"};
+    $self->{job_metrics}->add("ingest_imageremediate_bytes_r_total", -s $infile, $labels);
+    $self->{job_metrics}->add(
+        "ingest_imageremediate_bytes_w_total",
+        -s "$infile.unc.tif",
+        $labels
+    );
+    $self->{job_metrics}->inc("ingest_imageremediate_images_total", $labels);
 
     if ($magick_compress_err) {
 	$self->set_error(
@@ -1043,7 +1154,7 @@ sub convert_tiff_to_jpeg2000 {
     my $exifTool = new Image::ExifTool;
     $exifTool->Options('ScanForXMP' => 1);
     $exifTool->Options('IgnoreMinorErrors' => 1);
-    $exifTool->SetNewValue('XMP',undef,Protected => 1);
+    $exifTool->SetNewValue('XMP', undef, Protected => 1);
     $self->update_tags( $exifTool, "$infile.unc.tif" );
 
     my $grk_compress_cmd = qq($grk_compress -i "$infile.unc.tif" -o "$outfile" -p RLCP -n $levels -SOP -EPH -M 62 -I > /dev/null 2>&1);
@@ -1056,14 +1167,14 @@ sub convert_tiff_to_jpeg2000 {
 	    detail    => "grk_compress returned $?"
 	);
     }
-
-    $self->{job_metrics}->add("ingest_imageremediate_bytes", -s "$infile.unc.tif");
-    $self->{job_metrics}->inc("ingest_imageremediate_images");
+    $labels = {converted => "tiff->jpeg2000", tool => "grk_compress"};
+    $self->{job_metrics}->add("ingest_imageremediate_bytes_r_total", -s "$infile.unc.tif", $labels);
+    $self->{job_metrics}->add("ingest_imageremediate_bytes_w_total", -s $outfile, $labels);
+    $self->{job_metrics}->inc("ingest_imageremediate_images_total", $labels);
 
     # then set new metadata fields - the rest will automatically be
     # set from the JP2
-    foreach $field ( qw( XResolution YResolution ResolutionUnit Artist Make Model))
-    {
+    foreach $field ( qw( XResolution YResolution ResolutionUnit Artist Make Model)){
         $self->copy_old_to_new( "IFD0:$field", "XMP-tiff:$field" );
     }
 

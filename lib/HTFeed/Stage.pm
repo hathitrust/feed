@@ -30,7 +30,7 @@ sub new {
         @_,
         has_run => 0,
         failed  => 0,
-	job_metrics => HTFeed::JobMetrics->get_instance
+	job_metrics => HTFeed::JobMetrics->new
     };
 
     unless ( $self->{volume} && $self->{volume}->isa("HTFeed::Volume") ) {
@@ -46,14 +46,6 @@ sub estimate_space{
     my ($file, $multiplier) = @_;
     my $size = -s $file;
     return ceil($size * $multiplier);
-}
-
-sub dir_size{
-    shift if (ref $_[0]);
-    my $dir = shift;
-    my $size = 0;
-    find( sub{$size += -s if -f;}, $dir);
-    return $size;
 }
 
 # returns information about the stage
@@ -237,10 +229,6 @@ $stage->force_failed_status($failed)
 =item success_info()
 
 returns additional info to log on success.
-
-=item dir_size()
-
-Return the size of a directory
 
 =item clean_punt()
 

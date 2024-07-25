@@ -94,6 +94,7 @@ sub verify_crypt {
 sub record_backup {
   my $self = shift;
 
+  my $start_time = $self->{job_metrics}->time;
   get_logger->trace("recording backup for $self");
   my $dbh = HTFeed::DBTools::get_dbh();
 
@@ -101,15 +102,27 @@ sub record_backup {
 
   my $stmt =
   "insert into feed_backups (namespace, id, path, version, storage_name,
-    zip_size, mets_size, saved_md5sum, lastchecked, lastmd5check, md5check_ok) \
+    zip_size, mets_size, saved_md5sum, lastchecked, lastmd5check, md5check_ok)
     values(?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,1)";
 
-  my $sth  = $dbh->prepare($stmt);
-  $sth->execute(
-      $self->{namespace}, $self->{objid},
-      $self->audit_path, $self->{timestamp}, $self->{name},
-      $self->zip_size, $self->mets_size, $saved_checksum);
+  my $sth = $dbh->prepare($stmt);
+  my $res = $sth->execute(
+      $self->{namespace},
+      $self->{objid},
+      $self->audit_path,
+      $self->{timestamp},
+      $self->{name},
+      $self->zip_size,
+      $self->mets_size,
+      $saved_checksum
+  );
 
+  my $end_time   = $self->{job_metrics}->time;
+  my $delta_time = $end_time - $start_time;
+  $self->{job_metrics}->inc("ingest_record_backup_items_total");
+  $self->{job_metrics}->add("ingest_record_backup_seconds_total", $delta_time);
+
+  return $res;
 }
 
 sub audit_path {
