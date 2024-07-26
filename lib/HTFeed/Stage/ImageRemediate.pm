@@ -55,11 +55,11 @@ sub get_exiftool_fields {
     # if it can't make a valid file jhove will complain later
     $exifTool->Options('IgnoreMinorErrors' => 1);
     $exifTool->Options('ScanForXMP' => 1);
-    $exifTool->ExtractInfo( $file, { Binary => 1 } );
+    $exifTool->ExtractInfo($file, { Binary => 1 });
 
     foreach my $tag ($exifTool->GetFoundTags()) {
         # get only the groupname we'll use to update it later
-        my $group   = $exifTool->GetGroup( $tag, "1" );
+        my $group   = $exifTool->GetGroup($tag, "1");
         my $tagname = Image::ExifTool::GetTagName($tag);
         $fields->{"$group:$tagname"} = $exifTool->GetValue($tag);
     }
@@ -139,14 +139,13 @@ sub update_tags {
 
     my $res;
 
-    if ( defined $infile ) {
-        $res = $exifTool->WriteInfo( $infile, $outfile );
-    }
-    else {
+    if (defined $infile) {
+        $res = $exifTool->WriteInfo($infile, $outfile);
+    } else {
         $res = $exifTool->WriteInfo($outfile);
     }
 
-    if ( !$res ) {
+    if (!$res) {
         $self->set_error(
             "OperationFailed",
             operation => "exiftool write",
@@ -166,13 +165,15 @@ $self->copy_old_to_new($oldFieldName, $newFieldName);
 =cut
 
 sub copy_old_to_new($$$) {
-    my $self = shift;
-    my ( $oldFieldName, $newFieldName ) = @_;
-    my $oldValue = $self->{oldFields}->{$oldFieldName};
+    my $self         = shift;
+    my $oldFieldName = shift;
+    my $newFieldName = shift;
 
-    if ( defined $self->{oldFields}->{$oldFieldName}
-        and not defined $self->{newFields}->{$newFieldName} )
-    {
+    my $oldValue = $self->{oldFields}->{$oldFieldName};
+    if (
+        defined $self->{oldFields}->{$oldFieldName} and
+        not defined $self->{newFields}->{$newFieldName}
+    ) {
         $self->{newFields}->{$newFieldName} = $oldValue;
     }
 }
@@ -187,18 +188,23 @@ $self->set_new_if_undefined($newFieldName,$newFieldVal);
 =cut
 
 sub set_new_if_undefined($$$) {
-    my $self = shift;
-    my ( $newFieldName, $newFieldVal ) = @_;
+    my $self         = shift;
+    my $newFieldName = shift;
+    my $newFieldVal  = shift;
 
-    if ( not defined $self->{oldFields}->{$newFieldName}
-        or $self->{oldFields}->{$newFieldName} eq '' )
-    {
+    if (
+        not defined $self->{oldFields}->{$newFieldName}
+        or $self->{oldFields}->{$newFieldName} eq ''
+    ) {
         $self->{newFields}->{$newFieldName} = $newFieldVal;
     }
 }
 
 sub stage_info {
-    return { success_state => 'images_remediated', failure_state => '' };
+    return {
+        success_state => 'images_remediated',
+        failure_state => ''
+    };
 }
 
 
@@ -206,7 +212,7 @@ sub _remediate_tiff {
     my $self                     = shift;
     my $infile                   = shift;
     my $outfile                  = shift;
-    my $force_headers            = ( shift or {} );
+    my $force_headers            = shift || {};
     my $set_if_undefined_headers = shift;
 
     my $start_time  = $self->{job_metrics}->time;
@@ -220,11 +226,11 @@ sub _remediate_tiff {
     my $fields         = $self->{oldFields};
 
     my $status = $self->{jhoveStatus};
-    if ( not defined $status ) {
+    if (not defined $status) {
 	croak("No Status field for $infile, not remediable (did JHOVE run properly?)\n");
 	$bad = 1;
-    } elsif ( $status ne 'Well-Formed and valid' ) {
-	foreach my $error ( @{ $self->{jhoveErrors} } ) {
+    } elsif ($status ne 'Well-Formed and valid') {
+	foreach my $error (@{ $self->{jhoveErrors} }) {
 	    # Is the error remediable?
 	    my @exiftool_remediable_errs = (
 		'IFD offset not word-aligned',
@@ -250,12 +256,12 @@ sub _remediate_tiff {
 		'Bad ICCProfile in tag 34675'
 	    );
 
-	    if ( grep { $error =~ /^$_/ } @imagemagick_remediable_errs ) {
+	    if (grep { $error =~ /^$_/ } @imagemagick_remediable_errs) {
 		get_logger()->trace(
 		    "PREVALIDATE_REMEDIATE: $infile has remediable error '$error'\n"
 		);
 		$remediate_imagemagick = 1;
-	    } elsif ( grep { $error =~ /^$_/ } @exiftool_remediable_errs ) {
+	    } elsif (grep { $error =~ /^$_/ } @exiftool_remediable_errs) {
 		get_logger()->trace(
 		    "PREVALIDATE_REMEDIATE: $infile has remediable error '$error'\n"
 		);
@@ -271,24 +277,24 @@ sub _remediate_tiff {
     }
 
     # Does it look like a contone? Bail & convert to JPEG2000 if so.
-    if(!$bad and (is_rgb_tiff($fields) or is_grayscale_tiff($fields))) {
+    if (!$bad and (is_rgb_tiff($fields) or is_grayscale_tiff($fields))) {
         $infile = basename($infile);
         my ($seq) = ($infile =~ /^(.*).tif$/);
         return $self->convert_tiff_to_jpeg2000($seq);
     }
 
-    if($self->{newFields}{DateTime}) {
-      my $new_date = $self->{newFields}{DateTime};
-      $self->set_new_date_fields($new_date,$new_date);
-      delete $self->{newFields}{'DateTime'};
+    if ($self->{newFields}{DateTime}) {
+        my $new_date = $self->{newFields}{DateTime};
+        $self->set_new_date_fields($new_date, $new_date);
+        delete $self->{newFields}{'DateTime'};
     } else {
-      $self->fix_datetime($set_if_undefined_headers->{'DateTime'});
-      delete $set_if_undefined_headers->{'DateTime'}
+        $self->fix_datetime($set_if_undefined_headers->{'DateTime'});
+        delete $set_if_undefined_headers->{'DateTime'}
     }
 
     # Fix resolution, if needed
     my $force_res = $self->{newFields}{'Resolution'};
-    if(defined($force_res)) {
+    if (defined($force_res)) {
         $self->{newFields}{'IFD0:ResolutionUnit'} = 'inch';
         $self->{newFields}{'IFD0:XResolution'} = $force_res;
         $self->{newFields}{'IFD0:YResolution'} = $force_res;
@@ -296,15 +302,15 @@ sub _remediate_tiff {
     }
 
     # Prevalidate other fields for bitonal images
-    if ( !$bad and $fields->{'IFD0:BitsPerSample'} eq '1'
-               and $fields->{'IFD0:SamplesPerPixel'} eq '1' ) {
+    if (!$bad and $fields->{'IFD0:BitsPerSample'} eq '1'
+        and $fields->{'IFD0:SamplesPerPixel'} eq '1') {
         $remediate_imagemagick = 1
-          unless $self->prevalidate_field( 'IFD0:PhotometricInterpretation',
-                  'WhiteIsZero', 1 );
+        unless $self->prevalidate_field('IFD0:PhotometricInterpretation',
+                                        'WhiteIsZero', 1);
         $remediate_imagemagick = 1
-          unless $self->prevalidate_field( 'IFD0:Compression', 'T6/Group 4 Fax',
-                  1 );
-        if ( !$self->prevalidate_field( 'File:FileType', 'TIFF', 0 ) ) {
+        unless $self->prevalidate_field('IFD0:Compression', 'T6/Group 4 Fax',
+                                        1);
+        if (!$self->prevalidate_field('File:FileType', 'TIFF', 0)) {
             $bad = 1;
             $self->set_error(
                 "BadValue",
@@ -317,23 +323,22 @@ sub _remediate_tiff {
             !$self->prevalidate_field(
                 'IFD0:Orientation', 'Horizontal (normal)', 1
             )
-          )
-        {
+        ) {
             $self->{newFields}{'IFD0:Orientation'} = 'Horizontal (normal)';
         }
     }
 
     my $ret = !$bad;
-    if ( $remediate_imagemagick and !$bad ) {
+    if ($remediate_imagemagick and !$bad) {
         # return true if remediation succeeds
-        $ret = $self->repair_tiff_imagemagick( $infile, $outfile );
+        $ret = $self->repair_tiff_imagemagick($infile, $outfile);
 
         # repair the correct one when setting new headers
         $infile = $outfile;
     }
 
-    while ( my ( $field, $val ) = each(%$set_if_undefined_headers) ) {
-        $self->set_new_if_undefined( $field, $val );
+    while (my ($field, $val) = each(%$set_if_undefined_headers)) {
+        $self->set_new_if_undefined($field, $val);
     }
 
     # Fix the XMP, if needed
@@ -350,17 +355,17 @@ sub _remediate_tiff {
 
         # copy other fields; use new value if it was provided
         foreach my $field (qw(ResolutionUnit Artist XResolution YResolution Make Model)) {
-          if(defined $self->{oldFields}{"IFD0:$field"}) {
-            chomp($self->{oldFields}{"IFD0:$field"});
-            $self->{newFields}{"IFD0:$field"} = $self->{oldFields}{"IFD0:$field"};
-          }
+            if (defined $self->{oldFields}{"IFD0:$field"}) {
+                chomp($self->{oldFields}{"IFD0:$field"});
+                $self->{newFields}{"IFD0:$field"} = $self->{oldFields}{"IFD0:$field"};
+            }
 
-          if(defined $self->{newFields}{"IFD0:$field"}) {
-            $self->{newFields}{"XMP-tiff:$field"} = $self->{newFields}{"IFD0:$field"};
-          }
+            if (defined $self->{newFields}{"IFD0:$field"}) {
+                $self->{newFields}{"XMP-tiff:$field"} = $self->{newFields}{"IFD0:$field"};
+            }
         }
 
-        if(defined $self->{newFields}{"IFD0:DocumentName"}) {
+        if (defined $self->{newFields}{"IFD0:DocumentName"}) {
             $self->{newFields}{"XMP-dc:source"} = $self->{newFields}{"IFD0:DocumentName"};
         } else {
             $self->{newFields}{"XMP-dc:source"} = $self->{oldFields}{"IFD0:DocumentName"};
@@ -386,17 +391,20 @@ sub _remediate_tiff {
 }
 
 sub is_rgb_tiff {
-  my $fields = shift;
+    my $fields = shift;
 
-  return ($fields->{'IFD0:SamplesPerPixel'} eq '3'
-      and $fields->{'IFD0:BitsPerSample'} eq '8 8 8');
+    return (
+        $fields->{'IFD0:SamplesPerPixel'} eq '3' and
+        $fields->{'IFD0:BitsPerSample'} eq '8 8 8'
+    );
 }
 
 sub is_grayscale_tiff {
-  my $fields = shift;
+    my $fields = shift;
 
-  return ($fields->{'IFD0:SamplesPerPixel'} eq '1'
-      and $fields->{'IFD0:BitsPerSample'} eq '8');
+    return (
+        $fields->{'IFD0:SamplesPerPixel'} eq '1' and
+        $fields->{'IFD0:BitsPerSample'} eq '8');
 }
 
 sub repair_tiff_exiftool {
@@ -412,9 +420,9 @@ sub repair_tiff_exiftool {
     my $exifTool = new Image::ExifTool;
     $exifTool->Options('ScanForXMP' => 1);
     $exifTool->Options('IgnoreMinorErrors' => 1);
-    while ( my ( $field, $val ) = each(%$fields) ) {
-        my ( $success, $errStr ) = $exifTool->SetNewValue( $field, $val );
-        if ( defined $errStr ) {
+    while (my ($field, $val) = each(%$fields)) {
+        my ($success, $errStr) = $exifTool->SetNewValue($field, $val);
+        if (defined $errStr) {
             croak("Error setting new tag $field => $val: $errStr\n");
             return 0;
         }
@@ -422,7 +430,7 @@ sub repair_tiff_exiftool {
 
     # make sure we have /something/ to write. All files should have
     # Orientation=normal, so this won't break anything.
-    $exifTool->SetNewValue( "Orientation", "normal" );
+    $exifTool->SetNewValue("Orientation", "normal");
 
     # whines if infile is same as outfile
     my @file_params = ($infile);
@@ -502,7 +510,7 @@ sub _remediate_jpeg2000 {
     my $self                     = shift;
     my $infile                   = shift;
     my $outfile                  = shift;
-    my $force_headers            = ( shift or {} );
+    my $force_headers            = shift || {};
     my $set_if_undefined_headers = shift;
 
     my $start_time = $self->{job_metrics}->time;
@@ -520,14 +528,14 @@ sub _remediate_jpeg2000 {
     }
 
     # handle old version of exiftool
-    if ( not defined $self->{oldFields}->{'Jpeg2000:ColorSpace'} ) {
+    if (not defined $self->{oldFields}->{'Jpeg2000:ColorSpace'}) {
         $self->{oldFields}->{'Jpeg2000:ColorSpace'} =
-          $self->{oldFields}->{'Jpeg2000:Colorspace'};
+        $self->{oldFields}->{'Jpeg2000:Colorspace'};
     }
 
     # For IA, ColorSpace should always be sRGB. Only set these fields if they
     # aren't already defined.
-    if ( defined $self->{oldFields}->{'Jpeg2000:ColorSpace'} and $self->{oldFields}->{'Jpeg2000:ColorSpace'} eq 'sRGB' ) {
+    if (defined $self->{oldFields}->{'Jpeg2000:ColorSpace'} and $self->{oldFields}->{'Jpeg2000:ColorSpace'} eq 'sRGB') {
         $self->{newFields}{'XMP-tiff:BitsPerSample'} = '8, 8, 8';
         $self->{newFields}{'XMP-tiff:PhotometricInterpretation'} = 'RGB';
         $self->{newFields}{'XMP-tiff:SamplesPerPixel'} = '3';
@@ -536,14 +544,14 @@ sub _remediate_jpeg2000 {
     # Other package types may have grayscale JP2s that need remediation.
     # Final image validation should kick these out if grayscale is not
     # expected.
-    if ( defined $self->{oldFields}->{'Jpeg2000:ColorSpace'} and $self->{oldFields}->{'Jpeg2000:ColorSpace'} eq 'Grayscale' ) {
+    if (defined $self->{oldFields}->{'Jpeg2000:ColorSpace'} and $self->{oldFields}->{'Jpeg2000:ColorSpace'} eq 'Grayscale') {
         $self->{newFields}{'XMP-tiff:BitsPerSample'} = '8';
         $self->{newFields}{'XMP-tiff:PhotometricInterpretation'} = 'BlackIsZero';
         $self->{newFields}{'XMP-tiff:SamplesPerPixel'} = '1';
     }
 
     # Orientation should always be normal
-    $self->set_new_if_undefined( 'XMP-tiff:Orientation', 'Horizontal (normal)' );
+    $self->set_new_if_undefined('XMP-tiff:Orientation', 'Horizontal (normal)');
 
     # normalize the date to ISO8601 if it is close to that; assume UTC if no time zone given (rare in XMP)
     my $normalized_date = fix_iso8601_date($self->{'oldFields'}{'XMP-tiff:DateTime'});
@@ -551,57 +559,57 @@ sub _remediate_jpeg2000 {
     $self->{newFields}{'XMP-tiff:DateTime'}  = $normalized_date;
 
     # try to get resolution from JPEG2000 headers
-    if ( !$force_headers->{'Resolution'} ) {
+    if (!$force_headers->{'Resolution'}) {
 
-      foreach my $prefix (qw(Jpeg2000:Capture Jpeg2000:Display IFD0:)) {
-        my $xres = $self->{oldFields}->{$prefix . 'XResolution'};
-        my $yres = $self->{oldFields}->{$prefix . 'YResolution'};
+        foreach my $prefix (qw(Jpeg2000:Capture Jpeg2000:Display IFD0:)) {
+            my $xres = $self->{oldFields}->{$prefix . 'XResolution'};
+            my $yres = $self->{oldFields}->{$prefix . 'YResolution'};
 
-        next if not defined $xres and not defined $yres;
+            next if not defined $xres and not defined $yres;
 
-        get_logger()->warn("Non-square pixels??! XRes $xres YRes $yres")
-          if ( ( $xres or $yres ) and $xres != $yres );
+            get_logger()->warn("Non-square pixels??! XRes $xres YRes $yres")
+            if (($xres or $yres) and $xres != $yres);
 
-        if ($xres) {
-          my $xresunit;
-          my $yresunit;
-          if($prefix =~ /^Jpeg2000/) {
-            $xresunit =
-              $self->{oldFields}->{$prefix . 'XResolutionUnit'};
-            $yresunit =
-              $self->{oldFields}->{$prefix . 'YResolutionUnit'};
-          } else {
-            $xresunit = $self->{oldFields}->{$prefix . 'ResolutionUnit'};
-            $yresunit = $xresunit;
-          }
+            if ($xres) {
+                my $xresunit;
+                my $yresunit;
+                if ($prefix =~ /^Jpeg2000/) {
+                    $xresunit =
+                    $self->{oldFields}->{$prefix . 'XResolutionUnit'};
+                    $yresunit =
+                    $self->{oldFields}->{$prefix . 'YResolutionUnit'};
+                } else {
+                    $xresunit = $self->{oldFields}->{$prefix . 'ResolutionUnit'};
+                    $yresunit = $xresunit;
+                }
 
-          get_logger()->warn("Resolution unit awry")
-            if ( not $xresunit or not $yresunit or $xresunit ne $yresunit );
+                get_logger()->warn("Resolution unit awry")
+                if (not $xresunit or not $yresunit or $xresunit ne $yresunit);
 
-          my $dpi_resolution = $self->_dpi($xres, $xresunit);
+                my $dpi_resolution = $self->_dpi($xres, $xresunit);
 
-          if(defined $dpi_resolution and $dpi_resolution >= 100) {
-            # Absurdly low DPI is likely to be an error or default, so don't
-            # use it and try to get it from somewhere else if it is < 100
-            $force_headers->{Resolution} = $dpi_resolution;
-          }
+                if (defined $dpi_resolution and $dpi_resolution >= 100) {
+                    # Absurdly low DPI is likely to be an error or default, so don't
+                    # use it and try to get it from somewhere else if it is < 100
+                    $force_headers->{Resolution} = $dpi_resolution;
+                }
+            }
         }
-      }
     }
 
     $self->_set_new_resolution($force_headers, $set_if_undefined_headers);
 
     # Add other provided new headers if requested and the file does not
     # already have a value set for the given field
-    while ( my ( $field, $val ) = each(%$set_if_undefined_headers) ) {
-        $self->set_new_if_undefined( $field, $val );
+    while (my ($field, $val) = each(%$set_if_undefined_headers)) {
+        $self->set_new_if_undefined($field, $val);
     }
 
     # first copy old values, since XMP may be stripped/corrupted in some cases
     my $exifTool = new Image::ExifTool;
     $exifTool->Options('ScanForXMP' => 1);
     $exifTool->Options('IgnoreMinorErrors' => 1);
-    my $info = $exifTool->SetNewValuesFromFile( $infile, '*:*' );
+    my $info = $exifTool->SetNewValuesFromFile($infile, '*:*');
     while (my ($key, $val) = each(%$info)) {
         if ($key eq 'Error') {
             croak("Error extracting old headers... $key : $val. ($!)");
@@ -609,15 +617,15 @@ sub _remediate_jpeg2000 {
     }
 
     # then copy new fields
-    while ( my ( $field, $val ) = each( %{ $self->{newFields} } ) ) {
+    while (my ($field, $val) = each(%{ $self->{newFields} })) {
         $exifTool->SetNewValue($field); # first reset existing value, if any
-        my ( $success, $errStr ) = $exifTool->SetNewValue( $field, $val );
-        if ( defined $errStr ) {
+        my ($success, $errStr) = $exifTool->SetNewValue($field, $val);
+        if (defined $errStr) {
             croak("Error setting new tag $field => $val: $errStr\n");
         }
     }
 
-    my $ret_val = $self->update_tags( $exifTool, $outfile, $infile );
+    my $ret_val = $self->update_tags($exifTool, $outfile, $infile);
     my $end_time = $self->{job_metrics}->time;
     my $delta_time = $end_time - $start_time;
     my $labels = {format => 'jpeg2000'};
@@ -633,10 +641,13 @@ sub _dpi {
     my $self     = shift;
     my $xres     = shift;
     my $xresunit = shift;
+
     my $factor   = undef;
 
     return unless $xres and $xresunit;
 
+    # these read as:
+    # if ($xresunit eq 'um') { $factor = 25400; } ... etc
     $xresunit eq 'um'      and $factor = 25400;
     $xresunit eq '0.01 mm' and $factor = 2540;
     $xresunit eq '0.1 mm'  and $factor = 254;
@@ -655,81 +666,72 @@ sub _dpi {
 }
 
 sub _set_new_resolution {
-  my $self = shift;
-  my $force_headers = shift;
-  my $set_if_undefined_headers = shift;
+    my $self                     = shift;
+    my $force_headers            = shift;
+    my $set_if_undefined_headers = shift;
 
-  my $xmp_resolution = $self->_dpi(
-      $self->{oldFields}->{'XMP-tiff:XResolution'},
-      $self->{oldFields}->{'XMP-tiff:ResolutionUnit'}
-  );
+    my $xmp_resolution = $self->_dpi(
+        $self->{oldFields}->{'XMP-tiff:XResolution'},
+        $self->{oldFields}->{'XMP-tiff:ResolutionUnit'}
+    );
 
-  # if the resolution in the XMP is nonsense, ensure it gets updated with any
-  # info we might have even if we aren't otherwise forcing the resolution
-  my $force_res = (defined $force_headers->{'Resolution'} or (defined $xmp_resolution and $xmp_resolution < 100));
+    # if the resolution in the XMP is nonsense, ensure it gets updated with any
+    # info we might have even if we aren't otherwise forcing the resolution
+    my $force_res = (defined $force_headers->{'Resolution'} or (defined $xmp_resolution and $xmp_resolution < 100));
 
-  my $resolution = $force_headers->{'Resolution'};
-  $resolution ||= $set_if_undefined_headers->{'Resolution'};
+    my $resolution = $force_headers->{'Resolution'};
+    $resolution ||= $set_if_undefined_headers->{'Resolution'};
 
-  return unless defined $resolution;
+    return unless defined $resolution;
 
-  if ($force_res) {
-      $self->{newFields}->{'XMP-tiff:XResolution'}    = $resolution;
-      $self->{newFields}->{'XMP-tiff:YResolution'}    = $resolution;
-      $self->{newFields}->{'XMP-tiff:ResolutionUnit'} = 'inches';
-  }
-  else {
-      $self->set_new_if_undefined( 'XMP-tiff:XResolution', $resolution );
-      $self->set_new_if_undefined( 'XMP-tiff:YResolution', $resolution );
-      $self->set_new_if_undefined( 'XMP-tiff:ResolutionUnit', 'inches' );
-  }
+    if ($force_res) {
+        $self->{newFields}->{'XMP-tiff:XResolution'}    = $resolution;
+        $self->{newFields}->{'XMP-tiff:YResolution'}    = $resolution;
+        $self->{newFields}->{'XMP-tiff:ResolutionUnit'} = 'inches';
+    } else {
+        $self->set_new_if_undefined('XMP-tiff:XResolution', $resolution);
+        $self->set_new_if_undefined('XMP-tiff:YResolution', $resolution);
+        $self->set_new_if_undefined('XMP-tiff:ResolutionUnit', 'inches');
+    }
 
-  if (defined $self->{oldFields}->{'IFD0:XResolution'})
-  {
-    # Overwrite IFD0:XResolution/IFD0:YResolution if they are present
-    $self->{newFields}->{'IFD0:XResolution'} = $resolution;
-    $self->{newFields}->{'IFD0:YResolution'} = $resolution;
-    $self->{newFields}->{'IFD0:ResolutionUnit'} = 'inches';
-  }
+    if (defined $self->{oldFields}->{'IFD0:XResolution'}) {
+        # Overwrite IFD0:XResolution/IFD0:YResolution if they are present
+        $self->{newFields}->{'IFD0:XResolution'} = $resolution;
+        $self->{newFields}->{'IFD0:YResolution'} = $resolution;
+        $self->{newFields}->{'IFD0:ResolutionUnit'} = 'inches';
+    }
 }
 
 sub prevalidate_field {
-    my $self      = shift;
-    my $fieldname = shift;
-    my $expected  = shift
-      ; # can be a scalar or an array ref, if there are multiple permissible values
+    my $self       = shift;
+    my $fieldname  = shift;
+    # $expected can be a scalar or an array ref, if there are multiple permissible values
+    my $expected   = shift;
     my $remediable = shift;
+
     my $ok         = 0;
 
-    my $actual = $self->{oldFields}{$fieldname};
+    my $actual      = $self->{oldFields}{$fieldname};
     my $error_class = $remediable ? 'PREVALIDATE_REMEDIATE' : 'PREVALIDATE_ERR';
 
-    if ( not defined $actual ) {
+    if (not defined $actual) {
         $ok = 0;
-    }
-    elsif ( not defined $expected ) {
-
+    } elsif (not defined $expected) {
         # any value is OK
         $ok = 1;
-    }
-    elsif (
-        ( !ref($expected) and $actual eq $expected )
-
+    } elsif (
+        (!ref($expected) and $actual eq $expected)
         # OK value
         or
-        ( ref($expected) eq 'ARRAY' and ( grep { $_ eq $actual } @$expected ) )
-      )
-    {
+        (ref($expected) eq 'ARRAY' and (grep { $_ eq $actual } @$expected))
+    ) {
         $ok = 1;
-    }
-    else {
-
+    } else {
         # otherwise: unexpected/invalid value
         $ok = 0;
     }
 
     return $ok;
-
 }
 
 =item expand_lossless_jpeg2000()
@@ -749,7 +751,11 @@ FILENAME.tif, and FILENAME.jp2 will be removed.
 =cut
 
 sub expand_lossless_jpeg2000 {
-    my ($self, $volume, $path, $files) = @_;
+    my $self   = shift;
+    my $volume = shift;
+    my $path   = shift;
+    my $files  = shift;
+
     my $transformation_xp = XML::LibXML::XPathExpression->new(
 	"/jhove:jhove/jhove:repInfo/" .
 	"jhove:properties/jhove:property[jhove:name='JPEG2000Metadata']/jhove:values/" .
@@ -803,7 +809,7 @@ sub expand_lossless_jpeg2000 {
                 get_logger()->trace("Compressing $path/$tiff to $path/$jpeg2000");
                 my $grk_compress = get_config('grk_compress');
 
-                if(not defined $self->{recorded_image_compression}) {
+                if (not defined $self->{recorded_image_compression}) {
                     $volume->record_premis_event('image_compression');
                     $self->{recorded_image_compression} = 1;
                 }
@@ -831,7 +837,7 @@ sub expand_lossless_jpeg2000 {
                 # copy all headers from the original jpeg2000
                 # grk_compress loses info from IFD0 headers, which are sometimes present in JPEG2000 images
                 my $exiftool = new Image::ExifTool;
-                $exiftool->SetNewValuesFromFile("$path/$jpeg2000",'*:*');
+                $exiftool->SetNewValuesFromFile("$path/$jpeg2000", '*:*');
                 $exiftool->WriteInfo("$path/$jpeg2000_remediated");
 
                 $labels = {tool => 'exiftool'};
@@ -842,7 +848,7 @@ sub expand_lossless_jpeg2000 {
 		$self->{job_metrics}->inc("ingest_imageremediate_images_total", $labels);
 
                 # gotta do metrics first or we can't get file sizes
-                rename("$path/$jpeg2000_remediated","$path/$jpeg2000");
+                rename("$path/$jpeg2000_remediated", "$path/$jpeg2000");
 		unlink("$path/$tiff");
             }
         },
@@ -851,7 +857,10 @@ sub expand_lossless_jpeg2000 {
 }
 
 sub expand_other_file_formats {
-    my ($self, $volume, $path, $files) = @_;
+    my $self   = shift;
+    my $volume = shift;
+    my $path   = shift;
+    my $files  = shift;
 
     my @other_recognized_formats = qw(.png .jpg);
     my $imagemagick              = get_config('imagemagick');
@@ -932,6 +941,7 @@ sub copy_metadata {
 # Extract relevant jpg metadata
 sub extract_jpg_metadata {
     my $olf = shift; # ref to $self->{oldFields}, a hash of exiftool data.
+
     # Return a hash of extracted metadata that we want to ensure
     # is copied to the outfile.
     my $h = {
@@ -948,9 +958,10 @@ sub extract_jpg_metadata {
 
 sub extract_png_metadata {
     my $olf = shift; # ref to $self->{oldFields}, a hash of exiftool data.
+
     my $originalPixelUnit = $olf->{'PNG-pHYs:PixelUnits'};
-    my $pixelUnit = "in";
-    my $multiplier = 1;
+    my $pixelUnit         = "in";
+    my $multiplier        = 1;
 
     # PNG might give resolution in meters, we want it in centimeters.
     # 100 pixels-per-meter is 1 pixels-per-centimeter (100:1)
@@ -1052,7 +1063,7 @@ sub remediate_tiffs {
             }
 
             my $outfile = "$stage_path/$file";
-            $outfile    = "$stage_path/$renamed_file" if ( defined $renamed_file );
+            $outfile    = "$stage_path/$renamed_file" if (defined $renamed_file);
 
             $self->remediate_image(
 		"$tiffpath/$file",
@@ -1072,8 +1083,8 @@ sub remediate_tiffs {
 }
 
 sub convert_tiff_to_jpeg2000 {
-    my $self        = shift;
-    my $seq         = shift;
+    my $self = shift;
+    my $seq  = shift;
 
     my $volume        = $self->{volume};
     my $preingest_dir = $volume->get_preingest_directory();
@@ -1090,13 +1101,13 @@ sub convert_tiff_to_jpeg2000 {
         $self->{oldFields}->{'IFD0:ImageWidth'},
         $self->{oldFields}->{'IFD0:ImageHeight'}
     );
-    my $levels = max( 5, ceil( log( $maxdim / 100 ) / log(2) ) - 1 );
+    my $levels = max(5, ceil(log($maxdim / 100) / log(2)) - 1);
 
     # try to compress the TIFF -> JPEG2000
     get_logger()->trace("Compressing $infile to $outfile");
     my $grk_compress = get_config('grk_compress');
 
-    if(not defined $self->{recorded_image_compression}) {
+    if (not defined $self->{recorded_image_compression}) {
         $volume->record_premis_event('image_compression');
         $self->{recorded_image_compression} = 1;
     }
@@ -1123,10 +1134,10 @@ sub convert_tiff_to_jpeg2000 {
     # Breaking out some expressions to make this condition easier to read.
     my $sample_per_px   = $self->{oldFields}->{'IFD0:SamplesPerPixel'};
     my $bits_per_sample = $self->{oldFields}->{'IFD0:BitsPerSample'};
-    if($sample_per_px eq '3' and ($bits_per_sample eq '8' or $sample_per_px eq '8 8 8')) {
-        $imagemagick_cmd .= qq( -type TrueColor)
-    } elsif($bits_per_sample eq '8' and $sample_per_px eq '1') {
-        $imagemagick_cmd .= qq( -type Grayscale -depth 8)
+    if ($sample_per_px eq '3' and ($bits_per_sample eq '8' or $sample_per_px eq '8 8 8')) {
+        $imagemagick_cmd .= qq(-type TrueColor)
+    } elsif ($bits_per_sample eq '8' and $sample_per_px eq '1') {
+        $imagemagick_cmd .= qq(-type Grayscale -depth 8)
     }
 
     my $magick_compress_cmd = "$imagemagick_cmd -compress None $infile -strip $infile.unc.tif";
@@ -1155,7 +1166,7 @@ sub convert_tiff_to_jpeg2000 {
     $exifTool->Options('ScanForXMP' => 1);
     $exifTool->Options('IgnoreMinorErrors' => 1);
     $exifTool->SetNewValue('XMP', undef, Protected => 1);
-    $self->update_tags( $exifTool, "$infile.unc.tif" );
+    $self->update_tags($exifTool, "$infile.unc.tif");
 
     my $grk_compress_cmd = qq($grk_compress -i "$infile.unc.tif" -o "$outfile" -p RLCP -n $levels -SOP -EPH -M 62 -I > /dev/null 2>&1);
     my $grk_compress_err = system($grk_compress_cmd);
@@ -1174,171 +1185,175 @@ sub convert_tiff_to_jpeg2000 {
 
     # then set new metadata fields - the rest will automatically be
     # set from the JP2
-    foreach $field ( qw( XResolution YResolution ResolutionUnit Artist Make Model)){
-        $self->copy_old_to_new( "IFD0:$field", "XMP-tiff:$field" );
+    foreach $field (qw(XResolution YResolution ResolutionUnit Artist Make Model)) {
+        $self->copy_old_to_new("IFD0:$field", "XMP-tiff:$field");
     }
 
     # Don't worry about setting all fields here, since it will also be run through
     # the JPEG2000 remediation.
-    $self->copy_old_to_new( "IFD0:ModifyDate", "XMP-tiff:DateTime" );
-    $self->set_new_if_undefined( "XMP-tiff:Compression", "JPEG 2000" );
-    $self->set_new_if_undefined( "XMP-tiff:Orientation", "normal" );
+    $self->copy_old_to_new("IFD0:ModifyDate", "XMP-tiff:DateTime");
+    $self->set_new_if_undefined("XMP-tiff:Compression", "JPEG 2000");
+    $self->set_new_if_undefined("XMP-tiff:Orientation", "normal");
 
     $exifTool = new Image::ExifTool;
     $exifTool->Options('ScanForXMP' => 1);
     $exifTool->Options('IgnoreMinorErrors' => 1);
-    while ( ( $field, $val ) = each( %{ $self->{newFields} } ) ) {
-        my ( $success, $errStr ) = $exifTool->SetNewValue( $field, $val );
-        if ( defined $errStr ) {
+    while (($field, $val) = each(%{ $self->{newFields} })) {
+        my ($success, $errStr) = $exifTool->SetNewValue($field, $val);
+        if (defined $errStr) {
             croak("Error setting new tag $field => $val: $errStr\n");
         }
     }
 
-    $self->update_tags( $exifTool, "$outfile" );
+    $self->update_tags($exifTool, "$outfile");
 }
 
 # normalize the date to ISO8601 if it is close to that; assume UTC if no time zone given (rare in XMP)
 sub fix_iso8601_date {
-  my $datetime = shift;
+    my $datetime = shift;
 
-  if (defined $datetime and $datetime =~ /^(\d{4})[:\/-](\d\d)[:\/-](\d\d)[T ](\d\d):(\d\d)(:\d\d)?(Z|[+-]\d{2}:\d{2})?$/ ) {
-    my ($Y,$M,$D,$h,$m,$s,$tz) = ($1,$2,$3,$4,$5,$6,$7);
-    $s = ':00' if not defined $s;
-    $tz = 'Z' if not defined $tz;
-    return "$Y-$M-${D}T$h:$m$s$tz";
-  } else {
-    # missing or very badly formatted date
-    return;
-  }
+    if (defined $datetime and $datetime =~ /^(\d{4})[:\/-](\d\d)[:\/-](\d\d)[T ](\d\d):(\d\d)(:\d\d)?(Z|[+-]\d{2}:\d{2})?$/) {
+        my ($Y, $M, $D, $h, $m, $s, $tz) = ($1, $2, $3, $4, $5, $6, $7);
+        $s = ':00' if not defined $s;
+        $tz = 'Z' if not defined $tz;
+        return "$Y-$M-${D}T$h:$m$s$tz";
+    } else {
+        # missing or very badly formatted date
+        return;
+    }
 }
 
 # normalize to TIFF 6.0 spec "YYYY:MM:DD HH:MM:SS"
 sub fix_tiff_date {
-  my $datetime = shift;
+    my $datetime = shift;
 
-  return if not defined $datetime;
+    return if not defined $datetime;
 
-  if ( $datetime =~ /^(\d{4}).(\d{2}).(\d{2}).(\d{2}).(\d{2}).(\d{2})/ )
-  {
-    return  "$1:$2:$3 $4:$5:$6";
-  }
-  elsif ( $datetime =~ /^(\d{4}).?(\d{2}).?(\d{2})/ )
-  {
-    return "$1:$2:$3 00:00:00";
-  }
-  # two digit year from 1990s; assume mm/dd/yy
-  elsif ( $datetime =~ /^(\d{2})\/(\d{2})\/(9\d)$/ ) {
-    return  "19$3:$1:$2 00:00:00";
-  }
-  # four digit year, no time; assume mm/dd/yy
-  elsif ( $datetime =~ qr(^(\d{2})[/:-](\d{2})[/:-](\d{4})$)) {
-    return "$3:$1:$2 00:00:00";
-  }
-  else
-  {
-    # garbage / unparseable
-    return;
-  }
+    if ($datetime =~ /^(\d{4}).(\d{2}).(\d{2}).(\d{2}).(\d{2}).(\d{2})/) {
+        return  "$1:$2:$3 $4:$5:$6";
+    } elsif ($datetime =~ /^(\d{4}).?(\d{2}).?(\d{2})/) {
+        return "$1:$2:$3 00:00:00";
+    }
+    # two digit year from 1990s; assume mm/dd/yy
+    elsif ($datetime =~ /^(\d{2})\/(\d{2})\/(9\d)$/) {
+        return  "19$3:$1:$2 00:00:00";
+    }
+    # four digit year, no time; assume mm/dd/yy
+    elsif ($datetime =~ qr(^(\d{2})[/:-](\d{2})[/:-](\d{4})$)) {
+        return "$3:$1:$2 00:00:00";
+    } else {
+        # garbage / unparseable
+        return;
+    }
 
 }
 
 # update with remediated dates without regard to whether they are null or not
 sub set_new_date_fields {
-  my $self = shift;
-  my $new_tiffdate = shift;
-  my $new_xmpdate = shift;
+    my $self         = shift;
+    my $new_tiffdate = shift;
+    my $new_xmpdate  = shift;
 
-  my $tiffdate = Date::Manip::Date->new;
-  $tiffdate->parse($new_tiffdate);
-  my $xmpdate = Date::Manip::Date->new;
-  $xmpdate->parse($new_xmpdate);
+    my $tiffdate = Date::Manip::Date->new;
+    $tiffdate->parse($new_tiffdate);
+    my $xmpdate = Date::Manip::Date->new;
+    $xmpdate->parse($new_xmpdate);
 
-  $self->{newFields}{'IFD0:ModifyDate'} = $tiffdate->printf("%Y:%m:%d %H:%M:%S");
-  if($self->needs_xmp) {
-    $self->{newFields}{'XMP-tiff:DateTime'} = $xmpdate->printf("%O");
-  }
+    $self->{newFields}{'IFD0:ModifyDate'} = $tiffdate->printf("%Y:%m:%d %H:%M:%S");
+    if ($self->needs_xmp) {
+        $self->{newFields}{'XMP-tiff:DateTime'} = $xmpdate->printf("%O");
+    }
 }
 
 sub fix_datetime {
-  my $self = shift;
+    my $self             = shift;
+    my $default_datetime = shift;
 
-  my $default_datetime = shift;
+    my $tiff_datetime = fix_tiff_date($self->{oldFields}{'IFD0:ModifyDate'});
+    my $xmp_datetime  = fix_iso8601_date($self->{oldFields}{'XMP-tiff:DateTime'});
 
-  my $tiff_datetime = fix_tiff_date($self->{oldFields}{'IFD0:ModifyDate'});
-  my $xmp_datetime = fix_iso8601_date($self->{oldFields}{'XMP-tiff:DateTime'});
+    $self->set_new_date_fields($tiff_datetime, $xmp_datetime);
+    $self->fix_datetime_missing($tiff_datetime, $xmp_datetime, $default_datetime);
 
-  $self->set_new_date_fields($tiff_datetime,$xmp_datetime);
-  $self->fix_datetime_missing($tiff_datetime,$xmp_datetime,$default_datetime);
-
-  # fix_datetime_missing may have updated these
-  $self->fix_datetime_mismatch($self->{newFields}{'IFD0:ModifyDate'},
-                               $self->{newFields}{'XMP-tiff:DateTime'},
-                               $default_datetime);
-
+    # fix_datetime_missing may have updated these
+    $self->fix_datetime_mismatch(
+        $self->{newFields}{'IFD0:ModifyDate'},
+        $self->{newFields}{'XMP-tiff:DateTime'},
+        $default_datetime
+    );
 }
 
 sub fix_datetime_missing {
-  my $self = shift;
-  my $tiff_datetime = shift;
-  my $xmp_datetime = shift;
-  my $default_datetime = shift;
+    my $self             = shift;
+    my $tiff_datetime    = shift;
+    my $xmp_datetime     = shift;
+    my $default_datetime = shift;
 
-  # copy TIFF DateTime if we have it and need the XMP
-  if(defined $tiff_datetime and $self->needs_xmp and not defined $xmp_datetime) {
-    $self->set_new_date_fields($tiff_datetime,$tiff_datetime);
-  }
-
-  # copy XMP DateTime if we have it and need the TIFF DateTime
-  elsif(defined $xmp_datetime and not defined $tiff_datetime) {
-    $self->set_new_date_fields($xmp_datetime,$xmp_datetime);
-  }
-
-  # if we have neither, set both (set_new_date_fields will only set the
-  # XMP if needed)
-  elsif(not defined $xmp_datetime and not defined $tiff_datetime) {
-    $self->set_new_date_fields($default_datetime,$default_datetime);
-  }
+    # copy TIFF DateTime if we have it and need the XMP
+    if (defined $tiff_datetime and $self->needs_xmp and not defined $xmp_datetime) {
+        $self->set_new_date_fields($tiff_datetime, $tiff_datetime);
+    }
+    # copy XMP DateTime if we have it and need the TIFF DateTime
+    elsif (defined $xmp_datetime and not defined $tiff_datetime) {
+        $self->set_new_date_fields($xmp_datetime, $xmp_datetime);
+    }
+    # if we have neither, set both (set_new_date_fields will only set the
+    # XMP if needed)
+    elsif (not defined $xmp_datetime and not defined $tiff_datetime) {
+        $self->set_new_date_fields($default_datetime, $default_datetime);
+    }
 }
 
 sub fix_datetime_mismatch {
-  my $self = shift;
-  my $tiff_datetime = shift;
-  my $xmp_datetime = shift;
-  my $default_datetime = shift;
+    my $self             = shift;
+    my $tiff_datetime    = shift;
+    my $xmp_datetime     = shift;
+    my $default_datetime = shift;
 
-  # if there is no XMP, we don't need to make sure they match
-  return unless $self->needs_xmp;
+    # if there is no XMP, we don't need to make sure they match
+    return unless $self->needs_xmp;
 
-  if ($self->tiff_xmp_date_mismatch($tiff_datetime,$xmp_datetime))  {
-    $self->set_new_date_fields($default_datetime,$default_datetime);
-  }
+    if ($self->tiff_xmp_date_mismatch($tiff_datetime, $xmp_datetime)) {
+        $self->set_new_date_fields($default_datetime, $default_datetime);
+    }
 }
 
 sub tiff_xmp_date_mismatch {
-  my $self = shift;
-  my $tiff_datetime = shift;
-  my $xmp_datetime = shift;
-  my $mix_datetime = undef;
+    my $self          = shift;
+    my $tiff_datetime = shift;
+    my $xmp_datetime  = shift;
 
-  if(defined $tiff_datetime and
-    # accept tiff-style or ISO8601 style
-    $tiff_datetime =~ /^(\d{4}).(\d{2}).(\d{2}).(\d{2}).(\d{2}).(\d{2})([+-]\d{2}:\d{2})?$/) {
-    $mix_datetime = "\1-\2-\3T\4:\5:\6";
-  } else {
-    # shouldn't happen at this point - tiff_datetime should either be null or
-    # well formatted
-    $self->set_error("BadValue",field => 'IFD0:ModifyDate',actual =>
-      $tiff_datetime,detail=>'Expected format YYYY:MM:DD HH:mm:ss');
-    return undef;
-  }
+    my $mix_datetime = undef;
 
-  return (defined $xmp_datetime and defined $mix_datetime
-      and $xmp_datetime !~ /^\Q$mix_datetime\E([+-]\d{2}:\d{2})?/)
+    if (
+        defined $tiff_datetime and
+        # accept tiff-style or ISO8601 style
+        $tiff_datetime =~ /^(\d{4}).(\d{2}).(\d{2}).(\d{2}).(\d{2}).(\d{2})([+-]\d{2}:\d{2})?$/
+    ) {
+        $mix_datetime = "\1-\2-\3T\4:\5:\6";
+    } else {
+        # shouldn't happen at this point - tiff_datetime should either be null or
+        # well formatted
+        $self->set_error(
+            "BadValue",
+            field  => 'IFD0:ModifyDate',
+            actual => $tiff_datetime,
+            detail => 'Expected format YYYY:MM:DD HH:mm:ss'
+        );
+        return undef;
+    }
+
+    return (
+        defined $xmp_datetime and
+        defined $mix_datetime and
+        $xmp_datetime !~ /^\Q$mix_datetime\E([+-]\d{2}:\d{2})?/
+    )
 }
 
 sub needs_xmp {
-  my $self = shift;
-  return (grep { $_ =~ /^XMP-/ } keys(%{$self->{oldFields}}) )
+    my $self = shift;
+
+    return (grep { $_ =~ /^XMP-/ } keys(%{$self->{oldFields}}))
 }
 
 1;
