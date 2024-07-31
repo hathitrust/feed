@@ -2,13 +2,14 @@ package HTFeed::Stage::JHOVE_Runner;
 
 use warnings;
 use strict;
-use Log::Log4perl qw(get_logger);
-use XML::LibXML;
-use Carp;
-use HTFeed::XMLNamespaces qw(register_namespaces);
-use HTFeed::Config qw(get_config);
 
 use base qw(HTFeed::Stage);
+
+use Carp;
+use HTFeed::Config qw(get_config);
+use HTFeed::XMLNamespaces qw(register_namespaces);
+use Log::Log4perl qw(get_logger);
+use XML::LibXML;
 
 =head1 NAME
 
@@ -16,9 +17,8 @@ HTFeed::Stage::JHOVE_Runner
 
 =head1 DESCRIPTION
 
-Abstract class for stages (VolumeValidator,
-ImageRemediate, etc) that may need to
-run  JHOVE on a set of files.
+Abstract class for stages (VolumeValidator, ImageRemediate, etc)
+that may need to run JHOVE on a set of files.
 
 =cut
 
@@ -36,25 +36,23 @@ filename, and the parsed XML JHOVE output.
 =cut
 
 sub run_jhove {
-    my $self   = shift;
-
-    # get files
-    my $volume = shift;
-    my $dir   = shift;
-    my $files = shift;
+    my $self     = shift;
+    my $volume   = shift;
+    my $dir      = shift;
+    my $files    = shift;
     my $callback = shift;
-    my $add_args = (shift or '');
+    my $add_args = shift || '';
 
     # make sure we have >0 files
-    if ( !$files or !@$files ) {
+    if (!$files or !@$files) {
         return;
     }
 
     # prepend directory to each file to validate
-    my $files_for_cmd = join( "' '", map { "$_" } @$files );
-    my $jhove_path = get_config('jhove');
-    my $jhove_conf = get_config('jhoveconf');
-    my $jhove_cmd = "cd '$dir'; $jhove_path -h XML -c $jhove_conf $add_args '$files_for_cmd'";
+    my $files_for_cmd = join("' '", map { "$_" } @$files);
+    my $jhove_path    = get_config('jhove');
+    my $jhove_conf    = get_config('jhoveconf');
+    my $jhove_cmd     = "cd '$dir'; $jhove_path -h XML -c $jhove_conf $add_args '$files_for_cmd'";
     get_logger()->trace("jhove cmd $jhove_cmd");
 
     # make a hash of expected files
@@ -73,13 +71,10 @@ sub run_jhove {
     # start looking for repInfo block
     DOC_READER: while (<$pipe>) {
         if (m|^\s*<repInfo.+>$|) {
-
             # save the first line when we find it
             my $xml_block = "$_";
-
             # get the rest of the lines for this repInfo block
             BLOCK_READER: while (<$pipe>) {
-
                 # save more lines until we get to </repInfo>
                 $xml_block .= $_;
                 last BLOCK_READER if m|^\s*</repInfo>$|;
@@ -95,35 +90,26 @@ sub run_jhove {
 
             # validate file
             {
-
                 # put the headers on xml_block, parse it as a doc
-                $xml_block =
-                $control_line . $head . $date_line . $xml_block . $tail;
+                $xml_block = $control_line . $head . $date_line . $xml_block . $tail;
 
-                #                print $xml_block;
+                # print $xml_block;
                 my $parser = XML::LibXML->new();
-                my $node = $parser->parse_string($xml_block);
-                &$callback($volume,$file,$node)
+                my $node   = $parser->parse_string($xml_block);
+                &$callback($volume, $file, $node)
             }
-
-        }
-        elsif (m|^\s*</jhove>$|) {
+        } elsif (m|^\s*</jhove>$|) {
             last DOC_READER;
-        }
-        elsif (m|<app>|) {
-
+        } elsif (m|<app>|) {
             # jhove was run on zero files, that should never happen
             croak "jhove was run on zero files";
-        }
-        else {
-
+        } else {
             # this should never happen
             die "could not parse jhove output";
         }
     }
 
-    if ( keys %files_left_to_process ) {
-
+    if (keys %files_left_to_process) {
         # this should never happen
         die "missing a block in jhove output";
     }
