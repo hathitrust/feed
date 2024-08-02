@@ -247,6 +247,7 @@ sub _remediate_tiff {
 	    my @imagemagick_remediable_errs = (
 		'PhotometricInterpretation not defined',
 		'ColorSpace value out of range: 2',
+		'WhiteBalance value out of range: 4',
 		'WhiteBalance value out of range: 5',
 		# wrong data type for tag - will get automatically stripped
 		'Type mismatch for tag',
