@@ -9,6 +9,9 @@ use HTFeed::Image::Shared;
 # This package contains all of the systemcalls to magick (imagemagick).
 
 # E.g. HTFeed::Image::Magick::compress("a", "b", '-compress' => 'Group4');
+# Magick returns an error code, so 0:good, >0:bad. We flip it to treat it
+# as a perl return value, such that 0: fail, 1: success.
+
 sub compress {
     my $infile  = shift;
     my $outfile = shift;
@@ -42,6 +45,7 @@ sub compress {
     );
     my $sys_ret_val = system($full_cmd);
 
+    # Flip the return value
     return !$sys_ret_val;
 }
 

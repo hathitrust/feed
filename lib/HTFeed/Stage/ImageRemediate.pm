@@ -877,19 +877,13 @@ sub expand_other_file_formats {
 	my $outfile    = "$path/$outname.tif";
         my $start_time = $self->{job_metrics}->time;
 
-        my $err_code = HTFeed::Image::Magick::compress(
+        my $compress_ok = HTFeed::Image::Magick::compress(
             $infile,
             $outfile,
             '-compress' => 'None'
         );
-	if ($err_code) {
-	    $self->set_error(
-		"OperationFailed",
-		operation => "imagemagick",
-		file      => $infile,
-		detail    => "decompress and ICC profile strip failed: returned $?"
-	    );
-	} else {
+
+	if ($compress_ok) {
             $self->copy_metadata($ext, $infile, $outfile);
             my $infile_size = -s $infile;
             unlink($infile);
@@ -903,6 +897,13 @@ sub expand_other_file_formats {
 	    $self->{job_metrics}->add("ingest_imageremediate_bytes_r_total", $infile_size, $labels);
 	    $self->{job_metrics}->add("ingest_imageremediate_bytes_w_total", -s $outfile, $labels);
 	    $self->{job_metrics}->inc("ingest_imageremediate_images_total", $labels);
+	} else {
+	    $self->set_error(
+		"OperationFailed",
+		operation => "imagemagick",
+		file      => $infile,
+		detail    => "decompress and ICC profile strip failed: returned $?"
+	    );
 	}
     }
 }
