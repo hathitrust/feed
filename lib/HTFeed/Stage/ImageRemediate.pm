@@ -818,13 +818,18 @@ sub expand_lossless_jpeg2000 {
 
                 # Single quality level with reqested PSNR of 32dB. See DEV-10
                 $start_time = $self->{job_metrics}->time;
-                HTFeed::Image::Grok::compress("$path/$tiff", "$path/$jpeg2000_remediated")
-                and $self->set_error(
-                    "OperationFailed",
-                    operation => "grk_compress",
-                    file      => "$path/$tiff",
-                    detail    => "grk_compress returned $?"
+                my $grk_compress_success = HTFeed::Image::Grok::compress(
+                    "$path/$tiff",
+                    "$path/$jpeg2000_remediated"
                 );
+                if (!$grk_compress_success) {
+                    $self->set_error(
+                        "OperationFailed",
+                        operation => "grk_compress",
+                        file      => "$path/$tiff",
+                        detail    => "grk_compress returned $?"
+                    );
+                }
                 $labels = {
                     converted => "tiff->jpeg2000",
                     tool      => 'grk_decompress'
