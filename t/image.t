@@ -109,6 +109,18 @@ describe "HTFeed::Image" => sub {
         check_outfile($out);
         bigger_than($in, $out);
     };
+    it "catches error code in dollar-questionmark" => sub {
+        cp_to_test("circuit_grayscale.tif");
+        my $in   = "$test_dir/circuit_grayscale.tif";
+        # bad extension ".bork", should trigger failure
+        my $out  = "$test_dir/circuit_grayscale_out.bork";
+        my $res  = HTFeed::Image::Grok::compress($in, $out);
+        # expecting failure
+        ok($res == 0);
+        # expecting a non-zero failure code
+        my $error_code = $?;
+        ok($error_code > 0);
+    };
 };
 
 runtests unless caller;
