@@ -8,8 +8,9 @@ use base qw(HTFeed::Namespace);
 our $identifier = 'test';
 
 our $config = {
+    grinid           => "TEST",
     handle_prefix    => '2027/deleteme',
-    packagetypes     => [qw(ht ia simple epub simpledigital emma)],
+    packagetypes     => [qw(ht ia simple epub simpledigital emma google)],
     description      => 'Test namespace',
     dropbox_folder   => '/test-hathitrust-ingest',
     default_timezone => 'America/Detroit',
