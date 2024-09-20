@@ -58,13 +58,31 @@ sub get_exiftool_fields {
     $exifTool->Options('IgnoreMinorErrors' => 1);
     $exifTool->Options('ScanForXMP' => 1);
     $exifTool->ExtractInfo($file, { Binary => 1 });
-
+    print "\n--- $file\n";
+    my @tags_to_remember = ();
+    
     foreach my $tag ($exifTool->GetFoundTags()) {
         # get only the groupname we'll use to update it later
-        my $group   = $exifTool->GetGroup($tag, "1");
-        my $tagname = Image::ExifTool::GetTagName($tag);
-        $fields->{"$group:$tagname"} = $exifTool->GetValue($tag);
+        my $group    = $exifTool->GetGroup($tag, "1");
+        my $tagname  = Image::ExifTool::GetTagName($tag);
+	my $tagvalue = $exifTool->GetValue($tag);
+
+	my $verbose = 0;
+	$verbose    = 1 if $tagname =~ /resolution/i;
+
+	if ($verbose) {
+	    if (defined $fields->{"$group:$tagname"}) {
+		print "overwriting $group:$tagname (" . $fields->{"$group:$tagname"} . ") with $tagvalue\n";
+	    } else {
+		print "setting $group:$tagname to " . (defined($tagvalue) ? $tagvalue : 'undef') . "\n";
+	    }
+	    push (@tags_to_remember, "$group:$tagname");
+	}
+        $fields->{"$group:$tagname"} = $tagvalue;
     }
+
+    print "OK, done setting values, these are the resolution tags:\n";
+    print "$_ : $fields->{$_}\n" for sort @tags_to_remember;
 
     return $fields;
 }
@@ -107,6 +125,7 @@ specified in pixels per inch.
 sub remediate_image {
     my $self    = shift;
     my $oldfile = shift;
+
     # dispatch to appropriate remediator
     $oldfile =~ /\.(.+?)$/;
     my $oldext = $1;
