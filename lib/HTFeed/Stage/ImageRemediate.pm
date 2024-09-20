@@ -58,18 +58,18 @@ sub get_exiftool_fields {
     $exifTool->Options('IgnoreMinorErrors' => 1);
     $exifTool->Options('ScanForXMP' => 1);
     $exifTool->ExtractInfo($file, { Binary => 1 });
+
     print "\n--- $file\n";
     my $resolution_tags = {};
+
     foreach my $tag ($exifTool->GetFoundTags()) {
         # get only the groupname we'll use to update it later
         my $group    = $exifTool->GetGroup($tag, "1");
         my $tagname  = Image::ExifTool::GetTagName($tag);
 	my $tagvalue = $exifTool->GetValue($tag);
 
-	my $verbose = 0;
-	$verbose    = 1 if $tagname =~ /resolution/i;
-
-	if ($verbose) {
+	# deal with potential duplicate values
+	if ($tagname =~ /resolution/i) {
 	    if (defined $fields->{"$group:$tagname"}) {
 		print "overwriting $group:$tagname (" . $fields->{"$group:$tagname"} . ") with $tagvalue\n";
 	    } else {
@@ -78,6 +78,7 @@ sub get_exiftool_fields {
 	    $resolution_tags->{"$group:$tagname"} ||= [];
 	    push (@{$resolution_tags->{"$group:$tagname"}}, $tagvalue);
 	}
+
         $fields->{"$group:$tagname"} = $tagvalue;
     }
 
