@@ -106,6 +106,8 @@ sub run {
     }
     $fetch->fix_line_endings($staging_dir);
 
+    my $end_time   = $self->{job_metrics}->time;
+    my $delta_time = $end_time - $start_time;
     $self->{job_metrics}->add("ingest_imageremediate_seconds_total", $delta_time, $labels);
     $self->{job_metrics}->add("ingest_imageremediate_images_total", $page_count, $labels);
     $self->{job_metrics}->inc("ingest_imageremediate_items_total", $labels);
