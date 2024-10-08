@@ -19,6 +19,9 @@ sub run {
     my $objid         = $volume->get_objid();
     my $scandata_xpc  = $volume->get_scandata_xpc();
     my $resolution    = $volume->get_db_resolution();
+    my $labels        = {packagetype => 'ia'};
+    my $start_time    = $self->{job_metrics}->time;
+    my $page_count    = $volume->get_page_count();
 
     # Fall back to getting resolution from scandata or meta
     if (not defined $resolution or !$resolution) {
@@ -95,8 +98,15 @@ sub run {
 
     $volume->record_premis_event('image_header_modification');
     $volume->record_premis_event('file_rename');
-    $self->_set_done();
 
+    # Record metrics
+    my $end_time   = $self->{job_metrics}->time;
+    my $delta_time = $end_time - $start_time;
+    $self->{job_metrics}->add("ingest_imageremediate_seconds_total", $delta_time, $labels);
+    $self->{job_metrics}->add("ingest_imageremediate_images_total", $page_count, $labels);
+    $self->{job_metrics}->inc("ingest_imageremediate_items_total", $labels);
+
+    $self->_set_done();
     return $self->succeeded();
 }
 
