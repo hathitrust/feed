@@ -378,7 +378,6 @@ sub _remediate_tiff {
     );
 
     my $labels     = {format => 'tiff'};
-    $self->{job_metrics}->inc("ingest_imageremediate_images_total", $labels);
     $self->{job_metrics}->add("ingest_imageremediate_bytes_r_total", $infile_size, $labels);
     $self->{job_metrics}->add("ingest_imageremediate_bytes_w_total", -s $outfile, $labels);
 
@@ -440,7 +439,6 @@ sub repair_tiff_exiftool {
     }
 
     my $labels = {format => 'tiff'};
-    $self->{job_metrics}->inc("ingest_imageremediate_images_total", $labels);
     $self->{job_metrics}->add("ingest_imageremediate_bytes_r_total", $infile_size, $labels);
     $self->{job_metrics}->add("ingest_imageremediate_bytes_w_total", -s $outfile, $labels);
 
@@ -465,7 +463,6 @@ sub repair_tiff_imagemagick {
     my $labels      = {format => 'tiff', tool => 'imagemagick'};
     $self->{job_metrics}->add("ingest_imageremediate_bytes_r_total", -s $infile, $labels);
     $self->{job_metrics}->add("ingest_imageremediate_bytes_w_total", -s $outfile, $labels);
-    $self->{job_metrics}->inc("ingest_imageremediate_images_total", $labels);
     croak("failed repairing $infile\n") unless $compress_ok;
 
     # Some metadata may be lost when imagemagick compresses infile to outfile.
@@ -485,7 +482,6 @@ sub repair_tiff_imagemagick {
     $labels = {format => 'tiff', tool => 'exiftool'};
     $self->{job_metrics}->add("ingest_imageremediate_bytes_r_total", -s $infile, $labels);
     $self->{job_metrics}->add("ingest_imageremediate_bytes_w_total", -s $outfile, $labels);
-    $self->{job_metrics}->inc("ingest_imageremediate_images_total", $labels);
 
     return $compress_ok;
 }
@@ -610,7 +606,6 @@ sub _remediate_jpeg2000 {
 
     my $ret_val    = $self->update_tags($exifTool, $outfile, $infile);
     my $labels     = {format => 'jpeg2000'};
-    $self->{job_metrics}->inc("ingest_imageremediate_images_total", $labels);
     $self->{job_metrics}->add("ingest_imageremediate_bytes_r_total", $infile_size, $labels);
     $self->{job_metrics}->add("ingest_imageremediate_bytes_w_total", -s $outfile, $labels);
 
@@ -782,7 +777,6 @@ sub expand_lossless_jpeg2000 {
                 HTFeed::Image::Grok::decompress("$path/$jpeg2000", "$path/$tiff");
 		$self->{job_metrics}->add("ingest_imageremediate_bytes_r_total", -s "$path/$jpeg2000", $labels);
                 $self->{job_metrics}->add("ingest_imageremediate_bytes_w_total", -s "$path/$tiff", $labels);
-		$self->{job_metrics}->inc("ingest_imageremediate_images_total", $labels);
 
                 # try to compress the TIFF -> JPEG2000
                 get_logger()->trace("Compressing $path/$tiff to $path/$jpeg2000");
@@ -811,7 +805,6 @@ sub expand_lossless_jpeg2000 {
                 };
 		$self->{job_metrics}->add("ingest_imageremediate_bytes_r_total", -s "$path/$tiff", $labels);
                 $self->{job_metrics}->add("ingest_imageremediate_bytes_w_total", -s "$path/$jpeg2000_remediated", $labels);
-		$self->{job_metrics}->inc("ingest_imageremediate_images_total", $labels);
 
                 # copy all headers from the original jpeg2000
                 # grk_compress loses info from IFD0 headers, which are sometimes present in JPEG2000 images
@@ -822,8 +815,6 @@ sub expand_lossless_jpeg2000 {
                 $labels = {tool => 'exiftool'};
 		$self->{job_metrics}->add("ingest_imageremediate_bytes_r_total", -s "$path/$tiff", $labels);
                 $self->{job_metrics}->add("ingest_imageremediate_bytes_w_total", -s "$path/$jpeg2000_remediated", $labels);
-
-		$self->{job_metrics}->inc("ingest_imageremediate_images_total", $labels);
 
                 # gotta do metrics first or we can't get file sizes
                 rename("$path/$jpeg2000_remediated", "$path/$jpeg2000");
@@ -868,7 +859,6 @@ sub expand_other_file_formats {
             };
 	    $self->{job_metrics}->add("ingest_imageremediate_bytes_r_total", $infile_size, $labels);
 	    $self->{job_metrics}->add("ingest_imageremediate_bytes_w_total", -s $outfile, $labels);
-	    $self->{job_metrics}->inc("ingest_imageremediate_images_total", $labels);
 	} else {
 	    $self->set_error(
 		"OperationFailed",
@@ -1128,7 +1118,6 @@ sub convert_tiff_to_jpeg2000 {
         -s "$infile.unc.tif",
         $labels
     );
-    $self->{job_metrics}->inc("ingest_imageremediate_images_total", $labels);
 
     if (!$magick_compress_success) {
 	$self->set_error(
@@ -1164,8 +1153,6 @@ sub convert_tiff_to_jpeg2000 {
     $labels = {converted => "tiff->jpeg2000", tool => "grk_compress"};
     $self->{job_metrics}->add("ingest_imageremediate_bytes_r_total", -s "$infile.unc.tif", $labels);
     $self->{job_metrics}->add("ingest_imageremediate_bytes_w_total", -s $outfile, $labels);
-    $self->{job_metrics}->inc("ingest_imageremediate_images_total", $labels);
-
     # then set new metadata fields - the rest will automatically be
     # set from the JP2
     foreach $field (qw(XResolution YResolution ResolutionUnit Artist Make Model)) {
