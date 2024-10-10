@@ -36,7 +36,6 @@ sub run {
     my $staging_dir   = $volume->get_staging_directory();
     my $labels        = {packagetype => 'simple'};
     my $start_time    = $self->{job_metrics}->time;
-    my $page_count    = $volume->get_page_count();
 
     # decompress any lossless JPEG2000 images
     my @jp2 = glob("$preingest_dir/*.jp2");
@@ -106,6 +105,7 @@ sub run {
     }
     $fetch->fix_line_endings($staging_dir);
 
+    my $page_count = $volume->get_page_count();
     my $end_time   = $self->{job_metrics}->time;
     my $delta_time = $end_time - $start_time;
     $self->{job_metrics}->add("ingest_imageremediate_seconds_total", $delta_time, $labels);
