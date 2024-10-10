@@ -34,11 +34,17 @@ sub run {
     my $volume        = $self->{volume};
     my $preingest_dir = $volume->get_preingest_directory();
     my $staging_dir   = $volume->get_staging_directory();
+    my $labels        = {packagetype => 'simple'};
+    my $start_time    = $self->{job_metrics}->time;
 
     # decompress any lossless JPEG2000 images
     my @jp2 = glob("$preingest_dir/*.jp2");
     if (@jp2) {
-        $self->expand_lossless_jpeg2000($volume, $preingest_dir, [map { basename($_) } @jp2]);
+        $self->expand_lossless_jpeg2000(
+	    $volume,
+	    $preingest_dir,
+	    [map { basename($_) } @jp2]
+	);
     }
 
     #remediate TIFFs
@@ -84,7 +90,7 @@ sub run {
         # force override resolution if it is provided in meta.yml
         $self->set_from_meta_yml('contone_resolution_dpi', $force_fields, 'Resolution');
 
-        $self->remediate_image( $jp2_submitted, $jp2_remediated, $force_fields, $set_if_undefined );
+        $self->remediate_image($jp2_submitted, $jp2_remediated, $force_fields, $set_if_undefined);
     }
 
     $volume->record_premis_event('image_header_modification');
@@ -98,8 +104,15 @@ sub run {
         move($file, $staging_dir);
     }
     $fetch->fix_line_endings($staging_dir);
-    $self->_set_done();
 
+    my $page_count = $volume->get_page_count();
+    my $end_time   = $self->{job_metrics}->time;
+    my $delta_time = $end_time - $start_time;
+    $self->{job_metrics}->add("ingest_imageremediate_seconds_total", $delta_time, $labels);
+    $self->{job_metrics}->add("ingest_imageremediate_images_total", $page_count, $labels);
+    $self->{job_metrics}->inc("ingest_imageremediate_items_total", $labels);
+
+    $self->_set_done();
     return $self->succeeded();
 }
 
