@@ -21,7 +21,6 @@ sub run {
     my $resolution    = $volume->get_db_resolution();
     my $labels        = {packagetype => 'ia'};
     my $start_time    = $self->{job_metrics}->time;
-    my $page_count    = $volume->get_page_count();
 
     # Fall back to getting resolution from scandata or meta
     if (not defined $resolution or !$resolution) {
@@ -102,6 +101,7 @@ sub run {
     # Record metrics
     my $end_time   = $self->{job_metrics}->time;
     my $delta_time = $end_time - $start_time;
+    my $page_count = $volume->get_page_count();
     $self->{job_metrics}->add("ingest_imageremediate_seconds_total", $delta_time, $labels);
     $self->{job_metrics}->add("ingest_imageremediate_images_total", $page_count, $labels);
     $self->{job_metrics}->inc("ingest_imageremediate_items_total", $labels);
