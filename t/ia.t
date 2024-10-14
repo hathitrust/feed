@@ -9,6 +9,52 @@ use HTFeed::Test::SpecSupport qw(mock_zephir);
 use HTFeed::Test::Support qw(load_db_fixtures);
 use Test::Spec;
 
+context "mock download" => sub {
+    describe "HTFeed::PackageType::IA::Download" => sub {
+	use HTFeed::JobMetrics;
+	it "increments jobmetrics (even as a mock download)" => sub {
+	    my $jm     = HTFeed::JobMetrics->new;
+	    my $objid  = 'ark:/13960/t7kq2zj36';
+	    my $ia_id  = 'ark+=13960=t7kq2zj36';
+	    my $volume = HTFeed::Volume->new(
+		namespace   => 'test',
+		objid       => $objid,
+		packagetype => 'ia'
+	    );
+	    my $download_items = "ingest_download_items_total";
+
+	    $jm->clear;
+	    $volume->{ia_id} = $ia_id;
+	    my $downloader   = HTFeed::PackageType::IA::Download->new(volume => $volume);
+	    my @mock_files   = (
+		'djvu.xml',
+		'files.xml',
+		'jp2.zip',
+		'meta.xml',
+		'scandata.xml',
+		'scanfactors.xml',
+	    );
+	    # Create mock files in the download dir to skip the actual download from IA
+	    foreach my $mock_file (@mock_files) {
+		my $mock_path = join(
+		    "",
+		    $volume->get_download_directory(),
+		    "/",
+		    $ia_id,
+		    "_",
+		    $mock_file
+		);
+		system("touch $mock_path");
+	    }
+
+	    # Check that the $download_items metric increments upon successful download
+	    ok($jm->get_value($download_items) == 0);
+	    $downloader->run();
+	    ok($jm->get_value($download_items) == 1);
+	};
+    };
+};
+
 context "with volume & temporary ingest/preingest/zipfile dirs" => sub {
     my $volume;
     my $objid;
