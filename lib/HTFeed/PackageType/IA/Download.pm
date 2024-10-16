@@ -17,12 +17,13 @@ sub links {
 }
 
 package HTFeed::PackageType::IA::Download;
-use Encode qw(decode);
 
-use warnings;
 use strict;
+use warnings;
 
 use base qw(HTFeed::Stage::Download);
+
+use Encode qw(decode);
 use File::Pairtree qw(id2ppath s2ppchars);
 use File::Path qw(make_path);
 use HTFeed::Config qw(get_config);
@@ -44,6 +45,9 @@ sub run {
     my $pt_path                = $volume->get_download_directory();
     $self->{pt_path}           = $pt_path;
     my @noncore_missing        = ();
+
+    my $labels     = {name => 'ia'};
+    my $start_time = $self->{job_metrics}->time;
 
     foreach my $suffix (@$core_package_items) {
         $self->download(suffix => $suffix);
@@ -127,6 +131,13 @@ sub run {
     );
     $self->_set_done();
 
+    my $end_time        = $self->{job_metrics}->time;
+    my $delta_time      = $end_time - $start_time;
+    my $downloaded_size = $self->{job_metrics}->dir_size($pt_path);
+    $self->{job_metrics}->add("ingest_download_seconds_total", $delta_time, $labels);
+    $self->{job_metrics}->add("ingest_download_bytes_r_total", $downloaded_size, $labels);
+    $self->{job_metrics}->inc("ingest_download_items_total", $labels);
+
     return $self->succeeded();
 }
 
@@ -144,6 +155,8 @@ sub download {
     # check if it was already downloaded
     return 1 if -e "$self->{pt_path}/$filename";
 
+    die "died from $self->{pt_path}/$filename \n";
+    
     foreach my $link (@{$self->get_links()}) {
         next if not defined $link;
         if ($link =~ /$suffix$/ and $link !~ /_bw_$suffix/) {
