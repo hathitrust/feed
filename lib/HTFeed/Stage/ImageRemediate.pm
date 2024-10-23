@@ -57,13 +57,69 @@ sub get_exiftool_fields {
     $exifTool->Options('ScanForXMP' => 1);
     $exifTool->ExtractInfo($file, { Binary => 1 });
 
+    print "\n--- $file\n";
+    my $resolution_tags = {};
+
     foreach my $tag ($exifTool->GetFoundTags()) {
         # get only the groupname we'll use to update it later
-        my $group   = $exifTool->GetGroup($tag, "1");
-        my $tagname = Image::ExifTool::GetTagName($tag);
-        $fields->{"$group:$tagname"} = $exifTool->GetValue($tag);
+        my $group    = $exifTool->GetGroup($tag, "1");
+        my $tagname  = Image::ExifTool::GetTagName($tag);
+	my $tagvalue = $exifTool->GetValue($tag);
+
+	# deal with potential duplicate values
+	if ($tagname =~ /resolution/i) {
+	    if (defined $fields->{"$group:$tagname"}) {
+		print "overwriting $group:$tagname (" . $fields->{"$group:$tagname"} . ") with $tagvalue\n";
+	    } else {
+		print "setting $group:$tagname to " . (defined($tagvalue) ? $tagvalue : 'undef') . "\n";
+	    }
+	    $resolution_tags->{"$group:$tagname"} ||= [];
+	    push (@{$resolution_tags->{"$group:$tagname"}}, $tagvalue);
+	}
+
+        $fields->{"$group:$tagname"} = $tagvalue;
     }
 
+    # From https://exiftool.org/TagNames/Jpeg2000.html#ResolutionUnit, different values.
+    my $resolution_unit_size = {
+	'km'      => 9,
+	'100 m'   => 8,
+	'10 m'    => 7,
+	'm'       => 6,
+	'10 cm'   => 5,
+	'cm'      => 4,
+	'mm'      => 3,
+	'0.1 mm'  => 2,
+	'0.01 mm' => 1,
+	'um'      => 0,
+    };
+    my $tag_relationship = {
+	'Jpeg2000:CaptureXResolutionUnit' => 'Jpeg2000:CaptureXResolution',
+	'Jpeg2000:CaptureYResolutionUnit' => 'Jpeg2000:CaptureYResolution',
+    };
+
+    print Dumper($resolution_tags) . "\n";
+
+    foreach my $unit_tag (grep {$_ =~ /Unit$/} keys %$resolution_tags) {
+	# If there are more than one value, pick the biggest unit and the smallest value
+	if (@{$resolution_tags->{$unit_tag}} > 1) {
+	    my @sorted_units = sort {
+		$resolution_unit_size->{$b} <=> $resolution_unit_size->{$a}
+	    } @{$resolution_tags->{$unit_tag}};
+
+	    my $value_tag = $tag_relationship->{$unit_tag};
+	    my @sorted_values  = sort {
+		$a <=> $b
+	    } @{$resolution_tags->{$value_tag}};
+
+	    print "$unit_tag should use $sorted_units[0] with $sorted_values[0]\n";
+	    $fields->{$unit_tag} = $sorted_units[0];
+	    $fields->{$value_tag} = $sorted_values[0];
+	}
+    }
+
+    print Dumper($fields) . "\n";
+    
     return $fields;
 }
 
@@ -105,6 +161,7 @@ specified in pixels per inch.
 sub remediate_image {
     my $self    = shift;
     my $oldfile = shift;
+
     # dispatch to appropriate remediator
     $oldfile =~ /\.(.+?)$/;
     my $oldext = $1;
