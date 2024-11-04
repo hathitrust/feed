@@ -96,5 +96,4 @@ xerces_cache: /usr/local/feed/etc/schema.cache
 grk_compress: /usr/bin/grk_compress
 grk_decompress: /usr/bin/grk_decompress
 epubcheck: /usr/bin/java -jar /usr/bin/epubcheck
-mp3val: /usr/bin/mp3val
 
