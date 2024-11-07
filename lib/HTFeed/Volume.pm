@@ -286,9 +286,13 @@ sub get_checksum_md5 {
 	    $self->set_error("MissingFile", file => $checksum_file);
 	}
 
-	open(FILE, $checksum_path) or die("Can't open $checksum_path: $!");
+        # we don't expect a BOM in checksum files, but get it sometimes anyways
+        # so it's best to open files as if they were UTF8 and strip bom if seen
+        use open ':std', ':encoding(UTF-8)';
+        open(FILE, $checksum_path) or die("Can't open $checksum_path: $!");
 	foreach my $line (<FILE>) {
 	    $line =~ s/\r\n$/\n/;
+            $line =~ s/^\N{BOM}//;
 	    chomp($line);
 	    # ignore malformed lines
 	    next unless $line =~ /^([a-fA-F0-9]{32})(\s+\*?)(\S.*)/;
