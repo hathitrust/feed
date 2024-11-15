@@ -155,8 +155,6 @@ sub download {
     # check if it was already downloaded
     return 1 if -e "$self->{pt_path}/$filename";
 
-    die "died from $self->{pt_path}/$filename \n";
-    
     foreach my $link (@{$self->get_links()}) {
         next if not defined $link;
         if ($link =~ /$suffix$/ and $link !~ /_bw_$suffix/) {
