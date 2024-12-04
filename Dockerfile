@@ -58,7 +58,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY etc/imagemagick-policy.xml /etc/ImageMagick-6/policy.xml
 
 COPY etc/jhove-auto-install.xml /tmp/jhove-auto-install.xml
-RUN curl https://software.openpreservation.org/releases/jhove/1.32/jhove-xplt-installer-1.32.0.jar -o /tmp/jhove-installer.jar
+RUN curl https://hathitrust.github.io/jhove/jhove-xplt-installer-latest.jar -o /tmp/jhove-installer.jar
 RUN java -jar /tmp/jhove-installer.jar /tmp/jhove-auto-install.xml
 
 RUN groupadd -g $GID -o $UNAME
