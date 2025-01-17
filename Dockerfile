@@ -79,7 +79,7 @@ COPY ./Makefile.PL $FEED_HOME/Makefile.PL
 
 RUN cpanm --notest -l /extlib \
   https://github.com/hathitrust/metslib.git@v1.0.1 \
-  https://github.com/hathitrust/progress_tracker.git@v0.11.0
+  https://github.com/hathitrust/progress_tracker.git@v0.11.1
 
 RUN cpanm --notest -l /extlib --skip-satisfied --installdeps .
 
