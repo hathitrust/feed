@@ -29,6 +29,7 @@ sub run {
     if (not defined $resolution or !$resolution) {
 	$resolution = $volume->get_meta_xpc()->findvalue("//ppi");
     }
+    $resolution =~ s/ppi//;
 
     # decompress any lossless JPEG2000 images
     my @jp2 = glob("$preingest_dir/*.jp2");
@@ -63,7 +64,6 @@ sub run {
     ) if @tiffs;
 
     opendir(my $dirh, "$preingest_dir") or croak("Can't opendir $preingest_dir: $!");
-
     while (my $file = readdir($dirh)) {
         next unless $file =~ /(\d{4})\.jp2$/;
 
@@ -82,8 +82,9 @@ sub run {
         if (my $capture_time = $self->get_capture_time($file)) {
             $set_if_undefined_fields->{'XMP-tiff:DateTime'} = $capture_time;
         }
-
-        $set_if_undefined_fields->{'Resolution'} = $resolution if defined $resolution and $resolution;
+        if (defined $resolution and $resolution) {
+            $set_if_undefined_fields->{'Resolution'} = $resolution;
+        }
 
         $self->remediate_image(
             $jp2_submitted,
