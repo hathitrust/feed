@@ -167,7 +167,8 @@ foreach my $volume (@volumes) {
 		status            => $state,
 		ignore            => $insert,
 		priority          => $priority,
-		use_disallow_list => $use_disallow_list
+		use_disallow_list => $use_disallow_list,
+                no_bibdata_ok     => $volume->{packagetype} eq 'googlebib'
 	    )
 	);
     }
