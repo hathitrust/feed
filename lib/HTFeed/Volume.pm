@@ -246,10 +246,6 @@ sub get_sip_failure_directory {
     return get_config('staging' => 'punted');
 }
 
-sub get_bib_extraction_dir {
-    return get_config('staging' => 'googlebib_extracted');
-}
-
 sub get_all_content_files {
     my $self = shift;
 
