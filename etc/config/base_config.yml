@@ -59,6 +59,7 @@ release_states:
   - held
   - uplift_done
   - migrated
+  - needs_metadata
 
 # FIXME: Should this be on a shared volume? How to handle graceful exit?
 stop_file: /usr/local/feed/etc/STOPFEED
