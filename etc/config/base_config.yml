@@ -59,6 +59,7 @@ release_states:
   - held
   - uplift_done
   - migrated
+  - needs_metadata
 
 # FIXME: Should this be on a shared volume? How to handle graceful exit?
 stop_file: /usr/local/feed/etc/STOPFEED
@@ -78,6 +79,8 @@ staging:
   zipfile: $staging_root/zipfile
   preingest: $staging_root/preingest
   grin: $staging_root/grin
+  # this is where we store bibdata extracted from googlebib items
+  googlebib_extracted: $sip_root/googlebib_extracted
 
 # path to gpg passphrases
 gpg_path: /usr/local/feed/etc/gpg
