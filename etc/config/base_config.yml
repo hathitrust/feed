@@ -59,6 +59,7 @@ release_states:
   - held
   - uplift_done
   - migrated
+  - metadata_unpacked
   - needs_metadata
 
 # FIXME: Should this be on a shared volume? How to handle graceful exit?
