@@ -170,6 +170,24 @@ describe "HTFeed::PackageType::Simple" => sub {
       $validate->run();
       ok($validate->succeeded());
     };
+
+    it "remediates empty DateTime in a bitonal TIFF file" => sub {
+      my $volume = unpacked_volume("empty_datetime");
+      HTFeed::PackageType::Simple::ImageRemediate->new(volume => $volume)->run();
+      HTFeed::PackageType::Simple::SourceMETS->new(volume => $volume)->run();
+      my $validate = HTFeed::VolumeValidator->new(volume => $volume);
+      $validate->run();
+      ok($validate->succeeded());
+    };
+
+    it "remediates empty DateTime in an RGB TIFF file" => sub {
+      my $volume = unpacked_volume("rgb_tif_empty_datetime");
+      HTFeed::PackageType::Simple::ImageRemediate->new(volume => $volume)->run();
+      HTFeed::PackageType::Simple::SourceMETS->new(volume => $volume)->run();
+      my $validate = HTFeed::VolumeValidator->new(volume => $volume);
+      $validate->run();
+      ok($validate->succeeded());
+    };
   };
 };
 

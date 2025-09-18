@@ -171,8 +171,9 @@ sub copy_old_to_new($$$) {
 
   my $oldValue = $self->{oldFields}->{$oldFieldName};
   if (
-    defined $self->{oldFields}->{$oldFieldName} and
-    not defined $self->{newFields}->{$newFieldName}
+    defined $self->{oldFields}->{$oldFieldName} 
+      and $self->{oldFields}->{$oldFieldName} ne ''
+      and not defined $self->{newFields}->{$newFieldName}
   ) {
     $self->{newFields}->{$newFieldName} = $oldValue;
   }
