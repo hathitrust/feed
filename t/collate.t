@@ -172,6 +172,59 @@ describe "HTFeed::Collate" => sub {
       ok($testlog->matches(qw(INFO.*already in repo)));
     };
 
+    context "with multiple linked pairtrees" => sub {
+      my $old_storage_classes;
+
+      before each => sub {
+        $old_storage_classes = get_config('storage_classes');
+        my $new_storage_classes = {
+          'linkedpairtree-test1' =>
+          {
+            class => 'HTFeed::Storage::LinkedPairtree',
+            obj_dir => $tmpdirs->{obj_dir} . "/tree1",
+            link_dir => $tmpdirs->{link_dir} . "/tree1"
+          },
+          'linkedpairtree-test2' =>
+          {
+            class => 'HTFeed::Storage::LinkedPairtree',
+            obj_dir => $tmpdirs->{obj_dir} . "/tree2",
+            link_dir => $tmpdirs->{link_dir} . "/tree2"
+          },
+        };
+        set_config($new_storage_classes,'storage_classes');
+      };
+
+      after each => sub {
+        set_config($old_storage_classes,'storage_classes');
+      };
+
+      it "copies and records to all configured storages" => sub {
+        my $volume = stage_volume($tmpdirs,'test','test');
+        my $stage = HTFeed::Stage::Collate->new(volume => $volume);
+        $stage->run;
+
+        my $dbh = get_dbh();
+        my $audits = $dbh->selectall_arrayref("SELECT * from feed_audit WHERE namespace = 'test' and id = 'test'");
+
+        is(scalar(@{$audits}),1,'records an audit');
+
+        ok(-e "$tmpdirs->{obj_dir}/tree1/test/pairtree_root/te/st/test/test.mets.xml",'copies mets to local storage');
+        ok(-e "$tmpdirs->{obj_dir}/tree1/test/pairtree_root/te/st/test/test.zip",'copies zip to local storage');
+
+        ok(-e "$tmpdirs->{link_dir}/tree1/test/pairtree_root/te/st/test/test.mets.xml",'links mets to local storage');
+        ok(-e "$tmpdirs->{link_dir}/tree1/test/pairtree_root/te/st/test/test.zip",'links zip to local storage');
+
+
+        ok(-e "$tmpdirs->{obj_dir}/tree2/test/pairtree_root/te/st/test/test.mets.xml",'copies mets to local storage 2');
+        ok(-e "$tmpdirs->{obj_dir}/tree2/test/pairtree_root/te/st/test/test.zip",'copies zip to local storage 2');
+
+        ok(-e "$tmpdirs->{link_dir}/tree2/test/pairtree_root/te/st/test/test.mets.xml",'links mets to local storage 2');
+        ok(-e "$tmpdirs->{link_dir}/tree2/test/pairtree_root/te/st/test/test.zip",'links zip to local storage 2');
+
+        ok($stage->succeeded);
+      };
+    };
+
     context "with multiple real storage classes" => sub {
       spec_helper 's3_helper.pl';
 
