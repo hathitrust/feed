@@ -9,6 +9,7 @@ use Carp qw(croak);
 use HTFeed::Config qw(get_config);
 use HTFeed::Storage::LinkedPairtree;
 use HTFeed::Storage::LocalPairtree;
+use HTFeed::Storage::PairtreeObjectStore;
 use HTFeed::Storage::ObjectStore;
 use HTFeed::Storage::PrefixedVersions;
 use Log::Log4perl qw(get_logger);

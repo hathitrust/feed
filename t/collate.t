@@ -172,6 +172,52 @@ describe "HTFeed::Collate" => sub {
       ok($testlog->matches(qw(INFO.*already in repo)));
     };
 
+    context "with PairtreeObjectStore" => sub {
+      my $s3;
+      my $bucket;
+
+      before all => sub {
+        $bucket = "bucket" . sprintf("%08d",rand(1000000));
+        $s3 = HTFeed::Storage::S3->new(
+          bucket => $bucket,
+          awscli => get_config('versitygw_awscli')
+        );
+        $ENV{AWS_MAX_ATTEMPTS} = 1;
+    
+        $s3->mb;
+      };
+
+      my $old_storage_classes;
+
+      before each => sub {
+        $old_storage_classes = get_config('storage_classes');
+        my $new_storage_classes = {
+          'pairtree_object_Store' => 
+          {
+            class => 'HTFeed::Storage::PairtreeObjectStore',
+            bucket => $s3->{bucket},
+            awscli => $s3->{awscli},
+          }
+        };
+        set_config($new_storage_classes,'storage_classes');
+      };
+
+      after each => sub {
+        set_config($old_storage_classes,'storage_classes');
+      };
+
+      it "copies and records to pairtree path" => sub {
+        my $volume = stage_volume($tmpdirs,'test','test');
+        my $stage = HTFeed::Stage::Collate->new(volume => $volume);
+        $stage->run;
+
+        ok(-e "$ENV{FEED_HOME}/var/vgw/$bucket/test/pairtree_root/te/st/test/test.mets.xml",'copies mets to pairtree in s3');
+        ok(-e "$ENV{FEED_HOME}/var/vgw/$bucket/test/pairtree_root/te/st/test/test.zip",'copies zip to pairtree in s3');
+
+        ok($stage->succeeded);
+      };
+    };
+
     context "with multiple linked pairtrees" => sub {
       my $old_storage_classes;
 

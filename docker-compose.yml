@@ -131,6 +131,17 @@ services:
       <<: *healthcheck-defaults
       test: timeout 5s mc ready local
 
+  # S3 -> filesystem gateway
+  versitygw:
+    image: versity/versitygw
+    restart: always
+    environment:
+      ROOT_ACCESS_KEY: TESTINGACCESSKEY
+      ROOT_SECRET_KEY: testingsecretkey
+    volumes:
+      - ./var/vgw:/vgw
+    command: posix /vgw
+
   pushgateway:
     image: prom/pushgateway
     command:
