@@ -11,7 +11,7 @@ sub object_path {
   my $self = shift;
 
   return sprintf(
-      '%s/%s%s/%s',
+      '%s/%s%s/',
       $self->{namespace},
       id2ppath($self->{objid}),
       s2ppchars($self->{objid})
