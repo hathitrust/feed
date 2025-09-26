@@ -172,120 +172,65 @@ describe "HTFeed::Collate" => sub {
       ok($testlog->matches(qw(INFO.*already in repo)));
     };
 
-    context "with PairtreeObjectStore" => sub {
-      spec_helper 's3_helper.pl';
-      local our ($s3, $bucket);
-
-      my $old_storage_classes;
-
-      before each => sub {
-        $old_storage_classes = get_config('storage_classes');
-        my $new_storage_classes = {
-          'pairtree_object_Store' => 
-          {
-            class => 'HTFeed::Storage::PairtreeObjectStore',
-            bucket => $s3->{bucket},
-            awscli => $s3->{awscli},
-          }
-        };
-        set_config($new_storage_classes,'storage_classes');
-      };
-
-      after each => sub {
-        set_config($old_storage_classes,'storage_classes');
-      };
-
-      it "copies and records to pairtree path" => sub {
-        my $volume = stage_volume($tmpdirs,'test','test');
-        my $stage = HTFeed::Stage::Collate->new(volume => $volume);
-        $stage->run;
-
-        ok(-e "$ENV{FEED_HOME}/var/vgw/$bucket/test/pairtree_root/te/st/test/test.mets.xml",'copies mets to pairtree in s3');
-        ok(-e "$ENV{FEED_HOME}/var/vgw/$bucket/test/pairtree_root/te/st/test/test.zip",'copies zip to pairtree in s3');
-
-        ok($stage->succeeded);
-      };
-    };
-
-    context "with multiple linked pairtrees" => sub {
-      my $old_storage_classes;
-
-      before each => sub {
-        $old_storage_classes = get_config('storage_classes');
-        my $new_storage_classes = {
-          'linkedpairtree-test1' =>
-          {
-            class => 'HTFeed::Storage::LinkedPairtree',
-            obj_dir => $tmpdirs->{obj_dir} . "/tree1",
-            link_dir => $tmpdirs->{link_dir} . "/tree1"
-          },
-          'linkedpairtree-test2' =>
-          {
-            class => 'HTFeed::Storage::LinkedPairtree',
-            obj_dir => $tmpdirs->{obj_dir} . "/tree2",
-            link_dir => $tmpdirs->{link_dir} . "/tree2"
-          },
-        };
-        set_config($new_storage_classes,'storage_classes');
-      };
-
-      after each => sub {
-        set_config($old_storage_classes,'storage_classes');
-      };
-
-      it "copies and records to all configured storages" => sub {
-        my $volume = stage_volume($tmpdirs,'test','test');
-        my $stage = HTFeed::Stage::Collate->new(volume => $volume);
-        $stage->run;
-
-        my $dbh = get_dbh();
-        my $audits = $dbh->selectall_arrayref("SELECT * from feed_audit WHERE namespace = 'test' and id = 'test'");
-
-        is(scalar(@{$audits}),1,'records an audit');
-
-        ok(-e "$tmpdirs->{obj_dir}/tree1/test/pairtree_root/te/st/test/test.mets.xml",'copies mets to local storage');
-        ok(-e "$tmpdirs->{obj_dir}/tree1/test/pairtree_root/te/st/test/test.zip",'copies zip to local storage');
-
-        ok(-e "$tmpdirs->{link_dir}/tree1/test/pairtree_root/te/st/test/test.mets.xml",'links mets to local storage');
-        ok(-e "$tmpdirs->{link_dir}/tree1/test/pairtree_root/te/st/test/test.zip",'links zip to local storage');
-
-
-        ok(-e "$tmpdirs->{obj_dir}/tree2/test/pairtree_root/te/st/test/test.mets.xml",'copies mets to local storage 2');
-        ok(-e "$tmpdirs->{obj_dir}/tree2/test/pairtree_root/te/st/test/test.zip",'copies zip to local storage 2');
-
-        ok(-e "$tmpdirs->{link_dir}/tree2/test/pairtree_root/te/st/test/test.mets.xml",'links mets to local storage 2');
-        ok(-e "$tmpdirs->{link_dir}/tree2/test/pairtree_root/te/st/test/test.zip",'links zip to local storage 2');
-
-        ok($stage->succeeded);
-      };
-    };
-
     context "with multiple real storage classes" => sub {
       spec_helper 's3_helper.pl';
 
       local our ($bucket, $s3);
       my $old_storage_classes;
+      my %s3s;
+
+      before all => sub {
+        foreach my $suffix (qw(ptobj1 ptobj2 backup)) {
+          $s3s{$suffix} = HTFeed::Storage::S3->new(
+            bucket => "$bucket-$suffix",
+            awscli => get_config('awscli')
+          );
+          $s3s{$suffix}->mb;
+        }
+      };
+
+      after all => sub {
+        foreach my $s3 (values(%s3s)) {
+          $s3->rm('/',"--recursive");
+          $s3->rb;
+        }
+      };
 
       before each => sub {
         $old_storage_classes = get_config('storage_classes');
         my $new_storage_classes = {
+          # simulating isilon
           'linkedpairtree-test' =>
           {
             class => 'HTFeed::Storage::LinkedPairtree',
             obj_dir => $tmpdirs->{obj_dir},
             link_dir => $tmpdirs->{link_dir}
           },
+          # simulating truenas (site 1)
+          'pairtreeobjectstore-ptobj1' => {
+            class => 'HTFeed::Storage::PairtreeObjectStore',
+            bucket => $s3s{ptobj1}->{bucket},
+            awscli => $s3s{ptobj1}->{awscli},
+          },
+          # simulating truenas (site 2)
+          'pairtreeobjectstore-ptobj2' => {
+            class => 'HTFeed::Storage::PairtreeObjectStore',
+            bucket => $s3s{ptobj2}->{bucket},
+            awscli => $s3s{ptobj2}->{awscli},
+          },
+          # simulating data den
           'prefixedversions-test' =>
           {
             class => 'HTFeed::Storage::PrefixedVersions',
             obj_dir => $tmpdirs->{backup_obj_dir},
             encryption_key => $tmpdirs->test_home . "/fixtures/encryption_key"
           },
+          # simulating glacier deep archive
           'objectstore-test' =>
           {
             class => 'HTFeed::Storage::ObjectStore',
-            bucket => $s3->{bucket},
-            awscli => $s3->{awscli},
+            bucket => $s3s{backup}->{bucket},
+            awscli => $s3s{backup}->{awscli},
             encryption_key => $tmpdirs->test_home . "/fixtures/encryption_key"
           }
         };
@@ -311,16 +256,22 @@ describe "HTFeed::Collate" => sub {
         is(scalar(@{$s3_backup}),1,'records a backup for object store');
 
         my $timestamp = $versioned_backup->[0][0];
-        ok(-e "$tmpdirs->{obj_dir}/test/pairtree_root/te/st/test/test.mets.xml",'copies mets to local storage');
-        ok(-e "$tmpdirs->{obj_dir}/test/pairtree_root/te/st/test/test.zip",'copies zip to local storage');
+
+        my $pt_path = "test/pairtree_root/te/st/test";
+        ok(-e "$tmpdirs->{obj_dir}/$pt_path/test.mets.xml",'copies mets to local storage');
+        ok(-e "$tmpdirs->{obj_dir}/$pt_path/test.zip",'copies zip to local storage');
 
         ok(-e "$tmpdirs->{backup_obj_dir}/test/tes/test.$timestamp.zip.gpg","copies the encrypted zip to backup storage");
         ok(-e "$tmpdirs->{backup_obj_dir}/test/tes/test.$timestamp.mets.xml","copies the mets backup storage");
 
         my $s3_timestamp = $s3_backup->[0][0];
 
-        ok($s3->s3_has("test.test.$s3_timestamp.zip.gpg"));
-        ok($s3->s3_has("test.test.$s3_timestamp.mets.xml"));
+        ok($s3s{ptobj1}->s3_has("$pt_path/test.mets.xml"));
+        ok($s3s{ptobj1}->s3_has("$pt_path/test.zip"));
+        ok($s3s{ptobj2}->s3_has("$pt_path/test.mets.xml"));
+        ok($s3s{ptobj2}->s3_has("$pt_path/test.zip"));
+        ok($s3s{backup}->s3_has("test.test.$s3_timestamp.zip.gpg"));
+        ok($s3s{backup}->s3_has("test.test.$s3_timestamp.mets.xml"));
 
         ok(! -e "$tmpdirs->{zip}/test/00000001.jp2","cleans up the extracted zip files");
         ok(! -e "$tmpdirs->{zip}/test","cleans up the zip file tmpdir");
