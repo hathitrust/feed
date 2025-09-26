@@ -1,28 +1,32 @@
 use HTFeed::Config qw(get_config);
 use Test::Spec;
 use Test::Exception;
+use File::Temp qw(tempdir);
+use File::Basename qw(basename);
+use File::Path qw(make_path remove_tree);
 use HTFeed::Storage::PairtreeObjectStore;
 
 use strict;
 
 describe "HTFeed::Storage::PairtreeObjectStore" => sub {
   spec_helper 'storage_helper.pl';
-  local our ($tmpdirs, $testlog, $bucket, $s3);
+  spec_helper 's3_helper.pl';
+
+  my $vgw_home = "$ENV{FEED_HOME}/var/vgw";
+  local our ($tmpdirs, $testlog, $bucket, $s3, $objdir, $bucket_dir);
+
+  before each => sub {
+    $s3->rm("/","--recursive");
+  };
 
   before all => sub {
-    $bucket = "bucket" . sprintf("%08d",rand(1000000));
-    $s3 = HTFeed::Storage::S3->new(
-      bucket => $bucket,
-      awscli => get_config('versitygw_awscli')
-    );
-    $ENV{AWS_MAX_ATTEMPTS} = 1;
-
-    $s3->mb;
+    $bucket_dir = "$vgw_home/$bucket";
+    $objdir = "$vgw_home/$bucket-obj";
+    make_path($objdir);
   };
 
   after all => sub {
-    $s3->rm('/',"--recursive");
-    $s3->rb;
+    remove_tree($objdir,$bucket_dir);
   };
 
   sub object_storage {
@@ -49,26 +53,45 @@ describe "HTFeed::Storage::PairtreeObjectStore" => sub {
   };
 
   describe "#move" => sub {
-    before each => sub {
-      $s3->rm("/","--recursive");
-    };
-
     it "uploads zip and mets" => sub {
       my $storage = object_storage('test','test');
+      my $pt_path = "test/pairtree_root/te/st/test";
       $storage->move;
 
-      ok($s3->s3_has("test/pairtree_root/te/st/test/test.zip"));
-      ok($s3->s3_has("test/pairtree_root/te/st/test/test.mets.xml"));
+      # should be in the bucket and also visible in the filesystem
+      ok($s3->s3_has("$pt_path/test.zip"));
+      ok($s3->s3_has("$pt_path/test.mets.xml"));
+      ok(-s "$bucket_dir/$pt_path/test.zip");
+      ok(-s "$bucket_dir/$pt_path/test.mets.xml");
     };
 
   };
 
   describe "#record_audit" => sub {
     it "records the item info in the feed_audit table";
-    it "does something with the sdr bucket";
   };
 
-  it "deals with old symlinks";
+  it "writes through existing symlinks" => sub {
+
+    my $pt_prefix = "test/pairtree_root/te/st";
+
+    # set things up using filesystem access rather than via s3
+    make_path("$objdir/$pt_prefix/test","$bucket_dir/$pt_prefix");
+    system("touch $objdir/$pt_prefix/test/test.zip");
+    system("touch $objdir/$pt_prefix/test/test.mets.xml");
+    system("ln -sv $objdir/$pt_prefix/test $bucket_dir/$pt_prefix/test");
+
+    # writes via the symlink in $bucket_dir
+    my $storage = object_storage('test','test');
+    $storage->move;
+
+    # started as zero size (via touch), should be nonzero size now
+    ok(-s "$objdir/$pt_prefix/test/test.zip");
+    ok(-s "$objdir/$pt_prefix/test/test.mets.xml");
+
+    # should still be a link in the bucket dir
+    ok(-l "$bucket_dir/$pt_prefix/test");
+  };
 
 };
 

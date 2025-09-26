@@ -173,19 +173,8 @@ describe "HTFeed::Collate" => sub {
     };
 
     context "with PairtreeObjectStore" => sub {
-      my $s3;
-      my $bucket;
-
-      before all => sub {
-        $bucket = "bucket" . sprintf("%08d",rand(1000000));
-        $s3 = HTFeed::Storage::S3->new(
-          bucket => $bucket,
-          awscli => get_config('versitygw_awscli')
-        );
-        $ENV{AWS_MAX_ATTEMPTS} = 1;
-    
-        $s3->mb;
-      };
+      spec_helper 's3_helper.pl';
+      local our ($s3, $bucket);
 
       my $old_storage_classes;
 
