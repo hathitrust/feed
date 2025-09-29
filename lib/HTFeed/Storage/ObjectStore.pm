@@ -96,6 +96,16 @@ sub mets_key {
     return $self->object_path . ".mets.xml";
 }
 
+sub zip_size {
+    my $self = shift;
+    return $self->{filesize}{$self->zip_key},
+}
+
+sub mets_size {
+    my $self = shift;
+    return $self->{filesize}{$self->mets_key},
+}
+
 sub zip_filename {
     my $self = shift;
 
@@ -208,14 +218,18 @@ sub record_audit {
     $self->record_backup;
 }
 
+sub saved_md5sum {
+    my $self = shift;
+
+    my $b64_checksum = $self->{checksums}{$self->zip_key};
+    my $hex_checksum = unpack("H*", decode_base64($b64_checksum));
+}
+
 sub record_backup {
     my $self = shift;
 
     get_logger->trace("  starting record_backup");
     my $dbh = HTFeed::DBTools::get_dbh();
-
-    my $b64_checksum = $self->{checksums}{$self->zip_key};
-    my $hex_checksum = unpack("H*", decode_base64($b64_checksum));
 
     my $stmt = join(
         " ",
@@ -232,9 +246,9 @@ sub record_backup {
         $self->audit_path,
         $self->{timestamp},
         $self->{name},
-        $self->{filesize}{$self->zip_key},
-        $self->{filesize}{$self->object_path . '.mets.xml'},
-        $hex_checksum
+        $self->zip_size,
+        $self->mets_size,
+        $self->saved_md5sum
     );
 
     get_logger->trace("  finished record_backup");

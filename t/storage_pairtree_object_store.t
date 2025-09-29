@@ -68,7 +68,20 @@ describe "HTFeed::Storage::PairtreeObjectStore" => sub {
   };
 
   describe "#record_audit" => sub {
-    it "records the item info in the feed_audit table";
+    it "records the item info in the feed_storage table" => sub {
+      my $dbh = get_dbh();
+
+      my $storage = object_storage('test','test');
+      $storage->stage;
+      $storage->make_object_path;
+      $storage->move;
+      $storage->record_audit;
+
+      my $r = $dbh->selectall_arrayref("SELECT * from feed_storage WHERE namespace = 'test' and id = 'test' and storage_name='pairtreeobjectstore-test'");
+
+      ok($r->[0][0]);
+
+    };
   };
 
   it "writes through existing symlinks" => sub {
