@@ -18,8 +18,8 @@ jobs:
 
       # runner runs as userid 1001 but userid 1000 is baked into docker image.
       # we could adjust this if needed via env var but this should work
-      - name: Adjust permissions for versitygw directory
-        run: chmod 777 var/vgw
+      - name: Adjust permissions for versitygw directories
+        run: chmod 777 var/vgw var/metadata_vgw
 
       - name: Build docker image
         run: docker compose build
