@@ -56,9 +56,10 @@ my @test_classes;
     my $libDir = "$FindBin::Bin/lib/";
     # get the path to each test classes
     find(sub{
-            if (-f and $_ =~ /^Test\.pm$/ ){
+            if (-f and $_ =~ /Test\.pm$/ ){
                 my $name = $File::Find::name;
                 $name =~ s/$libDir//;
+                return if $name =~ /AbstractTest\.pm$/;
                 push @test_classes, $name;
             }
         }, $libDir

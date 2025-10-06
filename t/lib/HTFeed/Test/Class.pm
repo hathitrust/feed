@@ -7,10 +7,12 @@ use HTFeed::Config qw(get_config);
 use File::Path qw(remove_tree);
 
 # return testing class, with assumption that $class eq "$testing_class::Test"
+# or for example "$testing_class::SomethingTest"
+
 sub testing_class{
     my $self = shift;
     my $class = ref $self;
-    $class =~ s/::Test$//;
+    $class =~ s/::\w*Test$//;
     return $class;
 }
 
