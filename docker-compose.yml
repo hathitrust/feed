@@ -130,7 +130,8 @@ services:
       ROOT_SECRET_KEY: testingsecretkey
     volumes:
       - ./var/vgw:/usr/local/feed/var/vgw
-    command: --health /health posix /usr/local/feed/var/vgw
+      - ./var/metadata_vgw:/usr/local/feed/var/metadata_vgw
+    command: --health /health posix --sidecar /usr/local/feed/var/metadata_vgw /usr/local/feed/var/vgw
     healthcheck:
       <<: *healthcheck-defaults
       test: [ "CMD", "wget", "--quiet", "--tries=1", "-O", "/dev/null", "http://127.0.0.1:7070/health" ]
@@ -156,4 +157,4 @@ volumes:
   repository_link:
   repository_obj:
   backups:
-  rclone:
+  vgw_sidecar:
