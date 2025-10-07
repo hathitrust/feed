@@ -25,9 +25,9 @@ services:
     command: prove
     depends_on:
       mariadb: *healthy
-      minio: *healthy
       pushgateway: *healthy
       rabbitmq: *healthy
+      versitygw: *healthy
 
   # Note: for permissions purposes this does NOT bind in the local development
   # environment, so local changes after running docker compose build will NOT
@@ -36,6 +36,7 @@ services:
     build: .
     volumes:
       - ./clamav:/var/lib/clamav
+      - ./var/vgw:/usr/local/feed/var/vgw
     environment:
       - HTFEED_CONFIG=/usr/local/feed/etc/config_test.yml
       - FEED_HOME=/usr/local/feed
@@ -53,9 +54,9 @@ services:
     command: cover -test -report Coveralls -make 'prove; exit $?'
     depends_on:
       mariadb: *healthy
-      minio: *healthy
       pushgateway: *healthy
       rabbitmq: *healthy
+      versitygw: *healthy
 
   ingest:
     build: .
@@ -119,17 +120,21 @@ services:
       <<: *healthcheck-defaults
       test: ["CMD", "healthcheck.sh", "--su-mysql", "--connect", "--innodb_initialized"]
 
-  # S3 compatible object storage
-  minio:
-    image: minio/minio
+  # S3 -> filesystem gateway
+  versitygw:
+    user: "1000:1000"
+    image: versity/versitygw
     restart: always
     environment:
-      MINIO_ACCESS_KEY: TESTINGACCESSKEY
-      MINIO_SECRET_KEY: testingsecretkey
-    command: server /data
+      ROOT_ACCESS_KEY: TESTINGACCESSKEY
+      ROOT_SECRET_KEY: testingsecretkey
+    volumes:
+      - ./var/vgw:/usr/local/feed/var/vgw
+      - ./var/metadata_vgw:/usr/local/feed/var/metadata_vgw
+    command: --health /health posix --sidecar /usr/local/feed/var/metadata_vgw /usr/local/feed/var/vgw
     healthcheck:
       <<: *healthcheck-defaults
-      test: timeout 5s mc ready local
+      test: [ "CMD", "wget", "--quiet", "--tries=1", "-O", "/dev/null", "http://127.0.0.1:7070/health" ]
 
   pushgateway:
     image: prom/pushgateway
@@ -152,4 +157,4 @@ volumes:
   repository_link:
   repository_obj:
   backups:
-  rclone:
+  vgw_sidecar:

@@ -71,6 +71,11 @@ ENV PERL5LIB="/extlib/lib/perl5:$FEED_HOME/lib"
 COPY ./src/validateCache.cpp /usr/src/validateCache.cpp
 RUN /usr/bin/g++ -o /usr/local/bin/validate-cache /usr/src/validateCache.cpp -lxerces-c
 
+ENV GNUPGHOME=/tmp/gnupg
+RUN mkdir $GNUPGHOME
+RUN chown $UID:$GID $GNUPGHOME
+RUN chmod 700 $GNUPGHOME
+
 USER $UID:$GID
 
 WORKDIR $FEED_HOME
@@ -87,8 +92,6 @@ RUN mkdir -p /tmp/stage/grin
 RUN mkdir -p /tmp/prep/toingest /tmp/prep/failed /tmp/prep/ingested /tmp/prep/logs /tmp/prep/toingest/emma
 
 RUN mkdir $FEED_HOME/bin $FEED_HOME/src $FEED_HOME/.gnupg
-RUN chown $UID:$GID $FEED_HOME/.gnupg
-RUN chmod 700 $FEED_HOME/.gnupg
 
 COPY . $FEED_HOME
 

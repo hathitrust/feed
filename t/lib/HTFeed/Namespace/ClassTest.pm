@@ -1,4 +1,4 @@
-package HTFeed::Namespace::Test;
+package HTFeed::Namespace::ClassTest;
 
 use warnings;
 use strict;

@@ -6,7 +6,7 @@ before all => sub {
   $bucket = "bucket" . sprintf("%08d",rand(1000000));
   $s3 = HTFeed::Storage::S3->new(
     bucket => $bucket,
-    awscli => get_config('test_awscli')
+    awscli => get_config('awscli')
   );
   $ENV{AWS_MAX_ATTEMPTS} = 1;
 
