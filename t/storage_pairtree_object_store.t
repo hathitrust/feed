@@ -20,8 +20,8 @@ describe "HTFeed::Storage::PairtreeObjectStore" => sub {
   };
 
   before all => sub {
-    $bucket_dir = "$vgw_home/$bucket";
-    $objdir = "$vgw_home/$bucket-obj";
+    $bucket_dir = "$vgw_home/$bucket/obj";
+    $objdir = "$vgw_home/$bucket-obj/obj";
     make_path($objdir);
   };
 
@@ -48,7 +48,7 @@ describe "HTFeed::Storage::PairtreeObjectStore" => sub {
     it "includes the namespace, pairtree path, and pairtreeized object id" => sub {
       my $storage = object_storage('test','ark:/123456/abcde');
 
-      is($storage->object_path, "test/pairtree_root/ar/k+/=1/23/45/6=/ab/cd/e/ark+=123456=abcde/");
+      is($storage->object_path, "obj/test/pairtree_root/ar/k+/=1/23/45/6=/ab/cd/e/ark+=123456=abcde/");
     };
   };
 
@@ -59,8 +59,8 @@ describe "HTFeed::Storage::PairtreeObjectStore" => sub {
       $storage->move;
 
       # should be in the bucket and also visible in the filesystem
-      ok($s3->s3_has("$pt_path/test.zip"));
-      ok($s3->s3_has("$pt_path/test.mets.xml"));
+      ok($s3->s3_has("obj/$pt_path/test.zip"));
+      ok($s3->s3_has("obj/$pt_path/test.mets.xml"));
       ok(-s "$bucket_dir/$pt_path/test.zip");
       ok(-s "$bucket_dir/$pt_path/test.mets.xml");
     };

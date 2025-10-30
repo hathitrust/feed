@@ -266,10 +266,10 @@ describe "HTFeed::Collate" => sub {
 
         my $s3_timestamp = $s3_backup->[0][0];
 
-        ok($s3s{ptobj1}->s3_has("$pt_path/test.mets.xml"));
-        ok($s3s{ptobj1}->s3_has("$pt_path/test.zip"));
-        ok($s3s{ptobj2}->s3_has("$pt_path/test.mets.xml"));
-        ok($s3s{ptobj2}->s3_has("$pt_path/test.zip"));
+        ok($s3s{ptobj1}->s3_has("obj/$pt_path/test.mets.xml"));
+        ok($s3s{ptobj1}->s3_has("obj/$pt_path/test.zip"));
+        ok($s3s{ptobj2}->s3_has("obj/$pt_path/test.mets.xml"));
+        ok($s3s{ptobj2}->s3_has("obj/$pt_path/test.zip"));
         ok($s3s{backup}->s3_has("test.test.$s3_timestamp.zip.gpg"));
         ok($s3s{backup}->s3_has("test.test.$s3_timestamp.mets.xml"));
 
