@@ -96,10 +96,10 @@ sub record_backup {
 
   my $start_time = $self->{job_metrics}->time;
   get_logger->trace("recording backup for $self");
-  my $dbh = HTFeed::DBTools::get_dbh();
 
   my $saved_checksum = HTFeed::VolumeValidator::md5sum($self->zip_obj_path());
 
+  my $dbh = HTFeed::DBTools::get_dbh();
   my $stmt =
   "insert into feed_backups (namespace, id, path, version, storage_name,
     zip_size, mets_size, saved_md5sum, lastchecked, lastmd5check, md5check_ok)
