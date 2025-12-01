@@ -16,13 +16,13 @@ premis_tools:
 # FIXME get these versions from debian packages
 # Set to the version of Xerces you are using (must be 3.0 or later)
   XERCES: qq(Xerces-C 3.2.4)
-  JHOVE: qq(JHOVE 1.32.0)
+  JHOVE: qq(JHOVE 1.34.0)
 # Leave as is.
   DIGEST_MD5: perl_mod_version('Digest::MD5');
 # GnuPG is not needed unless downloading packages from Google.
   GPG: qq(GnuPG 2.22.40)
   ZIP: qq(Zip 3.0)
-  GRK_COMPRESS: qq(grok-j2k 10.0.5)
+  GRK_COMPRESS: qq(grok-j2k 20.0.4)
   EPUBCHECK: qq(epubcheck 4.2.6)
   CLAMAV: qq(ClamAV 1.0.5)
 

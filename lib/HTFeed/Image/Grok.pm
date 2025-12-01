@@ -48,8 +48,8 @@ sub compress {
         "-i '$infile'",
         "-o '$outfile'",
         "-p RLCP", # the rest of these args never change,
-        "-SOP",    # so for now leave them hard-coded
-        "-EPH",
+        "-S",    # so for now leave them hard-coded
+        "-E",
         "-M 62",
         "-I",
         "-q 32",
