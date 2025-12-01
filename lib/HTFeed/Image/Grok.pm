@@ -48,12 +48,12 @@ sub compress {
         "-i '$infile'",
         "-o '$outfile'",
         "-p RLCP", # the rest of these args never change,
-        "-SOP",    # so for now leave them hard-coded
-        "-EPH",
+        "-S",    # so for now leave them hard-coded
+        "-E",
         "-M 62",
         "-I",
         "-q 32",
-        "> /dev/null 2>&1"
+        #        "> /dev/null 2>&1"
     );
 
     my $sys_ret_val = system($full_cmd);
@@ -79,7 +79,7 @@ sub decompress {
         "$base_cmd",
         "-i '$infile'",
         "-o '$outfile'",
-        "> /dev/null 2>&1"
+        #        "> /dev/null 2>&1"
     );
     my $sys_ret_val = system($full_cmd);
 

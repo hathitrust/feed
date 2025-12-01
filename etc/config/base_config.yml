@@ -98,6 +98,6 @@ jhoveconf: /opt/jhove/conf/jhove.conf
 xerces: /usr/local/bin/validate-cache
 xerces_cache: /usr/local/feed/etc/schema.cache
 grk_compress: /usr/local/bin/grk_compress
-grk_decompress: /usr/bin/grk_decompress
+grk_decompress: /usr/local/bin/grk_decompress
 epubcheck: /usr/bin/java -jar /usr/bin/epubcheck
 

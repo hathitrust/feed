@@ -60,10 +60,11 @@ COPY etc/jhove-auto-install.xml /tmp/jhove-auto-install.xml
 RUN curl -L https://software.openpreservation.org/releases/jhove/1.34/jhove-installer-1.34.0.jar -o /tmp/jhove-installer.jar
 RUN java -jar /tmp/jhove-installer.jar /tmp/jhove-auto-install.xml
 
-RUN curl -L https://github.com/GrokImageCompression/grok/releases/download/v20.0.4/grok-ubuntu-latest.zip -o /tmp/grok-ubuntu-latest.zip
-RUN unzip /tmp/grok-ubuntu-latest.zip -d /tmp
-RUN mv /tmp/grok-ubuntu-latest/lib/* /usr/local/lib
-RUN mv /tmp/grok-ubuntu-latest/bin/* /usr/local/bin
+COPY grok-debian-trixie.zip /tmp
+RUN unzip /tmp/grok-debian-trixie.zip -d /tmp
+RUN mv /tmp/grok-debian-trixie/lib/* /usr/local/lib
+RUN mv /tmp/grok-debian-trixie/bin/* /usr/local/bin
+RUN ldconfig
 
 RUN groupadd -g $GID -o $UNAME
 RUN useradd -m -d $FEED_HOME -u $UID -g $GID -o -s /bin/bash $UNAME
