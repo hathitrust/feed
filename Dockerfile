@@ -1,4 +1,4 @@
-FROM debian:bookworm
+FROM debian:trixie
 LABEL org.opencontainers.image.source https://github.com/hathitrust/feed
 
 ARG UNAME=ingest
@@ -18,7 +18,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     gpg \
     gpg-agent \
-    grokj2k-tools \
     imagemagick \
     libdate-manip-perl \
     libdbd-mysql-perl \
@@ -49,7 +48,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libxerces-c3-dev \
     libxml-libxml-perl \
     libyaml-libyaml-perl \
-    openjdk-17-jre-headless \
+    openjdk-21-jre-headless \
     perl \
     rclone \
     unzip \
@@ -58,8 +57,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY etc/imagemagick-policy.xml /etc/ImageMagick-6/policy.xml
 
 COPY etc/jhove-auto-install.xml /tmp/jhove-auto-install.xml
-RUN curl https://hathitrust.github.io/jhove/jhove-xplt-installer-latest.jar -o /tmp/jhove-installer.jar
+RUN curl -L https://software.openpreservation.org/releases/jhove/1.34/jhove-installer-1.34.0.jar -o /tmp/jhove-installer.jar
 RUN java -jar /tmp/jhove-installer.jar /tmp/jhove-auto-install.xml
+
+RUN curl -L https://github.com/GrokImageCompression/grok/releases/download/v20.0.4/grok-ubuntu-latest.zip -o /tmp/grok-ubuntu-latest.zip
+RUN unzip /tmp/grok-ubuntu-latest.zip -d /tmp
+RUN mv /tmp/grok-ubuntu-latest/lib/* /usr/local/lib
+RUN mv /tmp/grok-ubuntu-latest/bin/* /usr/local/bin
 
 RUN groupadd -g $GID -o $UNAME
 RUN useradd -m -d $FEED_HOME -u $UID -g $GID -o -s /bin/bash $UNAME
