@@ -21,7 +21,7 @@ on:
             platforms:
                 description: Platforms to build for
                 type: choice
-                default: linux/amd64,linux/arm64
+                default: linux/amd64
                 options:
                 - linux/amd64,linux/arm64
                 - linux/amd64
@@ -50,3 +50,4 @@ jobs:
                 registry_token: ${{ github.token }}
                 rebuild: ${{ inputs.rebuild }}
                 build-args: 'version="commit ${{ github.sha }}"'
+                platforms: ${{ inputs.platforms }}
