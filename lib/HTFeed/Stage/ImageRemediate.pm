@@ -460,7 +460,7 @@ sub repair_tiff_imagemagick {
   my $in_meta = $in_exif->ImageInfo($infile);
 
   # convert returns 0 on success, 1 on failure
-  my $compress_ok = HTFeed::Image::Magick::compress($infile, $outfile, '-compress' => 'Group4');
+  my $compress_ok = HTFeed::Image::Magick::compress($infile, $outfile, '-compress' => 'Group4', '-define' => 'quantum:polarity=min-is-white');
   my $labels      = {format => 'tiff', tool => 'imagemagick'};
   $self->{job_metrics}->add("ingest_imageremediate_bytes_r_total", -s $infile, $labels);
   $self->{job_metrics}->add("ingest_imageremediate_bytes_w_total", -s $outfile, $labels);
