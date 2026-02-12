@@ -124,7 +124,9 @@ sub list_objects {
     my $result = $self->s3api("list-objects-v2",@next_token_params,@params);
     last unless $result;
 
-    push(@$objects,@{$result->{Contents}});
+    if ($result->{Contents}) {
+      push(@$objects,@{$result->{Contents}});
+    }
     last unless $result->{NextToken};
 
     @next_token_params = ('--starting-token',$result->{NextToken});
