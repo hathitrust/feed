@@ -19,7 +19,7 @@ sub compress {
 
     # Copy args from %args to %ok_args when key is in @ok_keys.
     my %ok_args = ();
-    my @ok_keys = qw(-compress -depth -type);
+    my @ok_keys = qw(-compress -depth -type -define);
     foreach my $k (@ok_keys) {
         if (exists $args{$k}) {
             $ok_args{$k} = $args{$k};
@@ -38,7 +38,7 @@ sub compress {
     my $full_cmd = join(
         " ",
         "$base_cmd",
-        each %ok_args,
+        %ok_args,
         "'$infile'",
         "-strip",
         "'$outfile'"

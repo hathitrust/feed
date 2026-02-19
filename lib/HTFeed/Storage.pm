@@ -107,8 +107,7 @@ sub encrypt {
     my $bytes_read = -s $original;
     my $encrypted = $self->encrypted_zip_staging;
     my $cmd       = "cat \"$key\" | gpg --quiet --passphrase-fd 0 --batch --no-tty --output '$encrypted' --symmetric '$original'";
-    my $success   = ! $?;
-    $self->safe_system($cmd);
+    my $success = $self->safe_system($cmd);
 
     $self->{zip_source}     = $encrypted;
     $self->{did_encryption} = 1;

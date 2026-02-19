@@ -48,7 +48,7 @@ foreach my $infile (@ARGV) {
     if not defined $grk_compress or !-x $grk_compress;
 
     # Single quality level with reqested PSNR of 32dB. See DEV-10
-    system(qq($grk_compress -i "$infile" -o "$outfile" -p RLCP -n $levels -SOP -EPH -M 62 -I -q 32))
+    system(qq($grk_compress -i "$infile" -o "$outfile" -p RLCP -n $levels -S -E -M 62 -I -q 32))
 
         and die("grk_compress returned $?");
 
