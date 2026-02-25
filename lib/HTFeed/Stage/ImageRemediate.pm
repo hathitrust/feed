@@ -17,7 +17,7 @@ use HTFeed::XMLNamespaces qw(register_namespaces);
 use Image::ExifTool;
 use List::Util qw(max min);
 use Log::Log4perl qw(get_logger);
-use POSIX qw(ceil);
+use POSIX qw(ceil round);
 
 =head1 NAME
 
@@ -933,17 +933,17 @@ sub extract_png_metadata {
   # PNG might give resolution in meters, we want it in centimeters.
   # 100 pixels-per-meter is 1 pixels-per-centimeter (100:1)
   if ($originalPixelUnit eq "meters") {
-    $pixelUnit = "cm";
-    $multiplier = 0.01;
+    $pixelUnit = "in";
+    $multiplier = 0.0254;
   }
 
   my $h = {
     'IFD0:ResolutionUnit'     => $pixelUnit,
-    'IFD0:XResolution'        => $olf->{'PNG-pHYs:PixelsPerUnitX'} * $multiplier,
-    'IFD0:YResolution'        => $olf->{'PNG-pHYs:PixelsPerUnitY'} * $multiplier,
+    'IFD0:XResolution'        => round($olf->{'PNG-pHYs:PixelsPerUnitX'} * $multiplier),
+    'IFD0:YResolution'        => round($olf->{'PNG-pHYs:PixelsPerUnitY'} * $multiplier),
     'XMP-tiff:ResolutionUnit' => $pixelUnit,
-    'XMP-tiff:XResolution'    => $olf->{'PNG-pHYs:PixelsPerUnitX'} * $multiplier,
-    'XMP-tiff:YResolution'    => $olf->{'PNG-pHYs:PixelsPerUnitY'} * $multiplier
+    'XMP-tiff:XResolution'    => round($olf->{'PNG-pHYs:PixelsPerUnitX'} * $multiplier),
+    'XMP-tiff:YResolution'    => round($olf->{'PNG-pHYs:PixelsPerUnitY'} * $multiplier)
   };
 
   return $h;
