@@ -52,8 +52,6 @@ GetOptions(
   'storage_name=s' => \$storage_name,
 );
 
-# The --sdr_partition flag is purely for testing, or whenever the partition cannot
-# be inferred from the path argument. Pass a bare integer.
 
 # $storage_name must be one of 's3-truenas-ictc', 's3-truenas-macc'
 if (!defined $storage_name) {
