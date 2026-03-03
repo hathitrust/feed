@@ -63,7 +63,7 @@ if ($storage_name ne 's3-truenas-macc' && $storage_name ne 's3-truenas-ictc') {
 
 my $base = shift @ARGV or die("Missing base directory..");
 
-my ($sdr_partition) = ($base =~ qr#sdr(\d+)/?#);
+my ($sdr_partition) = ($base =~ qr#/?sdr(\d+)/?#);
 
 open( RUN, "find $base -follow -type f|" )
   or die("Can't open pipe to find: $!");
