@@ -1,10 +1,8 @@
 use Test::Spec;
 use HTFeed::DBTools qw(get_dbh);
 use HTFeed::Storage::LocalPairtree;
-use Capture::Tiny;
 use File::Copy;
 use File::Pairtree qw(id2ppath s2ppchars);
-use File::Path;
 
 use strict;
 
