@@ -46,6 +46,8 @@ sub next_object {
     my $line = readline($self->_find_pipe);
     last unless defined $line;
     chomp $line;
+    # Pairtree stuff
+    next if $line =~ /pairtree_prefix$/;
     # ignore temporary location
     next if $line =~ qr(obj/\.tmp);
     next if $line =~ /\Qpre_uplift.mets.xml\E/;
