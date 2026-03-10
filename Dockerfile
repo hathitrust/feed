@@ -62,7 +62,7 @@ RUN echo "deb [signed-by=/etc/apt/keyrings/mlibrary-archive-keyring.gpg] https:/
 RUN apt-get update && apt-get install grokj2k
 
 
-COPY etc/imagemagick-policy.xml /etc/ImageMagick-6/policy.xml
+COPY etc/imagemagick-policy.xml /etc/ImageMagick-7/policy.xml
 
 COPY etc/jhove-auto-install.xml /tmp/jhove-auto-install.xml
 RUN curl -L https://software.openpreservation.org/releases/jhove/1.34/jhove-installer-1.34.0.jar -o /tmp/jhove-installer.jar
