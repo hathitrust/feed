@@ -50,10 +50,10 @@ sub next_object {
     next if $line =~ /pairtree_prefix$/;
     # ignore temporary location
     next if $line =~ qr(obj/\.tmp);
-    next if $line =~ /\Qpre_uplift.mets.xml\E/;
+    #next if $line =~ /\Qpre_uplift.mets.xml\E/;
     #next if $self->_recent_previous_version($line);
 
-    my ($file_objid, $path, $type) = File::Basename::fileparse($line, qr/\.mets\.xml/, qr/\.zip/);
+    my ($file_objid, $path, $type) = File::Basename::fileparse($line);
     # Remove trailing slash
     $path =~ s!/$!!; 
     next if $self->{prev_path} and $path eq $self->{prev_path};
@@ -67,18 +67,15 @@ sub next_object {
     my @pathcomp = split('/', $subpath);
     @pathcomp = grep { $_ ne '' } @pathcomp;
     my $namespace = $pathcomp[1];
-    my $directory_objid  = $pathcomp[-1];
+    my $directory_objid = $pathcomp[-1];
     my $objid = File::Pairtree::ppath2id(join('/', @pathcomp));
     $obj = {
       path => $path,
       namespace => $namespace,
-      # Caller should make sure all three of these are equivalent
+      # Caller should make sure objid and directory_objid are equivalent,
+      # and also that objid matches the contents
       objid => $objid,
-      file_objid => $file_objid,
       directory_objid => $directory_objid,
-      # This is simple concatenation. Might be more interesting to return the actual contents of the directory.
-      #zipfile => "$path/$file_objid.zip",
-      #metsfile => "$path/$file_objid.mets.xml",
       contents => $self->_contents($path),
     };
     last;

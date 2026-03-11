@@ -21,22 +21,22 @@ use POSIX qw(strftime);
 use Getopt::Long;
 use URI::Escape;
 
-my $tombstone_check = "select is_tombstoned from feed_audit where namespace = ? and id = ? and storage_name = ?";
+my $tombstone_check = "select is_tombstoned from feed_audit where namespace = ? and id = ?";
 
 my $insert =
-"insert into feed_audit (namespace, id, storage_name, sdr_partition, zip_size, zip_date, mets_size, mets_date, lastchecked) values(?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP) \
+"insert into feed_audit (namespace, id, sdr_partition, zip_size, zip_date, mets_size, mets_date, lastchecked) values(?,?,?,?,?,?,?,CURRENT_TIMESTAMP) \
 ON DUPLICATE KEY UPDATE sdr_partition = ?, zip_size=?, zip_date =?,mets_size=?,mets_date=?,lastchecked = CURRENT_TIMESTAMP";
 my $update =
-"update feed_audit set md5check_ok = ?, lastmd5check = CURRENT_TIMESTAMP where namespace = ? and id = ? and storage_name = ?";
+"update feed_audit set md5check_ok = ?, lastmd5check = CURRENT_TIMESTAMP where namespace = ? and id = ?";
 
 my $update_mets = 
-"update feed_audit set page_count = ?, image_size = ? where namespace = ? and id = ? and storage_name = ?";
+"update feed_audit set page_count = ?, image_size = ? where namespace = ? and id = ?";
 
 my $insert_detail =
-"insert into feed_audit_detail (namespace, id, storage_name, path, status, detail) values (?,?,?,?,?,?)";
+"insert into feed_audit_detail (namespace, id, path, status, detail) values (?,?,?,?,?)";
 
 my $checkpoint_sel = 
-"select lastmd5check > ? from feed_audit where namespace = ? and id = ? and storage_name = ?";
+"select lastmd5check > ? from feed_audit where namespace = ? and id = ?";
 
 ### set /sdr1 to /sdrX for test & parallelization
 my $filesProcessed = 0;
@@ -44,22 +44,11 @@ my $prevpath;
 my $do_md5  = 0;
 my $do_mets = 0;
 my $checkpoint = undef;
-my $storage_name = undef;
 GetOptions(
   'md5!'  => \$do_md5,
-  'mets!' => \$do_mets,
-  'checkpoint=s' => \$checkpoint,
-  'storage_name=s' => \$storage_name,
+'mets!' => \$do_mets,
+    'checkpoint=s' => \$checkpoint,
 );
-
-
-# $storage_name must be one of 's3-truenas-ictc', 's3-truenas-macc'
-if (!defined $storage_name) {
-  die '--storage_name is required';
-}
-if ($storage_name ne 's3-truenas-macc' && $storage_name ne 's3-truenas-ictc') {
-  die "--storage_name must have value of 's3-truenas-macc' or 's3-truenas-ictc";
-}
 
 my $base = shift @ARGV or die("Missing base directory..");
 
@@ -86,38 +75,36 @@ while ( my $line = <RUN> ) {
     #            print "$filesProcessed files processed\n";
     #        }
 
-    my ($pt_objid, $path, $type) = fileparse( $line, qr/\.mets\.xml/, qr/\.zip/ );
+
+    # strip trailing / from path
+    my ( $pt_objid, $path, $type ) =
+    fileparse( $line, qr/\.mets\.xml/, qr/\.zip/ );
     $path =~ s/\/$//;    # remove trailing /
-
     return if ( $prevpath and $path eq $prevpath );
-
 
     # check mtime on directory - do not check if mtime is in the past two days
     # to let synciq catch up
     
-    # Removed for ETT-1288
-    #return if recently_modified_path($path);
+    return if recently_modified_path($path);
 
     $prevpath = $path;
 
-    # For testing, remove everything up to and including the `sdrX/`
-    my $subpath = $path;
-    $subpath =~ s!.*?sdr\d+/!!;
-    my @pathcomp = split( "/", $subpath );
+    my @pathcomp = split( "/", $path );
 
     # remove base & any empty components
     @pathcomp = grep { $_ ne '' } @pathcomp;
+    my $first_path = shift @pathcomp;
     my $last_path  = pop @pathcomp;
     my $namespace  = $pathcomp[1];
 
     my $objid = ppath2id( join( "/", @pathcomp ) );
     if ( $pt_objid ne s2ppchars($objid) ) {
-      set_status( $namespace, $objid, $storage_name, $path, "BAD_PAIRTREE",
+      set_status( $namespace, $objid, $path, "BAD_PAIRTREE",
         "$objid $pt_objid" );
     }
 
     if ( $last_path ne $pt_objid ) {
-      set_status( $namespace, $objid, $storage_name, $path, "BAD_PAIRTREE",
+      set_status( $namespace, $objid, $path, "BAD_PAIRTREE",
         "$last_path $pt_objid" );
     }
 
@@ -150,14 +137,14 @@ while ( my $line = <RUN> ) {
     $last_touched = $mets_seconds if defined $mets_seconds and (not defined $zip_seconds or $mets_seconds > $zip_seconds);
 
     #test symlinks unless we're traversing sdr1 or the file is too new
-    if ( $sdr_partition != 1 and (defined $last_touched and time - $last_touched >= 86400) ) {
+    if ( $first_path ne 'sdr1' and (defined $last_touched and time - $last_touched >= 86400) ) {
       my $link_path = join( "/", "/sdr1", @pathcomp, $last_path );
       my $link_target = readlink $link_path
-        or set_status( $namespace, $objid, $storage_name, $path, "CANT_LSTAT",
+        or set_status( $namespace, $objid, $path, "CANT_LSTAT",
         "$link_path $!" );
 
       if ( defined $link_target and $link_target ne $path ) {
-        set_status( $namespace, $objid, $storage_name, $path, "SYMLINK_INVALID",
+        set_status( $namespace, $objid, $path, "SYMLINK_INVALID",
           $link_target );
       }
 
@@ -167,7 +154,7 @@ while ( my $line = <RUN> ) {
     execute_stmt(
       $insert,  
 
-      $namespace, $objid, $storage_name,
+      $namespace, $objid, 
 
       $sdr_partition, $zipsize, $zipdate, $metssize,  $metsdate, 
 
@@ -196,7 +183,7 @@ while ( my $line = <RUN> ) {
       $found_zip++  if $ext eq 'zip';
       $found_mets++ if $ext eq 'mets.xml';
       if ( $pt_objid ne $dir_barcode ) {
-        set_status( $namespace, $objid, $storage_name, $path, "BARCODE_MISMATCH",
+        set_status( $namespace, $objid, $path, "BARCODE_MISMATCH",
           "$pt_objid $dir_barcode" );
       }
       $filecount++;
@@ -204,28 +191,27 @@ while ( my $line = <RUN> ) {
 
     closedir($dh);
 
-    # Removed for ETT-1288
-    # check file count; do md5 check and METS extraction stuff, but only if it's fully replicated
-    #if (   ( defined $zip_seconds and time - $zip_seconds > 86400 )
-    #    or ( defined $mets_seconds and time - $mets_seconds > 86400 ) )
+# check file count; do md5 check and METS extraction stuff, but only if it's fully replicated
+    if (   ( defined $zip_seconds and time - $zip_seconds > 86400 )
+        or ( defined $mets_seconds and time - $mets_seconds > 86400 ) )
     {
 
-      if ( $filecount > 2 or $filecount < 1 or ($found_zip != 1 and not is_tombstoned($namespace,$objid,$storage_name) ) or $found_mets != 1 ) {
-        set_status( $namespace, $objid, $storage_name, $path, "BAD_FILECOUNT",
+      if ( $filecount > 2 or $filecount < 1 or ($found_zip != 1 and not is_tombstoned($namespace,$objid) ) or $found_mets != 1 ) {
+        set_status( $namespace, $objid, $path, "BAD_FILECOUNT",
           "zip=$found_zip mets=$found_mets total=$filecount" );
       }
 
       eval {
-        my $rval = zipcheck( $namespace, $objid, $storage_name );
+        my $rval = zipcheck( $namespace, $objid );
         if ($rval) {
-          execute_stmt( $update, "1", $namespace, $objid, $storage_name );
+          execute_stmt( $update, "1", $namespace, $objid );
         }
         elsif ( defined $rval ) {
-          execute_stmt( $update, "0", $namespace, $objid, $storage_name );
+          execute_stmt( $update, "0", $namespace, $objid );
         }
       };
       if ($@) {
-        set_status( $namespace, $objid, $storage_name, $path, "CANT_ZIPCHECK", $@ );
+        set_status( $namespace, $objid, $path, "CANT_ZIPCHECK", $@ );
       }
     }
 
@@ -237,15 +223,15 @@ while ( my $line = <RUN> ) {
 }
 
 sub zipcheck {
-  my ( $namespace, $objid, $storage_name ) = @_;
+  my ( $namespace, $objid ) = @_;
 
   return unless $do_md5 or $do_mets;
 
-  return if is_tombstoned($namespace, $objid, $storage_name);
+  return if is_tombstoned($namespace, $objid);
 
   # don't check this item if we just looked at it
   if(defined $checkpoint) {
-    my $sth = execute_stmt($checkpoint_sel,$checkpoint,$namespace,$objid,$storage_name);
+    my $sth = execute_stmt($checkpoint_sel,$checkpoint,$namespace,$objid);
     if(my @row = $sth->fetchrow_array()) {
       return if @row and $row[0];
     }
@@ -280,8 +266,7 @@ sub zipcheck {
     }
 
     if ( not defined $mets_zipsum or length($mets_zipsum) ne 32 ) {
-      set_status( $namespace, $objid, $storage_name,
-        $volume->get_repository_mets_path(),
+      set_status( $namespace, $objid, $volume->get_repository_mets_path(),
         "MISSING_METS_CHECKSUM", undef );
     }
     else {
@@ -292,7 +277,7 @@ sub zipcheck {
         $rval = 1;
       }
       else {
-        set_status( $namespace, $objid, $storage_name,
+        set_status( $namespace, $objid,
           $volume->get_repository_zip_path(),
           "BAD_CHECKSUM", "expected=$mets_zipsum actual=$realsum" );
         $rval = 0;
@@ -312,7 +297,7 @@ sub zipcheck {
         $filetypes{$extension}++;
       }
       while ( my ( $ext, $count ) = each(%filetypes) ) {
-        mets_log( $namespace, $objid, $storage_name, "FILETYPE", $ext, $count );
+        mets_log( $namespace, $objid, "FILETYPE", $ext, $count );
       }
     }
 
@@ -325,7 +310,7 @@ sub zipcheck {
         $premisversion = "premis2";
       }
 
-      mets_log( $namespace, $objid, $storage_name, "PREMIS_VERSION", $premisversion );
+      mets_log( $namespace, $objid, "PREMIS_VERSION", $premisversion );
     }
 
     {    # PREMIS event ID types
@@ -340,7 +325,7 @@ sub zipcheck {
         $event_id_types{ $mets->findvalue( '.', $eventtype ) }++;
       }
       foreach my $event_id_type ( keys(%event_id_types) ) {
-        mets_log( $namespace, $objid, $storage_name, "PREMIS_EVENT_TYPE",
+        mets_log( $namespace, $objid, "PREMIS_EVENT_TYPE",
           $event_id_type, $event_id_types{$event_id_type} );
       }
     }
@@ -356,7 +341,7 @@ sub zipcheck {
         $agent_id_types{ $mets->findvalue( '.', $agenttype ) }++;
       }
       foreach my $agent_id_type ( keys(%agent_id_types) ) {
-        mets_log( $namespace, $objid, $storage_name, "PREMIS_AGENT_TYPE",
+        mets_log( $namespace, $objid, "PREMIS_AGENT_TYPE",
           $agent_id_type, $agent_id_types{$agent_id_type} );
       }
 
@@ -376,7 +361,7 @@ sub zipcheck {
         my $date = $mets->findvalue(
           './premis:eventDateTime',
           $event );
-        mets_log( $namespace, $objid, $storage_name, "CAPTURE", $executor, $date );
+        mets_log( $namespace, $objid, "CAPTURE", $executor, $date );
       }
     }
     {    # Processing agent
@@ -393,7 +378,7 @@ sub zipcheck {
         my $date = $mets->findvalue(
           './premis:eventDateTime',
           $event );
-        mets_log( $namespace, $objid, $storage_name, "MD5SUM", $executor, $date );
+        mets_log( $namespace, $objid, "MD5SUM", $executor, $date );
       }
     }
 
@@ -407,14 +392,14 @@ sub zipcheck {
         my $date = $mets->findvalue(
           './premis:eventDateTime',
           $event );
-        mets_log( $namespace, $objid, $storage_name, "INGEST", $date );
+        mets_log( $namespace, $objid, "INGEST", $date );
       }
     }
 
     {    # MARC present
       my $marc_present =
       $mets->findvalue('count(//marc:record | //record)');
-      mets_log( $namespace, $objid, $storage_name, "MARC", $marc_present );
+      mets_log( $namespace, $objid, "MARC", $marc_present );
     }
 
     {    # METS valid
@@ -425,7 +410,7 @@ sub zipcheck {
         $error =~ s/\n/ /mg;
       }
 
-      mets_log( $namespace, $objid, $storage_name, "METS_VALID", $mets_valid, $error );
+      mets_log( $namespace, $objid, "METS_VALID", $mets_valid, $error );
     }
 
     {
@@ -442,7 +427,7 @@ sub zipcheck {
               push( @mdbits, "$attr=$attrval" );
             }
           }
-          mets_log( $namespace, $objid, $storage_name, "METS_MDSEC",
+          mets_log( $namespace, $objid, "METS_MDSEC",
             join( "; ", @mdbits ) );
         }
       }
@@ -451,15 +436,15 @@ sub zipcheck {
     {    # Page tagging, image size
       my $has_pagetags = $mets->findvalue(
         'count(//mets:div[@TYPE="page"]/@LABEL[string() != ""])');
-      mets_log( $namespace, $objid, $storage_name, "PAGETAGS", $has_pagetags );
+      mets_log( $namespace, $objid, "PAGETAGS", $has_pagetags );
       my $pages = $mets->findvalue('count(//mets:div[@TYPE="page"])');
-      mets_log( $namespace, $objid, $storage_name, "PAGES", $pages );
+      mets_log( $namespace, $objid, "PAGES", $pages );
 
 
       my $image_size = $mets->findvalue('sum(//mets:fileGrp[@USE="image"]/mets:file/@SIZE)');
-      mets_log( $namespace, $objid, $storage_name, "IMAGE_SIZE", $image_size);
+      mets_log( $namespace, $objid, "IMAGE_SIZE", $image_size);
 
-      execute_stmt($update_mets,$pages,$image_size,$namespace,$objid,$storage_name);
+      execute_stmt($update_mets,$pages,$image_size,$namespace,$objid);
 
 
     }
@@ -501,16 +486,16 @@ sub extract_source_mets {
     }
   }
   if ( !@srcmets ) {
-    set_status( $namespace, $objid, $storage_name, $zipfile, "NO_SOURCE_METS", undef );
+    set_status( $namespace, $objid, $zipfile, "NO_SOURCE_METS", undef );
   }
   elsif ( @srcmets != 1 ) {
-    set_status( $namespace, $objid, $storage_name, $zipfile,
+    set_status( $namespace, $objid, $zipfile,
       "MULTIPLE_SOURCE_METS_CANDIDATES", undef );
   }
   else {
 
     # source METS found
-    mets_log( $namespace, $objid, $storage_name, "SOURCE_METS", $srcmets[0] );
+    mets_log( $namespace, $objid, "SOURCE_METS", $srcmets[0] );
     system("cd /tmp; unzip -j '$zipfile' '$srcmets[0]'");
     my ($smets_name) = ( $srcmets[0] =~ /\/([^\/]+)$/ );
     my $tmp_smets_loc = "/tmp/$smets_name";
@@ -530,13 +515,13 @@ sub extract_source_mets {
         $mdsecs{ join( '; ', @mdbits ) } = 1;
       }
       foreach my $mdsec ( sort( keys(%mdsecs) ) ) {
-        mets_log( $namespace, $objid, $storage_name, "SRC_METS_MDSEC", $mdsec );
+        mets_log( $namespace, $objid, "SRC_METS_MDSEC", $mdsec );
       }
 
       # Try to get Google reading order
       foreach my $tag (qw(gbs:pageOrder gbs:pageSequence gbs:coverTag)) {
         my $val = $xpc->findvalue("//$tag");
-        mets_log( $namespace, $objid, $storage_name, "GBS_READING", $tag, $val );
+        mets_log( $namespace, $objid, "GBS_READING", $tag, $val );
       }
 
       foreach my $techmd ( $xpc->findnodes("//mets:techMD") ) {
@@ -547,14 +532,14 @@ sub extract_source_mets {
           my $count = $xpc->findvalue(
             "count(//mets:file[contains(\@ADMID,\"$imagemethod_id\")])"
           );
-          mets_log( $namespace, $objid, $storage_name, "IMAGE_METHOD", $method,
+          mets_log( $namespace, $objid, "IMAGE_METHOD", $method,
             $count );
         }
       }
 
     };
     if ($@) {
-      set_status( $namespace, $objid, $storage_name, $srcmets[0], "BAD_SOURCE_METS",
+      set_status( $namespace, $objid, $srcmets[0], "BAD_SOURCE_METS",
         $@ );
     }
 
@@ -571,7 +556,7 @@ sub mets_log {
   my $val2      = shift;
   $val1 = '' if not defined $val1;
   $val2 = '' if not defined $val2;
-  print join( "\t", $namespace, $objid, $storage_name, $key, $val1, $val2 ), "\n";
+  print join( "\t", $namespace, $objid, $key, $val1, $val2 ), "\n";
 
   #execute_stmt($fs_mets_data,$namespace,$objid,$key,$val1,$val2);
 }
@@ -579,7 +564,7 @@ sub mets_log {
 sub is_tombstoned {
   my $namespace = shift;
   my $objid = shift;
-  my $sth = execute_stmt($tombstone_check,$namespace,$objid,$storage_name);
+  my $sth = execute_stmt($tombstone_check,$namespace,$objid);
   if(my @row = $sth->fetchrow_array()) {
     return $row[0];
   } else {
@@ -587,15 +572,14 @@ sub is_tombstoned {
   }
 }
 
-# Removed for ETT-1288
-# sub recently_modified_path {
-#   my $path = shift;
-#
-#   my $mtime = ( stat($path) )[9];
-#   my $mtime_age = time() - $mtime;
-#
-#   return 1 if $mtime_age < (86400 * 2);
-# }
+sub recently_modified_path {
+  my $path = shift;
+
+  my $mtime = ( stat($path) )[9];
+  my $mtime_age = time() - $mtime;
+
+  return 1 if $mtime_age < (86400 * 2);
+}
 
 sub recent_previous_version {
   my $file = shift;

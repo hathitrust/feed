@@ -51,7 +51,6 @@ describe "HTFeed::RepositoryIterator" => sub {
       is($object->{path}, '/tmp/sdr1/obj/ns1/pairtree_root/ob/ji/d1/objid1', 'path to the terminal directory');
       is($object->{namespace}, 'ns1', 'namespace `test` from path');
       is($object->{objid}, 'objid1', 'objid `objid1` from pairtree');
-      is($object->{file_objid}, 'objid1', 'file_objid `objid1` from filename');
       is($object->{directory_objid}, 'objid1', 'directory_objid `objid1` from terminal directory name');
       is_deeply($object->{contents}, ['objid1.mets.xml','objid1.zip'], '.mets.xml and .zip contents');
       is($iterator->{objects_processed}, 1, 'it has processed 1 object');
@@ -72,7 +71,6 @@ describe "HTFeed::RepositoryIterator" => sub {
         is($object->{path}, '/tmp/sdr1/obj/ns1/pairtree_root/ob/ji/d1/objid1', 'path to the terminal directory');
         is($object->{namespace}, 'ns1', 'namespace `ns1` from path');
         is($object->{objid}, 'objid1', 'objid `objid1` from pairtree');
-        is($object->{file_objid}, 'objid1', 'file_objid `objid1` from filename');
         is($object->{directory_objid}, 'objid1', 'directory_objid `objid1` from terminal directory name');
         is_deeply($object->{contents}, ['objid1.mets.xml','objid1.zip'], '.mets.xml and .zip contents');
         is($iterator->{objects_processed}, 1, 'it has processed 1 file');
