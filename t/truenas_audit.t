@@ -147,14 +147,12 @@ describe "bin/audit/main_repo_audit.pl" => sub {
   it "records a spurious file but ignores pre-uplift METS" => sub {
     my $storage_name = 's3-truenas-macc';
     my $objid = 'test';
-    # Add a silly file and a pre-uplift file
+    # Add a silly file and a pre-uplift file (can be empty, contents don't matter)
     my $pt_objid = s2ppchars($objid);
     my $pt_path = id2ppath($objid);
     foreach my $ext (('silly', 'pre_uplift.mets.xml')) {
       my $path = "/tmp/sdr1/obj/test/$pt_path$pt_objid/" . "$objid.$ext";
-      open(my $fh, '>', $path) or die "open file $path failed: $!";
-      print $fh "shwoozle\n";
-      close($fh);
+      `touch $path`;
     }
     `bin/audit/truenas_audit.pl --md5 --storage_name $storage_name /tmp/sdr1`;
     my $db_data = get_feed_storage_data('test', 'test', $storage_name);
