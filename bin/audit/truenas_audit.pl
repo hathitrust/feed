@@ -62,9 +62,7 @@ if ($storage_name ne 's3-truenas-macc' && $storage_name ne 's3-truenas-ictc') {
 }
 
 my $base = shift @ARGV or die("Missing base directory..");
-
 my $iterator = HTFeed::RepositoryIterator->new($base);
-
 
 while (my $obj = $iterator->next_object) {
   my $sdr_partition = $obj->{sdr_partition};
@@ -131,7 +129,6 @@ while (my $obj = $iterator->next_object) {
     );
 
     # does barcode have a zip & xml, and do they match?
-    opendir( my $dh, $path );
 
     my $filecount  = 0;
     my $found_zip  = 0;
