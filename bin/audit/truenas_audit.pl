@@ -23,8 +23,6 @@ use HTFeed::RepositoryIterator;
 use HTFeed::Volume;
 use HTFeed::VolumeValidator;
 
-
-# FIXME: is this needed?
 my $tombstone_check = "select is_tombstoned from feed_audit where namespace = ? and id = ?";
 
 my $insert =
@@ -263,6 +261,7 @@ sub execute_stmt {
   return $sth;
 }
 
+# There are as of early 2026 still 13 is_tombstoned entries in feed_audit, so this check stays.
 sub is_tombstoned {
   my $namespace = shift;
   my $objid = shift;
