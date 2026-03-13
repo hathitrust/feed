@@ -144,9 +144,7 @@ sub record_audit {
 
     # TODO populate image_size, page_count
 
-    # FIXME: is this right?? should we force it to one of {s3-truenas-ictc, s3-truenas-macc}?
-    my $storage_name = $self->{storage_name} || 'LocalPairtree';
-
+    return unless defined $self->{name};
 
     my $zipsize  = $self->zip_size;
     my $zipdate  = $self->file_date($self->zip_obj_path);
@@ -154,8 +152,7 @@ sub record_audit {
     my $metsdate = $self->file_date($self->mets_obj_path);
     my $sth      = get_dbh()->prepare($stmt);
     my $res      = $sth->execute(
-        $self->{namespace}, $self->{objid},
-        $storage_name,
+        $self->{namespace}, $self->{objid}, $self->{name},
         $sdr_partition, $zipsize, $zipdate, $metssize,  $metsdate,
         # duplicate parameters for duplicate key update
         $sdr_partition, $zipsize, $zipdate, $metssize,  $metsdate
