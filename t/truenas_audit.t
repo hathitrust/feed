@@ -1,12 +1,14 @@
-use Test::Spec;
-use HTFeed::DBTools qw(get_dbh);
-use HTFeed::Storage::LocalPairtree;
+use strict;
+use warnings;
+
 use Data::Dumper;
 use File::Copy;
 use File::Pairtree qw(id2ppath s2ppchars);
+use File::Spec;
+use Test::Spec;
 
-use strict;
-use warnings;
+use HTFeed::DBTools qw(get_dbh);
+use HTFeed::Storage::LocalPairtree;
 
 describe "bin/audit/main_repo_audit.pl" => sub {
   spec_helper 'storage_helper.pl';
@@ -35,7 +37,9 @@ describe "bin/audit/main_repo_audit.pl" => sub {
     my $sql = 'SELECT * FROM feed_storage WHERE namespace=? AND id=? AND storage_name=?';
     my $sth = get_dbh()->prepare($sql);
     $sth->execute($namespace, $objid, $storage_name);
-    push(@$data, $sth->fetchrow_hashref);
+    while (my $row = $sth->fetchrow_hashref) {
+      push(@$data, $row);
+    }
     return $data;
   }
   
@@ -49,16 +53,72 @@ describe "bin/audit/main_repo_audit.pl" => sub {
     my $sql = 'SELECT * FROM feed_audit_detail WHERE namespace=? AND id=? AND storage_name=?';
     my $sth = get_dbh()->prepare($sql);
     $sth->execute($namespace, $objid, $storage_name);
-    push(@$data, $sth->fetchrow_hashref);
+    while (my $row = $sth->fetchrow_hashref) {
+      push(@$data, $row);
+    }
     return $data;
   }
 
   # `RepositoryIterator` can infer its sdr partition when it isn't at the root of the
-  # filesystem. Hence we copy to a location where we can put "sdr1" in the path.
+  # filesystem but it does need an "sdrX" directory _somewhere_ in the path. We can't use
+  # `$tmpdirs->{obj_dir}` by itself.
   sub temp_sdr_path {
     my $sdr_partition = shift || 1;
 
-    return "$tmpdirs->{tmpdir}/sdr$sdr_partition";
+    return File::Spec->catfile($tmpdirs->{tmpdir}, "sdr$sdr_partition");
+  }
+
+  sub temp_sdr_obj_path {
+    my $sdr_partition = shift || 1;
+    my $namespace = shift || 'test';
+    my $objid = shift || 'test';
+
+    return File::Spec->catfile(
+      temp_sdr_path($sdr_partition),
+      'obj',
+      $namespace,
+      id2ppath($objid),
+      s2ppchars($objid)
+    );
+  }
+
+  sub temp_link_path {
+    my $namespace = shift || 'test';
+    my $objid = shift || 'test';
+
+    return File::Spec->catfile(
+      File::Spec->rootdir,
+      'tmp',
+      'obj_link',
+      $namespace,
+      id2ppath($objid),
+      s2ppchars($objid)
+    );
+  }
+
+  # Set up sdr1 and sdr2 directories with the appropriate linkage from latter to former.
+  # Copy contents from `$tempdirs->{obj_dir}` into a local sdr2 so `RepositoryIterator` has
+  # the proprioceptive stimulus (i.e., a directory named "sdr2" somewhere in the path) it needs.
+  sub make_test_directories {
+    my $namespace = shift;
+    my $objid = shift;
+    my $sdr2_path = temp_sdr_path(2);
+    my $sdr1_obj_path = temp_sdr_obj_path(1);
+    my $sdr2_obj_path = temp_sdr_obj_path(2);
+    my $temp_link_path = temp_link_path;
+
+    File::Path::make_path("$sdr2_obj_path");
+    `cp -r $tmpdirs->{obj_dir}/* $sdr2_path/obj/`;
+    # Symlink into obj_link so Volume.pm can find the files,
+    # and into sdr1 for symlink checks inside truenas_audit.pl
+    # Create directory structures but remove the leaf node so we can recreate it as a symlink.
+    # This is kind of silly but trying to create a partial path would be messier.
+    File::Path::make_path($temp_link_path);
+    File::Path::remove_tree($temp_link_path);
+    File::Path::make_path($sdr1_obj_path);
+    File::Path::remove_tree($sdr1_obj_path);
+    `ln -sf $sdr2_obj_path $temp_link_path`;
+    `ln -sf $sdr2_obj_path $sdr1_obj_path`;
   }
 
   before each => sub {
@@ -68,18 +128,12 @@ describe "bin/audit/main_repo_audit.pl" => sub {
     $storage->stage;
     $storage->make_object_path;
     $storage->move;
-    my $pt_objid = s2ppchars($objid);
-    my $pt_path = id2ppath($objid);
-    my $temp_sdr_path = temp_sdr_path;
-    File::Path::make_path("$temp_sdr_path/obj");
-    `cp -r $tmpdirs->{obj_dir}/* $temp_sdr_path/obj/`;
-    # This is just conforming to `etc/config_test.yml` so Volume.pm can find the files.
-    File::Path::make_path("/tmp/obj_link/test/$pt_path");
-    `ln -s $temp_sdr_path/obj/test/$pt_path/$pt_objid /tmp/obj_link/test/$pt_path`;
+    make_test_directories($namespace, $objid);
   };
 
   after each => sub {
     File::Path::remove_tree(temp_sdr_path);
+    File::Path::remove_tree(temp_sdr_path(2));
     File::Path::remove_tree('/tmp/obj_link');
     get_dbh->prepare('DELETE FROM feed_storage')->execute;
     get_dbh->prepare('DELETE FROM feed_audit_detail')->execute;
@@ -128,10 +182,8 @@ describe "bin/audit/main_repo_audit.pl" => sub {
     my $temp_sdr_path = temp_sdr_path;
     my $storage_name = 's3-truenas-macc';
     my $objid = 'test';
-    # Fiddle with the zip
-    my $pt_objid = s2ppchars($objid);
-    my $pt_path = id2ppath($objid);
-    my $zip_path = "$temp_sdr_path/obj/test/$pt_path$pt_objid/" . "$objid.zip";
+    # Replace the zip with garbage
+    my $zip_path = File::Spec->catfile(temp_sdr_obj_path,  "$objid.zip");
     open(my $fh, '>', $zip_path) or die "open zip file $zip_path failed: $!";
     print $fh "shwoozle\n";
     close($fh);
@@ -158,10 +210,8 @@ describe "bin/audit/main_repo_audit.pl" => sub {
     my $storage_name = 's3-truenas-macc';
     my $objid = 'test';
     # Add a silly file and a pre-uplift file (can be empty, contents don't matter)
-    my $pt_objid = s2ppchars($objid);
-    my $pt_path = id2ppath($objid);
     foreach my $ext (('silly', 'pre_uplift.mets.xml')) {
-      my $path = "$temp_sdr_path/obj/test/$pt_path$pt_objid/" . "$objid.$ext";
+      my $path = File::Spec->catfile(temp_sdr_obj_path, "$objid.$ext");
       `touch $path`;
     }
     `bin/audit/truenas_audit.pl --md5 --storage_name $storage_name $temp_sdr_path`;
@@ -176,6 +226,42 @@ describe "bin/audit/main_repo_audit.pl" => sub {
     ok(defined $detail_data->[0]->{path}, 'feed_audit_detail path defined');
     is($detail_data->[0]->{status}, 'BAD_FILE', 'feed_audit_detail status');
     ok($detail_data->[0]->{detail} =~ /silly/, 'feed_audit_detail detail');
+    ok(defined $detail_data->[0]->{time}, 'feed_audit_detail time defined');
+  };
+
+  # For symlink checks we use sdr2 so the symlinks in sdr1 can be verified to point to
+  # the right place in sdr2.
+  it "checks symlinks" => sub {
+    my $temp_sdr_path = temp_sdr_path(2);
+    my $storage_name = 's3-truenas-macc';
+    `bin/audit/truenas_audit.pl --md5 --storage_name $storage_name $temp_sdr_path`;
+    my $db_data = get_feed_storage_data('test', 'test', $storage_name);
+    is(scalar(@$db_data), 1, 'with feed_storage entry');
+    my $detail_data = get_feed_audit_detail_data('test', 'test', $storage_name);
+    is(scalar(@$detail_data), 0, 'with no feed_audit_detail entries');
+  };
+
+  it "detects bad symlinks" => sub {
+    my $temp_sdr_path = temp_sdr_path(2);
+    my $storage_name = 's3-truenas-macc';
+
+    # Remove the symlink on sdr1 and replace it with a link to somewhere else
+    my $sdr1_link_location = temp_sdr_obj_path;
+    # "Somewhere else" is /dev/null
+    # Create a symlink clobbering the existing one without following it
+    `ln -sfn /dev/null $sdr1_link_location`;
+
+    `bin/audit/truenas_audit.pl --md5 --storage_name $storage_name $temp_sdr_path`;
+    my $db_data = get_feed_storage_data('test', 'test', $storage_name);
+    is(scalar(@$db_data), 1, 'with feed_storage entry');
+    my $detail_data = get_feed_audit_detail_data('test', 'test', $storage_name);
+    is(scalar(@$detail_data), 1, 'with one feed_audit_detail entry');
+    is($detail_data->[0]->{namespace}, 'test', 'feed_audit_detail namespace');
+    is($detail_data->[0]->{id}, 'test', 'feed_audit_detail id');
+    is($detail_data->[0]->{storage_name}, $storage_name, 'feed_audit_detail storage_name');
+    ok($detail_data->[0]->{path} =~ /sdr2/, 'feed_audit_detail path implicates sdr2');
+    is($detail_data->[0]->{status}, 'SYMLINK_INVALID', 'feed_audit_detail status');
+    ok($detail_data->[0]->{detail} =~ /null/, 'feed_audit_detail detail');
     ok(defined $detail_data->[0]->{time}, 'feed_audit_detail time defined');
   };
 };

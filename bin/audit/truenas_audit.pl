@@ -61,9 +61,9 @@ if ($storage_name ne 's3-truenas-macc' && $storage_name ne 's3-truenas-ictc') {
 
 my $base = shift @ARGV or die("Missing base directory..");
 my $iterator = HTFeed::RepositoryIterator->new($base);
+my $sdr_partition = $iterator->{sdr_partition};
 
 while (my $obj = $iterator->next_object) {
-  my $sdr_partition = $obj->{sdr_partition};
   my $path = $obj->{path};
   my $namespace = $obj->{namespace};
   my $objid = $obj->{objid};
@@ -101,20 +101,25 @@ while (my $obj = $iterator->next_object) {
     my $last_touched = $zip_seconds;
     $last_touched = $mets_seconds if defined $mets_seconds and (not defined $zip_seconds or $mets_seconds > $zip_seconds);
 
-    # FIXME: I don't know if this is needed and if it is this is old code from main_repo_audit.pl so it needs fixin'
-    #test symlinks unless we're traversing sdr1 or the file is too new
-    # if ( $first_path ne 'sdr1' and (defined $last_touched and time - $last_touched >= 86400) ) {
-#       my $link_path = join( "/", "/sdr1", @pathcomp, $last_path );
-#       my $link_target = readlink $link_path
-#         or set_status( $namespace, $objid, $path, "CANT_LSTAT",
-#         "$link_path $!" );
-# 
-#       if ( defined $link_target and $link_target ne $path ) {
-#         set_status( $namespace, $objid, $path, "SYMLINK_INVALID",
-#           $link_target );
-#       }
-# 
-#     }
+    # test symlinks unless we're traversing sdr1
+    if ( $sdr_partition ne '1' ) {
+      my $volume = new HTFeed::Volume(
+        packagetype => "pkgtype",
+        namespace   => $namespace,
+        objid       => $objid
+      );
+      my $link_path = $path;
+      $link_path =~ s/sdr$sdr_partition/sdr1/;
+      my $link_target = readlink $link_path
+        or set_status( $namespace, $objid, $storage_name, $path, "CANT_LSTAT",
+        "$link_path $!" );
+
+      if ( defined $link_target and $link_target ne $path ) {
+        set_status( $namespace, $objid, $storage_name, $path, "SYMLINK_INVALID",
+          $link_target || '<undef>' );
+      }
+
+    }
 
 
     #insert
