@@ -138,11 +138,13 @@ sub record_audit {
     my ($sdr_partition) = ($path =~ qr#/?sdr(\d+)/?#);
 
     my $stmt =
-    "insert into feed_audit (namespace, id, sdr_partition, zip_size, zip_date, mets_size, mets_date, lastchecked, lastmd5check, md5check_ok) \
-    values(?,?,?,?,?,?,?,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,1) \
+    "insert into feed_audit (namespace, id, storage_name, sdr_partition, zip_size, zip_date, mets_size, mets_date, lastchecked, lastmd5check, md5check_ok) \
+    values(?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,1) \
     ON DUPLICATE KEY UPDATE sdr_partition = ?, zip_size=?, zip_date =?,mets_size=?,mets_date=?,lastchecked = CURRENT_TIMESTAMP,lastmd5check = CURRENT_TIMESTAMP, md5check_ok = 1";
 
     # TODO populate image_size, page_count
+
+    return unless defined $self->{name};
 
     my $zipsize  = $self->zip_size;
     my $zipdate  = $self->file_date($self->zip_obj_path);
@@ -150,7 +152,7 @@ sub record_audit {
     my $metsdate = $self->file_date($self->mets_obj_path);
     my $sth      = get_dbh()->prepare($stmt);
     my $res      = $sth->execute(
-        $self->{namespace}, $self->{objid},
+        $self->{namespace}, $self->{objid}, $self->{name},
         $sdr_partition, $zipsize, $zipdate, $metssize,  $metsdate,
         # duplicate parameters for duplicate key update
         $sdr_partition, $zipsize, $zipdate, $metssize,  $metsdate

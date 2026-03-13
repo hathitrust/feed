@@ -397,9 +397,9 @@ sub record_error {
   my $status = shift @$err;
   my %details = @$err;
   my $detail = join "\t", map { "$_: $details{$_}"; } keys %details;
-  my $sql = 'INSERT INTO feed_audit_detail (namespace, id, path, status, detail)'.
-            ' VALUES (?,?,?,?,?)';
-  execute_stmt($sql, $obj->{namespace}, $obj->{objid}, $obj->{path}, $status, $detail);
+  my $sql = 'INSERT INTO feed_audit_detail (namespace, id, storage_name, path, status, detail)'.
+            ' VALUES (?,?,?,?,?,?)';
+  execute_stmt($sql, $obj->{namespace}, $obj->{objid}, $self->{storage_name}, $obj->{path}, $status, $detail);
 }
 
 # ==== UTILITY CLASS METHOD ====

@@ -3,6 +3,7 @@ USE `ht`;
 CREATE TABLE IF NOT EXISTS `feed_audit` (
   `namespace` varchar(10) NOT NULL,
   `id` varchar(30) NOT NULL,
+  `storage_name` varchar(32) NOT NULL,
   `sdr_partition` tinyint(4) DEFAULT NULL,
   `zip_size` bigint(20) DEFAULT NULL,
   `image_size` bigint(20) DEFAULT NULL,
@@ -14,7 +15,7 @@ CREATE TABLE IF NOT EXISTS `feed_audit` (
   `lastmd5check` timestamp NULL DEFAULT NULL,
   `md5check_ok` tinyint(1) DEFAULT NULL,
   `is_tombstoned` tinyint(1) DEFAULT NULL,
-  PRIMARY KEY (`namespace`,`id`),
+  PRIMARY KEY (`namespace`,`id`,`storage_name`),
   KEY `feed_audit_zip_date_idx` (`zip_date`)
 );
 
@@ -144,11 +145,12 @@ CREATE TABLE IF NOT EXISTS `feed_storage` (
 CREATE TABLE IF NOT EXISTS `feed_audit_detail` (
   `namespace` varchar(10) NOT NULL,
   `id` varchar(30) NOT NULL,
+  `storage_name` varchar(32) NOT NULL,
   `path` varchar(255) DEFAULT NULL,
   `status` varchar(30) DEFAULT NULL,
   `detail` tinytext,
   `time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  KEY `fs_log_status_objid_idx` (`namespace`,`id`)
+  KEY `fs_log_status_objid_idx` (`namespace`,`id`,`storage_name`)
 );
 USE `ht`;
 
