@@ -108,7 +108,7 @@ describe "bin/audit/main_repo_audit.pl" => sub {
     my $temp_link_path = temp_link_path;
 
     File::Path::make_path("$sdr2_obj_path");
-    `cp -r $tmpdirs->{obj_dir}/* $sdr2_path/obj/`;
+    system("cp -r $tmpdirs->{obj_dir}/* $sdr2_path/obj/");
     # Symlink into obj_link so Volume.pm can find the files,
     # and into sdr1 for symlink checks inside truenas_audit.pl
     # Create directory structures but remove the leaf node so we can recreate it as a symlink.
@@ -117,8 +117,8 @@ describe "bin/audit/main_repo_audit.pl" => sub {
     File::Path::remove_tree($temp_link_path);
     File::Path::make_path($sdr1_obj_path);
     File::Path::remove_tree($sdr1_obj_path);
-    `ln -sf $sdr2_obj_path $temp_link_path`;
-    `ln -sf $sdr2_obj_path $sdr1_obj_path`;
+    system("ln -sf $sdr2_obj_path $temp_link_path");
+    system("ln -sf $sdr2_obj_path $sdr1_obj_path");
   }
 
   before each => sub {
@@ -142,7 +142,7 @@ describe "bin/audit/main_repo_audit.pl" => sub {
   foreach my $storage_name (('s3-truenas-macc', 's3-truenas-ictc')) {
     it "writes to feed_storage" => sub {
       my $temp_sdr_path = temp_sdr_path;
-      `bin/audit/truenas_audit.pl --md5 --storage_name $storage_name $temp_sdr_path`;
+      system("bin/audit/truenas_audit.pl --md5 --storage_name $storage_name $temp_sdr_path");
       my $db_data = get_feed_storage_data('test', 'test', $storage_name);
       is(scalar(@$db_data), 1, 'with only one initial entry');      
       is($db_data->[0]->{namespace}, 'test', 'correct namespace');
@@ -163,13 +163,13 @@ describe "bin/audit/main_repo_audit.pl" => sub {
   it "updates existing data" => sub {
     my $temp_sdr_path = temp_sdr_path;
     my $storage_name = 's3-truenas-macc';
-    `bin/audit/truenas_audit.pl --md5 --storage_name $storage_name $temp_sdr_path`;
+    system("bin/audit/truenas_audit.pl --md5 --storage_name $storage_name $temp_sdr_path");
     my $db_data = get_feed_storage_data('test', 'test', $storage_name);
     is(scalar(@$db_data), 1, 'with only one initial entry');
     my $old_lastchecked = $db_data->[0]->{lastchecked};
     my $old_lastmd5check = $db_data->[0]->{lastmd5check};
     sleep 1;
-    `bin/audit/truenas_audit.pl --md5 --storage_name $storage_name $temp_sdr_path`;
+    system("bin/audit/truenas_audit.pl --md5 --storage_name $storage_name $temp_sdr_path");
     $db_data = get_feed_storage_data('test', 'test', $storage_name);
     my $new_lastchecked = $db_data->[0]->{lastchecked};
     my $new_lastmd5check = $db_data->[0]->{lastmd5check};
@@ -187,7 +187,7 @@ describe "bin/audit/main_repo_audit.pl" => sub {
     open(my $fh, '>', $zip_path) or die "open zip file $zip_path failed: $!";
     print $fh "shwoozle\n";
     close($fh);
-    `bin/audit/truenas_audit.pl --md5 --storage_name $storage_name $temp_sdr_path`;
+    system("bin/audit/truenas_audit.pl --md5 --storage_name $storage_name $temp_sdr_path");
     my $db_data = get_feed_storage_data('test', 'test', $storage_name);
     is(scalar(@$db_data), 1, 'with only one initial feed_storage entry');
     ok(defined $db_data->[0]->{lastchecked}, 'defined lastchecked');
@@ -212,9 +212,9 @@ describe "bin/audit/main_repo_audit.pl" => sub {
     # Add a silly file and a pre-uplift file (can be empty, contents don't matter)
     foreach my $ext (('silly', 'pre_uplift.mets.xml')) {
       my $path = File::Spec->catfile(temp_sdr_obj_path, "$objid.$ext");
-      `touch $path`;
+      system("touch $path");
     }
-    `bin/audit/truenas_audit.pl --md5 --storage_name $storage_name $temp_sdr_path`;
+    system("bin/audit/truenas_audit.pl --md5 --storage_name $storage_name $temp_sdr_path");
     my $db_data = get_feed_storage_data('test', 'test', $storage_name);
     is(scalar(@$db_data), 1, 'with only one feed_storage entry');
     is($db_data->[0]->{md5check_ok}, 1, 'md5check_ok=1');
@@ -234,7 +234,7 @@ describe "bin/audit/main_repo_audit.pl" => sub {
   it "checks symlinks" => sub {
     my $temp_sdr_path = temp_sdr_path(2);
     my $storage_name = 's3-truenas-macc';
-    `bin/audit/truenas_audit.pl --md5 --storage_name $storage_name $temp_sdr_path`;
+    system("bin/audit/truenas_audit.pl --md5 --storage_name $storage_name $temp_sdr_path");
     my $db_data = get_feed_storage_data('test', 'test', $storage_name);
     is(scalar(@$db_data), 1, 'with feed_storage entry');
     my $detail_data = get_feed_audit_detail_data('test', 'test', $storage_name);
@@ -249,9 +249,9 @@ describe "bin/audit/main_repo_audit.pl" => sub {
     my $sdr1_link_location = temp_sdr_obj_path;
     # "Somewhere else" is /dev/null
     # Create a symlink clobbering the existing one without following it
-    `ln -sfn /dev/null $sdr1_link_location`;
+    system("ln -sfn /dev/null $sdr1_link_location");
 
-    `bin/audit/truenas_audit.pl --md5 --storage_name $storage_name $temp_sdr_path`;
+    system("bin/audit/truenas_audit.pl --md5 --storage_name $storage_name $temp_sdr_path");
     my $db_data = get_feed_storage_data('test', 'test', $storage_name);
     is(scalar(@$db_data), 1, 'with feed_storage entry');
     my $detail_data = get_feed_audit_detail_data('test', 'test', $storage_name);
