@@ -278,25 +278,4 @@ sub is_tombstoned {
   }
 }
 
-sub recently_modified_path {
-  my $path = shift;
-
-  my $mtime = ( stat($path) )[9];
-  my $mtime_age = time() - $mtime;
-
-  return 1 if $mtime_age < (86400 * 2);
-}
-
-sub recent_previous_version {
-  my $file = shift;
-
-  return unless $file =~ /.old$/;
-
-  my $ctime = ( stat($file) )[10];
-  my $ctime_age = time() - $ctime;
-
-  return 1 if $ctime_age < (86400 * 2);
-  
-}
-
 __END__
