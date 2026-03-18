@@ -98,9 +98,6 @@ while (my $obj = $iterator->next_object) {
         localtime( ( stat($metsfile) )[9] ) );
     }
 
-    my $last_touched = $zip_seconds;
-    $last_touched = $mets_seconds if defined $mets_seconds and (not defined $zip_seconds or $mets_seconds > $zip_seconds);
-
     # test symlinks unless we're traversing sdr1
     if ( $sdr_partition ne '1' ) {
       my $volume = new HTFeed::Volume(
