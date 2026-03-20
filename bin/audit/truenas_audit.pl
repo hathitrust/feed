@@ -30,7 +30,7 @@ my $insert =
 ON DUPLICATE KEY UPDATE zip_size=?, mets_size=?, lastchecked = CURRENT_TIMESTAMP";
 
 my $update =
-"update feed_storage set md5check_ok = ?, lastmd5check = CURRENT_TIMESTAMP where namespace = ? and id = ? and storage_name = ?";
+"update feed_storage set md5check_ok = ?, lastmd5check = CURRENT_TIMESTAMP, saved_md5sum = ? where namespace = ? and id = ? and storage_name = ?";
 
 my $insert_detail =
 "insert into feed_audit_detail (namespace, id, storage_name, path, status, detail) values (?,?,?,?,?,?)";
@@ -112,21 +112,9 @@ while (my $obj = $iterator->next_object) {
         "$link_path $!" );
 
       if ( defined $link_target and $link_target ne $path ) {
-        set_status( $namespace, $objid, $storage_name, $path, "SYMLINK_INVALID",
-          $link_target || '<undef>' );
+        set_status( $namespace, $objid, $storage_name, $path, "SYMLINK_INVALID", $link_target );
       }
-
     }
-
-
-    #insert
-    execute_stmt(
-      $insert,  
-      $namespace, $objid, $storage_name,
-      $zipsize, $metssize, 
-      # duplicate parameters for duplicate key update
-      $zipsize, $metssize, 
-    );
 
     # does barcode have a zip & xml, and do they match?
 
@@ -149,6 +137,15 @@ while (my $obj = $iterator->next_object) {
       $filecount++;
     }
 
+    #insert
+    execute_stmt(
+      $insert,
+      $namespace, $objid, $storage_name,
+      $zipsize, $metssize,
+      # duplicate parameters for duplicate key update
+      $zipsize, $metssize,
+    );
+
     # check file count; do md5 check and METS extraction stuff
     if (defined $zip_seconds || defined $mets_seconds) {
       if ( $filecount > 2 or $filecount < 1 or ($found_zip != 1 and not is_tombstoned($namespace,$objid) ) or $found_mets != 1 ) {
@@ -157,12 +154,11 @@ while (my $obj = $iterator->next_object) {
       }
 
       eval {
-        my $rval = zipcheck( $namespace, $objid, $storage_name );
-        if ($rval) {
-          execute_stmt( $update, "1", $namespace, $objid, $storage_name );
-        }
-        elsif ( defined $rval ) {
-          execute_stmt( $update, "0", $namespace, $objid, $storage_name );
+        # zipcheck returns 0, 1, or undef
+        my $saved_md5sum;
+        my $rval = zipcheck( $namespace, $objid, $storage_name, \$saved_md5sum );
+        if (defined $rval) {
+          execute_stmt( $update, $rval, $saved_md5sum, $namespace, $objid, $storage_name );
         }
       };
       if ($@) {
@@ -181,7 +177,7 @@ get_dbh()->disconnect();
 $iterator->close;
 
 sub zipcheck {
-  my ( $namespace, $objid, $storage_name ) = @_;
+  my ( $namespace, $objid, $storage_name, $saved_md5sum_ref ) = @_;
 
   return unless $do_md5;
 
@@ -231,6 +227,7 @@ sub zipcheck {
     else {
       my $realsum = HTFeed::VolumeValidator::md5sum(
         $volume->get_repository_zip_path() );
+      $$saved_md5sum_ref = $realsum;
       if ( $mets_zipsum eq $realsum ) {
         print "$zipname OK\n";
         $rval = 1;

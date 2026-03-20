@@ -150,7 +150,7 @@ describe "bin/audit/main_repo_audit.pl" => sub {
       is($db_data->[0]->{storage_name}, $storage_name, 'correct storage_name');
       ok($db_data->[0]->{zip_size} > 0, 'nonzero zip_size');
       ok($db_data->[0]->{mets_size} > 0, 'nonzero mets_size');
-      ok(!defined $db_data->[0]->{saved_md5sum}, 'not defined saved_md5sum');
+      is(length $db_data->[0]->{saved_md5sum}, 32, 'saved_md5sum is 32 characters');
       ok(defined $db_data->[0]->{deposit_time}, 'defined deposit_time');
       ok(defined $db_data->[0]->{lastchecked}, 'defined lastchecked');
       ok(defined $db_data->[0]->{lastmd5check}, 'defined lastmd5check');
