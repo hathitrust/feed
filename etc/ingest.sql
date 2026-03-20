@@ -3,7 +3,6 @@ USE `ht`;
 CREATE TABLE IF NOT EXISTS `feed_audit` (
   `namespace` varchar(10) NOT NULL,
   `id` varchar(30) NOT NULL,
-  `storage_name` varchar(32) NOT NULL,
   `sdr_partition` tinyint(4) DEFAULT NULL,
   `zip_size` bigint(20) DEFAULT NULL,
   `image_size` bigint(20) DEFAULT NULL,
@@ -15,7 +14,7 @@ CREATE TABLE IF NOT EXISTS `feed_audit` (
   `lastmd5check` timestamp NULL DEFAULT NULL,
   `md5check_ok` tinyint(1) DEFAULT NULL,
   `is_tombstoned` tinyint(1) DEFAULT NULL,
-  PRIMARY KEY (`namespace`,`id`,`storage_name`),
+  PRIMARY KEY (`namespace`,`id`),
   KEY `feed_audit_zip_date_idx` (`zip_date`)
 );
 
