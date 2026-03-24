@@ -144,11 +144,12 @@ CREATE TABLE IF NOT EXISTS `feed_storage` (
 CREATE TABLE IF NOT EXISTS `feed_audit_detail` (
   `namespace` varchar(10) NOT NULL,
   `id` varchar(30) NOT NULL,
+  `storage_name` varchar(32) NOT NULL,
   `path` varchar(255) DEFAULT NULL,
   `status` varchar(30) DEFAULT NULL,
   `detail` tinytext,
   `time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  KEY `fs_log_status_objid_idx` (`namespace`,`id`)
+  KEY `fs_log_status_objid_idx` (`namespace`,`id`,`storage_name`)
 );
 USE `ht`;
 
