@@ -3,9 +3,7 @@
 use strict;
 use warnings;
 
-#use FindBin;
-#use lib "$FindBin::Bin/../../lib";
-
+use Cwd;
 use File::Basename;
 use File::Pairtree qw(ppath2id s2ppchars);
 
@@ -17,13 +15,15 @@ sub new {
   my $class = shift;
   my $path  = shift;
 
+  # Resolve symlinks e.g., /sdr1 -> /sdr/1
+  $path = Cwd::abs_path($path);
   # Remove trailing slash from path if necessary
   $path =~ s!/$!!;
   my @pathcomp = split('/', $path);
   # remove base & any empty components
   #@pathcomp = grep { $_ ne '' } @pathcomp;
   my $sdr_partition = undef;
-  if ($path =~ qr#/?sdr/?(\d+)/?#) {
+  if ($path =~ qr!/?sdr/?(\d+)/?!) {
     $sdr_partition = $1;
   } else {
     die "Cannot infer SDR partition from $path";
@@ -114,9 +114,7 @@ sub _find_pipe {
 
   if (!$self->{find_pipe}) {
     my $find_pipe;
-    # Do not follow symlinks under sdr1, okay to follow otherwise
-    my $follow_param = ($self->{sdr_partition} eq '1') ? '' : '-follow';
-    my $find_cmd = "find $self->{path} $follow_param -type f|";
+    my $find_cmd = "find $self->{path} -type f|";
     open($find_pipe, $find_cmd) or die("Can't open pipe to find: $!");
     $self->{find_pipe} = $find_pipe;
   }
