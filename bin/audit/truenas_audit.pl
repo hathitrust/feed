@@ -68,7 +68,8 @@ while (my $obj = $iterator->next_object) {
   my $namespace = $obj->{namespace};
   my $objid = $obj->{objid};
   eval {
-    if ($obj->{directory_objid} ne $objid) {
+    # (Already escaped) directory name must match escaped objid
+    if ($obj->{directory_objid} ne s2ppchars($objid)) {
       set_status( $namespace, $objid, $storage_name, $path, "BAD_PAIRTREE",
         "$objid $obj->{directory_objid}" );
     }
@@ -127,12 +128,14 @@ while (my $obj = $iterator->next_object) {
         set_status($namespace, $objid, $storage_name, $path, "BAD_FILE", "$file");
         next;
       }
-      my $dir_barcode = $1;
+      my $file_objid  = $1;
       my $ext         = $2;
       $found_zip++  if $ext eq 'zip';
       $found_mets++ if $ext eq 'mets.xml';
-      if ($objid ne $dir_barcode) {
-        set_status($namespace, $objid, $storage_name, $path, "BARCODE_MISMATCH", "$objid $dir_barcode");
+      # Escaped directory vs escaped file prefix.
+      # We've already checked unescaped directory vs objid
+      if ($obj->{directory_objid} ne $file_objid) {
+        set_status($namespace, $objid, $storage_name, $path, "BARCODE_MISMATCH", "$obj->{directory_objid} $file_objid");
       }
       $filecount++;
     }

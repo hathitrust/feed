@@ -24,6 +24,20 @@ describe "HTFeed::RepositoryIterator" => sub {
     `touch $full_path/$pt_objid.zip`;
   }
 
+  # Returns all of the iterator's objects sorted by namespace and objid.
+  # Just using the first one is a recipe for brittle tests since underlyingly
+  # we are looking at the output of `find`
+  sub sorted_objects {
+    my $iterator = shift;
+
+    my @objects;
+    while (my $obj = $iterator->next_object) {
+      push(@objects, $obj);
+    }
+    @objects = sort {$a->{namespace} cmp $b->{namespace} || $a->{objid} cmp $b->{objid}} @objects;
+    return \@objects;
+  }
+
   before all => sub {
     my $namespace = 'test';
     my $objid = 'test';
@@ -46,14 +60,12 @@ describe "HTFeed::RepositoryIterator" => sub {
   describe 'next_object' => sub {
     it "returns an object with the expected data" => sub {
       my $iterator = HTFeed::RepositoryIterator->new('/tmp/sdr1');
-      my @objects;
-      my $object = $iterator->next_object;
+      my $object = sorted_objects($iterator)->[0];
       is($object->{path}, '/tmp/sdr1/obj/ns1/pairtree_root/ob/ji/d1/objid1', 'path to the terminal directory');
       is($object->{namespace}, 'ns1', 'namespace `test` from path');
       is($object->{objid}, 'objid1', 'objid `objid1` from pairtree');
       is($object->{directory_objid}, 'objid1', 'directory_objid `objid1` from terminal directory name');
       is_deeply($object->{contents}, ['objid1.mets.xml','objid1.zip'], '.mets.xml and .zip contents');
-      is($iterator->{objects_processed}, 1, 'it has processed 1 object');
       
     };
 
@@ -66,8 +78,7 @@ describe "HTFeed::RepositoryIterator" => sub {
     describe 'with a subdirectory' => sub {
       it "returns an object with the expected data" => sub {
         my $iterator = HTFeed::RepositoryIterator->new('/tmp/sdr1/obj/ns1/');
-        my @objects;
-        my $object = $iterator->next_object;
+        my $object = sorted_objects($iterator)->[0];
         is($object->{path}, '/tmp/sdr1/obj/ns1/pairtree_root/ob/ji/d1/objid1', 'path to the terminal directory');
         is($object->{namespace}, 'ns1', 'namespace `ns1` from path');
         is($object->{objid}, 'objid1', 'objid `objid1` from pairtree');

@@ -141,7 +141,7 @@ describe "bin/audit/main_repo_audit.pl" => sub {
 
   foreach my $storage_name (('s3-truenas-macc', 's3-truenas-ictc')) {
     it "writes to feed_storage" => sub {
-      my $temp_sdr_path = temp_sdr_path;
+      my $temp_sdr_path = temp_sdr_path(2);
       system("bin/audit/truenas_audit.pl --md5 --storage_name $storage_name $temp_sdr_path");
       my $db_data = get_feed_storage_data('test', 'test', $storage_name);
       is(scalar(@$db_data), 1, 'with only one initial entry');      
@@ -161,7 +161,7 @@ describe "bin/audit/main_repo_audit.pl" => sub {
   # If existing data, only `lastchecked` and `lastmd5check` will change
   # (file sizes will also be updated but with the same data).
   it "updates existing data" => sub {
-    my $temp_sdr_path = temp_sdr_path;
+    my $temp_sdr_path = temp_sdr_path(2);
     my $storage_name = 's3-truenas-macc';
     system("bin/audit/truenas_audit.pl --md5 --storage_name $storage_name $temp_sdr_path");
     my $db_data = get_feed_storage_data('test', 'test', $storage_name);
@@ -179,7 +179,7 @@ describe "bin/audit/main_repo_audit.pl" => sub {
   };
 
   it "records a failed MD5 check" => sub {
-    my $temp_sdr_path = temp_sdr_path;
+    my $temp_sdr_path = temp_sdr_path(2);
     my $storage_name = 's3-truenas-macc';
     my $objid = 'test';
     # Replace the zip with garbage
@@ -206,7 +206,7 @@ describe "bin/audit/main_repo_audit.pl" => sub {
   };
 
   it "records a spurious file but ignores pre-uplift METS" => sub {
-    my $temp_sdr_path = temp_sdr_path;
+    my $temp_sdr_path = temp_sdr_path(2);
     my $storage_name = 's3-truenas-macc';
     my $objid = 'test';
     # Add a silly file and a pre-uplift file (can be empty, contents don't matter)
