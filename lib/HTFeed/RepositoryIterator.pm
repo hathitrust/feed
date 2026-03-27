@@ -23,7 +23,7 @@ sub new {
   # remove base & any empty components
   #@pathcomp = grep { $_ ne '' } @pathcomp;
   my $sdr_partition = undef;
-  if ($path =~ qr#/?sdr(\d+)/?#) {
+  if ($path =~ qr#/?sdr/?(\d+)/?#) {
     $sdr_partition = $1;
   } else {
     die "Cannot infer SDR partition from $path";
@@ -48,6 +48,7 @@ sub next_object {
     chomp $line;
     # Pairtree stuff
     next if $line =~ /pairtree_prefix$/;
+    next if $line =~ /pairtree_version/;
     # ignore temporary location
     next if $line =~ qr(obj/\.tmp);
     #next if $line =~ /\Qpre_uplift.mets.xml\E/;
@@ -61,13 +62,13 @@ sub next_object {
     $self->{objects_processed}++;
     $self->{prev_path} = $path;
 
-    # Remove everything up to and including the `sdrX/`
+    # Remove everything up to and including the `sdrX/` or `sdr/X`
     my $subpath = $path;
-    $subpath =~ s!.*?sdr\d+/!!;
+    $subpath =~ s!.*?sdr/?\d+/!!;
     my @pathcomp = split('/', $subpath);
     @pathcomp = grep { $_ ne '' } @pathcomp;
     my $namespace = $pathcomp[1];
-    my $directory_objid = $pathcomp[-1];
+    my $directory_objid = pop @pathcomp;
     my $objid = File::Pairtree::ppath2id(join('/', @pathcomp));
     $obj = {
       path => $path,
@@ -113,7 +114,9 @@ sub _find_pipe {
 
   if (!$self->{find_pipe}) {
     my $find_pipe;
-    my $find_cmd = "find $self->{path} -follow -type f|";
+    # Do not follow symlinks under sdr1, okay to follow otherwise
+    my $follow_param = ($self->{sdr_partition} eq '1') ? '' : '-follow';
+    my $find_cmd = "find $self->{path} $follow_param -type f|";
     open($find_pipe, $find_cmd) or die("Can't open pipe to find: $!");
     $self->{find_pipe} = $find_pipe;
   }
