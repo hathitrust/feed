@@ -3,6 +3,7 @@
 use strict;
 use warnings;
 
+use Cwd;
 use Data::Dumper;
 use DBI;
 use File::Basename;
@@ -75,7 +76,7 @@ while (my $obj = $iterator->next_object) {
     }
 
     #get last modified date
-    my $zipfile = "$obj->{path}/$obj->{objid}.zip";
+    my $zipfile = "$obj->{path}/$obj->{directory_objid}.zip";
     my $zip_seconds;
     my $zipdate;
     my $zipsize;
@@ -86,7 +87,7 @@ while (my $obj = $iterator->next_object) {
       $zipsize = -s $zipfile;
     }
 
-    my $metsfile = "$obj->{path}/$obj->{objid}.mets.xml";
+    my $metsfile = "$obj->{path}/$obj->{directory_objid}.mets.xml";
 
     my $mets_seconds;
     my $metsdate;
@@ -107,12 +108,12 @@ while (my $obj = $iterator->next_object) {
         objid       => $objid
       );
       my $link_path = $path;
-      $link_path =~ s/sdr$sdr_partition/sdr1/;
+      $link_path =~ s/(sdr\/?)$sdr_partition/${1}1/;
       my $link_target = readlink $link_path
         or set_status( $namespace, $objid, $storage_name, $path, "CANT_LSTAT",
         "$link_path $!" );
 
-      if ( defined $link_target and $link_target ne $path ) {
+      if ( defined $link_target and Cwd::abs_path($link_target) ne $path ) {
         set_status( $namespace, $objid, $storage_name, $path, "SYMLINK_INVALID", $link_target );
       }
     }
