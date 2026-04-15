@@ -3,9 +3,7 @@
 use strict;
 use warnings;
 
-#use FindBin;
-#use lib "$FindBin::Bin/../../lib";
-
+use Cwd;
 use File::Basename;
 use File::Pairtree qw(ppath2id s2ppchars);
 
@@ -17,13 +15,15 @@ sub new {
   my $class = shift;
   my $path  = shift;
 
+  # Resolve symlinks e.g., /sdr1 -> /sdr/1
+  $path = Cwd::abs_path($path);
   # Remove trailing slash from path if necessary
   $path =~ s!/$!!;
   my @pathcomp = split('/', $path);
   # remove base & any empty components
   #@pathcomp = grep { $_ ne '' } @pathcomp;
   my $sdr_partition = undef;
-  if ($path =~ qr#/?sdr(\d+)/?#) {
+  if ($path =~ qr!/?sdr/?(\d+)/?!) {
     $sdr_partition = $1;
   } else {
     die "Cannot infer SDR partition from $path";
@@ -48,6 +48,7 @@ sub next_object {
     chomp $line;
     # Pairtree stuff
     next if $line =~ /pairtree_prefix$/;
+    next if $line =~ /pairtree_version/;
     # ignore temporary location
     next if $line =~ qr(obj/\.tmp);
     #next if $line =~ /\Qpre_uplift.mets.xml\E/;
@@ -61,13 +62,13 @@ sub next_object {
     $self->{objects_processed}++;
     $self->{prev_path} = $path;
 
-    # Remove everything up to and including the `sdrX/`
+    # Remove everything up to and including the `sdrX/` or `sdr/X`
     my $subpath = $path;
-    $subpath =~ s!.*?sdr\d+/!!;
+    $subpath =~ s!.*?sdr/?\d+/!!;
     my @pathcomp = split('/', $subpath);
     @pathcomp = grep { $_ ne '' } @pathcomp;
     my $namespace = $pathcomp[1];
-    my $directory_objid = $pathcomp[-1];
+    my $directory_objid = pop @pathcomp;
     my $objid = File::Pairtree::ppath2id(join('/', @pathcomp));
     $obj = {
       path => $path,
@@ -113,7 +114,7 @@ sub _find_pipe {
 
   if (!$self->{find_pipe}) {
     my $find_pipe;
-    my $find_cmd = "find $self->{path} -follow -type f|";
+    my $find_cmd = "find $self->{path} -type f|";
     open($find_pipe, $find_cmd) or die("Can't open pipe to find: $!");
     $self->{find_pipe} = $find_pipe;
   }

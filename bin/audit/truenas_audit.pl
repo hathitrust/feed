@@ -3,6 +3,7 @@
 use strict;
 use warnings;
 
+use Cwd;
 use Data::Dumper;
 use DBI;
 use File::Basename;
@@ -68,13 +69,14 @@ while (my $obj = $iterator->next_object) {
   my $namespace = $obj->{namespace};
   my $objid = $obj->{objid};
   eval {
-    if ($obj->{directory_objid} ne $objid) {
+    # (Already escaped) directory name must match escaped objid
+    if ($obj->{directory_objid} ne s2ppchars($objid)) {
       set_status( $namespace, $objid, $storage_name, $path, "BAD_PAIRTREE",
         "$objid $obj->{directory_objid}" );
     }
 
     #get last modified date
-    my $zipfile = "$obj->{path}/$obj->{objid}.zip";
+    my $zipfile = "$obj->{path}/$obj->{directory_objid}.zip";
     my $zip_seconds;
     my $zipdate;
     my $zipsize;
@@ -85,7 +87,7 @@ while (my $obj = $iterator->next_object) {
       $zipsize = -s $zipfile;
     }
 
-    my $metsfile = "$obj->{path}/$obj->{objid}.mets.xml";
+    my $metsfile = "$obj->{path}/$obj->{directory_objid}.mets.xml";
 
     my $mets_seconds;
     my $metsdate;
@@ -106,12 +108,12 @@ while (my $obj = $iterator->next_object) {
         objid       => $objid
       );
       my $link_path = $path;
-      $link_path =~ s/sdr$sdr_partition/sdr1/;
+      $link_path =~ s/(sdr\/?)$sdr_partition/${1}1/;
       my $link_target = readlink $link_path
         or set_status( $namespace, $objid, $storage_name, $path, "CANT_LSTAT",
         "$link_path $!" );
 
-      if ( defined $link_target and $link_target ne $path ) {
+      if ( defined $link_target and Cwd::abs_path($link_target) ne $path ) {
         set_status( $namespace, $objid, $storage_name, $path, "SYMLINK_INVALID", $link_target );
       }
     }
@@ -127,12 +129,14 @@ while (my $obj = $iterator->next_object) {
         set_status($namespace, $objid, $storage_name, $path, "BAD_FILE", "$file");
         next;
       }
-      my $dir_barcode = $1;
+      my $file_objid  = $1;
       my $ext         = $2;
       $found_zip++  if $ext eq 'zip';
       $found_mets++ if $ext eq 'mets.xml';
-      if ($objid ne $dir_barcode) {
-        set_status($namespace, $objid, $storage_name, $path, "BARCODE_MISMATCH", "$objid $dir_barcode");
+      # Escaped directory vs escaped file prefix.
+      # We've already checked unescaped directory vs objid
+      if ($obj->{directory_objid} ne $file_objid) {
+        set_status($namespace, $objid, $storage_name, $path, "BARCODE_MISMATCH", "$obj->{directory_objid} $file_objid");
       }
       $filecount++;
     }

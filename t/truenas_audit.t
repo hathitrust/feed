@@ -102,10 +102,11 @@ describe "bin/audit/main_repo_audit.pl" => sub {
   sub make_test_directories {
     my $namespace = shift;
     my $objid = shift;
+
     my $sdr2_path = temp_sdr_path(2);
-    my $sdr1_obj_path = temp_sdr_obj_path(1);
-    my $sdr2_obj_path = temp_sdr_obj_path(2);
-    my $temp_link_path = temp_link_path;
+    my $sdr1_obj_path = temp_sdr_obj_path(1,$namespace,$objid);
+    my $sdr2_obj_path = temp_sdr_obj_path(2,$namespace,$objid);
+    my $temp_link_path = temp_link_path($namespace,$objid);
 
     File::Path::make_path("$sdr2_obj_path");
     system("cp -r $tmpdirs->{obj_dir}/* $sdr2_path/obj/");
@@ -124,6 +125,13 @@ describe "bin/audit/main_repo_audit.pl" => sub {
   before each => sub {
     my $namespace = 'test';
     my $objid = 'test';
+
+    my $tmp_home = $tmpdirs->{tmpdir};
+    File::Path::make_path("$tmp_home/sdr/1");
+    File::Path::make_path("$tmp_home/sdr/2");
+    system("ln -sf $tmp_home/sdr/1 $tmp_home/sdr1");
+    system("ln -sf $tmp_home/sdr/2 $tmp_home/sdr2");
+
     my $storage = local_storage($namespace, $objid);
     $storage->stage;
     $storage->make_object_path;
@@ -132,8 +140,9 @@ describe "bin/audit/main_repo_audit.pl" => sub {
   };
 
   after each => sub {
-    File::Path::remove_tree(temp_sdr_path);
-    File::Path::remove_tree(temp_sdr_path(2));
+    my $tmp_home = $tmpdirs->{tmpdir};
+    File::Path::remove_tree("$tmp_home/sdr/1");
+    File::Path::remove_tree("$tmp_home/sdr/2");
     File::Path::remove_tree('/tmp/obj_link');
     get_dbh->prepare('DELETE FROM feed_storage')->execute;
     get_dbh->prepare('DELETE FROM feed_audit_detail')->execute;
@@ -141,7 +150,7 @@ describe "bin/audit/main_repo_audit.pl" => sub {
 
   foreach my $storage_name (('s3-truenas-macc', 's3-truenas-ictc')) {
     it "writes to feed_storage" => sub {
-      my $temp_sdr_path = temp_sdr_path;
+      my $temp_sdr_path = temp_sdr_path(2);
       system("bin/audit/truenas_audit.pl --md5 --storage_name $storage_name $temp_sdr_path");
       my $db_data = get_feed_storage_data('test', 'test', $storage_name);
       is(scalar(@$db_data), 1, 'with only one initial entry');      
@@ -161,7 +170,7 @@ describe "bin/audit/main_repo_audit.pl" => sub {
   # If existing data, only `lastchecked` and `lastmd5check` will change
   # (file sizes will also be updated but with the same data).
   it "updates existing data" => sub {
-    my $temp_sdr_path = temp_sdr_path;
+    my $temp_sdr_path = temp_sdr_path(2);
     my $storage_name = 's3-truenas-macc';
     system("bin/audit/truenas_audit.pl --md5 --storage_name $storage_name $temp_sdr_path");
     my $db_data = get_feed_storage_data('test', 'test', $storage_name);
@@ -179,7 +188,7 @@ describe "bin/audit/main_repo_audit.pl" => sub {
   };
 
   it "records a failed MD5 check" => sub {
-    my $temp_sdr_path = temp_sdr_path;
+    my $temp_sdr_path = temp_sdr_path(2);
     my $storage_name = 's3-truenas-macc';
     my $objid = 'test';
     # Replace the zip with garbage
@@ -205,8 +214,31 @@ describe "bin/audit/main_repo_audit.pl" => sub {
     ok(defined $detail_data->[0]->{time}, 'feed_audit_detail time defined');
   };
 
+  it "handles filenames/objids with pairtree-escapable characters" => sub {
+    my $temp_sdr_path = temp_sdr_path(2);
+    my $storage_name = 's3-truenas-macc';
+
+    my $namespace = 'test';
+    my $objid = 'ark:/test/test';
+    my $pt_objid = 'ark+=test=test';
+
+    my $storage = local_storage($namespace, $objid);
+    $storage->stage;
+    $storage->make_object_path;
+    $storage->move;
+    make_test_directories($namespace, $objid);
+
+    my $zip_path = File::Spec->catfile(temp_sdr_obj_path,  "ark+=test=test.zip");
+    system("bin/audit/truenas_audit.pl --md5 --storage_name $storage_name $temp_sdr_path/obj/test/pairtree_root/ar");
+    my $db_data = get_feed_storage_data($namespace, $objid, $storage_name);
+    is(scalar(@$db_data), 1, 'with only one initial feed_storage entry');
+    ok(defined $db_data->[0]->{lastchecked}, 'defined lastchecked');
+    ok(defined $db_data->[0]->{lastmd5check}, 'defined lastmd5check');
+    is($db_data->[0]->{md5check_ok}, 1, 'md5check_ok=1');
+  };
+
   it "records a spurious file but ignores pre-uplift METS" => sub {
-    my $temp_sdr_path = temp_sdr_path;
+    my $temp_sdr_path = temp_sdr_path(2);
     my $storage_name = 's3-truenas-macc';
     my $objid = 'test';
     # Add a silly file and a pre-uplift file (can be empty, contents don't matter)
@@ -259,7 +291,7 @@ describe "bin/audit/main_repo_audit.pl" => sub {
     is($detail_data->[0]->{namespace}, 'test', 'feed_audit_detail namespace');
     is($detail_data->[0]->{id}, 'test', 'feed_audit_detail id');
     is($detail_data->[0]->{storage_name}, $storage_name, 'feed_audit_detail storage_name');
-    ok($detail_data->[0]->{path} =~ /sdr2/, 'feed_audit_detail path implicates sdr2');
+    ok($detail_data->[0]->{path} =~ /sdr\/2/, 'feed_audit_detail path implicates /sdr/2');
     is($detail_data->[0]->{status}, 'SYMLINK_INVALID', 'feed_audit_detail status');
     ok($detail_data->[0]->{detail} =~ /null/, 'feed_audit_detail detail');
     ok(defined $detail_data->[0]->{time}, 'feed_audit_detail time defined');

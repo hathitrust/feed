@@ -7,6 +7,7 @@ use FindBin;
 use lib "$FindBin::Bin/../lib";
 
 # support for Test::Spec tests
+use File::Pairtree qw(s2ppchars);
 use HTFeed;
 use HTFeed::Test::Logger;
 use HTFeed::Test::TempDirs;
@@ -59,13 +60,14 @@ sub stage_volume {
     my $tmpdirs   = shift;
     my $namespace = shift;
     my $objid     = shift;
+    my $pt_objid = s2ppchars $objid;
 
-    my $mets = $tmpdirs->test_home . "/fixtures/volumes/$objid.mets.xml";
-    my $zip  = $tmpdirs->test_home . "/fixtures/volumes/$objid.zip";
+    my $mets = $tmpdirs->test_home . "/fixtures/volumes/$pt_objid.mets.xml";
+    my $zip  = $tmpdirs->test_home . "/fixtures/volumes/$pt_objid.zip";
 
     system("cp $mets $tmpdirs->{ingest}");
-    mkdir("$tmpdirs->{zipfile}/$objid");
-    system("cp $zip $tmpdirs->{zipfile}/$objid");
+    mkdir("$tmpdirs->{zipfile}/$pt_objid");
+    system("cp $zip $tmpdirs->{zipfile}/$pt_objid");
 
     my $volume = HTFeed::Volume->new(
         namespace   => $namespace,
