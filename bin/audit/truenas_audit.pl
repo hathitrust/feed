@@ -36,7 +36,7 @@ my $insert_detail =
 "insert into feed_audit_detail (namespace, id, storage_name, path, status, detail) values (?,?,?,?,?,?)";
 
 my $checkpoint_sel = 
-"select lastmd5check > ? from feed_storage where namespace = ? and id = ?";
+"select lastmd5check > ? from feed_storage where namespace = ? and id = ? and storage_name = ?";
 
 ### set /sdr1 to /sdrX for test & parallelization
 
@@ -185,7 +185,7 @@ sub zipcheck {
 
   # don't check this item if we just looked at it
   if(defined $checkpoint) {
-    my $sth = execute_stmt($checkpoint_sel,$checkpoint,$namespace,$objid);
+    my $sth = execute_stmt($checkpoint_sel,$checkpoint,$namespace,$objid, $storage_name);
     if(my @row = $sth->fetchrow_array()) {
       return if @row and $row[0];
     }
