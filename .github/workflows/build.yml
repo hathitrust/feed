@@ -50,4 +50,4 @@ jobs:
                 registry_token: ${{ github.token }}
                 rebuild: ${{ inputs.rebuild }}
                 build-args: 'version="commit ${{ github.sha }}"'
-                platforms: ${{ inputs.platforms }}
+                platforms: ${{ inputs.platforms || 'linux/amd64,linux/arm64' }}
