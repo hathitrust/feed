@@ -40,9 +40,9 @@ jobs:
 
         steps:
             - name: Build Image
-              uses: hathitrust/github_actions/build@v1.4.0
+              uses: hathitrust/github_actions/build@v1
               with:
-                image: ghcr.io/${{ github.repository }}-unstable
+                image: ghcr.io/${{ github.repository }}
                 dockerfile: Dockerfile
                 img_tag: ${{ inputs.img_tag }}
                 tag: ${{ inputs.ref }}
