@@ -143,6 +143,7 @@ our $config = {
                 v_same( 'xmp', 'xRes', 'xmp', 'yRes' )
             ),
             'layers' => v_in( 'codingStyleDefault', 'layers', ['1','8'] ),
+            'decomposition_levels' => v_between( 'codingStyleDefault', 'decompositionLevels', '1', '32')
         }
     },
 

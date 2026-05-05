@@ -5,6 +5,7 @@ use warnings;
 
 use HTFeed::Config qw(get_config);
 use HTFeed::Image::Shared;
+use Log::Log4perl qw(get_logger);
 
 # This package contains all of the system calls to grok.
 # They used to be buried deep in ImageRemediate, hard to test.
@@ -56,6 +57,8 @@ sub compress {
         "> /dev/null 2>&1"
     );
 
+    get_logger()->trace("compressing: '$full_cmd'");
+
     my $sys_ret_val = system($full_cmd);
 
     return !$sys_ret_val;
@@ -81,6 +84,7 @@ sub decompress {
         "-o '$outfile'",
         "> /dev/null 2>&1"
     );
+    get_logger()->trace("decompressing: '$full_cmd'");
     my $sys_ret_val = system($full_cmd);
 
     return !$sys_ret_val;

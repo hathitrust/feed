@@ -106,7 +106,7 @@ sub remediate_image {
   my $self    = shift;
   my $oldfile = shift;
   # dispatch to appropriate remediator
-  $oldfile =~ /\.(.+?)$/;
+  $oldfile =~ /\.(\w+)$/;
   my $oldext = $1;
   # Possibly plug in other extension-specific remediators here?
   if ($oldext eq "jp2") {
