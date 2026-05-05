@@ -48,15 +48,6 @@ describe "HTFeed::Storage::LocalPairtree" => sub {
 
   describe "#make_object_path" => sub {
 
-    context "when the object is not in the repo" => sub {
-      it "does not set is_repeat if the object is not in the repo" => sub {
-        my $storage = local_storage('test','test');
-        $storage->make_object_path;
-
-        ok(!$storage->{is_repeat});
-      }
-    };
-
     it "works" => sub {
       my $storage = local_storage('test','test');
       $storage->make_object_path;

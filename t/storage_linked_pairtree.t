@@ -59,25 +59,8 @@ describe "HTFeed::Storage::LinkedPairtree" => sub {
         is("$tmpdirs->{obj_dir}/test/pairtree_root/te/st/test",
           readlink("$tmpdirs->{link_dir}/test/pairtree_root/te/st/test"));
       };
-
-      it "does not set is_repeat if the object is not in the repo" => sub {
-        my $storage = linked_storage('test','test');
-        $storage->make_object_path;
-
-        ok(!$storage->{is_repeat});
-      }
     };
 
-    context "when the object is in the repo with link target matching obj_dir" => sub {
-      it "sets is_repeat" => sub {
-        make_old_version(linked_storage('test','test'));
-
-        my $storage = linked_storage('test','test');
-        $storage->make_object_path;
-
-        ok($storage->{is_repeat});
-      };
-    };
 
     context "when the object is in the repo but link target doesn't match current obj dir" => sub {
       it "uses existing target of the link" => sub {
@@ -88,15 +71,6 @@ describe "HTFeed::Storage::LinkedPairtree" => sub {
 
         is($storage->object_path,"$tmpdirs->{other_obj_dir}/test/pairtree_root/te/st/test");
       };
-
-      it "sets is_repeat" => sub {
-        make_old_version_other_dir('test','test');
-
-        my $storage = linked_storage('test','test');
-        $storage->make_object_path;
-
-        ok($storage->{is_repeat});
-      }
     };
   };
 

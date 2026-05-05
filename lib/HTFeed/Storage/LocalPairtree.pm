@@ -96,24 +96,12 @@ sub existing_object {
     return -f $self->zip_obj_path && -f $self->mets_obj_path;
 }
 
-sub set_is_repeat {
-    my $self = shift;
-
-    if ($self->existing_object) {
-        $self->{is_repeat} = 1;
-    } else {
-        $self->{is_repeat} = 0;
-    }
-}
-
 sub make_object_path {
     my $self = shift;
 
     if (! -d $self->object_path) {
         $self->safe_make_path($self->object_path);
     }
-
-    $self->set_is_repeat;
 
     return 1;
 }

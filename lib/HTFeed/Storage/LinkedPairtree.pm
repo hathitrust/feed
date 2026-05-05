@@ -40,7 +40,6 @@ sub make_object_path {
   my $self = shift;
 
   $self->symlink_if_needed;
-  $self->set_is_repeat;
 
   return 1;
 }
@@ -88,7 +87,6 @@ sub symlink_if_needed {
   my $namespace = $self->{namespace};
   my $objid = $self->{objid};
   my $pt_objid = s2ppchars($objid);
-  $self->{is_repeat} = 0;
 
   my $link_parent = $self->link_parent;
   my $link_path = $self->link_path;
