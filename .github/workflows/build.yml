@@ -46,8 +46,8 @@ jobs:
                 dockerfile: Dockerfile
                 img_tag: ${{ inputs.img_tag }}
                 tag: ${{ inputs.ref }}
-                push_latest: ${{ inputs.push_latest}}
+                push_latest: ${{ inputs.push_latest || false }}
                 registry_token: ${{ github.token }}
-                rebuild: ${{ inputs.rebuild }}
+                rebuild: ${{ inputs.rebuild || false }}
                 build-args: 'version="commit ${{ github.sha }}"'
                 platforms: ${{ inputs.platforms || 'linux/amd64,linux/arm64' }}
