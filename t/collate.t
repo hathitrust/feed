@@ -17,11 +17,14 @@ describe "HTFeed::Collate" => sub {
     before each => sub {
       $storage = Test::MockObject->new();
       $storage->set_true(qw(stage validate_zip_completeness prevalidate make_object_path move postvalidate record_audit cleanup rollback clean_staging encrypt verify_crypt));
+      $storage->{name} = "mock_storage" => "collate";
 
       my $volume = HTFeed::Volume->new(namespace => 'test',
-        id => 'test',
+        objid => 'test',
         packagetype => 'simple');
       $collate = HTFeed::Stage::Collate->new(volume => $volume);
+
+      get_dbh()->do("DELETE FROM feed_audit WHERE namespace = 'test'");
 
     };
 
@@ -31,7 +34,7 @@ describe "HTFeed::Collate" => sub {
       };
 
       it "doesn't move to staging area" => sub {
-        $collate->run($storage);
+        eval { $collate->run($storage) };
 
         ok(!$storage->called('stage'));
       };
@@ -43,14 +46,14 @@ describe "HTFeed::Collate" => sub {
       };
 
       it "doesn't move to object storage" => sub {
-        $collate->run($storage);
+        eval { $collate->run($storage) };
 
         ok(!$storage->called('make_object_path'));
         ok(!$storage->called('move'));
       };
 
       it "cleans up the staging area" => sub {
-        $collate->run($storage);
+        eval { $collate->run($storage) };
         ok($storage->called('clean_staging'));
       };
     };
@@ -61,14 +64,22 @@ describe "HTFeed::Collate" => sub {
       };
 
       it "calls rollback" => sub {
-        $collate->run($storage);
+        eval { $collate->run($storage) };
         ok($storage->called('rollback'));
       };
 
       it "cleans up the staging area" => sub {
-        $collate->run($storage);
+        eval { $collate->run($storage) };
         ok($storage->called('clean_staging'));
       };
+
+      it "does not record to feed_audit" => sub {
+        eval { $collate->run($storage) };
+
+        my $r = get_dbh()->selectall_arrayref("SELECT first_ingest_date from feed_audit WHERE namespace = 'test' and id = 'test'");
+        ok(scalar(@$r) == 0);
+
+      }
     };
 
     context "when postvalidation fails" => sub {
@@ -77,22 +88,24 @@ describe "HTFeed::Collate" => sub {
       };
 
       it "rolls back to the existing version" => sub {
-        $collate->run($storage);
+        eval { $collate->run($storage) };
 
         ok($storage->called('rollback'));
       };
 
       it "does not record an audit" => sub {
-        $collate->run($storage);
+        eval { $collate->run($storage) };
 
         ok(!$storage->called('record_audit'));
       };
 
       it "cleans up the staging area" => sub {
-        $collate->run($storage);
+        eval { $collate->run($storage) };
         ok($storage->called('clean_staging'));
       };
     };
+
+    it "rolls back first storage if second storage fails";
 
     context "when everything succeeds" => sub {
       it "encrypts the item" => sub {
@@ -115,6 +128,7 @@ describe "HTFeed::Collate" => sub {
         ok($storage->called('clean_staging'));
       };
 
+      # FIXME might be brittle -- relies on something being in /tmp/obj_link probably?
       it "records an audit" => sub {
         $collate->run($storage);
         ok($storage->called('record_audit'));
@@ -128,7 +142,15 @@ describe "HTFeed::Collate" => sub {
       it "does not roll back" => sub {
         $collate->run($storage);
         ok(!$storage->called('rollback'));
-      }
+      };
+
+      it "records ingest date in feed_audit" => sub {
+        $collate->run($storage);
+
+        my $r = get_dbh()->selectall_arrayref("SELECT first_ingest_date from feed_audit WHERE namespace = 'test' and id = 'test'");
+        ok($r->[0][0]);
+
+      };
     };
 
 
@@ -138,7 +160,7 @@ describe "HTFeed::Collate" => sub {
       };
 
       it "doesn't move to staging" => sub { 
-        $collate->run($storage);
+        eval { $collate->run($storage); };
         ok(!$storage->called('stage'));
       };
     };
@@ -149,7 +171,7 @@ describe "HTFeed::Collate" => sub {
       };
 
       it "doesn't move to staging" => sub { 
-        $collate->run($storage);
+        eval { $collate->run($storage); };
         ok(!$storage->called('stage'));
       };
     };
@@ -162,12 +184,17 @@ describe "HTFeed::Collate" => sub {
 
     it "logs a repeat when collated twice" => sub {
       my $volume = stage_volume($tmpdirs,'test','test');
+      my $storage = HTFeed::Storage::LocalPairtree->new(
+        volume => $volume, 
+        config => { obj_dir => get_config('repository','obj_dir') },
+        name => "localpairtree_test"
+      );
       my $stage = HTFeed::Stage::Collate->new(volume => $volume);
-      $stage->run;
+      $stage->run($storage);
 
       # collate same thing again
       $stage = HTFeed::Stage::Collate->new(volume => $volume);
-      $stage->run;
+      $stage->run($storage);
 
       ok($testlog->matches(qw(INFO.*already in repo)));
     };
@@ -177,6 +204,7 @@ describe "HTFeed::Collate" => sub {
 
       local our ($bucket, $s3);
       my $old_storage_classes;
+      my $old_repository_dirs;
       my %s3s;
 
       before all => sub {
@@ -198,14 +226,9 @@ describe "HTFeed::Collate" => sub {
 
       before each => sub {
         $old_storage_classes = get_config('storage_classes');
+        $old_repository_dirs = get_config("repository");
+
         my $new_storage_classes = {
-          # simulating isilon
-          'linkedpairtree-test' =>
-          {
-            class => 'HTFeed::Storage::LinkedPairtree',
-            obj_dir => $tmpdirs->{obj_dir},
-            link_dir => $tmpdirs->{link_dir}
-          },
           # simulating truenas (site 1)
           'pairtreeobjectstore-ptobj1' => {
             class => 'HTFeed::Storage::PairtreeObjectStore',
@@ -234,11 +257,20 @@ describe "HTFeed::Collate" => sub {
             encryption_key => $tmpdirs->test_home . "/fixtures/encryption_key"
           }
         };
+
+        my $vgw_home = "$ENV{FEED_HOME}/var/vgw";
+        my $bucket_dir = "$vgw_home/$s3s{ptobj1}->{bucket}";
+
         set_config($new_storage_classes,'storage_classes');
+        set_config({
+            obj_dir => $bucket_dir,
+            link_dir => $bucket_dir
+          }, "repository");
       };
 
       after each => sub {
         set_config($old_storage_classes,'storage_classes');
+        set_config($old_repository_dirs,'repository');
       };
 
       it "copies and records to all configured storages" => sub {
@@ -258,8 +290,6 @@ describe "HTFeed::Collate" => sub {
         my $timestamp = $versioned_backup->[0][0];
 
         my $pt_path = "test/pairtree_root/te/st/test";
-        ok(-e "$tmpdirs->{obj_dir}/$pt_path/test.mets.xml",'copies mets to local storage');
-        ok(-e "$tmpdirs->{obj_dir}/$pt_path/test.zip",'copies zip to local storage');
 
         ok(-e "$tmpdirs->{backup_obj_dir}/test/tes/test.$timestamp.zip.gpg","copies the encrypted zip to backup storage");
         ok(-e "$tmpdirs->{backup_obj_dir}/test/tes/test.$timestamp.mets.xml","copies the mets backup storage");

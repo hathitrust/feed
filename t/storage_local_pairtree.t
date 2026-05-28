@@ -244,23 +244,6 @@ describe "HTFeed::Storage::LocalPairtree" => sub {
 
   };
 
-  describe "#record_audit" => sub {
-    it "records an md5 check in the feed_audit table" => sub {
-      my $dbh = get_dbh();
-
-      my $storage = local_storage('test','test');
-      $storage->stage;
-      $storage->make_object_path;
-      $storage->move;
-      $storage->record_audit;
-
-      my $r = $dbh->selectall_arrayref("SELECT lastmd5check from feed_audit WHERE namespace = 'test' and id = 'test'");
-
-      ok($r->[0][0]);
-
-    };
-  };
-
   describe "#stage" => sub {
     context "when the item is not in repository" => sub {
       it "stages to the configured staging location" => sub {
