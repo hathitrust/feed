@@ -104,4 +104,9 @@ sub symlink_if_needed {
   return 1;
 }
 
+sub record_audit {
+  get_logger()->warn("LinkedPairtree is deprecated; not recording audit");
+  return 1;
+}
+
 1;

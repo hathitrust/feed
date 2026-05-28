@@ -106,6 +106,8 @@ describe "HTFeed::Storage::PairtreeObjectStore" => sub {
     ok(-l "$bucket_dir/$pt_prefix/test");
   };
 
+  it "can roll back";
+
 };
 
 runtests unless caller;

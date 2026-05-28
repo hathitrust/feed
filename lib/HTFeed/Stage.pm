@@ -80,6 +80,8 @@ sub failed {
     return 1;
 }
 
+
+# FIXME deduplicate
 sub set_error {
     my $self  = shift;
     my $error = shift;
@@ -100,14 +102,27 @@ sub set_error {
     }
 }
 
-sub set_info {
+sub log_warn {
+    my $self    = shift;
+    my $message = shift;
+
+    my $logger = get_logger( ref($self) );
+    $logger->warn(
+        $message,
+        namespace => $self->{volume}->get_namespace(),
+        objid     => $self->{volume}->get_objid(),
+        stage     => ref($self),
+        @_
+    );
+}
+
+sub log_info {
     my $self    = shift;
     my $message = shift;
 
     my $logger = get_logger( ref($self) );
     $logger->info(
-        'Info',
-        detail    => $message,
+        $message,
         namespace => $self->{volume}->get_namespace(),
         objid     => $self->{volume}->get_objid(),
         stage     => ref($self),

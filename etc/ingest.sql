@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS `feed_audit` (
   `id` varchar(30) NOT NULL,
   `sdr_partition` tinyint(4) DEFAULT NULL,
   `zip_size` bigint(20) DEFAULT NULL,
+  `first_ingest_date` datetime NULL DEFAULT CURRENT_TIMESTAMP,
   `image_size` bigint(20) DEFAULT NULL,
   `zip_date` datetime DEFAULT NULL,
   `mets_size` bigint(20) DEFAULT NULL,
@@ -15,7 +16,8 @@ CREATE TABLE IF NOT EXISTS `feed_audit` (
   `md5check_ok` tinyint(1) DEFAULT NULL,
   `is_tombstoned` tinyint(1) DEFAULT NULL,
   PRIMARY KEY (`namespace`,`id`),
-  KEY `feed_audit_zip_date_idx` (`zip_date`)
+  KEY `feed_audit_zip_date_idx` (`zip_date`),
+  KEY `feed_audit_first_ingest_date_idx` (`first_ingest_date`)
 );
 
 CREATE TABLE IF NOT EXISTS `feed_queue_disallow` (
