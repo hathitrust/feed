@@ -559,38 +559,38 @@ sub get_marc_xml {
 
 }
 
-sub get_repository_symlink {
+sub get_repository_path {
     my $self = shift;
 
     # Memoize $self->{repository_symlink}
-    if (not defined $self->{repository_symlink}) {
-	my $link_dir      = get_config("repository","link_dir");
+    if (not defined $self->{repository_path}) {
+	my $repo_home      = get_config("repository_root");
 	my $namespace     = $self->get_namespace();
 	my $objid         = $self->get_objid();
 	my $pairtree_path = id2ppath($objid);
 	my $pt_objid      = $self->get_pt_objid();
 
-	$self->{repository_symlink} = join(
+	$self->{repository_path} = join(
 	    '/',
-	    $link_dir,
+	    $repo_home,
 	    $namespace,
 	    $pairtree_path,
 	    $pt_objid
 	);
     }
 
-    return $self->{repository_symlink};
+    return $self->{repository_path};
 }
 
 sub get_repository_mets_path {
     my $self          = shift;
-    my $repos_symlink = $self->get_repository_symlink();
+    my $repos_path = $self->get_repository_path();
 
-    return unless (-l $repos_symlink or -d $repos_symlink);
+    return unless (-l $repos_path or -d $repos_path);
 
     my $mets_in_repository_file = sprintf(
 	"%s/%s.mets.xml",
-	$repos_symlink,
+	$repos_path,
 	$self->get_pt_objid()
     );
 
@@ -600,13 +600,13 @@ sub get_repository_mets_path {
 
 sub get_repository_zip_path {
     my $self          = shift;
-    my $repos_symlink = $self->get_repository_symlink();
+    my $repos_path = $self->get_repository_path();
 
-    return unless (-l $repos_symlink or -d $repos_symlink);
+    return unless (-l $repos_path or -d $repos_path);
 
     my $zip_in_repository_file = sprintf(
 	"%s/%s.zip",
-	$repos_symlink,
+	$repos_path,
 	$self->get_pt_objid()
     );
 
@@ -1022,7 +1022,7 @@ sub clean_download {
 
 sub ingested{
     my $self = shift;
-    my $link = $self->get_repository_symlink();
+    my $link = $self->get_repository_path();
 
     return 1 if (-e $link);
     return;
@@ -1227,10 +1227,9 @@ Get all files that should be valid UTF-8
 
 Returns an XML::LibXML node with the MARCXML
 
-=item get_repository_symlink()
+=item get_repository_path()
 
-Returns the path to the repository symlink for the object.
-(or the directory if the repository does not use symlinks)
+Returns the path to the directory or symlink in the repository for the object.
 
 =item get_repository_mets_path()
 

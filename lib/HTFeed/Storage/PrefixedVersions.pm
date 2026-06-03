@@ -1,8 +1,5 @@
 # Changes from local pairtree
 #
-# No need to link (although we could do this by setting obj_dir and link_dir to
-# be the same)
-#
 # Path is computed using a prefix of the barcode rather than the complete barcode
 #
 # Filenames include the date stamp

@@ -16,11 +16,13 @@ describe "HTFeed::StorageAudit" => sub {
 
   before each => sub {
     $old_storage_classes = get_config('storage_classes');
+    my $backup_dir = $tmpdirs->dir_for("backup");
+
     my $new_storage_classes = {
       'prefixedversions-test' =>
       {
         class => 'HTFeed::Storage::PrefixedVersions',
-        obj_dir => $tmpdirs->{backup_obj_dir} . '/obj',
+        obj_dir => $backup_dir . '/obj',
         encryption_key => $tmpdirs->test_home . "/fixtures/encryption_key"
       },
       'objectstore-test' =>

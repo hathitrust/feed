@@ -7,7 +7,6 @@ use base qw(HTFeed::Stage);
 
 use Carp qw(croak);
 use HTFeed::Config qw(get_config);
-use HTFeed::Storage::LinkedPairtree;
 use HTFeed::Storage::LocalPairtree;
 use HTFeed::Storage::PairtreeObjectStore;
 use HTFeed::Storage::ObjectStore;
@@ -60,9 +59,6 @@ sub run{
     if($rolled_back) {
       $self->set_error("OperationFailed",operation => "collate", detail => "collate to $storage->{name} failed; rolled back");
     }
-
-    # TODO wait until *all* storages have succeeded to clean up *any*
-    # storages; roll back any that have failed
 
     $self->log_repeat($storage);
   }
@@ -168,7 +164,7 @@ sub record_audit {
 
     my $volume = $self->{volume};
 
-    my $repo_path = $volume->get_repository_symlink();
+    my $repo_path = $volume->get_repository_path();
     my $zip_path = $volume->get_repository_zip_path;
     die("Zip missing (in $repo_path) after collate") unless $zip_path and -e $zip_path;
 

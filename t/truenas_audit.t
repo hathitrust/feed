@@ -82,14 +82,14 @@ describe "bin/audit/main_repo_audit.pl" => sub {
     );
   }
 
-  sub temp_link_path {
+  sub temp_repo_root {
     my $namespace = shift || 'test';
     my $objid = shift || 'test';
 
     return File::Spec->catfile(
       File::Spec->rootdir,
       'tmp',
-      'obj_link',
+      'obj',
       $namespace,
       id2ppath($objid),
       s2ppchars($objid)
@@ -106,19 +106,19 @@ describe "bin/audit/main_repo_audit.pl" => sub {
     my $sdr2_path = temp_sdr_path(2);
     my $sdr1_obj_path = temp_sdr_obj_path(1,$namespace,$objid);
     my $sdr2_obj_path = temp_sdr_obj_path(2,$namespace,$objid);
-    my $temp_link_path = temp_link_path($namespace,$objid);
+    my $temp_repo_root = temp_repo_root($namespace,$objid);
 
     File::Path::make_path("$sdr2_obj_path");
     system("cp -r $tmpdirs->{obj_dir}/* $sdr2_path/obj/");
-    # Symlink into obj_link so Volume.pm can find the files,
+    # Symlink into obj so Volume.pm can find the files,
     # and into sdr1 for symlink checks inside truenas_audit.pl
     # Create directory structures but remove the leaf node so we can recreate it as a symlink.
     # This is kind of silly but trying to create a partial path would be messier.
-    File::Path::make_path($temp_link_path);
-    File::Path::remove_tree($temp_link_path);
+    File::Path::make_path($temp_repo_root);
+    File::Path::remove_tree($temp_repo_root);
     File::Path::make_path($sdr1_obj_path);
     File::Path::remove_tree($sdr1_obj_path);
-    system("ln -sf $sdr2_obj_path $temp_link_path");
+    system("ln -sf $sdr2_obj_path $temp_repo_root");
     system("ln -sf $sdr2_obj_path $sdr1_obj_path");
   }
 
@@ -143,7 +143,7 @@ describe "bin/audit/main_repo_audit.pl" => sub {
     my $tmp_home = $tmpdirs->{tmpdir};
     File::Path::remove_tree("$tmp_home/sdr/1");
     File::Path::remove_tree("$tmp_home/sdr/2");
-    File::Path::remove_tree('/tmp/obj_link');
+    File::Path::remove_tree('/tmp/obj');
     get_dbh->prepare('DELETE FROM feed_storage')->execute;
     get_dbh->prepare('DELETE FROM feed_audit_detail')->execute;
   };
