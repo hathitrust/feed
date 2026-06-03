@@ -6,13 +6,8 @@ test_staging:
 
 test_fixtures: /usr/local/feed/etc/feed_fixtures.sql
 
-repository:
-  # Directory through which volumes in the repository should be accessed
-  link_dir: /tmp/obj_link
-  # Paths for deposit -- deprecated -- configure deposit locations through
-  # storage classes instead
-  obj_dir: /tmp/obj
-  backup_obj_dir: /tmp/obj_backup
+# Directory through which volumes in the repository should be accessed
+repository_root: /tmp/obj
 
 storage_classes:
   pairtree-test:

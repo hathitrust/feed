@@ -6,7 +6,6 @@ use strict;
 use base qw(HTFeed::Stage);
 
 use HTFeed::Config qw(get_config);
-use HTFeed::Storage::LinkedPairtree;
 use HTFeed::Storage::LocalPairtree;
 use HTFeed::Storage::PairtreeObjectStore;
 use HTFeed::Storage::ObjectStore;
@@ -177,7 +176,7 @@ sub record_audit {
 
     my $volume = $self->{volume};
 
-    my $repo_path = $volume->get_repository_symlink();
+    my $repo_path = $volume->get_repository_path();
     my $zip_path = $volume->get_repository_zip_path;
     die("Zip missing (in $repo_path) after collate") unless $zip_path and -e $zip_path;
 

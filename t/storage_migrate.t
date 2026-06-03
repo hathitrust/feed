@@ -23,11 +23,13 @@ describe "HTFeed::Stage::StorageMigrate" => sub {
 
   before each => sub {
     $old_storage_classes = get_config('storage_migrate');
+    my $backup_dir = $tmpdirs->dir_for("backup");
+
     my $new_storage_classes = {
       'prefixedversions-test' =>
       {
         class => 'HTFeed::Storage::PrefixedVersions',
-        obj_dir => $tmpdirs->{backup_obj_dir},
+        obj_dir => $backup_dir,
         encryption_key => $tmpdirs->test_home . "/fixtures/encryption_key"
       },
       'objectstore-test' =>
@@ -54,14 +56,11 @@ describe "HTFeed::Stage::StorageMigrate" => sub {
     my $pt_path = id2ppath($objid);
 
     my $objdir = "$tmpdirs->{obj_dir}/test/$pt_path/$pt_objid";
-    my $link_base = "$tmpdirs->{link_dir}/test/$pt_path";
 
     my $mets = $tmpdirs->test_home . "/fixtures/volumes/$pt_objid.mets.xml";
     my $zip = $tmpdirs->test_home . "/fixtures/volumes/$pt_objid.zip";
 
     system("mkdir -p $objdir");
-    system("mkdir -p $link_base");
-    system("ln -s $objdir $link_base");
     system("cp $zip $objdir/$pt_objid.zip");
     system("cp $mets $objdir/$pt_objid.mets.xml");
   }
@@ -83,15 +82,15 @@ describe "HTFeed::Stage::StorageMigrate" => sub {
 
     my $dbh = get_dbh();
     my $audits = $dbh->selectall_arrayref("SELECT * from feed_audit WHERE namespace = '$namespace' and id = '$objid'");
-    my $versioned_backup = $dbh->selectall_arrayref("SELECT version from feed_backups WHERE namespace = '$namespace' and id = '$objid' and path like ?",undef,$tmpdirs->{backup_obj_dir} . '%');
+    my $versioned_backup = $dbh->selectall_arrayref("SELECT version from feed_backups WHERE namespace = '$namespace' and id = '$objid' and path like ?",undef,$tmpdirs->{backup} . '%');
     my $s3_backup = $dbh->selectall_arrayref("SELECT version from feed_backups WHERE namespace = '$namespace' and id = '$objid' and path like ?",undef,"s3://$bucket%");
 
     is(scalar(@{$versioned_backup}),1,'records a backup for versioned pairtree');
     is(scalar(@{$s3_backup}),1,'records a backup for object store');
 
     my $timestamp = $versioned_backup->[0][0];
-    ok(-e "$tmpdirs->{backup_obj_dir}/$obj_path/$pt_objid.$timestamp.zip.gpg","copies the encrypted zip to backup storage");
-    ok(-e "$tmpdirs->{backup_obj_dir}/$obj_path/$pt_objid.$timestamp.mets.xml","copies the mets backup storage");
+    ok(-e "$tmpdirs->{backup}/$obj_path/$pt_objid.$timestamp.zip.gpg","copies the encrypted zip to backup storage");
+    ok(-e "$tmpdirs->{backup}/$obj_path/$pt_objid.$timestamp.mets.xml","copies the mets backup storage");
 
     my $s3_timestamp = $s3_backup->[0][0];
     ok($s3->s3_has("$namespace.$pt_objid.$s3_timestamp.zip.gpg"),"copies the zip to s3");
