@@ -2,6 +2,7 @@ use FindBin;
 use lib "$FindBin::Bin/lib";
 
 use Test::Spec;
+use File::Path qw(make_path);
 use HTFeed::Test::Support qw(load_db_fixtures);
 use HTFeed::Test::SpecSupport qw(stage_volume);
 use HTFeed::Config qw(set_config get_config);
@@ -9,20 +10,35 @@ use HTFeed::DBTools qw(get_dbh);
 use Test::MockObject;
 
 describe "HTFeed::Collate" => sub {
+  spec_helper 'storage_helper.pl';
+  local our ($tmpdirs, $testlog);
 
   context "with mocked storage" => sub {
     my $storage;
     my $collate;
 
-    before each => sub {
-      $storage = Test::MockObject->new();
+    sub mocked_storage {
+      my $storage = Test::MockObject->new();
       $storage->set_true(qw(stage validate_zip_completeness prevalidate make_object_path move postvalidate record_audit cleanup rollback clean_staging encrypt verify_crypt));
-      $storage->{name} = "mock_storage" => "collate";
+      $storage->{name} = "mock_storage";
+
+      return $storage;
+    }
+
+    before each => sub {
+      $storage = mocked_storage();
 
       my $volume = HTFeed::Volume->new(namespace => 'test',
         objid => 'test',
         packagetype => 'simple');
       $collate = HTFeed::Stage::Collate->new(volume => $volume);
+
+      # TODO remove repo config for obj dir vs. link dir
+      # need to have something here so record_audit will be happy
+      my $obj_path = $tmpdirs->{obj_dir} . "/test/pairtree_root/te/st/test";
+      make_path($obj_path);
+      system("touch $obj_path/test.zip");
+      system("touch $obj_path/test.mets.xml");
 
       get_dbh()->do("DELETE FROM feed_audit WHERE namespace = 'test'");
 
@@ -105,7 +121,17 @@ describe "HTFeed::Collate" => sub {
       };
     };
 
-    it "rolls back first storage if second storage fails";
+    it "rolls back first storage if second storage fails" => sub {
+      my $storage1 = mocked_storage();
+      $storage1->{name} = "storage1";
+      my $storage2 = mocked_storage();
+      $storage2->{name} = "storage2";
+      $storage2->set_false('postvalidate');
+
+      eval { $collate->run($storage1,$storage2) };
+      ok($storage1->called('rollback'));
+      ok($storage2->called('rollback'));
+    };
 
     context "when everything succeeds" => sub {
       it "encrypts the item" => sub {
@@ -128,7 +154,6 @@ describe "HTFeed::Collate" => sub {
         ok($storage->called('clean_staging'));
       };
 
-      # FIXME might be brittle -- relies on something being in /tmp/obj_link probably?
       it "records an audit" => sub {
         $collate->run($storage);
         ok($storage->called('record_audit'));
@@ -178,10 +203,6 @@ describe "HTFeed::Collate" => sub {
   };
 
   context "with real volumes" => sub {
-    spec_helper 'storage_helper.pl';
-
-    local our ($tmpdirs, $testlog);
-
     it "logs a repeat when collated twice" => sub {
       my $volume = stage_volume($tmpdirs,'test','test');
       my $storage = HTFeed::Storage::LocalPairtree->new(

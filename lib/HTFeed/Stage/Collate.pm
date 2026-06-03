@@ -168,11 +168,12 @@ sub record_audit {
 
     my $volume = $self->{volume};
 
+    my $repo_path = $volume->get_repository_symlink();
     my $zip_path = $volume->get_repository_zip_path;
-    die("Zip missing after collate") unless $zip_path and -e $zip_path;
+    die("Zip missing (in $repo_path) after collate") unless $zip_path and -e $zip_path;
 
     my $mets_path = $volume->get_repository_mets_path;
-    die("METS missing after collate") unless $mets_path and -e $mets_path;
+    die("METS missing (in $repo_path) after collate") unless $mets_path and -e $mets_path;
 
     my $zipsize  = -s $zip_path;
     my $zipdate  = $self->file_date($zip_path);
