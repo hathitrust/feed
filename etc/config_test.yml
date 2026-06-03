@@ -8,7 +8,7 @@ test_fixtures: /usr/local/feed/etc/feed_fixtures.sql
 
 repository:
   # Directory through which volumes in the repository should be accessed
-  link_dir: /tmp/obj
+  link_dir: /tmp/obj_link
   # Paths for deposit -- deprecated -- configure deposit locations through
   # storage classes instead
   obj_dir: /tmp/obj

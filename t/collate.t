@@ -21,6 +21,7 @@ describe "HTFeed::Collate" => sub {
       my $storage = Test::MockObject->new();
       $storage->set_true(qw(stage validate_zip_completeness prevalidate make_object_path move postvalidate record_audit cleanup rollback clean_staging encrypt verify_crypt));
       $storage->{name} = "mock_storage";
+      $storage->{errors} = [];
 
       return $storage;
     }
@@ -33,9 +34,8 @@ describe "HTFeed::Collate" => sub {
         packagetype => 'simple');
       $collate = HTFeed::Stage::Collate->new(volume => $volume);
 
-      # TODO remove repo config for obj dir vs. link dir
       # need to have something here so record_audit will be happy
-      my $obj_path = $tmpdirs->{obj_dir} . "/test/pairtree_root/te/st/test";
+      my $obj_path = $tmpdirs->{link_dir} . "/test/pairtree_root/te/st/test";
       make_path($obj_path);
       system("touch $obj_path/test.zip");
       system("touch $obj_path/test.mets.xml");

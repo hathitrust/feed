@@ -5,7 +5,6 @@ use strict;
 
 use base qw(HTFeed::Stage);
 
-use Carp qw(croak);
 use HTFeed::Config qw(get_config);
 use HTFeed::Storage::LinkedPairtree;
 use HTFeed::Storage::LocalPairtree;
@@ -39,37 +38,59 @@ sub run{
   my @storages       = @_;
   @storages          = $self->storages unless @storages;
 
-  foreach my $storage (@storages) {
-    my $rolled_back = 0;
+  $self->{completed_storages} = [];
 
-    if ($self->collate($storage)) {
+  foreach my $storage (@storages) {
+    my $storage_failed = 0;
+
+    my $result = eval { $self->collate($storage) };
+    if (! $@ and defined $result and $result) {
       # TODO log how long it took
-      $self->log_info("finished collate to $storage->{name}, cleaning up");
-      $storage->cleanup
+      $self->log_info("finished collate to $storage->{name}");
     } else {
-      $self->log_warn("collate to $storage->{name} failed, rolling back");
-      $storage->rollback;
-      $rolled_back = 1;
+      # TODO test that we log an error if it raises an exception?
+      $self->log_warn("OperationFailed",operation => "collate", detail => "collate to $storage->{name} failed; will roll back");
+      $storage_failed = 1;
     }
+    push(@{$self->{completed_storages}}, $storage);
 
     $storage->clean_staging();
-    $self->check_errors($storage);
 
-    # If collate returned false but didn't raise an error, we still need to
-    # record that the stage failed
-    if($rolled_back) {
-      $self->set_error("OperationFailed",operation => "collate", detail => "collate to $storage->{name} failed; rolled back");
+    if($storage_failed or @{$storage->{errors}}) {
+      return $self->rollback;
     }
-
-    # TODO wait until *all* storages have succeeded to clean up *any*
-    # storages; roll back any that have failed
 
     $self->log_repeat($storage);
   }
+
+  
+  return $self->finalize;
+}
+
+sub finalize {
+  my $self = shift;
+
+  $self->log_info("Finished collating to all storages, cleaning up");
+  foreach my $storage (@{$self->{completed_storages}}) {
+    get_logger->debug("cleaning up $storage");
+    $storage->cleanup;
+  }
+
   $self->record_audit() if !$self->{failed};
   $self->_set_done();
   $self->{job_metrics}->inc("ingest_collate_items_total");
+  return $self->succeeded();
+}
 
+sub rollback {
+  my $self = shift;
+
+  foreach my $storage (@{$self->{completed_storages}}) {
+    get_logger()->debug("Rolling back collate to $storage->{name}");
+    $storage->rollback;
+  }
+  $self->set_error("OperationFailed",operation => "collate", detail => "collate failed; finished rollback");
+  $self->_set_done();
   return $self->succeeded();
 }
 
@@ -102,18 +123,6 @@ sub collate {
   $storage->move                      &&
   $storage->postvalidate              &&
   $storage->record_audit;
-}
-
-sub check_errors {
-  my $self  = shift;
-  my $stage = shift;
-
-  foreach my $error (@{$stage->{errors}}) {
-    $self->{failed}++;
-    if (get_config('stop_on_error')) {
-      croak("STAGE_ERROR");
-    }
-  }
 }
 
 sub success_info {

@@ -36,7 +36,7 @@ sub staging_dirtypes {
 
 sub repo_dirtypes {
   my $self = shift;
-  return qw(obj_dir other_obj_dir backup_obj_dir);
+  return qw(obj_dir other_obj_dir backup_obj_dir link_dir);
 }
 
 sub cleanup {
@@ -59,7 +59,7 @@ sub setup_example {
   }
 
   # We no longer create symlinks, so obj_dir and link_dir should be the same.
-  set_config($self->{obj_dir},'repository','link_dir');
+  #  set_config($self->{obj_dir},'repository','link_dir');
 }
 
 sub dir_for {
