@@ -14,6 +14,7 @@ use HTFeed::Storage::PrefixedVersions;
 use Log::Log4perl qw(get_logger);
 use POSIX qw(strftime);
 use HTFeed::DBTools qw(get_dbh);
+use Time::HiRes;
 
 =head1 NAME
 
@@ -41,9 +42,11 @@ sub run{
   foreach my $storage (@storages) {
     my $rolled_back = 0;
 
+    my $start_time = Time::HiRes::time();
     if ($self->collate($storage)) {
-      # TODO log how long it took
-      $self->log_info("finished collate to $storage->{name}, cleaning up");
+      my $end_time = Time::HiRes::time();
+      my $delta_time = $end_time - $start_time;
+      $self->log_info("finished collate to $storage->{name}, delta $delta_time, cleaning up");
       $storage->cleanup
     } else {
       $self->log_warn("collate to $storage->{name} failed, rolling back");
