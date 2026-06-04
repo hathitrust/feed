@@ -11,7 +11,6 @@ use HTFeed::Storage::LocalPairtree;
 use HTFeed::Storage::PairtreeObjectStore;
 use HTFeed::Storage::ObjectStore;
 use HTFeed::Storage::PrefixedVersions;
-use Log::Log4perl qw(get_logger);
 use POSIX qw(strftime);
 use HTFeed::DBTools qw(get_dbh);
 use Time::HiRes;
@@ -179,8 +178,8 @@ sub record_audit {
     my $metssize = -s $mets_path;
     my $metsdate = $self->file_date($mets_path);
     my $sth      = get_dbh()->prepare($stmt);
-    get_logger()->trace("feed_audit: $zip_path / $zipdate / $zipsize bytes");
-    get_logger()->trace("feed_audit: $mets_path / $metsdate / $metssize bytes");
+    $self->log_trace("feed_audit: $zip_path / $zipdate / $zipsize bytes");
+    $self->log_trace("feed_audit: $mets_path / $metsdate / $metssize bytes");
     my $res      = $sth->execute(
         $volume->{namespace}, $volume->{objid}, 
         $zipsize, $zipdate, $metssize,  $metsdate,
