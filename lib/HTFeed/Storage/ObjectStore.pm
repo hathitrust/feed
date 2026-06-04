@@ -21,6 +21,8 @@ sub new {
     );
     $self->{checksums} = {};
 
+    $self->{tmp_key} = ".tmp" . sprintf("%08d",rand(1000000));
+
     return $self;
 }
 
@@ -64,6 +66,20 @@ sub object_path {
     );
 }
 
+sub cleanup {
+  my $self = shift;
+
+  my @keys = ($self->mets_key, $self->zip_key);
+
+  foreach my $key (@keys) {
+    my $old_key = $key . $self->{tmp_key} . ".old";
+
+    if($self->{s3}->s3_has($old_key)) {
+      $self->{s3}->rm($old_key);
+    }
+  }
+}
+
 sub clean_staging {
     # No staging path, so nothing to clean
 }
@@ -73,10 +89,14 @@ sub stage_path {
 }
 
 sub stage {
-    return 1;
+    my $self = shift;
+
+    return $self->cp_to($self->{mets_source}, $self->mets_key . $self->{tmp_key}) &&
+           $self->cp_to($self->{zip_source},  $self->zip_key . $self->{tmp_key});
 }
 
 sub prevalidate {
+  # TODO copy postvalidate but use the tmp key
     return 1;
 }
 
@@ -154,6 +174,7 @@ sub postvalidate {
             return;
         }
 
+        # FIXME $self->{checksums}{$key} can be missing?
         unless ($result->{Metadata}{'content-md5'} eq $self->{checksums}{$key}) {
             $self->set_error(
                 'BadValue',
@@ -177,8 +198,55 @@ sub postvalidate {
 sub move {
     my $self = shift;
 
-    $self->cp_to($self->{mets_source}, $self->mets_key);
-    $self->cp_to($self->{zip_source},  $self->zip_key);
+    my @keys = ($self->mets_key, $self->zip_key);
+
+    foreach my $key (@keys) {
+      if($self->{s3}->s3_has($key)) {
+        $self->{s3}->rename($key, $key . $self->{tmp_key} . ".old") or return 0;
+      }
+    }
+
+    foreach my $key (@keys) {
+      my $tmp_key = $key . $self->{tmp_key};
+      # move the new one into place
+      $self->{s3}->rename($tmp_key, $key ) or return 0;
+      $self->{checksums}{$key} = $self->{checksums}{$tmp_key};
+      $self->{filesize}{$key}  = $self->{filesize}{$tmp_key};
+    }
+
+    return 1;
+
+}
+
+# Another possibility here:
+#
+# Use object versioning (which versitygw supports)
+#
+# When "move"ing, just upload a new version
+#
+# If we rollback, delete the version we uploaded, assuming this will make the
+# previous version the current version.
+#
+# When we clean/commit, delete the previous version instead.
+
+sub rollback {
+  my $self = shift;
+
+  my @keys = ($self->mets_key, $self->zip_key);
+
+  foreach my $key (@keys) {
+    if($self->{s3}->s3_has($key. $self->{tmp_key})) {
+      $self->{s3}->rm($key . $self->{tmp_key});
+    }
+  }
+
+  foreach my $key (@keys) {
+    my $old_key = $key . $self->{tmp_key} . ".old";
+
+    if($self->{s3}->s3_has($old_key)) {
+      $self->{s3}->rename($old_key, $key);
+    }
+  }
 }
 
 sub cp_to {
@@ -266,10 +334,13 @@ sub request_glacier_object {
     my $self = shift;
 
     my $req_json = '{"Days":10,"GlacierJobParameters":{"Tier":"Bulk"}}';
-    get_logger->trace("request_glacier_object: requesting $self->zip_filename");
-    $self->{s3}->restore_object($self->zip_filename, '--restore-request', $req_json);
-    get_logger->trace("request_glacier_object: requesting $self->mets_filename");
-    $self->{s3}->restore_object($self->mets_filename, '--restore-request', $req_json);
+
+    foreach my $file ($self->zip_filename, $self->mets_filename) {
+      get_logger->trace("request_glacier_object: requesting $file");
+      $self->{s3}->restore_object($file, '--restore-request', $req_json) or return 0;
+    }
+
+    return 1;
 }
 
 # Returns 1 if both the zip and METS could be restored on the local filesystem.
@@ -277,19 +348,20 @@ sub restore_glacier_object {
     my $self = shift;
     my $dest = shift;
 
+    my $zip = $self->zip_filename;
+    my $mets = $self->mets_filename;
+
     return 0 unless $self->check_glacier_object;
-    get_logger->trace("restore_glacier_object: restoring $self->zip_filename to $dest");
-    $self->{s3}->get_object(
+
+    foreach my $file ($self->zip_filename, $self->mets_filename) {
+      get_logger->trace("restore_glacier_object: restoring $file to $dest");
+      $self->{s3}->get_object(
         $self->{s3}->{'bucket'},
-        $self->zip_filename,
-        $dest . '/' . $self->zip_filename
-    );
-    get_logger->trace("restore_glacier_object: restoring $self->mets_filename to $dest");
-    $self->{s3}->get_object(
-        $self->{s3}->{'bucket'},
-        $self->mets_filename,
-        $dest . '/' . $self->mets_filename
-    );
+        $file,
+        $dest . '/' . $file
+      ) or return 0;
+    }
+
     return 1;
 }
 
@@ -297,14 +369,12 @@ sub restore_glacier_object {
 sub check_glacier_object {
     my $self = shift;
 
-    my $result = $self->{s3}->head_object($self->zip_filename);
-    if ($result->{Restore} && $result->{Restore} =~ m/ongoing-request\s*=\s*"false"/) {
-        $result = $self->{s3}->head_object($self->mets_filename);
-        if ($result->{Restore} && $result->{Restore} =~ m/ongoing-request\s*=\s*"false"/) {
-            return 1;
-        }
+    foreach my $file ($self->zip_filename, $self->mets_filename) {
+      my $result = $self->{s3}->head_object($file);
+      return 0 unless ($result->{Restore} && $result->{Restore} =~ m/ongoing-request\s*=\s*"false"/);
     }
-    return 0;
+
+    return 1;
 }
 
 1;

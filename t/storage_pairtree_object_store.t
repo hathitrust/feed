@@ -56,6 +56,7 @@ describe "HTFeed::Storage::PairtreeObjectStore" => sub {
     it "uploads zip and mets" => sub {
       my $storage = object_storage('test','test');
       my $pt_path = "test/pairtree_root/te/st/test";
+      $storage->stage;
       $storage->move;
 
       # should be in the bucket and also visible in the filesystem
@@ -96,6 +97,7 @@ describe "HTFeed::Storage::PairtreeObjectStore" => sub {
 
     # writes via the symlink in $bucket_dir
     my $storage = object_storage('test','test');
+    $storage->stage;
     $storage->move;
 
     # started as zero size (via touch), should be nonzero size now
@@ -106,7 +108,24 @@ describe "HTFeed::Storage::PairtreeObjectStore" => sub {
     ok(-l "$bucket_dir/$pt_prefix/test");
   };
 
-  it "can roll back";
+  it "can roll back" => sub {
+    my $pt_prefix = "test/pairtree_root/te/st";
+
+    # set things up using filesystem access rather than via s3
+    make_path("$bucket_dir/$pt_prefix");
+    system("touch $bucket_dir/$pt_prefix/test/test.zip");
+    system("touch $bucket_dir/$pt_prefix/test/test.mets.xml");
+
+    # writes via the symlink in $bucket_dir
+    my $storage = object_storage('test','test');
+    $storage->stage;
+    $storage->move;
+    $storage->rollback;
+
+    # started as zero size (via touch), should still be nonzero size
+    ok(! -s "$bucket_dir/$pt_prefix/test/test.zip");
+    ok(! -s "$bucket_dir/$pt_prefix/test/test.mets.xml");
+  }
 
 };
 

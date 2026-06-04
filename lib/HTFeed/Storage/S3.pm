@@ -47,6 +47,7 @@ sub rb {
 sub rm {
   my $self = shift;
   my $path = shift;
+  $path = "/$path" if $path ne '' and substr($path,0,1) ne '/';
   my @args = @_;
   $self->s3("rm","s3://$self->{bucket}$path",@args);
 }
@@ -133,6 +134,17 @@ sub list_objects {
   }
   return $objects;
 }
+
+# renames src to dest within this bucket
+sub rename {
+  my $self = shift;
+  my $src = shift;
+  my $dest = shift;
+
+  return $self->s3('--debug','mv',"s3://$self->{bucket}/$src","s3://$self->{bucket}/$dest",@_);
+  #  return $self->s3('mv','--only-show-errors',"s3://$self->{bucket}/$src","s3://$self->{bucket}/$dest",@_);
+}
+
 
 sub object_iterator {
   my $self = shift;

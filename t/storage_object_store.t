@@ -58,8 +58,9 @@ describe "HTFeed::Storage::ObjectStore" => sub {
       $s3->rm("/","--recursive");
     };
 
-    it "uploads zip and mets" => sub {
+    it "moves zip and mets" => sub {
       my $storage = object_storage('test','test');
+      $storage->stage;
       $storage->move;
 
       ok($s3->s3_has("test.test.$storage->{timestamp}.zip"));
@@ -68,6 +69,7 @@ describe "HTFeed::Storage::ObjectStore" => sub {
 
     it "includes checksum in object metadata" => sub {
       my $storage = object_storage('test','test');
+      $storage->stage;
       $storage->move;
 
       my $result = $s3->s3api('head-object','--key',"test.test.$storage->{timestamp}.zip");
@@ -96,13 +98,13 @@ describe "HTFeed::Storage::ObjectStore" => sub {
 
     it "returns false if zip is not in s3" => sub {
       my $storage = object_storage('test','test');
-      $storage->cp_to($storage->{volume}->get_mets_path());
+      $storage->cp_to($storage->{mets_source}, $storage->mets_key);
       ok( ! $storage->postvalidate);
     };
 
     it "returns false if mets is not in s3" => sub {
       my $storage = object_storage('test','test');
-      $storage->cp_to($storage->zip_source, $storage->zip_key);
+      $storage->cp_to($storage->{zip_source}, $storage->zip_key);
       ok( ! $storage->postvalidate);
     };
 
@@ -110,6 +112,9 @@ describe "HTFeed::Storage::ObjectStore" => sub {
       my $storage = object_storage('test','test');
       $storage->cp_to($storage->{volume}->get_mets_path(), $storage->mets_key);
 
+      # put in the storage directly with s3 & put the checksum in the storage data
+      my $md5_base64 = $storage->md5_base64($storage->zip_source);
+      $storage->{checksums}{$storage->zip_key} = $md5_base64;
       $s3->cp_to($storage->zip_source,$storage->object_path . $storage->zip_suffix);
 
       ok ( !$storage->postvalidate);
@@ -119,6 +124,9 @@ describe "HTFeed::Storage::ObjectStore" => sub {
       my $storage = object_storage('test','test');
       $storage->cp_to($storage->{volume}->get_mets_path,$storage->mets_key);
 
+      # put in the storage directly with s3 & put the checksum in the storage data
+      my $md5_base64 = $storage->md5_base64($storage->zip_source);
+      $storage->{checksums}{$storage->zip_key} = $md5_base64;
       $s3->cp_to($storage->zip_source,$storage->object_path . $storage->zip_suffix,
         "--metadata" => "content-md5=invalid");
 
@@ -129,6 +137,9 @@ describe "HTFeed::Storage::ObjectStore" => sub {
       my $storage = object_storage('test','test');
       $storage->cp_to($storage->zip_source,$storage->zip_key);
 
+      # put in the storage directly with s3 & put the checksum in the storage data
+      my $md5_base64 = $storage->md5_base64($storage->{volume}->get_mets_path);
+      $storage->{checksums}{$storage->mets_key} = $md5_base64;
       $s3->cp_to($storage->{volume}->get_mets_path,
         $storage->object_path . ".mets.xml",
         "--metadata" => "content-md5=invalid");
@@ -138,6 +149,7 @@ describe "HTFeed::Storage::ObjectStore" => sub {
 
     it "returns true after successful move" => sub {
       my $storage = object_storage('test','test');
+      ok($storage->stage);
       ok($storage->move);
       ok($storage->postvalidate);
     };
@@ -150,6 +162,7 @@ describe "HTFeed::Storage::ObjectStore" => sub {
 
     it "records the item info in the feed_backups table" => sub {
       my $storage = object_storage('test','test');
+      $storage->stage;
       $storage->move;
       $storage->record_backup;
 
@@ -164,8 +177,8 @@ describe "HTFeed::Storage::ObjectStore" => sub {
       is($r->[0][3],$storage->{name});
     };
 
-    it "does not record anything if the volume wasn't copied";
-    it "records the checksum of the encrypted zip";
+    it "does not record anything if the volume wasn't copied" => sub {
+    };
   };
 
   context "with encryption enabled" => sub {
@@ -188,6 +201,7 @@ describe "HTFeed::Storage::ObjectStore" => sub {
     it "stores the mets and encrypted zip" => sub {
       my $storage = encrypted_object_storage('test','test');
       $storage->encrypt;
+      $storage->stage;
       $storage->move;
 
       ok($s3->s3_has("test.test.$storage->{timestamp}.zip.gpg"));
@@ -200,6 +214,7 @@ describe "HTFeed::Storage::ObjectStore" => sub {
       my $storage = encrypted_object_storage('test', 'test');
 
       $storage->encrypt;
+      $storage->stage;
       $storage->move;
       $storage->record_backup;
 
