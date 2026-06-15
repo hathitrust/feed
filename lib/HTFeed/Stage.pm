@@ -13,6 +13,7 @@ use File::Find;
 use HTFeed::Config qw(get_config);
 use HTFeed::JobMetrics;
 use Log::Log4perl qw(get_logger);
+use Log::Log4perl::Level;
 use POSIX qw(ceil);
 
 sub new {
@@ -80,40 +81,56 @@ sub failed {
     return 1;
 }
 
+sub log{
+  my $self = shift;
+  my $level = shift;
+  my $message = shift;
+
+  get_logger(ref($self))->log($level, 
+    $message,
+    namespace => $self->{volume}->get_namespace(),
+    objid     => $self->{volume}->get_objid(),
+    stage     => ref($self),
+    @_
+  );
+
+}
+
 sub set_error {
     my $self  = shift;
-    my $error = shift;
     $self->{failed}++;
 
-    # log error w/ l4p
-    my $logger = get_logger( ref($self) );
-    $logger->error(
-        $error,
-        namespace => $self->{volume}->get_namespace(),
-        objid     => $self->{volume}->get_objid(),
-        stage     => ref($self),
-        @_
-    );
+    $self->log($ERROR, @_);
 
     if ( get_config('stop_on_error') ) {
         croak("STAGE_ERROR");
     }
 }
 
-sub set_info {
+sub log_warn {
     my $self    = shift;
-    my $message = shift;
 
-    my $logger = get_logger( ref($self) );
-    $logger->info(
-        'Info',
-        detail    => $message,
-        namespace => $self->{volume}->get_namespace(),
-        objid     => $self->{volume}->get_objid(),
-        stage     => ref($self),
-        @_
-    );
+    $self->log($WARN, @_);
 }
+
+sub log_info {
+    my $self    = shift;
+
+    $self->log($INFO, @_);
+}
+
+sub log_debug {
+    my $self    = shift;
+
+    $self->log($DEBUG, @_);
+}
+
+sub log_trace {
+    my $self    = shift;
+
+    $self->log($TRACE, @_);
+}
+
 
 sub clean {
     my $self    = shift;

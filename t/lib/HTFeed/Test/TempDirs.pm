@@ -18,25 +18,24 @@ sub new {
 
   $self->{test_home} = abs_path($FindBin::Bin);
   $self->{tmpdir} = tempdir("feed-test-XXXXXX",TMPDIR => 1);
+  $self->{dirtypes} = [];
 
   return bless ($self, $class);
 }
 
 sub test_home {
   my $self = shift;
-
   return $self->{test_home};
+}
+
+sub storage_dirtypes {
+  return qw(obj_dir backup);
 }
 
 sub staging_dirtypes {
   my $self = shift;
 
   return qw(ingest preingest zipfile zip download ingested punted fetch);
-}
-
-sub repo_dirtypes {
-  my $self = shift;
-  return qw(link_dir obj_dir other_obj_dir backup_obj_dir);
 }
 
 sub cleanup {
@@ -53,10 +52,11 @@ sub setup_example {
     set_config($self->{$dirtype},'staging',$dirtype);
   }
 
-  foreach my $dirtype ($self->repo_dirtypes) {
+  foreach my $dirtype ($self->storage_dirtypes) {
     $self->{$dirtype} = $self->dir_for($dirtype);
-    set_config($self->{$dirtype},'repository',$dirtype);
   }
+
+  set_config($self->{obj_dir},"repository_root");
 }
 
 sub dir_for {
@@ -64,16 +64,23 @@ sub dir_for {
   my $dirtype = shift;
 
   my $tmpdir = $self->{tmpdir};
+  my $subdir = tempdir("$tmpdir/feed-test-$dirtype-XXXXXX");
 
-  return tempdir("$tmpdir/feed-test-$dirtype-XXXXXX");
+  $self->{$dirtype} = $subdir;
+  push(@{$self->{dirtypes}}, $dirtype);
+
+  return $subdir;
 }
 
 sub cleanup_example {
   my $self = shift;
 
-  foreach my $dirtype ($self->staging_dirtypes, $self->repo_dirtypes) {
-    remove_tree $self->{$dirtype};
+  foreach my $dirtype (@{$self->{dirtypes}}) {
+    my $dir = $self->{$dirtype};
+    remove_tree $dir if defined $dir and -d $dir;
   }
+
+  $self->{dirtypes} = [];
 
 }
 

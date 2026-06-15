@@ -92,7 +92,7 @@ sub zip_source {
 sub encrypted_zip_staging {
     my $self = shift;
 
-    return $self->{volume}->get_zip_path(get_config('staging', 'zipfile')) . '.gpg';
+    return $self->{volume}->get_zip_path(get_config('staging', 'zipfile')) . "-$self->{name}.gpg";
 }
 
 sub encrypt {

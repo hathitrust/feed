@@ -7,10 +7,8 @@ use base qw(HTFeed::Storage);
 
 use File::Pairtree qw(id2ppath s2ppchars);
 use File::Path qw(make_path);
-use HTFeed::DBTools qw(get_dbh);
 use HTFeed::VolumeValidator;
 use Log::Log4perl qw(get_logger);
-use POSIX qw(strftime);
 use URI::Escape;
 
 sub object_path {
@@ -106,50 +104,9 @@ sub make_object_path {
     return 1;
 }
 
-sub file_date {
-    my $self = shift;
-    my $file = shift;
-
-    if (-e $file) {
-        my $seconds = (stat($file))[9];
-        return strftime("%Y-%m-%d %H:%M:%S", localtime($seconds));
-    }
-}
-
-# updates the zip_date in the feed_audit table to the current timestamp for
-# this zip in the repository
 sub record_audit {
-    my $self = shift;
-
-    my $start_time      = $self->{job_metrics}->time;
-    my $path            = $self->object_path();
-    my ($sdr_partition) = ($path =~ qr#/?sdr(\d+)/?#);
-
-    my $stmt =
-    "insert into feed_audit (namespace, id, sdr_partition, zip_size, zip_date, mets_size, mets_date, lastchecked, lastmd5check, md5check_ok) \
-    values(?,?,?,?,?,?,?,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,1) \
-    ON DUPLICATE KEY UPDATE sdr_partition = ?, zip_size=?, zip_date =?,mets_size=?,mets_date=?,lastchecked = CURRENT_TIMESTAMP,lastmd5check = CURRENT_TIMESTAMP, md5check_ok = 1";
-
-    # TODO populate image_size, page_count
-
-    my $zipsize  = $self->zip_size;
-    my $zipdate  = $self->file_date($self->zip_obj_path);
-    my $metssize = $self->mets_size;
-    my $metsdate = $self->file_date($self->mets_obj_path);
-    my $sth      = get_dbh()->prepare($stmt);
-    my $res      = $sth->execute(
-        $self->{namespace}, $self->{objid},
-        $sdr_partition, $zipsize, $zipdate, $metssize,  $metsdate,
-        # duplicate parameters for duplicate key update
-        $sdr_partition, $zipsize, $zipdate, $metssize,  $metsdate
-    );
-
-    my $end_time   = $self->{job_metrics}->time;
-    my $delta_time = $end_time - $start_time;
-    $self->{job_metrics}->inc("ingest_record_audit_items_total");
-    $self->{job_metrics}->add("ingest_record_audit_seconds_total", $delta_time);
-
-    return $res;
+  get_logger()->warn("LocalPairtree for dev/testing purposes only; not recording audit");
+  return 1;
 }
 
 1;

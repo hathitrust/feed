@@ -7,12 +7,13 @@ use base qw(HTFeed::Stage);
 
 use Carp qw(croak);
 use HTFeed::Config qw(get_config);
-use HTFeed::Storage::LinkedPairtree;
 use HTFeed::Storage::LocalPairtree;
 use HTFeed::Storage::PairtreeObjectStore;
 use HTFeed::Storage::ObjectStore;
 use HTFeed::Storage::PrefixedVersions;
-use Log::Log4perl qw(get_logger);
+use POSIX qw(strftime);
+use HTFeed::DBTools qw(get_dbh);
+use Time::HiRes;
 
 =head1 NAME
 
@@ -38,18 +39,32 @@ sub run{
   @storages          = $self->storages unless @storages;
 
   foreach my $storage (@storages) {
+    my $rolled_back = 0;
+
+    my $start_time = Time::HiRes::time();
     if ($self->collate($storage)) {
-      get_logger->trace("finished collate to $storage, cleaning up");
+      my $end_time = Time::HiRes::time();
+      my $delta_time = $end_time - $start_time;
+      $self->log_info("finished collate to $storage->{name}, delta $delta_time, cleaning up");
       $storage->cleanup
     } else {
-      get_logger->warn("collate to $storage failed, rolling back");
+      $self->log_warn("collate to $storage->{name} failed, rolling back");
       $storage->rollback;
+      $rolled_back = 1;
     }
 
     $storage->clean_staging();
     $self->check_errors($storage);
+
+    # If collate returned false but didn't raise an error, we still need to
+    # record that the stage failed
+    if($rolled_back) {
+      $self->set_error("OperationFailed",operation => "collate", detail => "collate to $storage->{name} failed; rolled back");
+    }
+
     $self->log_repeat($storage);
   }
+  $self->record_audit() if !$self->{failed};
   $self->_set_done();
   $self->{job_metrics}->inc("ingest_collate_items_total");
 
@@ -64,7 +79,8 @@ sub log_repeat {
 
   if (-e $volume->get_zip_path() && -e $volume->get_mets_path()) {
     $self->{is_repeat} = 1;
-    $self->set_info('Collating volume that is already in repo');
+    # deprecated format
+    $self->log_info('Collating volume that is already in repo');
   }
 
 }
@@ -73,7 +89,7 @@ sub collate {
   my $self = shift;
   my $storage = shift;
 
-  get_logger->trace("Starting collate for $storage");
+  $self->log_info("Starting collate for $storage->{name}");
 
   $storage->validate_zip_completeness &&
   $storage->encrypt                   &&
@@ -123,6 +139,55 @@ sub clean_success {
 
   $self->{volume}->clear_premis_events();
   $self->{volume}->clean_sip_success();
+}
+
+
+sub file_date {
+    my $self = shift;
+    my $file = shift;
+
+    if (-e $file) {
+        my $seconds = (stat($file))[9];
+        return strftime("%Y-%m-%d %H:%M:%S", localtime($seconds));
+    }
+}
+
+# updates the zip_date in the feed_audit table to the current timestamp for
+# this zip in the repository
+#
+# first_ingest_date is set by default to CURRENT_TIMESTAMP on first insert
+sub record_audit {
+    my $self = shift;
+
+    my $stmt =
+    "insert into feed_audit (namespace, id, zip_size, zip_date, mets_size, mets_date) \
+    values(?,?,?,?,?,?) \
+    ON DUPLICATE KEY UPDATE zip_size=?, zip_date =?,mets_size=?,mets_date=?";
+
+    my $volume = $self->{volume};
+
+    my $repo_path = $volume->get_repository_path();
+    my $zip_path = $volume->get_repository_zip_path;
+    die("Zip missing (in $repo_path) after collate") unless $zip_path and -e $zip_path;
+
+    my $mets_path = $volume->get_repository_mets_path;
+    die("METS missing (in $repo_path) after collate") unless $mets_path and -e $mets_path;
+
+    my $zipsize  = -s $zip_path;
+    my $zipdate  = $self->file_date($zip_path);
+    my $metssize = -s $mets_path;
+    my $metsdate = $self->file_date($mets_path);
+    my $sth      = get_dbh()->prepare($stmt);
+    $self->log_trace("feed_audit: $zip_path / $zipdate / $zipsize bytes");
+    $self->log_trace("feed_audit: $mets_path / $metsdate / $metssize bytes");
+    my $res      = $sth->execute(
+        $volume->{namespace}, $volume->{objid}, 
+        $zipsize, $zipdate, $metssize,  $metsdate,
+        # duplicate parameters for duplicate key update
+        $zipsize, $zipdate, $metssize,  $metsdate
+    );
+
+    return $res;
 }
 
 1;
