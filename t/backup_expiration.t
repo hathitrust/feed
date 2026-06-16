@@ -114,9 +114,14 @@ describe "HTFeed::BackupExpiration" => sub {
   share my %vars;
   shared_examples_for "all storages" => sub {
     it "should create expiration object" => sub {
-      my $exp = HTFeed::BackupExpiration->new(storage_name => $vars{storage_name}, dry_run => 0);
+      my $exp = HTFeed::BackupExpiration->new(
+        storage_name => $vars{storage_name},
+        storage_config => $vars{storage_config},
+        dry_run => 0
+      );
       ok($exp, 'new returns a value');
       is($exp->{storage_name}, $vars{storage_name}, 'expiration has correct storage name');
+      is_deeply($exp->{storage_config}, $vars{storage_config}, 'expiration has correct storage config');
     };
 
     it "deletes nothing when all versions are < 6 months old" => sub {
@@ -125,7 +130,11 @@ describe "HTFeed::BackupExpiration" => sub {
         my $storage = prepare_storage($vars{storage_name}, new_random_timestamp());
         push @versions, $storage;
       }
-      my $exp = HTFeed::BackupExpiration->new(storage_name => $vars{storage_name}, dry_run => 0);
+      my $exp = HTFeed::BackupExpiration->new(
+        storage_name => $vars{storage_name},
+        storage_config => $vars{storage_config},
+        dry_run => 0
+      );
       $exp->run();
       my $deleted = count_deleted_objects('test', 'test');
       is($deleted, 0, 'no objects deleted');
@@ -138,7 +147,11 @@ describe "HTFeed::BackupExpiration" => sub {
     it "deletes nothing with a single old version and single new one" => sub {
       my $old_storage = prepare_storage($vars{storage_name}, old_random_timestamp());
       my $new_storage = prepare_storage($vars{storage_name}, new_random_timestamp());
-      my $exp = HTFeed::BackupExpiration->new(storage_name => $vars{storage_name}, dry_run => 0);
+      my $exp = HTFeed::BackupExpiration->new(
+        storage_name => $vars{storage_name},
+        storage_config => $vars{storage_config},
+        dry_run => 0
+      );
       $exp->run();
       my $deleted = count_deleted_objects('test', 'test');
       is($deleted, 0, 'no objects deleted');
@@ -156,7 +169,11 @@ describe "HTFeed::BackupExpiration" => sub {
       }
       @old_versions = sort { $a->{timestamp} cmp $b->{timestamp}; } @old_versions;
       my $keep = pop @old_versions;
-      my $exp = HTFeed::BackupExpiration->new(storage_name => $vars{storage_name}, dry_run => 0);
+      my $exp = HTFeed::BackupExpiration->new(
+        storage_name => $vars{storage_name},
+        storage_config => $vars{storage_config},
+        dry_run => 0
+      );
       $exp->run();
       foreach my $storage (@old_versions) {
         my $deleted = count_deleted_objects('test', 'test', $storage->{timestamp});
@@ -183,7 +200,11 @@ describe "HTFeed::BackupExpiration" => sub {
         my $storage = prepare_storage($vars{storage_name}, new_random_timestamp());
         push @new_versions, $storage;
       }
-      my $exp = HTFeed::BackupExpiration->new(storage_name => $vars{storage_name}, dry_run => 0);
+      my $exp = HTFeed::BackupExpiration->new(
+        storage_name => $vars{storage_name},
+        storage_config => $vars{storage_config},
+        dry_run => 0
+      );
       $exp->run();
       foreach my $storage (@old_versions) {
         my $deleted = count_deleted_objects('test', 'test', $storage->{timestamp});
@@ -209,7 +230,11 @@ describe "HTFeed::BackupExpiration" => sub {
         my $storage = prepare_storage($vars{storage_name}, old_random_timestamp());
         push @versions, $storage;
       }
-      my $exp = HTFeed::BackupExpiration->new(storage_name => $vars{storage_name}, dry_run => 1);
+      my $exp = HTFeed::BackupExpiration->new(
+        storage_name => $vars{storage_name},
+        storage_config => $vars{storage_config},
+        dry_run => 1
+      );
       $exp->run();
       my $deleted = count_deleted_objects('test', 'test');
       is($deleted, 0, 'no objects deleted');
@@ -223,6 +248,7 @@ describe "HTFeed::BackupExpiration" => sub {
   describe "HTFeed::BackupExpiration for PrefixedVersions" => sub {
     before each => sub {
       $vars{storage_name} = 'prefixedversions-test';
+      $vars{storage_config} = get_config('storage_classes')->{$vars{storage_name}};
     };
 
     it_should_behave_like "all storages";
@@ -231,6 +257,7 @@ describe "HTFeed::BackupExpiration" => sub {
   describe "HTFeed::BackupExpiration for ObjectStore" => sub {
     before each => sub {
       $vars{storage_name} = 'objectstore-test';
+      $vars{storage_config} = get_config('storage_classes')->{$vars{storage_name}};
     };
 
     it_should_behave_like "all storages";
