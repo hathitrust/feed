@@ -1,3 +1,4 @@
+use Test::Exception;
 use Test::Spec;
 
 use HTFeed::BackupExpiration;
@@ -112,6 +113,13 @@ describe "HTFeed::BackupExpiration" => sub {
   }
 
   share my %vars;
+
+  it "throws exception if storage config can't be found" => sub {
+    throws_ok {
+      HTFeed::BackupExpiration->new(storage_name => 'no-such-storage');
+    } "/can't find storage configuration/i";
+  };
+
   shared_examples_for "all storages" => sub {
     it "should create expiration object" => sub {
       my $exp = HTFeed::BackupExpiration->new(
@@ -126,9 +134,11 @@ describe "HTFeed::BackupExpiration" => sub {
 
     it "deletes nothing when all versions are < 6 months old" => sub {
       my @versions;
+      my $new_timestamp = new_random_timestamp();
       foreach my $n (1 .. 3) {
-        my $storage = prepare_storage($vars{storage_name}, new_random_timestamp());
+        my $storage = prepare_storage($vars{storage_name}, $new_timestamp);
         push @versions, $storage;
+        $new_timestamp += 10;
       }
       my $exp = HTFeed::BackupExpiration->new(
         storage_name => $vars{storage_name},
@@ -163,9 +173,11 @@ describe "HTFeed::BackupExpiration" => sub {
 
     it "deletes the oldest old versions when there are no new ones" => sub {
       my @old_versions;
+      my $old_timestamp = old_random_timestamp();
       foreach my $n (1 .. 3) {
-        my $storage = prepare_storage($vars{storage_name}, old_random_timestamp());
+        my $storage = prepare_storage($vars{storage_name}, $old_timestamp);
         push @old_versions, $storage;
+        $old_timestamp -= 10;
       }
       @old_versions = sort { $a->{timestamp} cmp $b->{timestamp}; } @old_versions;
       my $keep = pop @old_versions;
@@ -189,16 +201,20 @@ describe "HTFeed::BackupExpiration" => sub {
 
     it "deletes the oldest old versions when there are new ones" => sub {
       my @old_versions;
+      my $old_timestamp = old_random_timestamp();
       foreach my $n (1 .. 3) {
-        my $storage = prepare_storage($vars{storage_name}, old_random_timestamp());
+        my $storage = prepare_storage($vars{storage_name}, $old_timestamp);
         push @old_versions, $storage;
+        $old_timestamp -= 10;
       }
       @old_versions = sort { $a->{timestamp} cmp $b->{timestamp}; } @old_versions;
       my $keep = pop @old_versions;
       my @new_versions;
+      my $new_timestamp = new_random_timestamp();
       foreach my $n (1 .. 3) {
-        my $storage = prepare_storage($vars{storage_name}, new_random_timestamp());
+        my $storage = prepare_storage($vars{storage_name}, $new_timestamp);
         push @new_versions, $storage;
+        $new_timestamp += 10;
       }
       my $exp = HTFeed::BackupExpiration->new(
         storage_name => $vars{storage_name},
@@ -226,9 +242,11 @@ describe "HTFeed::BackupExpiration" => sub {
 
     it "deletes nothing when there are old versions but is given the dry run flag" => sub {
       my @versions;
+      my $old_timestamp = old_random_timestamp();
       foreach my $n (1 .. 3) {
-        my $storage = prepare_storage($vars{storage_name}, old_random_timestamp());
+        my $storage = prepare_storage($vars{storage_name}, $old_timestamp );
         push @versions, $storage;
+        $old_timestamp -= 10;
       }
       my $exp = HTFeed::BackupExpiration->new(
         storage_name => $vars{storage_name},
@@ -242,6 +260,35 @@ describe "HTFeed::BackupExpiration" => sub {
         ok(!mets_deleted($storage), "new ($storage->{timestamp}) mets left intact");
         ok(!zip_deleted($storage), "new ($storage->{timestamp}) zip left intact");
       }
+    };
+
+    it "spawns multiple workers when job size is small" => sub {
+      my @old_versions;
+      my $old_timestamp = old_random_timestamp();
+      foreach my $n (1 .. 10) {
+        my $storage = prepare_storage($vars{storage_name}, --$old_timestamp);
+        push @old_versions, $storage;
+        $old_timestamp -= 10;
+      }
+      @old_versions = sort { $a->{timestamp} cmp $b->{timestamp}; } @old_versions;
+      my $keep = pop @old_versions;
+      my $exp = HTFeed::BackupExpiration->new(
+        storage_name => $vars{storage_name},
+        storage_config => $vars{storage_config},
+        dry_run => 0,
+        job_size => 1
+      );
+      $exp->run();
+      foreach my $storage (@old_versions) {
+        my $deleted = count_deleted_objects('test', 'test', $storage->{timestamp});
+        is($deleted, 1, 'old object is marked feed_backups.deleted');
+        ok(mets_deleted($storage), "old ($storage->{timestamp}) mets deleted");
+        ok(zip_deleted($storage), "old ($storage->{timestamp}) zip deleted");
+      }
+      my $deleted = count_deleted_objects('test', 'test', $keep->{timestamp});
+      is($deleted, 0, 'newer object is not marked feed_backups.deleted');
+      ok(!mets_deleted($keep), "newer ($keep->{timestamp}) mets left intact");
+      ok(!zip_deleted($keep), "newer ($keep->{timestamp}) zip left intact");
     };
   };
 

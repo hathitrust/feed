@@ -4,6 +4,7 @@ package HTFeed::BackupExpirationBatch;
 use strict;
 use warnings;
 
+use Carp ();
 use Data::Dumper;
 
 use HTFeed::Config qw(get_config);
@@ -35,17 +36,14 @@ sub new {
   };
 
   unless ($self->{storage_name}) {
-    use Carp;
     Carp::croak "$class cannot be constructed without a storage name";
   }
 
   unless ($self->{job_file}) {
-    use Carp;
     Carp::croak "$class cannot be constructed without a path to a job file";
   }
 
   unless (-e $self->{job_file}) {
-    use Carp;
     Carp::croak "job file does not exist: $self->{job_file}";
   }
 

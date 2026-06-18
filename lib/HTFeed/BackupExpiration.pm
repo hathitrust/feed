@@ -8,6 +8,7 @@ use HTFeed::Config qw(get_config);
 use HTFeed::DBTools qw(get_dbh);
 use HTFeed::Volume;
 
+use Carp ();
 use File::Spec ();
 use File::Temp ();
 use Log::Log4perl qw(get_logger);
@@ -41,12 +42,12 @@ sub new {
   my $self = {
     storage_name => undef,
     custom_storage_config => 0,
-    max_workers => 1,
+    max_workers => 8,
+    job_size => 10000,
     @_
   };
 
   unless ($self->{storage_name}) {
-    use Carp;
     Carp::croak "$class cannot be constructed without a storage name";
   }
 
@@ -67,8 +68,6 @@ sub new {
   bless($self, $class);
   return $self;
 }
-
-my $JOB_SIZE = 10000;
 
 sub run {
   my $self = shift;
@@ -98,12 +97,12 @@ sub run {
     shift @versions; # jettison the most recent
     foreach my $version (@versions) {
       push(@$job, [$row->{namespace}, $row->{id}, $version]);
-    }
-    # Do we have enough to spawn a worker?
-    if (scalar @$job >= $JOB_SIZE) {
-      $self->wait_for_available_worker;
-      $self->spawn_worker($job);
-      $job = [];
+      # Do we have enough to spawn a worker?
+      if (scalar @$job >= $self->{job_size}) {
+        $self->wait_for_available_worker;
+        $self->spawn_worker($job);
+        $job = [];
+      }
     }
   }
   # Submit the leftovers if any
@@ -130,10 +129,12 @@ sub wait_for_available_worker {
   if (scalar keys %{$self->{workers}} >= $self->{max_workers}) {
     my $pid = 0;
     do {
-      # Wait for any worker
+      # Wait for any worker. This blocks indefinitely but there's nothing else
+      # for this process to do but wait.
       $pid = waitpid(-1, 0);
       if ($pid > 0) {
         my $job_file = $self->{workers}->{$pid};
+        get_logger->trace("worker [$pid] exited with status $? - removing $job_file");
         unlink $job_file->filename;
         delete $self->{workers}->{$pid};
       }
@@ -154,7 +155,6 @@ sub spawn_worker {
     print $job_file join("\t", @$version) . "\n";
   }
   $job_file->close;
-  
   my $pid = fork();
   if (!defined $pid) {
     die "Fork failed: $!";
@@ -172,6 +172,7 @@ sub spawn_worker {
     exec(@cmd) or die "worker [$$] exec failed to run: $!\n";
   } else {
     # PARENT PROCESS
+    get_logger->trace("worker [$pid] started with $job_file (" . scalar(@$job) . " items)");
     $self->{workers}->{$pid} = $job_file;
   }
 }
