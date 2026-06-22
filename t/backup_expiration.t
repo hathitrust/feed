@@ -132,6 +132,16 @@ describe "HTFeed::BackupExpiration" => sub {
       is_deeply($exp->{storage_config}, $vars{storage_config}, 'expiration has correct storage config');
     };
 
+    it "uses `limit` parameter to restrict the main database query" => sub {
+      my $exp = HTFeed::BackupExpiration->new(
+        storage_name => $vars{storage_name},
+        storage_config => $vars{storage_config},
+        dry_run => 0,
+        limit => 999
+      );
+      ok($exp->select_expired_sql =~ /LIMIT \d+$/, 'main query ends with LIMIT N');
+    };
+
     it "deletes nothing when all versions are < 6 months old" => sub {
       my @versions;
       my $new_timestamp = new_random_timestamp();

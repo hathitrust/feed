@@ -44,6 +44,7 @@ sub new {
     custom_storage_config => 0,
     max_workers => 8,
     job_size => 10000,
+    limit => undef,
     @_
   };
 
@@ -83,7 +84,7 @@ sub run {
     close $fh;
   }
 
-  my $sth = get_dbh()->prepare($select_expired_sql);
+  my $sth = get_dbh()->prepare($self->select_expired_sql);
   my $versions_sth = get_dbh()->prepare($select_versions_sql);
 
   my $job = [];
@@ -175,6 +176,13 @@ sub spawn_worker {
     get_logger->trace("worker [$pid] started with $job_file (" . scalar(@$job) . " items)");
     $self->{workers}->{$pid} = $job_file;
   }
+}
+
+sub select_expired_sql {
+  my $self = shift;
+
+  my $limit_clause = (defined $self->{limit}) ? " LIMIT $self->{limit}" : '';
+  return $select_expired_sql . $limit_clause;
 }
 
 1;
