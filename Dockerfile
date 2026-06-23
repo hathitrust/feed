@@ -37,6 +37,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libreadonly-xs-perl \
     libroman-perl \
     libtest-class-perl \
+    libtest-exception-perl \
     libtest-mockobject-perl \
     libtest-most-perl \
     libtest-spec-perl \
