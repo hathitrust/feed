@@ -1,0 +1,54 @@
+<?xml version="1.0"?>
+<METS:mets xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:PREMIS="info:lc/xmlns/premis-v2" xmlns:METS="http://www.loc.gov/METS/" xmlns:xlink="http://www.w3.org/1999/xlink" xsi:schemaLocation="http://www.loc.gov/METS/ http://www.loc.gov/standards/mets/mets.xsd">
+  <METS:metsHdr/>
+  <METS:amdSec ID="AMD1">
+    <METS:digiprovMD ID="premis1">
+      <METS:mdWrap MIMETYPE="text/xml" MDTYPE="PREMIS">
+        <METS:xmlData>
+          <PREMIS:premis version="2.0">
+            <PREMIS:object xsi:type="PREMIS:representation">
+              <PREMIS:objectIdentifier>
+                <PREMIS:objectIdentifierType>HathiTrust</PREMIS:objectIdentifierType>
+                <PREMIS:objectIdentifierValue>test.test</PREMIS:objectIdentifierValue>
+              </PREMIS:objectIdentifier>
+            </PREMIS:object>
+            <PREMIS:event>
+              <PREMIS:eventIdentifier>
+                <PREMIS:eventIdentifierType>test</PREMIS:eventIdentifierType>
+                <PREMIS:eventIdentifierValue>test-ingestion</PREMIS:eventIdentifierValue>
+              </PREMIS:eventIdentifier>
+              <PREMIS:eventType>ingestion</PREMIS:eventType>
+              <PREMIS:eventDateTime>2012-10-09T18:32:17Z</PREMIS:eventDateTime>
+              <PREMIS:eventDetail>Ingestion of object package into repository</PREMIS:eventDetail>
+              <PREMIS:linkingAgentIdentifier>
+                <PREMIS:linkingAgentIdentifierType>HathiTrust Institution ID</PREMIS:linkingAgentIdentifierType>
+                <PREMIS:linkingAgentIdentifierValue>umich</PREMIS:linkingAgentIdentifierValue>
+                <PREMIS:linkingAgentRole>Executor</PREMIS:linkingAgentRole>
+              </PREMIS:linkingAgentIdentifier>
+            </PREMIS:event>
+          </PREMIS:premis>
+        </METS:xmlData>
+      </METS:mdWrap>
+    </METS:digiprovMD>
+  </METS:amdSec>
+  <METS:fileSec>
+    <METS:fileGrp ID="FG1" USE="zip archive">
+      <METS:file MIMETYPE="application/zip" CHECKSUM="2d40d65c1aecd857b3f780e85bc9bd92" CHECKSUMTYPE="MD5" ID="ZIP00000001" SEQ="00000001">
+        <METS:FLocat LOCTYPE="OTHER" OTHERLOCTYPE="SYSTEM" xlink:href="test.zip"/>
+      </METS:file>
+    </METS:fileGrp>
+    <METS:fileGrp ID="FG2" USE="source METS">
+      <METS:file MIMETYPE="text/xml" CHECKSUM="d41d8cd98f00b204e9800998ecf8427e" CHECKSUMTYPE="MD5" ID="METS00000001" SEQ="00000001">
+        <METS:FLocat LOCTYPE="OTHER" OTHERLOCTYPE="SYSTEM" xlink:href="Test.mets.xml"/>
+      </METS:file>
+    </METS:fileGrp>
+    <METS:fileGrp ID="FG3" USE="image">
+      <METS:file CHECKSUMTYPE="MD5" SEQ="00000001" ID="IMG00000001" CHECKSUM="d41d8cd98f00b204e9800998ecf8427e">
+        <METS:FLocat OTHERLOCTYPE="SYSTEM" LOCTYPE="OTHER" xlink:href="00000001.jp2"/>
+      </METS:file>
+    </METS:fileGrp>
+  </METS:fileSec>
+  <METS:structMap>
+    <METS:div/>
+  </METS:structMap>
+</METS:mets>
