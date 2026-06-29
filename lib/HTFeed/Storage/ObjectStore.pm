@@ -11,6 +11,7 @@ use HTFeed::StorageAudit::ObjectStore;
 use Log::Log4perl qw(get_logger);
 use MIME::Base64 qw(decode_base64);
 use POSIX qw(strftime);
+use JSON::XS ();
 
 sub new {
     my $class = shift;
@@ -20,6 +21,7 @@ sub new {
         awscli => $self->{config}{awscli}
     );
     $self->{checksums} = {};
+    $self->{json_xs} = JSON::XS->new;
 
     return $self;
 }
@@ -37,11 +39,18 @@ sub delete_objects {
     my $mets = $self->mets_key;
     my $zip  = $self->zip_key;
     get_logger->trace("deleting $mets and $zip");
+    my $payload = {
+      'Objects' => [
+        { 'Key' => $mets },
+        { 'Key' => $zip }
+      ],
+      'Quiet' => \1
+    };
     eval {
-        $self->{s3}->rm('/' . $mets);
-        $self->{s3}->rm('/' . $zip);
+      $self->{s3}->s3api('delete-objects', '--delete', $self->{json_xs}->encode($payload));
     };
     if ($@) {
+    print STDERR "\n\n\nWAHAPPA? $@\n\n\n";
         $self->set_error(
             'OperationFailed',
             detail => "delete_objects failed: $@"
