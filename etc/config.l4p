@@ -1,5 +1,16 @@
 log4perl.rootLogger                     = sub {return HTFeed::Log::get_root_log_config();}
 
+log4perl.filter.error = Log::Log4perl::Filter::LevelMatch
+log4perl.filter.error.LevelToMatch = ERROR
+log4perl.filter.error.AcceptOnMatch = true
+
+log4perl.filter.collate_succeeds = Log::Log4perl::Filter::StringMatch
+log4perl.filter.collate_succeeds.StringToMatch = StageSucceeded.*Collate
+log4perl.filter.collate_succeeds.AcceptOnMatch = true
+
+log4perl.filter.dbi_filter = Log::Log4perl::Filter::Boolean
+log4perl.filter.dbi_filter.logic = error || collate_succeeds
+
 # appender dbi
 log4perl.appender.dbi                   = HTFeed::Log::Appender::DBI
 log4perl.appender.dbi.sql =         \
@@ -12,6 +23,7 @@ log4perl.appender.dbi.params.2 = %p
 log4perl.appender.dbi.layout            = Log::Log4perl::Layout::NoopLayout
 log4perl.appender.dbi.warp_message      = HTFeed::Log::Warp::toDBArray
 log4perl.appender.dbi.utf8           = 1
+log4perl.appender.dbi.Filter = dbi_filter
 
 # appender screen
 log4perl.appender.screen                = Log::Log4perl::Appender::ScreenColoredLevels
