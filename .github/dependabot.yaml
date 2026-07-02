@@ -1,0 +1,21 @@
+version: 2
+updates:
+# For GitHub Actions updates
+- package-ecosystem: "github-actions"
+  directory: "/"
+  schedule:
+    interval: "monthly"
+    time: "06:00"
+    day: "monday"
+    timezone: "America/Detroit"
+  commit-message:
+    prefix: "fix: "
+  open-pull-requests-limit: 5
+  labels:
+  - "dependencies"
+  groups:
+    all:
+      patterns:
+      - "*"
+  cooldown:
+    default-days: 7
