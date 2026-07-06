@@ -13,6 +13,56 @@ use MIME::Base64 qw(decode_base64);
 use POSIX qw(strftime);
 use JSON::XS ();
 
+# Class method for doing mass deletion of multiple objects at a time.
+# Pass arrayref of keys to delete.
+sub mass_delete {
+  my ($class, %args)  = @_;
+
+  $args{keys} || die("Missing required argument 'keys'");
+  $args{config} || die("Missing required argument 'config'");
+
+  if (scalar @{$args{keys}} > 1000) {
+    die "can't use s3api delete-objects for more than 1000 objects"
+  }
+
+  my $json_xs = JSON::XS->new;
+  my $s3 = HTFeed::Storage::S3->new(
+    bucket => $args{config}{bucket},
+    awscli => $args{config}{awscli}
+  );
+  get_logger->trace("deleting objects");
+  my $payload = {
+    'Objects' => [],
+    'Quiet' => \1
+  };
+  foreach my $key (@{$args{keys}}) {
+    push @{$payload->{Objects}}, { Key => $key };
+  }
+  my $json_file = File::Temp->new(
+    SUFFIX => '.json',
+    UNLINK => 1
+  );
+
+  print $json_file $json_xs->encode($payload);
+  $json_file->close;
+
+  eval {
+    $s3->s3api('delete-objects', '--delete', "file://$json_file");
+  };
+  if ($@) {
+    get_logger->error("could not delete $json_file: $@");
+    return;
+  }
+  return 1;
+}
+
+# Class method: collect the keys for a mass_delete call.
+sub object_keys {
+  my $self = shift;
+
+  return [$self->mets_key, $self->zip_key];
+}
+
 sub new {
     my $class = shift;
     my $self  = $class->SUPER::new(@_);
@@ -50,7 +100,6 @@ sub delete_objects {
       $self->{s3}->s3api('delete-objects', '--delete', $self->{json_xs}->encode($payload));
     };
     if ($@) {
-    print STDERR "\n\n\nWAHAPPA? $@\n\n\n";
         $self->set_error(
             'OperationFailed',
             detail => "delete_objects failed: $@"

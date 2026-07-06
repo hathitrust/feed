@@ -127,19 +127,16 @@ sub run {
 sub wait_for_available_worker {
   my $self = shift;
 
-  if (scalar keys %{$self->{workers}} >= $self->{max_workers}) {
-    my $pid = 0;
-    do {
-      # Wait for any worker. This blocks indefinitely but there's nothing else
-      # for this process to do but wait.
-      $pid = waitpid(-1, 0);
-      if ($pid > 0) {
-        my $job_file = $self->{workers}->{$pid};
-        get_logger->trace("worker [$pid] exited with status $? - removing $job_file");
-        unlink $job_file->filename;
-        delete $self->{workers}->{$pid};
-      }
-    } while ($pid > 0);
+  while (scalar keys %{$self->{workers}} && scalar keys %{$self->{workers}} >= $self->{max_workers}) {
+    # Wait for any worker. This blocks indefinitely but there's nothing else
+    # for this process to do but wait.
+    my $pid = waitpid(-1, 0);
+    if ($pid > 0) {
+      my $job_file = $self->{workers}->{$pid};
+      get_logger->trace("worker [$pid] exited with status $? - removing $job_file");
+      unlink $job_file->filename;
+      delete $self->{workers}->{$pid};
+    }
   }
 }
 
@@ -150,7 +147,7 @@ sub spawn_worker {
   my $job_file = File::Temp->new(
     DIR => $self->{temp_directory},
     SUFFIX => '.tsv',
-    CLEANUP => 0
+    UNLINK => 0
   );
   foreach my $version (@$job) {
     print $job_file join("\t", @$version) . "\n";
