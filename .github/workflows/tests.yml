@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       # runner runs as userid 1001 but userid 1000 is baked into docker image.
       # we could adjust this if needed via env var but this should work
