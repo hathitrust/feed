@@ -29,6 +29,34 @@ sub zip_audit_class {
   return 'HTFeed::StorageAudit::PrefixedVersions';
 }
 
+# Class method for doing mass deletion of multiple objects at a time.
+# Pass arrayref of keys to delete.
+sub mass_delete {
+  my ($class, %args)  = @_;
+
+  $args{keys} || die("Missing required argument 'keys'");
+  $args{config} || die("Missing required argument 'config'");
+
+  eval {
+    foreach my $key (@{$args{keys}}) {
+      unlink $key;
+    }
+  };
+
+  if ($@) {
+    get_logger->error("could not delete: $@");
+    return;
+  }
+  return 1;
+}
+
+# Class method: collect the keys (paths in this case) for a mass_delete call.
+sub object_keys {
+  my $self = shift;
+
+  return [$self->zip_obj_path, $self->mets_obj_path];
+}
+
 sub delete_objects {
   my $self = shift;
 

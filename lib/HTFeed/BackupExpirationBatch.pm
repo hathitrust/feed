@@ -66,14 +66,60 @@ sub run {
   my $self = shift;
 
   open(my $fh, '<:encoding(UTF-8)', $self->{job_file}) or die "could not open $$self->{job_file}: $!";
-  while (my $line = <$fh>) {
-    chomp $line;
-    my ($namespace, $id, $version) = split(/\t/, $line, 3);
-    $self->delete_version($namespace, $id, $version);
+  my $storage_deletes = [];
+  my $database_deletes = [];
+  while (1) {
+    my $line = <$fh>;
+    if ($line) {
+      chomp $line;
+      my ($namespace, $id, $version) = split(/\t/, $line, 3);
+      push @$storage_deletes, @{$self->storage_keys($namespace, $id, $version)};
+      push @$database_deletes, [$namespace, $id, $version];
+    }
+    # Now process the (sub)batch if max size or if at EOF.
+    # Maximum batch size is 1000 for glacier but buy some wiggle room by using 990,
+    # so we don't go over and have the whole batch fail.
+    if (!$line || scalar @$storage_deletes >= 990) {
+      $self->mass_delete($storage_deletes);
+      $self->mass_update($database_deletes);
+      $storage_deletes = [];
+      $database_deletes = [];
+    }
+    last unless $line;
   }
 }
 
-sub delete_version {
+# Use storage class `mass_delete` method to delete an arrayref of keys/files.
+sub mass_delete {
+  my $self = shift;
+  my $storage_deletes = shift;
+
+  return if $self->{dry_run};
+
+  unless ($self->{storage_config}->{class}->mass_delete(
+    config => $self->{storage_config},
+    keys => $storage_deletes
+  )) {
+    die sprintf("mass_delete: unable to delete %d volumes", scalar $storage_deletes);
+  }
+}
+
+# Update database to reflect deletion of arrayref of [namespace, id, version]
+sub mass_update {
+  my $self = shift;
+  my $database_deletes = shift;
+
+  return if $self->{dry_run};
+
+  foreach my $row (@$database_deletes) {
+    my ($namespace, $id, $version) = @$row;
+    get_logger->trace("setting deleted=1 for $namespace.$id version $version");
+    $self->{update_sth}->execute($namespace, $id, $version, $self->{storage_name});
+  }
+}
+
+# return arrayref of keys/filenames to delete, typically the mets and zip
+sub storage_keys {
   my $self = shift;
   my $namespace = shift;
   my $id = shift;
@@ -94,14 +140,7 @@ sub delete_version {
   }
   $storage->{timestamp} = $version;
   $storage->{zip_suffix} = '.gpg';
-  get_logger->trace("deleting archive for $volume->{namespace}.$volume->{objid} version $version" . $self->{dry_run_text});
-  return if $self->{dry_run};
-
-  unless ($storage->delete_objects) {
-    die "Unable to delete $volume->{namespace}.$volume->{objid} version $version";
-  }
-  get_logger->trace("setting deleted=1 for $volume->{namespace}.$volume->{objid} version $version");
-  $self->{update_sth}->execute($namespace, $id, $version, $self->{storage_name});
+  return $storage->object_keys;
 }
 
 1;
