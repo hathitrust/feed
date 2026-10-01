@@ -38,7 +38,7 @@ jobs:
             contents: read
             packages: write
         name: Build Image
-        uses: hathitrust/github_actions/.github/workflows/build.yml@dc1e0d1e000e898af7ac65b5ecb1e3f7d9fd1dcc # v2.1.0
+        uses: hathitrust/github_actions/.github/workflows/build.yml@70aa6270dd1555f0e52bff3d7894ecdb7c76f80f # v2.1.1
         with:
             image: ghcr.io/${{ github.repository }}
             dockerfile: Dockerfile
