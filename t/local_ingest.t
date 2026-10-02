@@ -282,7 +282,9 @@ describe "HTFeed::PackageType::Simple::Volume" => sub {
       eval {
         $volume->clean_sip_success();
       };
-      ok($testlog->matches(qr(running.+?rclone.+?delete)i) && !$@);
+      ok(!$@);
+      ok($testlog->matches(qr(Running.+?rclone.+?delete.*test_objid.zip)));
+      ok($testlog->matches(qr(Running.+?rclone.+?delete.*TEST_OBJID.zip)));
     };
   };
 };
