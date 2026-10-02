@@ -123,7 +123,15 @@ sub clean_sip_success {
   $self->SUPER::clean_sip_success();
   return 1 unless get_config('use_dropbox');
   my $rclone = HTFeed::Rclone->new;
-  $rclone->delete($self->dropbox_url());
+
+  my $dropbox_url = $self->dropbox_url();
+  # replace identifier with uppercased version
+  my $uppercase_id_url = $dropbox_url;
+  $uppercase_id_url =~ s/([^\/]+).zip$/uc($1) . ".zip"/e;
+
+  $rclone->delete($dropbox_url);
+  $rclone->delete($uppercase_id_url);
+
 }
 
 sub dropbox_url {
